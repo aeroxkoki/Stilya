@@ -1,13 +1,32 @@
 import { create } from 'zustand';
 import { AuthState, User } from '@/types';
-import { supabase, signIn, signUp, signOut } from '@/services/supabase';
+import {
+  supabase,
+  signIn,
+  signUp,
+  signOut,
+  resetPassword,
+  updatePassword,
+  refreshSession,
+  isSessionExpired,
+  createUserProfile,
+  getUserProfile,
+  updateUserProfile
+} from '@/services/supabase';
 
 interface AuthStore extends AuthState {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   initialize: () => Promise<void>;
+  resetUserPassword: (email: string) => Promise<void>;
+  updateUserPassword: (newPassword: string) => Promise<void>;
+  checkAndRefreshSession: () => Promise<boolean>;
   setUser: (user: User | null) => void;
+  createProfile: (profile: Partial<User>) => Promise<void>;
+  fetchUserProfile: () => Promise<void>;
+  updateProfile: (updates: Partial<User>) => Promise<void>;
+  clearError: () => void;
 }
 
 export const useAuthStore = create<AuthStore>((set, get) => ({
@@ -17,6 +36,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   error: null,
   
   setUser: (user) => set({ user }),
+  clearError: () => set({ error: null }),
   
   initialize: async () => {
     try {
@@ -26,31 +46,40 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session) {
-        // セッションがある場合はユーザー情報を取得
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (user) {
-          // ユーザープロファイルを取得（Supabaseのprofilesテーブルから）
-          const { data: profile, error } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', user.id)
-            .single();
-            
-          if (error && error.code !== 'PGRST116') {
-            // PGRST116はデータが見つからないエラー
-            console.error('Error fetching user profile:', error);
-          }
+        // セッションの有効期限をチェック
+        if (isSessionExpired(session)) {
+          // セッションの更新が必要な場合
+          const { data } = await refreshSession();
           
-          set({
-            user: {
-              id: user.id,
-              email: user.email,
-              ...profile
-            },
-            session,
-            loading: false,
-          });
+          if (data.session) {
+            const { data: { user } } = await supabase.auth.getUser();
+            
+            if (user) {
+              await get().fetchUserProfile();
+            }
+          } else {
+            // 更新に失敗した場合はログアウト状態
+            set({ user: null, session: null, loading: false });
+            return;
+          }
+        } else {
+          // 有効なセッションがある場合はユーザー情報を取得
+          const { data: { user } } = await supabase.auth.getUser();
+          
+          if (user) {
+            // ユーザープロファイルを取得
+            const profile = await getUserProfile(user.id);
+            
+            set({
+              user: {
+                id: user.id,
+                email: user.email,
+                ...profile
+              },
+              session,
+              loading: false,
+            });
+          }
         }
       } else {
         // セッションがない場合はログアウト状態
@@ -62,20 +91,43 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     }
   },
   
+  checkAndRefreshSession: async () => {
+    try {
+      const { session } = get();
+      
+      if (!session) return false;
+      
+      if (isSessionExpired(session)) {
+        const { data } = await refreshSession();
+        if (data.session) {
+          set({ session: data.session });
+          return true;
+        }
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error refreshing session:', error);
+      return false;
+    }
+  },
+  
   login: async (email, password) => {
     try {
       set({ loading: true, error: null });
       const data = await signIn(email, password);
       
       if (data.user) {
-        const { data: profile, error } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', data.user.id)
-          .single();
-          
-        if (error && error.code !== 'PGRST116') {
-          console.error('Error fetching user profile:', error);
+        // ユーザープロファイルを取得
+        const profile = await getUserProfile(data.user.id);
+        
+        // プロファイルがない場合は作成
+        if (!profile) {
+          await createUserProfile({
+            id: data.user.id,
+            email: data.user.email,
+          });
         }
         
         set({
@@ -90,8 +142,21 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       }
     } catch (error: any) {
       console.error('Error logging in:', error);
+      
+      // エラーメッセージを整形
+      let errorMessage = 'ログインに失敗しました';
+      if (error.message) {
+        if (error.message.includes('Invalid login credentials')) {
+          errorMessage = 'メールアドレスかパスワードが間違っています';
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMessage = 'メールアドレスが確認されていません。メールをご確認ください';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       set({
-        error: error.message || 'ログインに失敗しました',
+        error: errorMessage,
         loading: false,
       });
     }
@@ -102,20 +167,47 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       set({ loading: true, error: null });
       const data = await signUp(email, password);
       
-      // サインアップ後は、ユーザーが確認メールを受け取る場合があるため、
-      // すぐにログイン状態にならない場合がある
-      set({
-        user: data.user ? {
+      // サインアップ後、ユーザーが存在する場合はプロファイルを作成
+      if (data.user) {
+        await createUserProfile({
           id: data.user.id,
           email: data.user.email,
-        } : null,
-        session: data.session,
-        loading: false,
-      });
+        });
+        
+        set({
+          user: {
+            id: data.user.id,
+            email: data.user.email,
+          },
+          session: data.session,
+          loading: false,
+        });
+      } else {
+        // メール確認が必要な場合
+        set({
+          user: null,
+          session: null,
+          loading: false,
+          error: 'アカウント登録が完了しました。確認メールをご確認ください。',
+        });
+      }
     } catch (error: any) {
       console.error('Error registering:', error);
+      
+      // エラーメッセージを整形
+      let errorMessage = 'アカウント登録に失敗しました';
+      if (error.message) {
+        if (error.message.includes('User already registered')) {
+          errorMessage = 'このメールアドレスは既に登録されています';
+        } else if (error.message.includes('Password should be')) {
+          errorMessage = 'パスワードは6文字以上である必要があります';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       set({
-        error: error.message || 'アカウント登録に失敗しました',
+        error: errorMessage,
         loading: false,
       });
     }
@@ -130,6 +222,115 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       console.error('Error logging out:', error);
       set({
         error: error.message || 'ログアウトに失敗しました',
+        loading: false,
+      });
+    }
+  },
+  
+  resetUserPassword: async (email) => {
+    try {
+      set({ loading: true, error: null });
+      await resetPassword(email);
+      set({ loading: false });
+    } catch (error: any) {
+      console.error('Error resetting password:', error);
+      set({
+        error: error.message || 'パスワードリセットに失敗しました',
+        loading: false,
+      });
+    }
+  },
+  
+  updateUserPassword: async (newPassword) => {
+    try {
+      set({ loading: true, error: null });
+      await updatePassword(newPassword);
+      set({ loading: false });
+    } catch (error: any) {
+      console.error('Error updating password:', error);
+      set({
+        error: error.message || 'パスワード更新に失敗しました',
+        loading: false,
+      });
+    }
+  },
+  
+  fetchUserProfile: async () => {
+    try {
+      const { user } = get();
+      if (!user) {
+        throw new Error('ユーザーが認証されていません');
+      }
+      
+      set({ loading: true, error: null });
+      const profile = await getUserProfile(user.id);
+      
+      set({
+        user: {
+          ...user,
+          ...profile,
+        },
+        loading: false,
+      });
+    } catch (error: any) {
+      console.error('Error fetching user profile:', error);
+      set({
+        error: error.message || 'プロファイルの取得に失敗しました',
+        loading: false,
+      });
+    }
+  },
+  
+  createProfile: async (profile) => {
+    try {
+      const { user } = get();
+      if (!user) {
+        throw new Error('ユーザーが認証されていません');
+      }
+      
+      set({ loading: true, error: null });
+      await createUserProfile({
+        id: user.id,
+        ...profile,
+      });
+      
+      set({
+        user: {
+          ...user,
+          ...profile,
+        },
+        loading: false,
+      });
+    } catch (error: any) {
+      console.error('Error creating user profile:', error);
+      set({
+        error: error.message || 'プロファイルの作成に失敗しました',
+        loading: false,
+      });
+    }
+  },
+  
+  updateProfile: async (updates) => {
+    try {
+      const { user } = get();
+      if (!user) {
+        throw new Error('ユーザーが認証されていません');
+      }
+      
+      set({ loading: true, error: null });
+      await updateUserProfile(user.id, updates);
+      
+      set({
+        user: {
+          ...user,
+          ...updates,
+        },
+        loading: false,
+      });
+    } catch (error: any) {
+      console.error('Error updating user profile:', error);
+      set({
+        error: error.message || 'プロファイルの更新に失敗しました',
         loading: false,
       });
     }

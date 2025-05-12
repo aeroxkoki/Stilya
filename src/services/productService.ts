@@ -1,17 +1,37 @@
 import { supabase } from './supabase';
 import { Product, SwipeResult } from '../types/product';
 import { mockProducts } from '../mocks/mockProducts';
+import { Image } from 'expo-image';
 
 // モック使用フラグ (開発モードでAPI連携ができない場合に使用)
 const USE_MOCK = true; // 本番環境では必ず false にすること
 
-// 商品リストを取得する
+// キャッシュタイムアウト (1時間)
+const CACHE_TIMEOUT = 60 * 60 * 1000;
+
+// インメモリキャッシュ
+let productsCache: {
+  data: Product[];
+  timestamp: number;
+} | null = null;
+
+/**
+ * 商品リストを取得する
+ * キャッシュとPrefetchを活用して高速化
+ */
 export const fetchProducts = async (limit = 20, offset = 0): Promise<Product[]> => {
   try {
     if (USE_MOCK || __DEV__) {
       // 開発モードまたはモックフラグがtrueの場合はモックデータを返す
       console.log('Using mock products data');
+      await prefetchImages(mockProducts);
       return mockProducts;
+    }
+
+    // キャッシュチェック
+    if (productsCache && Date.now() - productsCache.timestamp < CACHE_TIMEOUT) {
+      console.log('Using cached products data');
+      return productsCache.data;
     }
 
     // Supabaseから商品データを取得
@@ -27,7 +47,7 @@ export const fetchProducts = async (limit = 20, offset = 0): Promise<Product[]> 
     }
 
     // データの形式を変換 (Supabaseのスネークケースをキャメルケースに)
-    return data.map((item: any) => ({
+    const products = data.map((item: any) => ({
       id: item.id,
       title: item.title,
       brand: item.brand,
@@ -40,6 +60,17 @@ export const fetchProducts = async (limit = 20, offset = 0): Promise<Product[]> 
       source: item.source,
       createdAt: item.created_at,
     }));
+
+    // キャッシュを更新
+    productsCache = {
+      data: products,
+      timestamp: Date.now(),
+    };
+
+    // 画像のプリフェッチ
+    await prefetchImages(products);
+
+    return products;
   } catch (error) {
     console.error('Unexpected error in fetchProducts:', error);
     // エラー発生時もモックデータを返す（開発用）
@@ -50,6 +81,31 @@ export const fetchProducts = async (limit = 20, offset = 0): Promise<Product[]> 
   }
 };
 
+/**
+ * 画像をプリフェッチしてキャッシュする
+ */
+export const prefetchImages = async (products: Product[]) => {
+  try {
+    // 最初の5枚だけプリフェッチ
+    const prefetchPromises = products.slice(0, 5).map(product => 
+      Image.prefetch(product.imageUrl)
+    );
+    
+    // 残りは非同期でバックグラウンドでプリフェッチ
+    setTimeout(() => {
+      products.slice(5).forEach(product => {
+        Image.prefetch(product.imageUrl).catch(e => 
+          console.log(`Failed to prefetch image: ${product.imageUrl}`, e)
+        );
+      });
+    }, 100);
+    
+    await Promise.all(prefetchPromises);
+  } catch (error) {
+    console.error('Error prefetching images:', error);
+  }
+};
+
 // 商品詳細を取得する
 export const fetchProductById = async (productId: string): Promise<Product | null> => {
   try {
@@ -57,6 +113,14 @@ export const fetchProductById = async (productId: string): Promise<Product | nul
       // モックデータから該当商品を検索
       const product = mockProducts.find(p => p.id === productId);
       return product || null;
+    }
+
+    // キャッシュから検索
+    if (productsCache) {
+      const cachedProduct = productsCache.data.find(p => p.id === productId);
+      if (cachedProduct) {
+        return cachedProduct;
+      }
     }
 
     const { data, error } = await supabase
@@ -127,13 +191,32 @@ export const saveSwipeResult = async (swipeResult: SwipeResult): Promise<void> =
   }
 };
 
+// レコメンデーション用のキャッシュ
+let recommendationsCache: {
+  [userId: string]: {
+    data: Product[];
+    timestamp: number;
+  };
+} = {};
+
 // おすすめ商品を取得する
 export const fetchRecommendedProducts = async (userId: string, limit = 10): Promise<Product[]> => {
   try {
     if (USE_MOCK || __DEV__) {
       // 開発モードではモックデータの一部を返す
       console.log('Using mock recommended products data');
-      return mockProducts.slice(0, limit);
+      const recommendations = mockProducts.slice(0, limit);
+      await prefetchImages(recommendations);
+      return recommendations;
+    }
+
+    // キャッシュチェック
+    if (
+      recommendationsCache[userId] && 
+      Date.now() - recommendationsCache[userId].timestamp < CACHE_TIMEOUT
+    ) {
+      console.log('Using cached recommendations data');
+      return recommendationsCache[userId].data;
     }
 
     // 本来は推薦アルゴリズムをここに実装
@@ -164,7 +247,7 @@ export const fetchRecommendedProducts = async (userId: string, limit = 10): Prom
         throw new Error(popularError.message);
       }
 
-      return popularProducts.map((item: any) => ({
+      const recommendations = popularProducts.map((item: any) => ({
         id: item.id,
         title: item.title,
         brand: item.brand,
@@ -177,6 +260,15 @@ export const fetchRecommendedProducts = async (userId: string, limit = 10): Prom
         source: item.source,
         createdAt: item.created_at,
       }));
+
+      // キャッシュを更新
+      recommendationsCache[userId] = {
+        data: recommendations,
+        timestamp: Date.now(),
+      };
+
+      await prefetchImages(recommendations);
+      return recommendations;
     }
 
     // 2. Yesと答えた商品のタグを取得
@@ -220,7 +312,7 @@ export const fetchRecommendedProducts = async (userId: string, limit = 10): Prom
         throw new Error(popularError.message);
       }
 
-      return popularProducts.map((item: any) => ({
+      const recommendations = popularProducts.map((item: any) => ({
         id: item.id,
         title: item.title,
         brand: item.brand,
@@ -233,6 +325,15 @@ export const fetchRecommendedProducts = async (userId: string, limit = 10): Prom
         source: item.source,
         createdAt: item.created_at,
       }));
+
+      // キャッシュを更新
+      recommendationsCache[userId] = {
+        data: recommendations,
+        timestamp: Date.now(),
+      };
+
+      await prefetchImages(recommendations);
+      return recommendations;
     }
 
     // 5. タグに基づいて商品を検索（既にスワイプした商品を除く）
@@ -248,7 +349,7 @@ export const fetchRecommendedProducts = async (userId: string, limit = 10): Prom
       throw new Error(recommendError.message);
     }
 
-    return recommendedProducts.map((item: any) => ({
+    const recommendations = recommendedProducts.map((item: any) => ({
       id: item.id,
       title: item.title,
       brand: item.brand,
@@ -261,6 +362,15 @@ export const fetchRecommendedProducts = async (userId: string, limit = 10): Prom
       source: item.source,
       createdAt: item.created_at,
     }));
+
+    // キャッシュを更新
+    recommendationsCache[userId] = {
+      data: recommendations,
+      timestamp: Date.now(),
+    };
+
+    await prefetchImages(recommendations);
+    return recommendations;
   } catch (error) {
     console.error('Unexpected error in fetchRecommendedProducts:', error);
     // エラー発生時はモックデータを返す（開発用）
@@ -300,4 +410,11 @@ export const recordProductClick = async (userId: string, productId: string): Pro
       throw error;
     }
   }
+};
+
+// キャッシュをクリアする
+export const clearProductsCache = () => {
+  productsCache = null;
+  recommendationsCache = {};
+  console.log('Products cache cleared');
 };

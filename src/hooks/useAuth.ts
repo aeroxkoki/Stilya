@@ -1,94 +1,86 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../services/supabase';
-import { Session, User } from '@supabase/supabase-js';
+import { useEffect } from 'react';
+import { User } from '@/types';
+import { useAuthStore } from '@/store/authStore';
 
 interface UseAuthReturn {
   user: User | null;
-  session: Session | null;
+  session: any | null;
   isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: any | null }>;
-  signUp: (email: string, password: string) => Promise<{ error: any | null }>;
-  signOut: () => Promise<void>;
+  error: string | null;
+  
+  // 認証関連
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
+  updatePassword: (newPassword: string) => Promise<void>;
+  
+  // セッション関連
+  isSessionValid: () => Promise<boolean>;
+  
+  // プロファイル関連
+  fetchProfile: () => Promise<void>;
+  updateProfile: (updates: Partial<User>) => Promise<void>;
+  
+  // その他
+  clearError: () => void;
 }
 
 export const useAuth = (): UseAuthReturn => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const {
+    user,
+    session,
+    loading: isLoading,
+    error,
+    
+    login,
+    register,
+    logout,
+    resetUserPassword,
+    updateUserPassword,
+    checkAndRefreshSession,
+    fetchUserProfile,
+    updateProfile,
+    clearError,
+    initialize,
+  } = useAuthStore();
 
+  // コンポーネントマウント時に認証状態を初期化
   useEffect(() => {
-    // 初期セッションを取得
-    const getInitialSession = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Error fetching initial session:', error);
-        }
-        
-        setSession(session);
-        setUser(session?.user ?? null);
-      } catch (error) {
-        console.error('Unexpected error during session fetch:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    getInitialSession();
-
-    // Auth状態変更を監視
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, newSession) => {
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-        setIsLoading(false);
-      }
-    );
-
-    // クリーンアップ関数でサブスクリプションを解除
+    initialize();
+    
+    // セッション有効期限を定期的にチェック (15分ごと)
+    const intervalId = setInterval(() => {
+      checkAndRefreshSession();
+    }, 15 * 60 * 1000);
+    
     return () => {
-      subscription.unsubscribe();
+      clearInterval(intervalId);
     };
   }, []);
 
-  // サインイン関数
-  const signIn = async (email: string, password: string) => {
-    try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      return { error };
-    } catch (err) {
-      console.error('Unexpected error during sign in:', err);
-      return { error: err };
-    }
-  };
-
-  // サインアップ関数
-  const signUp = async (email: string, password: string) => {
-    try {
-      const { error } = await supabase.auth.signUp({ email, password });
-      return { error };
-    } catch (err) {
-      console.error('Unexpected error during sign up:', err);
-      return { error: err };
-    }
-  };
-
-  // サインアウト関数
-  const signOut = async () => {
-    try {
-      await supabase.auth.signOut();
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
+  // セッションが有効かどうかを確認する関数
+  const isSessionValid = async (): Promise<boolean> => {
+    return await checkAndRefreshSession();
   };
 
   return {
     user,
     session,
     isLoading,
-    signIn,
-    signUp,
-    signOut,
+    error,
+    
+    login,
+    register,
+    logout,
+    resetPassword: resetUserPassword,
+    updatePassword: updateUserPassword,
+    
+    isSessionValid,
+    
+    fetchProfile: fetchUserProfile,
+    updateProfile,
+    
+    clearError,
   };
 };

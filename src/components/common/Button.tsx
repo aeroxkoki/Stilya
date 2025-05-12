@@ -1,93 +1,200 @@
 import React from 'react';
-import { TouchableOpacity, Text, ActivityIndicator, TouchableOpacityProps, View } from 'react-native';
-import { twMerge } from 'tailwind-merge';
+import {
+  TouchableOpacity,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  ViewStyle,
+  TextStyle,
+  StyleProp,
+} from 'react-native';
+import { useTheme } from '../../contexts/ThemeContext';
 
-export interface ButtonProps extends TouchableOpacityProps {
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
-  size?: 'sm' | 'md' | 'lg';
-  isLoading?: boolean;
+export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'text';
+export type ButtonSize = 'small' | 'medium' | 'large';
+
+interface ButtonProps {
+  onPress: () => void;
+  title: string;
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  disabled?: boolean;
+  loading?: boolean;
   icon?: React.ReactNode;
-  isFullWidth?: boolean;
-  children: React.ReactNode;
-  textClassName?: string;
+  iconPosition?: 'left' | 'right';
+  style?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<TextStyle>;
+  fullWidth?: boolean;
 }
 
 const Button: React.FC<ButtonProps> = ({
+  onPress,
+  title,
   variant = 'primary',
-  size = 'md',
-  isLoading = false,
+  size = 'medium',
+  disabled = false,
+  loading = false,
   icon,
-  isFullWidth = false,
-  children,
-  className,
-  textClassName,
-  disabled,
-  ...rest
+  iconPosition = 'left',
+  style,
+  textStyle,
+  fullWidth = false,
 }) => {
-  // サイズに基づくスタイルのマッピング
-  const sizeStyles = {
-    sm: 'py-1.5 px-3',
-    md: 'py-2.5 px-4',
-    lg: 'py-3 px-5',
+  const { theme } = useTheme();
+
+  // サイズに基づくスタイル
+  const getSizeStyle = (): ViewStyle => {
+    switch (size) {
+      case 'small':
+        return {
+          paddingVertical: theme.spacing.xs,
+          paddingHorizontal: theme.spacing.m,
+          borderRadius: theme.radius.s,
+        };
+      case 'large':
+        return {
+          paddingVertical: theme.spacing.m,
+          paddingHorizontal: theme.spacing.xl,
+          borderRadius: theme.radius.m,
+        };
+      case 'medium':
+      default:
+        return {
+          paddingVertical: theme.spacing.s,
+          paddingHorizontal: theme.spacing.l,
+          borderRadius: theme.radius.m,
+        };
+    }
   };
 
-  const textSizeStyles = {
-    sm: 'text-xs',
-    md: 'text-sm',
-    lg: 'text-base',
+  // バリアントに基づくスタイル
+  const getVariantStyle = (): ViewStyle => {
+    if (disabled) {
+      return {
+        backgroundColor: theme.colors.button.disabled,
+        borderWidth: 0,
+      };
+    }
+
+    switch (variant) {
+      case 'secondary':
+        return {
+          backgroundColor: theme.colors.secondary,
+          borderWidth: 0,
+        };
+      case 'outline':
+        return {
+          backgroundColor: 'transparent',
+          borderWidth: 1,
+          borderColor: theme.colors.primary,
+        };
+      case 'text':
+        return {
+          backgroundColor: 'transparent',
+          borderWidth: 0,
+        };
+      case 'primary':
+      default:
+        return {
+          backgroundColor: theme.colors.primary,
+          borderWidth: 0,
+        };
+    }
   };
 
-  // バリアントに基づくスタイルのマッピング
-  const variantStyles = {
-    primary: 'bg-primary text-white',
-    secondary: 'bg-secondary text-white',
-    outline: 'bg-transparent border border-primary',
-    ghost: 'bg-transparent',
-  };
-
-  const variantTextStyles = {
-    primary: 'text-white font-medium',
-    secondary: 'text-white font-medium',
-    outline: 'text-primary font-medium',
-    ghost: 'text-primary font-medium',
-  };
-
-  // ボタンの幅スタイル
-  const widthStyle = isFullWidth ? 'w-full' : 'w-auto';
-
-  // ボタンのベーススタイル
-  const baseButtonStyle = `rounded-md flex-row items-center justify-center ${sizeStyles[size]} ${variantStyles[variant]} ${widthStyle}`;
-  
-  // 無効化されたスタイル
-  const disabledStyle = disabled || isLoading ? 'opacity-50' : '';
-
-  // マージされた最終スタイル
-  const finalButtonStyle = twMerge(baseButtonStyle, disabledStyle, className);
-  
   // テキストスタイル
-  const baseTextStyle = `${textSizeStyles[size]} ${variantTextStyles[variant]}`;
-  const finalTextStyle = twMerge(baseTextStyle, textClassName);
+  const getTextStyle = (): TextStyle => {
+    if (disabled) {
+      return {
+        color: theme.colors.text.hint,
+        fontSize: getFontSize(),
+        fontWeight: theme.fontWeights.medium,
+      };
+    }
+
+    switch (variant) {
+      case 'outline':
+        return {
+          color: theme.colors.primary,
+          fontSize: getFontSize(),
+          fontWeight: theme.fontWeights.medium,
+        };
+      case 'text':
+        return {
+          color: theme.colors.primary,
+          fontSize: getFontSize(),
+          fontWeight: theme.fontWeights.medium,
+        };
+      case 'primary':
+      case 'secondary':
+      default:
+        return {
+          color: theme.colors.text.inverse,
+          fontSize: getFontSize(),
+          fontWeight: theme.fontWeights.medium,
+        };
+    }
+  };
+
+  // フォントサイズを取得
+  const getFontSize = (): number => {
+    switch (size) {
+      case 'small':
+        return theme.fontSizes.s;
+      case 'large':
+        return theme.fontSizes.l;
+      case 'medium':
+      default:
+        return theme.fontSizes.m;
+    }
+  };
 
   return (
-    <TouchableOpacity 
-      className={finalButtonStyle}
-      disabled={disabled || isLoading}
+    <TouchableOpacity
+      onPress={onPress}
+      disabled={disabled || loading}
+      style={[
+        styles.button,
+        getVariantStyle(),
+        getSizeStyle(),
+        fullWidth && styles.fullWidth,
+        style,
+      ]}
       activeOpacity={0.7}
-      {...rest}
     >
-      {isLoading ? (
-        <ActivityIndicator 
-          size="small" 
-          color={variant === 'outline' || variant === 'ghost' ? '#3B82F6' : '#ffffff'} 
+      {loading ? (
+        <ActivityIndicator
+          color={variant === 'outline' || variant === 'text' ? theme.colors.primary : theme.colors.text.inverse}
+          size="small"
         />
       ) : (
         <>
-          {icon && <View className="mr-2">{icon}</View>}
-          <Text className={finalTextStyle}>{children}</Text>
+          {icon && iconPosition === 'left' && <>{icon}</>}
+          <Text style={[getTextStyle(), iconPosition === 'left' && icon && styles.textWithLeftIcon, iconPosition === 'right' && icon && styles.textWithRightIcon, textStyle]}>
+            {title}
+          </Text>
+          {icon && iconPosition === 'right' && <>{icon}</>}
         </>
       )}
     </TouchableOpacity>
   );
 };
+
+const styles = StyleSheet.create({
+  button: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fullWidth: {
+    width: '100%',
+  },
+  textWithLeftIcon: {
+    marginLeft: 8,
+  },
+  textWithRightIcon: {
+    marginRight: 8,
+  },
+});
 
 export default Button;

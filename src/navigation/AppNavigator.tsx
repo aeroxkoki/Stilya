@@ -86,16 +86,34 @@ const MainTabNavigator = () => {
 
 // ルートナビゲーター
 const AppNavigator = () => {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, fetchProfile, isSessionValid } = useAuth();
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean>(false);
+
+  // セッションの有効性を定期的にチェック
+  useEffect(() => {
+    // アプリ起動時にセッションの有効性をチェック
+    isSessionValid();
+
+    // 定期的にセッションの有効性をチェック (5分ごと)
+    const intervalId = setInterval(() => {
+      isSessionValid();
+    }, 5 * 60 * 1000);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, []);
 
   useEffect(() => {
     // ユーザーがオンボーディングを完了しているか確認するロジック
-    // 本来はSupabaseなどから取得
     const checkOnboardingStatus = async () => {
       if (user) {
-        // 仮の実装: 実際にはDBから取得する
-        setHasCompletedOnboarding(true);
+        // プロファイルを取得
+        await fetchProfile();
+        
+        // ユーザープロファイルのデータを基にオンボーディング完了かどうかを判定
+        const hasCompleted = !!(user.gender && user.stylePreference && user.ageGroup);
+        setHasCompletedOnboarding(hasCompleted);
       }
     };
 

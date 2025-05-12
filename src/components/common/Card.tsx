@@ -1,36 +1,101 @@
 import React from 'react';
-import { View, ViewProps } from 'react-native';
-import { twMerge } from 'tailwind-merge';
+import {
+  View,
+  StyleSheet,
+  StyleProp,
+  ViewStyle,
+  TouchableOpacity,
+} from 'react-native';
+import { useTheme } from '../../contexts/ThemeContext';
 
-export interface CardProps extends ViewProps {
-  variant?: 'elevated' | 'outlined' | 'filled';
+interface CardProps {
   children: React.ReactNode;
+  style?: StyleProp<ViewStyle>;
+  elevation?: 'none' | 'small' | 'medium' | 'large';
+  onPress?: () => void;
+  disabled?: boolean;
 }
 
 const Card: React.FC<CardProps> = ({
-  variant = 'elevated',
   children,
-  className,
-  ...rest
+  style,
+  elevation = 'small',
+  onPress,
+  disabled = false,
 }) => {
-  // バリアントに基づくスタイル
-  const variantStyles = {
-    elevated: 'bg-white rounded-lg shadow-md border border-gray-100',
-    outlined: 'bg-white rounded-lg border border-gray-200',
-    filled: 'bg-gray-50 rounded-lg',
+  const { theme } = useTheme();
+
+  // 影のレベルに基づいたスタイルを取得
+  const getElevationStyle = (): ViewStyle => {
+    switch (elevation) {
+      case 'none':
+        return {
+          shadowOpacity: 0,
+          elevation: 0,
+        };
+      case 'small':
+        return {
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.1,
+          shadowRadius: 2,
+          elevation: 1,
+        };
+      case 'medium':
+        return {
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.15,
+          shadowRadius: 3,
+          elevation: 3,
+        };
+      case 'large':
+        return {
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.2,
+          shadowRadius: 4,
+          elevation: 5,
+        };
+      default:
+        return {
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.1,
+          shadowRadius: 2,
+          elevation: 1,
+        };
+    }
   };
 
-  // ベースのカードスタイル
-  const baseCardStyle = 'p-4 overflow-hidden';
-  
-  // 最終的なスタイル
-  const finalCardStyle = twMerge(baseCardStyle, variantStyles[variant], className);
+  const cardStyle = [
+    styles.card,
+    {
+      backgroundColor: theme.colors.background.card,
+      borderRadius: theme.radius.m,
+      shadowColor: '#000',
+    },
+    getElevationStyle(),
+    style,
+  ];
 
-  return (
-    <View className={finalCardStyle} {...rest}>
-      {children}
-    </View>
-  );
+  if (onPress) {
+    return (
+      <TouchableOpacity
+        style={cardStyle}
+        onPress={onPress}
+        activeOpacity={0.7}
+        disabled={disabled}
+      >
+        {children}
+      </TouchableOpacity>
+    );
+  }
+
+  return <View style={cardStyle}>{children}</View>;
 };
+
+const styles = StyleSheet.create({
+  card: {
+    padding: 16,
+    overflow: 'hidden',
+  },
+});
 
 export default Card;

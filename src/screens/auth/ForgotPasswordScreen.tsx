@@ -1,41 +1,52 @@
-import React, { useState } from 'react';
-import { View, Text, SafeAreaView, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, SafeAreaView, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Button, Input } from '@/components/common';
-import { supabase } from '@/services/supabase';
+import { useAuthStore } from '@/store/authStore';
 import { AuthStackParamList } from '@/types';
+import { formatErrorMessage } from '@/utils';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'ForgotPassword'>;
 
 const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
+  const { resetUserPassword, error: storeError, loading, clearError } = useAuthStore();
   const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  // storeエラーが変更されたらvalidationErrorを設定
+  useEffect(() => {
+    if (storeError) {
+      setValidationError(storeError);
+    }
+  }, [storeError]);
+
+  // コンポーネントがアンマウントされた時にエラーをクリア
+  useEffect(() => {
+    return () => {
+      clearError();
+    };
+  }, []);
 
   const handleResetPassword = async () => {
+    // バリデーション
     if (!email || !/\S+@\S+\.\S+/.test(email)) {
-      setError('有効なメールアドレスを入力してください');
+      setValidationError('有効なメールアドレスを入力してください');
       return;
     }
 
-    setLoading(true);
-    setError(null);
-
+    setValidationError(null);
+    
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'https://example.com/reset-password', // 実際のリダイレクトURLに変更する必要があります
-      });
-
-      if (error) throw error;
+      await resetUserPassword(email);
       
-      setEmailSent(true);
-    } catch (error: any) {
+      // エラーがなければメール送信成功
+      if (!storeError) {
+        setEmailSent(true);
+      }
+    } catch (error) {
       console.error('Password reset error:', error);
-      setError(error.message || 'パスワードリセットリクエストの送信中にエラーが発生しました');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -89,9 +100,9 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
               // パスワードリセットフォーム
               <>
                 {/* エラーメッセージ */}
-                {error && (
+                {validationError && (
                   <View className="mb-4 p-3 bg-red-50 rounded-md">
-                    <Text className="text-red-500">{error}</Text>
+                    <Text className="text-red-500">{formatErrorMessage(validationError)}</Text>
                   </View>
                 )}
 

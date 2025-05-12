@@ -28,7 +28,8 @@
     "react-native-screens": "^4.10.0",
     "react-native-url-polyfill": "^2.0.0",
     "tailwind-merge": "^3.3.0",
-    "zustand": "^5.0.4"
+    "zustand": "^5.0.4",
+    "expo-image": "~2.1.7"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

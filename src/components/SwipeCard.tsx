@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  Image,
   Animated,
   PanResponder,
   Dimensions,
@@ -11,6 +10,8 @@ import {
 } from 'react-native';
 import { Product } from '../types/product';
 import { Feather } from '@expo/vector-icons';
+import { CachedImage } from '../components/common';
+import theme from '../styles/theme';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SWIPE_THRESHOLD = 0.25 * SCREEN_WIDTH;
@@ -123,10 +124,13 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
         onPress={onCardPress}
         style={styles.card}
       >
-        <Image
+        <CachedImage
           source={{ uri: product.imageUrl }}
           style={styles.image}
           resizeMode="cover"
+          showLoader={true}
+          loaderColor={theme.colors.primary}
+          priority="high"
         />
 
         <View style={styles.overlay}>
@@ -152,7 +156,7 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
             { opacity: likeOpacity },
           ]}
         >
-          <Feather name="check-circle" size={80} color="#4CAF50" />
+          <Feather name="check-circle" size={80} color={theme.colors.success} />
         </Animated.View>
 
         <Animated.View
@@ -161,7 +165,7 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
             { opacity: nopeOpacity },
           ]}
         >
-          <Feather name="x-circle" size={80} color="#F44336" />
+          <Feather name="x-circle" size={80} color={theme.colors.error} />
         </Animated.View>
       </TouchableOpacity>
     </Animated.View>
@@ -173,17 +177,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: SCREEN_WIDTH,
     height: '100%',
-    padding: 10,
+    padding: theme.spacing.sm,
   },
   card: {
     flex: 1,
-    borderRadius: 20,
-    backgroundColor: 'white',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderRadius: theme.borderRadius.lg,
+    backgroundColor: theme.colors.white,
+    ...theme.shadows.md,
     overflow: 'hidden',
   },
   image: {
@@ -197,28 +197,28 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    padding: 20,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    padding: theme.spacing.md,
+    borderBottomLeftRadius: theme.borderRadius.lg,
+    borderBottomRightRadius: theme.borderRadius.lg,
   },
   titleContainer: {
-    marginBottom: 10,
+    marginBottom: theme.spacing.sm,
   },
   brand: {
-    fontSize: 16,
-    color: '#E0E0E0',
-    fontWeight: '600',
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.gray300,
+    fontWeight: theme.fontWeight.medium,
   },
   title: {
-    fontSize: 24,
-    color: 'white',
-    fontWeight: 'bold',
-    marginBottom: 5,
+    fontSize: theme.fontSize.xl,
+    color: theme.colors.white,
+    fontWeight: theme.fontWeight.bold,
+    marginBottom: theme.spacing.xs,
   },
   price: {
-    fontSize: 18,
-    color: 'white',
-    fontWeight: '500',
+    fontSize: theme.fontSize.lg,
+    color: theme.colors.white,
+    fontWeight: theme.fontWeight.medium,
   },
   tagsContainer: {
     flexDirection: 'row',
@@ -226,15 +226,15 @@ const styles = StyleSheet.create({
   },
   tag: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-    marginRight: 8,
-    marginBottom: 5,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
+    borderRadius: theme.borderRadius.round,
+    marginRight: theme.spacing.xs,
+    marginBottom: theme.spacing.xs,
   },
   tagText: {
-    color: 'white',
-    fontSize: 12,
+    color: theme.colors.white,
+    fontSize: theme.fontSize.xs,
   },
   yesLabel: {
     position: 'absolute',

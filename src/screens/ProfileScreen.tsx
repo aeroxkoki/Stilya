@@ -9,6 +9,8 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useAuth } from '../hooks/useAuth';
+import { Card, Button } from '../components/common';
+import theme from '../styles/theme';
 
 const ProfileScreen: React.FC = () => {
   const { user, signOut } = useAuth();
@@ -40,75 +42,56 @@ const ProfileScreen: React.FC = () => {
     );
   };
 
+  const MenuItem = ({ icon, title, onPress }: { icon: string; title: string; onPress?: () => void }) => (
+    <TouchableOpacity style={styles.menuItem} onPress={onPress}>
+      <Feather name={icon as any} size={24} color={theme.colors.gray600} style={styles.menuIcon} />
+      <Text style={styles.menuText}>{title}</Text>
+      <Feather name="chevron-right" size={24} color={theme.colors.gray400} />
+    </TouchableOpacity>
+  );
+
+  const SectionTitle = ({ title }: { title: string }) => (
+    <Text style={styles.sectionTitle}>{title}</Text>
+  );
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.profileIcon}>
-          <Feather name="user" size={50} color="#3B82F6" />
+          <Feather name="user" size={50} color={theme.colors.primary} />
         </View>
         <Text style={styles.email}>{user?.email}</Text>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>アカウント設定</Text>
-        <TouchableOpacity style={styles.menuItem}>
-          <Feather name="user" size={24} color="#757575" style={styles.menuIcon} />
-          <Text style={styles.menuText}>プロフィール編集</Text>
-          <Feather name="chevron-right" size={24} color="#BDBDBD" />
-        </TouchableOpacity>
+      <Card style={styles.section}>
+        <SectionTitle title="アカウント設定" />
+        <MenuItem icon="user" title="プロフィール編集" />
+        <MenuItem icon="bell" title="通知設定" />
+      </Card>
 
-        <TouchableOpacity style={styles.menuItem}>
-          <Feather name="bell" size={24} color="#757575" style={styles.menuIcon} />
-          <Text style={styles.menuText}>通知設定</Text>
-          <Feather name="chevron-right" size={24} color="#BDBDBD" />
-        </TouchableOpacity>
+      <Card style={styles.section}>
+        <SectionTitle title="ファッション設定" />
+        <MenuItem icon="tag" title="スタイル設定" />
+        <MenuItem icon="heart" title="お気に入り商品" />
+        <MenuItem icon="repeat" title="スワイプ履歴" />
+      </Card>
+
+      <Card style={styles.section}>
+        <SectionTitle title="サポート" />
+        <MenuItem icon="help-circle" title="ヘルプ・サポート" />
+        <MenuItem icon="info" title="利用規約・プライバシーポリシー" />
+        <MenuItem icon="mail" title="お問い合わせ" />
+      </Card>
+
+      <View style={styles.buttonContainer}>
+        <Button
+          title="ログアウト"
+          variant="outline"
+          onPress={handleSignOut}
+          style={styles.signOutButton}
+          textStyle={{ color: theme.colors.error }}
+        />
       </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>ファッション設定</Text>
-        <TouchableOpacity style={styles.menuItem}>
-          <Feather name="tag" size={24} color="#757575" style={styles.menuIcon} />
-          <Text style={styles.menuText}>スタイル設定</Text>
-          <Feather name="chevron-right" size={24} color="#BDBDBD" />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.menuItem}>
-          <Feather name="heart" size={24} color="#757575" style={styles.menuIcon} />
-          <Text style={styles.menuText}>お気に入り商品</Text>
-          <Feather name="chevron-right" size={24} color="#BDBDBD" />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.menuItem}>
-          <Feather name="repeat" size={24} color="#757575" style={styles.menuIcon} />
-          <Text style={styles.menuText}>スワイプ履歴</Text>
-          <Feather name="chevron-right" size={24} color="#BDBDBD" />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>サポート</Text>
-        <TouchableOpacity style={styles.menuItem}>
-          <Feather name="help-circle" size={24} color="#757575" style={styles.menuIcon} />
-          <Text style={styles.menuText}>ヘルプ・サポート</Text>
-          <Feather name="chevron-right" size={24} color="#BDBDBD" />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.menuItem}>
-          <Feather name="info" size={24} color="#757575" style={styles.menuIcon} />
-          <Text style={styles.menuText}>利用規約・プライバシーポリシー</Text>
-          <Feather name="chevron-right" size={24} color="#BDBDBD" />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.menuItem}>
-          <Feather name="mail" size={24} color="#757575" style={styles.menuIcon} />
-          <Text style={styles.menuText}>お問い合わせ</Text>
-          <Feather name="chevron-right" size={24} color="#BDBDBD" />
-        </TouchableOpacity>
-      </View>
-
-      <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-        <Text style={styles.signOutText}>ログアウト</Text>
-      </TouchableOpacity>
 
       <Text style={styles.versionText}>アプリバージョン: 0.1.0 (MVP)</Text>
     </ScrollView>
@@ -118,80 +101,66 @@ const ProfileScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: theme.colors.backgroundLight,
   },
   header: {
-    backgroundColor: 'white',
-    paddingVertical: 30,
+    backgroundColor: theme.colors.white,
+    paddingVertical: theme.spacing.xl,
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
+    borderBottomColor: theme.colors.gray200,
   },
   profileIcon: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: theme.colors.backgroundLight,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: theme.spacing.md,
   },
   email: {
-    fontSize: 18,
-    color: '#333333',
+    fontSize: theme.fontSize.lg,
+    color: theme.colors.textPrimary,
   },
   section: {
-    backgroundColor: 'white',
-    marginTop: 20,
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: '#EEEEEE',
+    marginTop: theme.spacing.md,
+    padding: theme.spacing.md,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#757575',
-    marginLeft: 16,
-    marginBottom: 10,
-    marginTop: 5,
+    fontSize: theme.fontSize.md,
+    fontWeight: theme.fontWeight.semibold,
+    color: theme.colors.textSecondary,
+    marginBottom: theme.spacing.sm,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 15,
-    paddingHorizontal: 16,
+    paddingVertical: theme.spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: '#F5F5F5',
+    borderBottomColor: theme.colors.gray100,
   },
   menuIcon: {
-    marginRight: 16,
+    marginRight: theme.spacing.md,
   },
   menuText: {
     flex: 1,
-    fontSize: 16,
-    color: '#333333',
+    fontSize: theme.fontSize.md,
+    color: theme.colors.textPrimary,
+  },
+  buttonContainer: {
+    marginVertical: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.lg,
   },
   signOutButton: {
-    backgroundColor: 'white',
-    marginTop: 20,
-    paddingVertical: 15,
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: '#EEEEEE',
-  },
-  signOutText: {
-    fontSize: 16,
-    color: '#F44336',
-    fontWeight: '600',
+    borderColor: theme.colors.error,
   },
   versionText: {
     textAlign: 'center',
-    marginTop: 20,
-    marginBottom: 40,
-    fontSize: 14,
-    color: '#9E9E9E',
+    marginTop: theme.spacing.md,
+    marginBottom: theme.spacing.xxl,
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.textTertiary,
   },
 });
 

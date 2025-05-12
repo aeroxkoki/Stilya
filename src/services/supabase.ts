@@ -62,6 +62,31 @@ export const getSession = async () => {
   }
 };
 
+// セッションの更新
+export const refreshSession = async () => {
+  try {
+    const { data, error } = await supabase.auth.refreshSession();
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error refreshing session:', error);
+    throw error;
+  }
+};
+
+// セッション有効期限をチェック
+export const isSessionExpired = (session: any): boolean => {
+  if (!session || !session.expires_at) return true;
+  
+  // expires_at はUNIXタイムスタンプ（秒）
+  const expiresAt = session.expires_at * 1000; // ミリ秒に変換
+  const now = Date.now();
+  
+  // 有効期限が1時間以内の場合も期限切れと見なして更新する
+  const oneHour = 60 * 60 * 1000;
+  return now >= (expiresAt - oneHour);
+};
+
 // サインアップ
 export const signUp = async (email: string, password: string) => {
   try {
@@ -88,6 +113,34 @@ export const signIn = async (email: string, password: string) => {
     return data;
   } catch (error) {
     console.error('Error signing in:', error);
+    throw error;
+  }
+};
+
+// パスワードリセット用のメール送信
+export const resetPassword = async (email: string) => {
+  try {
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: 'stilya://reset-password', // ディープリンクURL
+    });
+    if (error) throw error;
+    return { data, success: true };
+  } catch (error) {
+    console.error('Error sending password reset email:', error);
+    throw error;
+  }
+};
+
+// パスワード更新
+export const updatePassword = async (newPassword: string) => {
+  try {
+    const { data, error } = await supabase.auth.updateUser({
+      password: newPassword
+    });
+    if (error) throw error;
+    return { data, success: true };
+  } catch (error) {
+    console.error('Error updating password:', error);
     throw error;
   }
 };
