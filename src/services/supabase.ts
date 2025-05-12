@@ -1,13 +1,28 @@
 import 'react-native-url-polyfill/auto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
+import * as SecureStore from 'expo-secure-store';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/utils/env';
+import { User } from '@/types';
 
-// Supabaseの環境変数（実際の開発では.envファイルなどから読み込むことをお勧めします）
-const supabaseUrl = 'YOUR_SUPABASE_URL';
-const supabaseAnonKey = 'YOUR_SUPABASE_ANON_KEY';
+// JSONデータの安全な保存・取得ヘルパー
+const saveToSecureStore = async (key: string, value: string): Promise<void> => {
+  await SecureStore.setItemAsync(key, value);
+};
 
-// AsyncStorageをカスタムストレージとして設定
-const supabaseStorage = {
+const getFromSecureStore = async (key: string): Promise<string | null> => {
+  return await SecureStore.getItemAsync(key);
+};
+
+// セキュアストレージアダプター
+const secureStorageAdapter = {
+  getItem: getFromSecureStore,
+  setItem: saveToSecureStore,
+  removeItem: (key: string) => SecureStore.deleteItemAsync(key),
+};
+
+// 通常のストレージアダプター（認証以外のデータ用）
+const normalStorageAdapter = {
   getItem: (key: string) => {
     return AsyncStorage.getItem(key);
   },
@@ -22,12 +37,16 @@ const supabaseStorage = {
 };
 
 // Supabaseクライアントの作成
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
-    storage: supabaseStorage,
+    storage: secureStorageAdapter,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
+  },
+  global: {
+    // 非認証データ用のストレージ
+    localStorage: normalStorageAdapter,
   },
 });
 
@@ -80,6 +99,56 @@ export const signOut = async () => {
     if (error) throw error;
   } catch (error) {
     console.error('Error signing out:', error);
+    throw error;
+  }
+};
+
+// ユーザープロフィールの取得
+export const getUserProfile = async (userId: string): Promise<User | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    
+    if (error) throw error;
+    return data as User;
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    return null;
+  }
+};
+
+// ユーザープロフィールの更新
+export const updateUserProfile = async (userId: string, updates: Partial<User>) => {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .update(updates)
+      .eq('id', userId)
+      .select();
+    
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error updating user profile:', error);
+    throw error;
+  }
+};
+
+// ユーザープロフィールの作成
+export const createUserProfile = async (profile: Partial<User>) => {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .insert([profile])
+      .select();
+    
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error creating user profile:', error);
     throw error;
   }
 };

@@ -1,11 +1,35 @@
-import React from 'react';
-import { View, Text, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, SafeAreaView, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { Button, Card } from '@/components/common';
 import { useAuthStore } from '@/store/authStore';
+import { useProductStore } from '@/store/productStore';
 
 const ProfileScreen: React.FC = () => {
+  const navigation = useNavigation();
   const { user, logout, loading } = useAuthStore();
+  const { 
+    favorites,
+    swipeHistory,
+    getFavorites,
+    getSwipeHistory
+  } = useProductStore();
+
+  // 初回表示時にデータを取得
+  useEffect(() => {
+    const loadData = async () => {
+      if (user) {
+        // お気に入りとスワイプ履歴を取得
+        await Promise.all([
+          getFavorites(user.id),
+          getSwipeHistory(user.id)
+        ]);
+      }
+    };
+    
+    loadData();
+  }, [user]);
 
   const handleLogout = async () => {
     try {
@@ -20,6 +44,28 @@ const ProfileScreen: React.FC = () => {
     male: '男性',
     female: '女性',
     other: 'その他',
+  };
+  
+  // 各画面への遷移
+  const handleNavigateToFavorites = () => {
+    navigation.navigate('Favorites' as never);
+  };
+  
+  const handleNavigateToSwipeHistory = () => {
+    navigation.navigate('SwipeHistory' as never);
+  };
+  
+  const handleNavigateToSettings = () => {
+    navigation.navigate('Settings' as never);
+  };
+  
+  const handleNavigateToHelp = () => {
+    // MVPでは簡易的にアラートを表示
+    Alert.alert(
+      'ヘルプ・サポート',
+      'お問い合わせは support@stilya.jp までご連絡ください。\n\nバージョン: 0.1.0 (MVP)',
+      [{ text: 'OK', style: 'default' }]
+    );
   };
 
   return (
@@ -65,24 +111,54 @@ const ProfileScreen: React.FC = () => {
           </Card>
         </View>
 
-        {/* メニュー */}
+        {/* アクティビティ */}
         <View className="px-6 mb-6">
-          <Text className="text-lg font-bold mb-3">設定</Text>
+          <Text className="text-lg font-bold mb-3">アクティビティ</Text>
           <Card variant="outlined" className="p-0 divide-y divide-gray-100">
-            <TouchableOpacity className="p-4 flex-row items-center">
-              <Ionicons name="heart-outline" size={20} color="#6B7280" className="mr-3" />
-              <Text className="flex-1">お気に入り</Text>
+            <TouchableOpacity 
+              className="p-4 flex-row items-center"
+              onPress={handleNavigateToFavorites}
+            >
+              <Ionicons name="heart-outline" size={20} color="#6B7280" style={{ marginRight: 12 }} />
+              <View className="flex-1">
+                <Text className="text-base">お気に入り</Text>
+                <Text className="text-xs text-gray-500">{favorites.length}件の商品</Text>
+              </View>
               <Ionicons name="chevron-forward" size={20} color="#6B7280" />
             </TouchableOpacity>
             
-            <TouchableOpacity className="p-4 flex-row items-center">
-              <Ionicons name="settings-outline" size={20} color="#6B7280" className="mr-3" />
+            <TouchableOpacity 
+              className="p-4 flex-row items-center"
+              onPress={handleNavigateToSwipeHistory}
+            >
+              <Ionicons name="time-outline" size={20} color="#6B7280" style={{ marginRight: 12 }} />
+              <View className="flex-1">
+                <Text className="text-base">スワイプ履歴</Text>
+                <Text className="text-xs text-gray-500">{swipeHistory.length}件のスワイプ</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#6B7280" />
+            </TouchableOpacity>
+          </Card>
+        </View>
+
+        {/* 設定メニュー */}
+        <View className="px-6 mb-6">
+          <Text className="text-lg font-bold mb-3">設定</Text>
+          <Card variant="outlined" className="p-0 divide-y divide-gray-100">
+            <TouchableOpacity 
+              className="p-4 flex-row items-center"
+              onPress={handleNavigateToSettings}
+            >
+              <Ionicons name="settings-outline" size={20} color="#6B7280" style={{ marginRight: 12 }} />
               <Text className="flex-1">アカウント設定</Text>
               <Ionicons name="chevron-forward" size={20} color="#6B7280" />
             </TouchableOpacity>
             
-            <TouchableOpacity className="p-4 flex-row items-center">
-              <Ionicons name="help-circle-outline" size={20} color="#6B7280" className="mr-3" />
+            <TouchableOpacity 
+              className="p-4 flex-row items-center"
+              onPress={handleNavigateToHelp}
+            >
+              <Ionicons name="help-circle-outline" size={20} color="#6B7280" style={{ marginRight: 12 }} />
               <Text className="flex-1">ヘルプ・サポート</Text>
               <Ionicons name="chevron-forward" size={20} color="#6B7280" />
             </TouchableOpacity>

@@ -1,292 +1,205 @@
-import { create } from 'zustand';
-import { Product } from '@/types';
-import { supabase } from '@/services/supabase';
-import { dummyProducts } from '@/utils';
-
-interface ProductState {
-  products: Product[];
-  currentProduct: Product | null;
-  loading: boolean;
-  error: string | null;
-  
-  // アクション
-  fetchProducts: () => Promise<void>;
-  fetchProductById: (id: string) => Promise<Product | null>;
-  setCurrentProduct: (product: Product | null) => void;
-  
-  // スワイプ関連
-  addSwipe: (userId: string, productId: string, result: 'yes' | 'no') => Promise<void>;
-  
-  // クリックログ関連
-  logProductClick: (userId: string, productId: string) => Promise<void>;
-  
-  // 商品推薦関連
-  getRecommendedProducts: (userId: string, limit?: number) => Promise<Product[]>;
-}
-
-export const useProductStore = create<ProductState>((set, get) => ({
-  products: [],
-  currentProduct: null,
-  loading: false,
-  error: null,
-  
-  fetchProducts: async () => {
+  getSwipeHistory: async (userId: string, result?: 'yes' | 'no') => {
     try {
       set({ loading: true, error: null });
       
-      // MVPテスト用: Supabaseの代わりにダミーデータを使用
+      // MVPテスト用: ダミーデータからランダムに選択してスワイプ履歴をシミュレート
       // 本番環境では以下のコメントアウトを解除してSupabaseを使用
-      /*
-      // Supabaseから商品データを取得
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(50); // 最新の50件を取得
+      
+      // ダミー履歴の生成（開発用）
+      const allProducts = get().products;
+      // ランダムに20個選択
+      const randomIndices = Array.from({ length: 20 }, () => 
+        Math.floor(Math.random() * allProducts.length)
+      );
+      const randomProducts = randomIndices.map(index => allProducts[index]);
+      
+      // 結果フィルタリング（yes/noが指定された場合）
+      const filteredProducts = result 
+        ? randomProducts.filter((_, idx) => (idx % 2 === 0) === (result === 'yes'))
+        : randomProducts;
         
-      if (error) throw error;
+      // 疑似的に少し遅延を入れる
+      await new Promise(resolve => setTimeout(resolve, 300));
       
-      // 型変換（Supabaseのスネークケースからキャメルケースへ）
-      const formattedProducts: Product[] = data.map(product => ({
-        id: product.id,
-        title: product.title,
-        imageUrl: product.image_url,
-        brand: product.brand,
-        price: product.price,
-        tags: product.tags,
-        category: product.category,
-        affiliateUrl: product.affiliate_url,
-        source: product.source,
-        createdAt: product.created_at
-      }));
-      */
+      set({ swipeHistory: filteredProducts, loading: false });
+      return filteredProducts;
       
-      // ダミーデータを使用（開発用）
-      // 本番環境ではコメントアウト
-      const formattedProducts = dummyProducts;
-      
-      // ロード完了
-      set({ products: formattedProducts, loading: false });
-    } catch (error: any) {
-      console.error('Error fetching products:', error);
-      set({ error: error.message || '商品の取得に失敗しました', loading: false });
-    }
-  },
-  
-  fetchProductById: async (id: string) => {
-    try {
-      set({ loading: true, error: null });
-      
-      // まず、メモリ内の商品リストから検索
-      const cachedProduct = get().products.find(p => p.id === id);
-      if (cachedProduct) {
-        set({ currentProduct: cachedProduct, loading: false });
-        return cachedProduct;
+      /*
+      // 本番環境では以下のコードを使用（Supabase連携）
+      // スワイプ履歴を取得
+      let query = supabase
+        .from('swipes')
+        .select('*, product:products(*)')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+        
+      // 結果でフィルタリング（yesのみまたはnoのみ）
+      if (result) {
+        query = query.eq('result', result);
       }
       
-      // MVPテスト用: ダミーデータを使用
-      // 本番環境では以下のコメントアウトを解除してSupabaseを使用
-      /*
-      // キャッシュになければSupabaseから取得
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('id', id)
-        .single();
-        
+      const { data, error } = await query.limit(50);
+      
       if (error) throw error;
       
       // 型変換
-      const formattedProduct: Product = {
-        id: data.id,
-        title: data.title,
-        imageUrl: data.image_url,
-        brand: data.brand,
-        price: data.price,
-        tags: data.tags,
-        category: data.category,
-        affiliateUrl: data.affiliate_url,
-        source: data.source,
-        createdAt: data.created_at
-      };
-      */
+      const swipeHistory = data.map(item => ({
+        id: item.product.id,
+        title: item.product.title,
+        imageUrl: item.product.image_url,
+        brand: item.product.brand,
+        price: item.product.price,
+        tags: item.product.tags,
+        category: item.product.category,
+        affiliateUrl: item.product.affiliate_url,
+        source: item.product.source,
+        createdAt: item.product.created_at
+      }));
       
-      // ダミーデータの場合、idから検索（MVPのみ）
-      const dummyProduct = dummyProducts.find(p => p.id === id);
-      if (!dummyProduct) {
+      set({ swipeHistory, loading: false });
+      return swipeHistory;
+      */
+    } catch (error: any) {
+      console.error('Error fetching swipe history:', error);
+      set({ error: error.message || 'スワイプ履歴の取得に失敗しました', loading: false });
+      return [];
+    }
+  },
+  
+  addToFavorites: async (userId: string, productId: string) => {
+    try {
+      // 現在のお気に入りリスト
+      const currentFavorites = get().favorites;
+      
+      // 商品データの取得
+      const product = get().products.find(p => p.id === productId);
+      if (!product) {
         throw new Error('商品が見つかりません');
       }
       
-      set({ currentProduct: dummyProduct, loading: false });
-      return dummyProduct;
-    } catch (error: any) {
-      console.error('Error fetching product by id:', error);
-      set({ error: error.message || '商品の取得に失敗しました', loading: false });
-      return null;
-    }
-  },
-  
-  setCurrentProduct: (product) => {
-    set({ currentProduct: product });
-  },
-  
-  addSwipe: async (userId, productId, result) => {
-    // MVPテスト用: コンソールにのみ記録
-    console.log(`スワイプ記録（テスト）: ユーザー ${userId} が商品 ${productId} を ${result === 'yes' ? '好き' : '嫌い'} と評価`);
-    
-    // 本番実装では以下を使用
-    /*
-    try {
+      // すでにお気に入りに追加済みかチェック
+      if (currentFavorites.some(p => p.id === productId)) {
+        return; // すでに追加済みの場合は何もしない
+      }
+      
+      // MVPテスト用: メモリ内のみでお気に入りを管理
+      const newFavorites = [...currentFavorites, product];
+      set({ favorites: newFavorites });
+      
+      // コンソールにログを出力（テスト用）
+      console.log(`お気に入り追加（テスト）: ユーザー ${userId} が商品 ${productId} をお気に入りに追加`);
+      
+      /*
+      // 本番環境では以下のコードを使用（Supabase連携）
       const { error } = await supabase
-        .from('swipes')
-        .insert([{ 
-          user_id: userId, 
-          product_id: productId, 
-          result 
-        }]);
-        
-      if (error) throw error;
-    } catch (error: any) {
-      console.error('Error recording swipe:', error);
-      // スワイプ記録のエラーはユーザー体験に影響を与えないように、UIにはエラーを表示しない
-    }
-    */
-  },
-  
-  logProductClick: async (userId, productId) => {
-    // MVPテスト用: コンソールにのみ記録
-    console.log(`クリック記録（テスト）: ユーザー ${userId} が商品 ${productId} をクリック`);
-    
-    // 本番実装では以下を使用
-    /*
-    try {
-      const { error } = await supabase
-        .from('click_logs')
+        .from('favorites')
         .insert([{ 
           user_id: userId, 
           product_id: productId 
         }]);
         
       if (error) throw error;
+      
+      // お気に入りリストを更新
+      await getFavorites(userId);
+      */
     } catch (error: any) {
-      console.error('Error logging product click:', error);
-      // クリックログのエラーはユーザー体験に影響を与えないように、UIにはエラーを表示しない
+      console.error('Error adding to favorites:', error);
+      // UI上でのエラー表示は必要に応じて
     }
-    */
   },
   
-  getRecommendedProducts: async (userId, limit = 20) => {
+  removeFromFavorites: async (userId: string, productId: string) => {
     try {
-      set({ loading: true, error: null });
+      // 現在のお気に入りリスト
+      const currentFavorites = get().favorites;
       
-      // MVPでは単純なクエリでレコメンドを実装
-      // 実際のプロジェクトでは、専用のEdge FunctionやAPIを使用することを推奨
+      // お気に入りから削除
+      const newFavorites = currentFavorites.filter(p => p.id !== productId);
+      set({ favorites: newFavorites });
       
-      // MVPテスト用: ダミーデータを使用してレコメンドのシミュレーション
-      // ユーザーIDに基づいて、いくつかの商品をランダムに選択
-      const shuffled = [...dummyProducts].sort(() => 0.5 - Math.random());
-      const randomRecommended = shuffled.slice(0, limit);
-      
-      // 疑似的に少し遅延を入れて、APIリクエストをシミュレート
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      set({ loading: false });
-      return randomRecommended;
+      // コンソールにログを出力（テスト用）
+      console.log(`お気に入り削除（テスト）: ユーザー ${userId} が商品 ${productId} をお気に入りから削除`);
       
       /*
       // 本番環境では以下のコードを使用（Supabase連携）
-      
-      // ユーザーが「Yes」とスワイプした商品のタグを取得
-      const { data: swipes, error: swipeError } = await supabase
-        .from('swipes')
-        .select('product_id')
+      const { error } = await supabase
+        .from('favorites')
+        .delete()
         .eq('user_id', userId)
-        .eq('result', 'yes');
+        .eq('product_id', productId);
         
-      if (swipeError) throw swipeError;
+      if (error) throw error;
       
-      if (!swipes || swipes.length === 0) {
-        // スワイプがない場合は、最新の商品を取得
-        return get().products.slice(0, limit);
-      }
-      
-      // スワイプした商品のIDリスト
-      const swipedProductIds = swipes.map(s => s.product_id);
-      
-      // スワイプした商品を取得して、タグを抽出
-      const { data: swipedProducts, error: productsError } = await supabase
-        .from('products')
-        .select('tags')
-        .in('id', swipedProductIds);
-        
-      if (productsError) throw productsError;
-      
-      // すべてのタグを集計
-      const tagCounts: Record<string, number> = {};
-      swipedProducts.forEach(product => {
-        if (product.tags) {
-          product.tags.forEach((tag: string) => {
-            tagCounts[tag] = (tagCounts[tag] || 0) + 1;
-          });
-        }
-      });
-      
-      // タグの出現回数でソート
-      const popularTags = Object.entries(tagCounts)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5)  // 上位5つのタグを使用
-        .map(([tag]) => tag);
-        
-      if (popularTags.length === 0) {
-        // タグがない場合は、最新の商品を取得
-        return get().products.slice(0, limit);
-      }
-      
-      // 人気タグを含む商品を取得（まだスワイプしていない商品）
-      const { data: recommendedProducts, error: recError } = await supabase
-        .from('products')
-        .select('*')
-        .not('id', 'in', swipedProductIds)
-        .overlaps('tags', popularTags)
-        .limit(limit);
-        
-      if (recError) throw recError;
-      
-      // 推薦商品が少ない場合は、他の商品で補完
-      if (recommendedProducts.length < limit) {
-        const remainingCount = limit - recommendedProducts.length;
-        const { data: additionalProducts, error: addError } = await supabase
-          .from('products')
-          .select('*')
-          .not('id', 'in', [...swipedProductIds, ...recommendedProducts.map(p => p.id)])
-          .limit(remainingCount);
-          
-        if (addError) throw addError;
-        
-        recommendedProducts.push(...additionalProducts);
-      }
-      
-      // 型変換
-      const formattedProducts: Product[] = recommendedProducts.map(product => ({
-        id: product.id,
-        title: product.title,
-        imageUrl: product.image_url,
-        brand: product.brand,
-        price: product.price,
-        tags: product.tags,
-        category: product.category,
-        affiliateUrl: product.affiliate_url,
-        source: product.source,
-        createdAt: product.created_at
-      }));
-      
-      set({ loading: false });
-      return formattedProducts;
+      // お気に入りリストを更新
+      await getFavorites(userId);
       */
     } catch (error: any) {
-      console.error('Error getting recommended products:', error);
-      set({ error: error.message || 'おすすめ商品の取得に失敗しました', loading: false });
+      console.error('Error removing from favorites:', error);
+      // UI上でのエラー表示は必要に応じて
+    }
+  },
+  
+  getFavorites: async (userId: string) => {
+    try {
+      set({ loading: true, error: null });
+      
+      // MVPテスト用: 現在のお気に入りリストを返す
+      // （初回の場合は空のため、ダミーデータからいくつか選択）
+      if (get().favorites.length === 0) {
+        // ダミーお気に入りの生成（開発用）- ダミーデータから5つランダムに選択
+        const allProducts = get().products;
+        const randomIndices = Array.from({ length: 5 }, () => 
+          Math.floor(Math.random() * allProducts.length)
+        );
+        const randomFavorites = randomIndices.map(index => allProducts[index]);
+        
+        // 疑似的に少し遅延を入れる
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        set({ favorites: randomFavorites, loading: false });
+        return randomFavorites;
+      }
+      
+      // すでにお気に入りが存在する場合はそれを返す
+      set({ loading: false });
+      return get().favorites;
+      
+      /*
+      // 本番環境では以下のコードを使用（Supabase連携）
+      const { data, error } = await supabase
+        .from('favorites')
+        .select('*, product:products(*)')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+        
+      if (error) throw error;
+      
+      // 型変換
+      const favorites = data.map(item => ({
+        id: item.product.id,
+        title: item.product.title,
+        imageUrl: item.product.image_url,
+        brand: item.product.brand,
+        price: item.product.price,
+        tags: item.product.tags,
+        category: item.product.category,
+        affiliateUrl: item.product.affiliate_url,
+        source: item.product.source,
+        createdAt: item.product.created_at
+      }));
+      
+      set({ favorites, loading: false });
+      return favorites;
+      */
+    } catch (error: any) {
+      console.error('Error fetching favorites:', error);
+      set({ error: error.message || 'お気に入りの取得に失敗しました', loading: false });
       return [];
     }
   },
-}));
+  
+  isFavorite: (productId: string) => {
+    // 現在のお気に入りリストから判定
+    return get().favorites.some(p => p.id === productId);
+  },
