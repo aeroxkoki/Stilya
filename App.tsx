@@ -4,35 +4,23 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuthStore } from '@/store/authStore';
-import { View, Text } from 'react-native';
+import { View, Text, ActivityIndicator } from 'react-native';
 
-// 今後のナビゲーション実装のためのプレースホルダー
-const AuthStack = () => (
-  <View className="flex-1 items-center justify-center bg-white">
-    <Text className="text-xl font-bold">Auth Screen (Coming Soon)</Text>
-  </View>
-);
+// ナビゲーター
+import AuthNavigator from '@/navigation/AuthNavigator';
+import MainNavigator from '@/navigation/MainNavigator';
+import OnboardingNavigator from '@/navigation/OnboardingNavigator';
 
-const MainStack = () => (
-  <View className="flex-1 items-center justify-center bg-white">
-    <Text className="text-xl font-bold">Main Screen (Coming Soon)</Text>
-  </View>
-);
+// スタックナビゲーター
+const Stack = createNativeStackNavigator();
 
-const OnboardingStack = () => (
-  <View className="flex-1 items-center justify-center bg-white">
-    <Text className="text-xl font-bold">Onboarding Screen (Coming Soon)</Text>
-  </View>
-);
-
+// ローディング画面
 const LoadingScreen = () => (
   <View className="flex-1 items-center justify-center bg-white">
-    <Text className="text-xl font-bold">Loading...</Text>
+    <ActivityIndicator size="large" color="#3B82F6" />
+    <Text className="mt-4 text-gray-600">読み込み中...</Text>
   </View>
 );
-
-// メインスタックナビゲーター
-const Stack = createNativeStackNavigator();
 
 export default function App() {
   const { initialize, loading, user, session } = useAuthStore();
@@ -52,13 +40,13 @@ export default function App() {
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           {!session ? (
             // 未ログイン状態
-            <Stack.Screen name="Auth" component={AuthStack} />
+            <Stack.Screen name="Auth" component={AuthNavigator} />
           ) : user?.gender ? (
             // ログイン済み & オンボーディング完了
-            <Stack.Screen name="Main" component={MainStack} />
+            <Stack.Screen name="Main" component={MainNavigator} />
           ) : (
             // ログイン済み & オンボーディング未完了
-            <Stack.Screen name="Onboarding" component={OnboardingStack} />
+            <Stack.Screen name="Onboarding" component={OnboardingNavigator} />
           )}
         </Stack.Navigator>
       </NavigationContainer>
