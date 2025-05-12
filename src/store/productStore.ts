@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { Product } from '@/types';
 import { supabase } from '@/services/supabase';
+import { dummyProducts } from '@/utils';
 
 interface ProductState {
   products: Product[];
@@ -33,6 +34,9 @@ export const useProductStore = create<ProductState>((set, get) => ({
     try {
       set({ loading: true, error: null });
       
+      // MVPテスト用: Supabaseの代わりにダミーデータを使用
+      // 本番環境では以下のコメントアウトを解除してSupabaseを使用
+      /*
       // Supabaseから商品データを取得
       const { data, error } = await supabase
         .from('products')
@@ -55,7 +59,13 @@ export const useProductStore = create<ProductState>((set, get) => ({
         source: product.source,
         createdAt: product.created_at
       }));
+      */
       
+      // ダミーデータを使用（開発用）
+      // 本番環境ではコメントアウト
+      const formattedProducts = dummyProducts;
+      
+      // ロード完了
       set({ products: formattedProducts, loading: false });
     } catch (error: any) {
       console.error('Error fetching products:', error);
@@ -74,6 +84,9 @@ export const useProductStore = create<ProductState>((set, get) => ({
         return cachedProduct;
       }
       
+      // MVPテスト用: ダミーデータを使用
+      // 本番環境では以下のコメントアウトを解除してSupabaseを使用
+      /*
       // キャッシュになければSupabaseから取得
       const { data, error } = await supabase
         .from('products')
@@ -96,9 +109,16 @@ export const useProductStore = create<ProductState>((set, get) => ({
         source: data.source,
         createdAt: data.created_at
       };
+      */
       
-      set({ currentProduct: formattedProduct, loading: false });
-      return formattedProduct;
+      // ダミーデータの場合、idから検索（MVPのみ）
+      const dummyProduct = dummyProducts.find(p => p.id === id);
+      if (!dummyProduct) {
+        throw new Error('商品が見つかりません');
+      }
+      
+      set({ currentProduct: dummyProduct, loading: false });
+      return dummyProduct;
     } catch (error: any) {
       console.error('Error fetching product by id:', error);
       set({ error: error.message || '商品の取得に失敗しました', loading: false });
@@ -111,6 +131,11 @@ export const useProductStore = create<ProductState>((set, get) => ({
   },
   
   addSwipe: async (userId, productId, result) => {
+    // MVPテスト用: コンソールにのみ記録
+    console.log(`スワイプ記録（テスト）: ユーザー ${userId} が商品 ${productId} を ${result === 'yes' ? '好き' : '嫌い'} と評価`);
+    
+    // 本番実装では以下を使用
+    /*
     try {
       const { error } = await supabase
         .from('swipes')
@@ -125,9 +150,15 @@ export const useProductStore = create<ProductState>((set, get) => ({
       console.error('Error recording swipe:', error);
       // スワイプ記録のエラーはユーザー体験に影響を与えないように、UIにはエラーを表示しない
     }
+    */
   },
   
   logProductClick: async (userId, productId) => {
+    // MVPテスト用: コンソールにのみ記録
+    console.log(`クリック記録（テスト）: ユーザー ${userId} が商品 ${productId} をクリック`);
+    
+    // 本番実装では以下を使用
+    /*
     try {
       const { error } = await supabase
         .from('click_logs')
@@ -141,6 +172,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
       console.error('Error logging product click:', error);
       // クリックログのエラーはユーザー体験に影響を与えないように、UIにはエラーを表示しない
     }
+    */
   },
   
   getRecommendedProducts: async (userId, limit = 20) => {
@@ -149,6 +181,20 @@ export const useProductStore = create<ProductState>((set, get) => ({
       
       // MVPでは単純なクエリでレコメンドを実装
       // 実際のプロジェクトでは、専用のEdge FunctionやAPIを使用することを推奨
+      
+      // MVPテスト用: ダミーデータを使用してレコメンドのシミュレーション
+      // ユーザーIDに基づいて、いくつかの商品をランダムに選択
+      const shuffled = [...dummyProducts].sort(() => 0.5 - Math.random());
+      const randomRecommended = shuffled.slice(0, limit);
+      
+      // 疑似的に少し遅延を入れて、APIリクエストをシミュレート
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      set({ loading: false });
+      return randomRecommended;
+      
+      /*
+      // 本番環境では以下のコードを使用（Supabase連携）
       
       // ユーザーが「Yes」とスワイプした商品のタグを取得
       const { data: swipes, error: swipeError } = await supabase
@@ -236,6 +282,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
       
       set({ loading: false });
       return formattedProducts;
+      */
     } catch (error: any) {
       console.error('Error getting recommended products:', error);
       set({ error: error.message || 'おすすめ商品の取得に失敗しました', loading: false });

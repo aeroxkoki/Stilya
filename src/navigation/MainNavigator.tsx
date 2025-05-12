@@ -3,9 +3,9 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { MainTabParamList } from '@/types';
 
-// 仮の画面コンポーネント
-import SwipeScreen from '@/screens/swipe/SwipeScreen';
-import RecommendScreen from '@/screens/recommend/RecommendScreen';
+// ナビゲーター
+import SwipeNavigator from './SwipeNavigator';
+import RecommendNavigator from './RecommendNavigator';
 import ProfileScreen from '@/screens/profile/ProfileScreen';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -44,12 +44,12 @@ const MainNavigator: React.FC = () => {
     >
       <Tab.Screen
         name="Swipe"
-        component={SwipeScreen}
+        component={SwipeNavigator}
         options={{ title: 'スワイプ' }}
       />
       <Tab.Screen
         name="Recommend"
-        component={RecommendScreen}
+        component={RecommendNavigator}
         options={{ title: 'おすすめ' }}
       />
       <Tab.Screen

@@ -1,4 +1,6 @@
 import { Product } from '@/types';
+// ダミーデータのインポート
+export * from './dummyData';
 
 // 価格をフォーマットする関数
 export const formatPrice = (price: number): string => {
