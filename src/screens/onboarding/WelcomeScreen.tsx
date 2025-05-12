@@ -43,7 +43,7 @@ const WelcomeScreen: React.FC<Props> = ({ navigation }) => {
         <View className="w-full">
           <Button
             isFullWidth
-            onPress={() => navigation.navigate('Gender')}
+            onPress={() => navigation.navigate('AppIntro')}
           >
             始める
           </Button>

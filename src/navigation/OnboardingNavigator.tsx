@@ -1,6 +1,7 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import WelcomeScreen from '@/screens/onboarding/WelcomeScreen';
+import AppIntroScreen from '@/screens/onboarding/AppIntroScreen';
 import GenderScreen from '@/screens/onboarding/GenderScreen';
 import StyleScreen from '@/screens/onboarding/StyleScreen';
 import AgeGroupScreen from '@/screens/onboarding/AgeGroupScreen';
@@ -20,6 +21,7 @@ const OnboardingNavigator: React.FC = () => {
       }}
     >
       <Stack.Screen name="Welcome" component={WelcomeScreen} />
+      <Stack.Screen name="AppIntro" component={AppIntroScreen} />
       <Stack.Screen name="Gender" component={GenderScreen} />
       <Stack.Screen name="Style" component={StyleScreen} />
       <Stack.Screen name="AgeGroup" component={AgeGroupScreen} />

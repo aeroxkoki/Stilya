@@ -1,4 +1,4 @@
-// ãƒ¦ãƒ¼ã‚¶ãƒ¼é–¢é€£ã®å‹å®šç¾©
+// æü¶ü¢#n‹š©
 export interface User {
   id: string;
   email?: string;
@@ -8,7 +8,7 @@ export interface User {
   ageGroup?: string;
 }
 
-// å•†å“é–¢é€£ã®å‹å®šç¾©
+// FÁ¢#n‹š©
 export interface Product {
   id: string;
   title: string;
@@ -22,7 +22,7 @@ export interface Product {
   createdAt?: string;
 }
 
-// ã‚¹ãƒ¯ã‚¤ãƒ—é–¢é€£ã®å‹å®šç¾©
+// ¹ï¤×¢#n‹š©
 export interface Swipe {
   id: string;
   userId: string;
@@ -31,7 +31,7 @@ export interface Swipe {
   createdAt: string;
 }
 
-// ãŠæ°—ã«å…¥ã‚Šé–¢é€£ã®å‹å®šç¾©
+// JkeŠ¢#n‹š©
 export interface Favorite {
   id: string;
   userId: string;
@@ -39,7 +39,7 @@ export interface Favorite {
   createdAt: string;
 }
 
-// ã‚¯ãƒªãƒƒã‚¯ãƒ­ã‚°é–¢é€£ã®å‹å®šç¾©
+// ¯êÃ¯í°¢#n‹š©
 export interface ClickLog {
   id?: string;
   userId: string;
@@ -47,7 +47,7 @@ export interface ClickLog {
   createdAt?: string;
 }
 
-// èªè¨¼é–¢é€£ã®å‹å®šç¾©
+// <¢#n‹š©
 export interface AuthState {
   user: User | null;
   session: any | null;
@@ -55,7 +55,7 @@ export interface AuthState {
   error: string | null;
 }
 
-// ãƒŠãƒ“ã‚²ãƒ¼ã‚·ãƒ§ãƒ³é–¢é€£ã®å‹å®šç¾©
+// ÊÓ²ü·çó¢#n‹š©
 export type RootStackParamList = {
   Auth: undefined;
   Main: undefined;
@@ -76,6 +76,7 @@ export type MainTabParamList = {
 
 export type OnboardingStackParamList = {
   Welcome: undefined;
+  AppIntro: undefined;
   Gender: undefined;
   Style: undefined;
   AgeGroup: undefined;

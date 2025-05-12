@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, SafeAreaView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, SafeAreaView, TouchableOpacity } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { Button, Card } from '@/components/common';
+import { Button } from '@/components/common';
+import { SelectionButton } from '@/components/onboarding';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { OnboardingStackParamList } from '@/types';
 
@@ -34,70 +35,34 @@ const GenderScreen: React.FC<Props> = ({ navigation }) => {
         </Text>
 
         {/* 選択肢 */}
-        <View className="space-y-4 mb-8">
-          <TouchableOpacity
+        <View className="mb-8">
+          <SelectionButton
+            title="男性"
+            subtitle="メンズスタイル"
+            isSelected={gender === 'male'}
             onPress={() => setGender('male')}
-            activeOpacity={0.7}
-          >
-            <Card
-              className={`p-6 ${gender === 'male' ? 'border-2 border-primary' : ''}`}
-            >
-              <View className="flex-row items-center justify-between">
-                <View>
-                  <Text className="text-lg font-medium">男性</Text>
-                  <Text className="text-gray-500">メンズスタイル</Text>
-                </View>
-                {gender === 'male' && (
-                  <Ionicons name="checkmark-circle" size={24} color="#3B82F6" />
-                )}
-              </View>
-            </Card>
-          </TouchableOpacity>
+          />
 
-          <TouchableOpacity
+          <SelectionButton
+            title="女性"
+            subtitle="レディーススタイル"
+            isSelected={gender === 'female'}
             onPress={() => setGender('female')}
-            activeOpacity={0.7}
-          >
-            <Card
-              className={`p-6 ${gender === 'female' ? 'border-2 border-primary' : ''}`}
-            >
-              <View className="flex-row items-center justify-between">
-                <View>
-                  <Text className="text-lg font-medium">女性</Text>
-                  <Text className="text-gray-500">レディーススタイル</Text>
-                </View>
-                {gender === 'female' && (
-                  <Ionicons name="checkmark-circle" size={24} color="#3B82F6" />
-                )}
-              </View>
-            </Card>
-          </TouchableOpacity>
+          />
 
-          <TouchableOpacity
+          <SelectionButton
+            title="その他"
+            subtitle="ユニセックススタイル"
+            isSelected={gender === 'other'}
             onPress={() => setGender('other')}
-            activeOpacity={0.7}
-          >
-            <Card
-              className={`p-6 ${gender === 'other' ? 'border-2 border-primary' : ''}`}
-            >
-              <View className="flex-row items-center justify-between">
-                <View>
-                  <Text className="text-lg font-medium">その他</Text>
-                  <Text className="text-gray-500">ユニセックススタイル</Text>
-                </View>
-                {gender === 'other' && (
-                  <Ionicons name="checkmark-circle" size={24} color="#3B82F6" />
-                )}
-              </View>
-            </Card>
-          </TouchableOpacity>
+          />
         </View>
 
         {/* 次へボタン */}
         <Button
           isFullWidth
           onPress={handleNext}
-          disabled={!gender}
+          disabled={\!gender}
           className="mt-auto"
         >
           次へ
