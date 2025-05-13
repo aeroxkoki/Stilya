@@ -1,17 +1,7 @@
-import React, { useRef, useState } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { PanGestureHandler } from 'react-native-gesture-handler';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  useAnimatedGestureHandler,
-  withSpring,
-  interpolate,
-  runOnJS,
-  withTiming,
-  Extrapolate
-} from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 import { Product } from '@/types';
 import { formatPrice } from '@/utils';
 import { Tags } from '@/components/common';
@@ -21,130 +11,24 @@ export interface SwipeCardProps {
   onSwipeLeft?: () => void;
   onSwipeRight?: () => void;
   onPress?: () => void;
+  yesIndicatorStyle?: object;
+  noIndicatorStyle?: object;
 }
 
 const { width, height } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.9;
 const CARD_HEIGHT = height * 0.6;
-const SWIPE_THRESHOLD = 120; // この値以上スワイプしたらアクションを実行
 
 const SwipeCard: React.FC<SwipeCardProps> = ({ 
   product, 
   onPress,
   onSwipeLeft,
-  onSwipeRight
+  onSwipeRight,
+  yesIndicatorStyle,
+  noIndicatorStyle
 }) => {
-  // Reanimated 2のSharedValue
-  const translateX = useSharedValue(0);
-  const translateY = useSharedValue(0);
-  const scale = useSharedValue(1);
-  
-  // スワイプ方向の状態
-  const [direction, setDirection] = useState<'left' | 'right' | null>(null);
-
-  // ジェスチャーハンドラー
-  const gestureHandler = useAnimatedGestureHandler({
-    onStart: (_, ctx: any) => {
-      ctx.startX = translateX.value;
-      ctx.startY = translateY.value;
-      // カードを持ち上げる効果
-      scale.value = withTiming(1.05, { duration: 200 });
-    },
-    onActive: (event, ctx) => {
-      translateX.value = ctx.startX + event.translationX;
-      translateY.value = ctx.startY + event.translationY * 0.5; // Y軸は少し抑制
-    },
-    onEnd: (event) => {
-      // スワイプがしきい値を超えたかどうかを判定
-      if (event.translationX > SWIPE_THRESHOLD) {
-        // 右にスワイプ完了
-        translateX.value = withSpring(CARD_WIDTH + 100);
-        translateY.value = withSpring(0);
-        if (onSwipeRight) {
-          runOnJS(setDirection)('right');
-          runOnJS(onSwipeRight)();
-        }
-      } else if (event.translationX < -SWIPE_THRESHOLD) {
-        // 左にスワイプ完了
-        translateX.value = withSpring(-CARD_WIDTH - 100);
-        translateY.value = withSpring(0);
-        if (onSwipeLeft) {
-          runOnJS(setDirection)('left');
-          runOnJS(onSwipeLeft)();
-        }
-      } else {
-        // しきい値未満ならリセット
-        translateX.value = withSpring(0, { damping: 15 });
-        translateY.value = withSpring(0, { damping: 15 });
-        runOnJS(setDirection)(null);
-      }
-      // カードを元のサイズに戻す
-      scale.value = withTiming(1, { duration: 200 });
-    },
-  });
-
-  // 左右のボタンでスワイプするハンドラー
-  const handleNoPress = () => {
-    translateX.value = withSpring(-CARD_WIDTH - 100);
-    if (onSwipeLeft) {
-      setDirection('left');
-      onSwipeLeft();
-    }
-  };
-
-  const handleYesPress = () => {
-    translateX.value = withSpring(CARD_WIDTH + 100);
-    if (onSwipeRight) {
-      setDirection('right');
-      onSwipeRight();
-    }
-  };
-
-  // アニメーションスタイル
-  const animatedCardStyle = useAnimatedStyle(() => {
-    const rotate = interpolate(
-      translateX.value,
-      [-SWIPE_THRESHOLD * 2, 0, SWIPE_THRESHOLD * 2],
-      ['-30deg', '0deg', '30deg'],
-      Extrapolate.CLAMP
-    );
-
-    return {
-      transform: [
-        { translateX: translateX.value },
-        { translateY: translateY.value },
-        { rotate },
-        { scale: scale.value }
-      ],
-    };
-  });
-
-  // Yes/Noインジケーターのアニメーションスタイル
-  const yesIndicatorStyle = useAnimatedStyle(() => {
-    const opacity = interpolate(
-      translateX.value,
-      [0, SWIPE_THRESHOLD],
-      [0, 1],
-      Extrapolate.CLAMP
-    );
-
-    return { opacity };
-  });
-
-  const noIndicatorStyle = useAnimatedStyle(() => {
-    const opacity = interpolate(
-      translateX.value,
-      [-SWIPE_THRESHOLD, 0],
-      [1, 0],
-      Extrapolate.CLAMP
-    );
-
-    return { opacity };
-  });
-
   return (
-    <PanGestureHandler onGestureEvent={gestureHandler}>
-      <Animated.View style={[styles.card, animatedCardStyle]}>
+    <View style={styles.card} className="overflow-hidden w-full h-full">
         <TouchableOpacity
           activeOpacity={0.9}
           onPress={onPress}
@@ -198,23 +82,22 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
             <View className="absolute bottom-28 left-4 right-4 flex-row justify-between">
               <TouchableOpacity 
                 className="w-16 h-16 bg-white rounded-full items-center justify-center shadow-md"
-                onPress={handleNoPress}
+                onPress={onSwipeLeft}
               >
                 <Ionicons name="close" size={32} color="#F87171" />
               </TouchableOpacity>
               
               <TouchableOpacity 
                 className="w-16 h-16 bg-white rounded-full items-center justify-center shadow-md"
-                onPress={handleYesPress}
+                onPress={onSwipeRight}
               >
                 <Ionicons name="heart" size={32} color="#3B82F6" />
               </TouchableOpacity>
             </View>
           </View>
         </TouchableOpacity>
-      </Animated.View>
-    </PanGestureHandler>
-  );
+      </View>
+    );
 };
 
 const styles = StyleSheet.create({
@@ -222,6 +105,8 @@ const styles = StyleSheet.create({
     width: CARD_WIDTH,
     height: CARD_HEIGHT,
     borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: 'white',
     ...Platform.select({
       ios: {
         shadowColor: '#000',

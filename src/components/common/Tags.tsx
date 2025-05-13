@@ -1,122 +1,105 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 
-type TagsProps = {
+interface TagsProps {
   tags: string[];
-  limit?: number;
   size?: 'small' | 'medium' | 'large';
-  colorMap?: Record<string, string>;
-};
+  color?: string;
+  backgroundColor?: string;
+  onPressTag?: (tag: string) => void;
+  scrollable?: boolean;
+  maxTags?: number;
+}
 
-/**
- * タグを表示するコンポーネント
- * カテゴリごとに異なる色を設定可能
- */
 const Tags: React.FC<TagsProps> = ({
   tags,
-  limit = 4,
   size = 'medium',
-  colorMap,
+  color = 'white',
+  backgroundColor = 'rgba(59, 130, 246, 0.8)', // #3B82F6 with opacity
+  onPressTag,
+  scrollable = true,
+  maxTags = 5,
 }) => {
-  // サイズごとのスタイル
+  if (!tags || tags.length === 0) {
+    return null;
+  }
+
+  // サイズに応じたスタイルを選択
   const sizeStyles = {
     small: {
-      container: { gap: 4 },
-      tag: { paddingVertical: 2, paddingHorizontal: 6, borderRadius: 8 },
-      text: { fontSize: 10 },
+      text: styles.smallText,
+      tag: styles.smallTag,
     },
     medium: {
-      container: { gap: 6 },
-      tag: { paddingVertical: 3, paddingHorizontal: 8, borderRadius: 10 },
-      text: { fontSize: 12 },
+      text: styles.mediumText,
+      tag: styles.mediumTag,
     },
     large: {
-      container: { gap: 8 },
-      tag: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12 },
-      text: { fontSize: 14 },
+      text: styles.largeText,
+      tag: styles.largeTag,
     },
   };
 
-  // タグの色を決定（colorMapが指定されていない場合はデフォルト色を使用）
-  const getTagColor = (tag: string): string => {
-    if (colorMap && colorMap[tag]) {
-      return colorMap[tag];
-    }
+  // 色指定を適用
+  const colorStyle = {
+    color,
+  };
 
-    // デフォルトの色マッピング
-    const defaultColors: Record<string, string> = {
-      // 季節
-      '春': '#4ade80', // グリーン
-      '夏': '#22d3ee', // シアン
-      '秋': '#f97316', // オレンジ
-      '冬': '#93c5fd', // ライトブルー
-      
-      // スタイル
-      'カジュアル': '#a78bfa', // パープル
-      'フォーマル': '#1e293b', // ダークグレー
-      'モード': '#18181b', // ブラック
-      'ストリート': '#6366f1', // インディゴ
-      'ナチュラル': '#84cc16', // ライム
-      
-      // 性別
-      'メンズ': '#0ea5e9', // スカイブルー
-      'レディース': '#ec4899', // ピンク
-      'ユニセックス': '#8b5cf6', // バイオレット
-    };
-
-    return defaultColors[tag] || '#64748b'; // 既定値はスレートグレー
+  // 背景色指定を適用
+  const backgroundColorStyle = {
+    backgroundColor,
   };
 
   // 表示するタグを制限
-  const displayTags = tags.slice(0, limit);
+  const visibleTags = maxTags > 0 ? tags.slice(0, maxTags) : tags;
+  const hiddenTagsCount = maxTags > 0 ? Math.max(0, tags.length - maxTags) : 0;
 
-  return (
-    <View style={[styles.container, sizeStyles[size].container]}>
-      {displayTags.map((tag, index) => (
-        <View
-          key={index}
-          style={[
-            styles.tag,
-            sizeStyles[size].tag,
-            { backgroundColor: getTagColor(tag) + '33' }, // 色に透明度を追加（33=20%）
-            { borderColor: getTagColor(tag) + '66' }, // 濃いめのボーダー（66=40%）
-          ]}
-        >
-          <Text
-            style={[
-              styles.text,
-              sizeStyles[size].text,
-              { color: getTagColor(tag) },
-            ]}
-            numberOfLines={1}
-          >
-            {tag}
-          </Text>
-        </View>
+  // タグコンポーネント
+  const TagComponent = ({ tag }: { tag: string }) => (
+    <View
+      style={[sizeStyles[size].tag, backgroundColorStyle]}
+      key={tag}
+    >
+      <Text
+        style={[sizeStyles[size].text, colorStyle]}
+        numberOfLines={1}
+      >
+        {tag}
+      </Text>
+    </View>
+  );
+
+  // コンテンツ
+  const content = (
+    <>
+      {visibleTags.map(tag => (
+        <TagComponent tag={tag} key={tag} />
       ))}
       
-      {/* タグが制限を超えている場合に「+N」を表示 */}
-      {tags.length > limit && (
-        <View
-          style={[
-            styles.tag,
-            sizeStyles[size].tag,
-            { backgroundColor: '#f1f5f9' },
-          ]}
-        >
-          <Text
-            style={[
-              styles.text,
-              sizeStyles[size].text,
-              { color: '#64748b' },
-            ]}
-          >
-            +{tags.length - limit}
+      {hiddenTagsCount > 0 && (
+        <View style={[sizeStyles[size].tag, styles.moreTag]}>
+          <Text style={[sizeStyles[size].text, styles.moreTagText]}>
+            +{hiddenTagsCount}
           </Text>
         </View>
       )}
-    </View>
+    </>
   );
+
+  // スクロール可能かどうかで表示方法を変える
+  if (scrollable) {
+    return (
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContainer}
+      >
+        {content}
+      </ScrollView>
+    );
+  }
+
+  return <View style={styles.container}>{content}</View>;
 };
 
 const styles = StyleSheet.create({
@@ -124,13 +107,48 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
   },
-  tag: {
-    borderWidth: 1,
+  scrollContainer: {
+    flexDirection: 'row',
+    paddingVertical: 4,
+  },
+  smallTag: {
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
     marginRight: 4,
     marginBottom: 4,
   },
-  text: {
+  mediumTag: {
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginRight: 6,
+    marginBottom: 6,
+  },
+  largeTag: {
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  smallText: {
+    fontSize: 10,
     fontWeight: '500',
+  },
+  mediumText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  largeText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  moreTag: {
+    backgroundColor: 'rgba(107, 114, 128, 0.8)', // #6B7280 with opacity
+  },
+  moreTagText: {
+    color: 'white',
   },
 });
 
