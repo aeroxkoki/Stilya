@@ -13,6 +13,7 @@ export interface SwipeCardProps {
   onPress?: () => void;
   yesIndicatorStyle?: object;
   noIndicatorStyle?: object;
+  testID?: string;
 }
 
 const { width, height } = Dimensions.get('window');
@@ -25,14 +26,16 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
   onSwipeLeft,
   onSwipeRight,
   yesIndicatorStyle,
-  noIndicatorStyle
+  noIndicatorStyle,
+  testID
 }) => {
   return (
-    <View style={styles.card} className="overflow-hidden w-full h-full">
+    <View style={styles.card} className="overflow-hidden w-full h-full" testID={testID || 'swipe-card'}>
         <TouchableOpacity
           activeOpacity={0.9}
           onPress={onPress}
           className="bg-white rounded-xl shadow-lg overflow-hidden w-full h-full"
+          testID={testID ? `${testID}-touch` : 'swipe-card-touch'}
         >
           <View className="w-full h-full">
             <Image
@@ -83,6 +86,9 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
               <TouchableOpacity 
                 className="w-16 h-16 bg-white rounded-full items-center justify-center shadow-md"
                 onPress={onSwipeLeft}
+                testID="swipe-left-button"
+                disabled={!onSwipeLeft}
+                style={!onSwipeLeft ? { opacity: 0.5 } : {}}
               >
                 <Ionicons name="close" size={32} color="#F87171" />
               </TouchableOpacity>
@@ -90,6 +96,9 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
               <TouchableOpacity 
                 className="w-16 h-16 bg-white rounded-full items-center justify-center shadow-md"
                 onPress={onSwipeRight}
+                testID="swipe-right-button"
+                disabled={!onSwipeRight}
+                style={!onSwipeRight ? { opacity: 0.5 } : {}}
               >
                 <Ionicons name="heart" size={32} color="#3B82F6" />
               </TouchableOpacity>

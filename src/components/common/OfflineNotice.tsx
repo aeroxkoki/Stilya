@@ -67,6 +67,7 @@ const OfflineNotice: React.FC = () => {
           transform: [{ translateY: slideAnim }],
         },
       ]}
+      testID="offline-notice"
     >
       <View style={styles.contentContainer}>
         <Ionicons

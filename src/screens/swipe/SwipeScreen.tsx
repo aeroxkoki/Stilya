@@ -187,7 +187,7 @@ const SwipeScreen: React.FC = () => {
   if (loading && products.length === 0) {
     return (
       <SafeAreaView className="flex-1 bg-white">
-        <View className="flex-1 items-center justify-center">
+        <View className="flex-1 items-center justify-center" testID="loading-container">
           <ActivityIndicator size="large" color="#3B82F6" />
           <Text className="mt-4 text-gray-500">商品を読み込み中...</Text>
         </View>
@@ -199,11 +199,11 @@ const SwipeScreen: React.FC = () => {
   if (error && products.length === 0) {
     return (
       <SafeAreaView className="flex-1 bg-white">
-        <View className="flex-1 items-center justify-center p-6">
+        <View className="flex-1 items-center justify-center p-6" testID="error-container">
           <Ionicons name="alert-circle-outline" size={64} color="#F87171" />
           <Text className="text-red-500 text-xl font-bold mt-4 mb-2">エラーが発生しました</Text>
           <Text className="text-gray-700 mb-8 text-center">{error}</Text>
-          <Button onPress={handleReload}>再読み込み</Button>
+          <Button onPress={handleReload} testID="reload-button">再読み込み</Button>
           
           {isConnected === false && (
             <View className="mt-6 bg-yellow-50 p-4 rounded-lg w-full">
@@ -221,11 +221,12 @@ const SwipeScreen: React.FC = () => {
   const allProductsSwiped = filteredProducts.length === 0 && products.length > 0;
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-white" testID="swipe-screen">
       {/* ヘッダー情報 */}
       <Animated.View 
         className="px-4 py-2 flex-row justify-between items-center"
         style={headerAnimatedStyle}
+        testID="swipe-header"
       >
         <Text className="text-gray-400 text-sm">
           {swipeCount.current}件スワイプ
@@ -244,16 +245,18 @@ const SwipeScreen: React.FC = () => {
           <SwipeContainer
             products={filteredProducts}
             isLoading={loading}
-            onSwipe={handleSwipe}
+            onSwipe={isConnected === false ? undefined : handleSwipe}
             onCardPress={handleCardPress}
             onEmptyProducts={handleEmptyProducts}
-            onLoadMore={handleLoadMore}
+            onLoadMore={isConnected === false ? undefined : handleLoadMore}
             hasMoreProducts={hasMoreProducts}
+            testID="swipe-container"
           />
         ) : (
           <Animated.View 
             className="items-center justify-center p-6"
             style={emptyStateAnimatedStyle}
+            testID="empty-state"
           >
             <Ionicons name="checkmark-circle-outline" size={64} color="#22C55E" />
             <Text className="text-2xl font-bold mt-4 mb-2 text-center">

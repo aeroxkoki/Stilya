@@ -23,6 +23,7 @@ interface SwipeContainerProps {
   onEmptyProducts?: () => void;
   onLoadMore?: () => Promise<void>;
   hasMoreProducts?: boolean;
+  testID?: string;
 }
 
 const SwipeContainer: React.FC<SwipeContainerProps> = ({
@@ -33,6 +34,7 @@ const SwipeContainer: React.FC<SwipeContainerProps> = ({
   onEmptyProducts,
   onLoadMore,
   hasMoreProducts = false,
+  testID,
 }) => {
   const { user } = useAuth();
   const { isConnected } = useNetwork();
@@ -192,21 +194,21 @@ const SwipeContainer: React.FC<SwipeContainerProps> = ({
   // ローディング中の表示
   if (isLoading && products.length === 0) {
     return (
-      <View style={styles.centerContainer}>
+      <View style={styles.centerContainer} testID="loading-container">
         <ActivityIndicator size="large" color="#3B82F6" />
         <Text style={styles.loadingText}>商品を読み込んでいます...</Text>
       </View>
     );
   }
 
-  // 全ての商品をスワイプし終わった場合
-  if (products.length === 0 || currentIndex >= products.length) {
+  // 全ての商品をスワイプし終わった場合 または オフライン時でデータがない場合
+  if ((products.length === 0 || currentIndex >= products.length)) {
     return (
-      <View style={styles.centerContainer}>
+      <View style={styles.centerContainer} testID="empty-container">
         <Ionicons name="cart-outline" size={64} color="#9CA3AF" />
         <Text style={styles.emptyText}>表示できる商品がありません</Text>
         {isConnected === false && (
-          <View style={styles.offlineContainer}>
+          <View style={styles.offlineContainer} testID="offline-state-notice">
             <Ionicons name="cloud-offline-outline" size={24} color="#F87171" />
             <Text style={styles.offlineText}>オフラインモードです</Text>
             <Text style={styles.offlineSubText}>インターネット接続時に商品が更新されます</Text>
@@ -217,10 +219,10 @@ const SwipeContainer: React.FC<SwipeContainerProps> = ({
   }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID={testID || 'swipe-container'}>
       {/* オフライン通知 */}
       {isConnected === false && (
-        <View style={styles.offlineBanner}>
+        <View style={styles.offlineBanner} testID="offline-banner">
           <Ionicons name="cloud-offline-outline" size={18} color="#FFFFFF" />
           <Text style={styles.offlineBannerText}>オフラインモード</Text>
         </View>
@@ -228,29 +230,30 @@ const SwipeContainer: React.FC<SwipeContainerProps> = ({
       
       {/* 追加ローディング */}
       {loadingMore && (
-        <View style={styles.loadingMoreContainer}>
+        <View style={styles.loadingMoreContainer} testID="loading-more">
           <ActivityIndicator size="small" color="#3B82F6" />
           <Text style={styles.loadingMoreText}>もっと読み込み中...</Text>
         </View>
       )}
       
-      <PanGestureHandler onGestureEvent={gestureHandler}>
-        <Animated.View style={[styles.cardContainer, animatedCardStyle]}>
+      <PanGestureHandler onGestureEvent={gestureHandler} enabled={!!onSwipe} testID="pan-handler">
+        <Animated.View style={[styles.cardContainer, animatedCardStyle]} testID="animated-card-container">
           {currentProduct && (
             <SwipeCard
               product={currentProduct}
               onPress={handleCardPress}
-              onSwipeLeft={handleNoButtonPress}
-              onSwipeRight={handleYesButtonPress}
+              onSwipeLeft={isConnected === false ? undefined : handleNoButtonPress}
+              onSwipeRight={isConnected === false ? undefined : handleYesButtonPress}
               yesIndicatorStyle={yesIndicatorStyle}
               noIndicatorStyle={noIndicatorStyle}
+              testID="current-swipe-card"
             />
           )}
         </Animated.View>
       </PanGestureHandler>
       
       {/* 残りカード数表示 */}
-      <View style={styles.remainingContainer}>
+      <View style={styles.remainingContainer} testID="remaining-counter">
         <Text style={styles.remainingText}>
           残り {products.length - currentIndex} / {products.length} 件
         </Text>
