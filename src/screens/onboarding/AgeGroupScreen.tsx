@@ -2,7 +2,8 @@ import React from 'react';
 import { View, Text, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { Button, Card } from '@/components/common';
+import { Button } from '@/components/common';
+import { SelectionButton } from '@/components/onboarding';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { OnboardingStackParamList } from '@/types';
 
@@ -52,29 +53,14 @@ const AgeGroupScreen: React.FC<Props> = ({ navigation }) => {
 
         {/* 年代選択 */}
         <ScrollView className="flex-1 px-6">
-          <View className="space-y-3">
-            {ageGroups.map(age => (
-              <TouchableOpacity
-                key={age.id}
-                activeOpacity={0.7}
-                onPress={() => setAgeGroup(age.id)}
-              >
-                <Card
-                  className={`p-4 ${ageGroup === age.id ? 'border-2 border-primary bg-blue-50' : ''}`}
-                  variant="outlined"
-                >
-                  <View className="flex-row items-center justify-between">
-                    <Text className={`text-lg ${ageGroup === age.id ? 'font-bold text-primary' : 'font-medium text-gray-700'}`}>
-                      {age.label}
-                    </Text>
-                    {ageGroup === age.id && (
-                      <Ionicons name="checkmark-circle" size={24} color="#3B82F6" />
-                    )}
-                  </View>
-                </Card>
-              </TouchableOpacity>
-            ))}
-          </View>
+          {ageGroups.map(age => (
+            <SelectionButton
+              key={age.id}
+              title={age.label}
+              isSelected={ageGroup === age.id}
+              onPress={() => setAgeGroup(age.id)}
+            />
+          ))}
         </ScrollView>
 
         {/* 次へボタン */}

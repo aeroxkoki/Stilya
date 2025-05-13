@@ -1,9 +1,20 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions, Animated } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { PanGestureHandler, State } from 'react-native-gesture-handler';
+import { PanGestureHandler } from 'react-native-gesture-handler';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  useAnimatedGestureHandler,
+  withSpring,
+  interpolate,
+  runOnJS,
+  withTiming,
+  Extrapolate
+} from 'react-native-reanimated';
 import { Product } from '@/types';
 import { formatPrice } from '@/utils';
+import { Tags } from '@/components/common';
 
 export interface SwipeCardProps {
   product: Product;
@@ -23,187 +34,182 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
   onSwipeLeft,
   onSwipeRight
 }) => {
-  // アニメーション用の値
-  const translateX = useRef(new Animated.Value(0)).current;
-  const translateY = useRef(new Animated.Value(0)).current;
-  const rotate = translateX.interpolate({
-    inputRange: [-SWIPE_THRESHOLD * 2, 0, SWIPE_THRESHOLD * 2],
-    outputRange: ['-30deg', '0deg', '30deg'],
-    extrapolate: 'clamp'
-  });
-
+  // Reanimated 2のSharedValue
+  const translateX = useSharedValue(0);
+  const translateY = useSharedValue(0);
+  const scale = useSharedValue(1);
+  
   // スワイプ方向の状態
   const [direction, setDirection] = useState<'left' | 'right' | null>(null);
 
-  // パンジェスチャーのハンドラー
-  const onPanGestureEvent = Animated.event(
-    [{ nativeEvent: { translationX: translateX, translationY: translateY } }],
-    { useNativeDriver: true }
-  );
-
-  // ジェスチャー状態の変化ハンドラー
-  const onPanStateChange = ({ nativeEvent }: any) => {
-    // ジェスチャーが終了したとき
-    if (nativeEvent.state === State.END) {
-      const { translationX } = nativeEvent;
-      
-      // スワイプしきい値を超えた場合
-      if (translationX > SWIPE_THRESHOLD) {
-        // 右にスワイプ（Yes）
-        Animated.spring(translateX, {
-          toValue: CARD_WIDTH + 100,
-          useNativeDriver: true,
-        }).start(() => {
-          if (onSwipeRight) onSwipeRight();
-        });
-        setDirection('right');
-      } else if (translationX < -SWIPE_THRESHOLD) {
-        // 左にスワイプ（No）
-        Animated.spring(translateX, {
-          toValue: -CARD_WIDTH - 100,
-          useNativeDriver: true,
-        }).start(() => {
-          if (onSwipeLeft) onSwipeLeft();
-        });
-        setDirection('left');
+  // ジェスチャーハンドラー
+  const gestureHandler = useAnimatedGestureHandler({
+    onStart: (_, ctx: any) => {
+      ctx.startX = translateX.value;
+      ctx.startY = translateY.value;
+      // カードを持ち上げる効果
+      scale.value = withTiming(1.05, { duration: 200 });
+    },
+    onActive: (event, ctx) => {
+      translateX.value = ctx.startX + event.translationX;
+      translateY.value = ctx.startY + event.translationY * 0.5; // Y軸は少し抑制
+    },
+    onEnd: (event) => {
+      // スワイプがしきい値を超えたかどうかを判定
+      if (event.translationX > SWIPE_THRESHOLD) {
+        // 右にスワイプ完了
+        translateX.value = withSpring(CARD_WIDTH + 100);
+        translateY.value = withSpring(0);
+        if (onSwipeRight) {
+          runOnJS(setDirection)('right');
+          runOnJS(onSwipeRight)();
+        }
+      } else if (event.translationX < -SWIPE_THRESHOLD) {
+        // 左にスワイプ完了
+        translateX.value = withSpring(-CARD_WIDTH - 100);
+        translateY.value = withSpring(0);
+        if (onSwipeLeft) {
+          runOnJS(setDirection)('left');
+          runOnJS(onSwipeLeft)();
+        }
       } else {
-        // しきい値以下ならリセット
-        Animated.spring(translateX, {
-          toValue: 0,
-          friction: 5,
-          useNativeDriver: true,
-        }).start();
-        Animated.spring(translateY, {
-          toValue: 0,
-          friction: 5,
-          useNativeDriver: true,
-        }).start();
-        setDirection(null);
+        // しきい値未満ならリセット
+        translateX.value = withSpring(0, { damping: 15 });
+        translateY.value = withSpring(0, { damping: 15 });
+        runOnJS(setDirection)(null);
       }
-    }
-  };
+      // カードを元のサイズに戻す
+      scale.value = withTiming(1, { duration: 200 });
+    },
+  });
 
   // 左右のボタンでスワイプするハンドラー
   const handleNoPress = () => {
-    Animated.spring(translateX, {
-      toValue: -CARD_WIDTH - 100,
-      useNativeDriver: true,
-    }).start(() => {
-      if (onSwipeLeft) onSwipeLeft();
-    });
-    setDirection('left');
+    translateX.value = withSpring(-CARD_WIDTH - 100);
+    if (onSwipeLeft) {
+      setDirection('left');
+      onSwipeLeft();
+    }
   };
 
   const handleYesPress = () => {
-    Animated.spring(translateX, {
-      toValue: CARD_WIDTH + 100,
-      useNativeDriver: true,
-    }).start(() => {
-      if (onSwipeRight) onSwipeRight();
-    });
-    setDirection('right');
+    translateX.value = withSpring(CARD_WIDTH + 100);
+    if (onSwipeRight) {
+      setDirection('right');
+      onSwipeRight();
+    }
   };
 
-  // Yes/Noインジケーターのスタイル
-  const yesOpacity = translateX.interpolate({
-    inputRange: [0, SWIPE_THRESHOLD],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
+  // アニメーションスタイル
+  const animatedCardStyle = useAnimatedStyle(() => {
+    const rotate = interpolate(
+      translateX.value,
+      [-SWIPE_THRESHOLD * 2, 0, SWIPE_THRESHOLD * 2],
+      ['-30deg', '0deg', '30deg'],
+      Extrapolate.CLAMP
+    );
+
+    return {
+      transform: [
+        { translateX: translateX.value },
+        { translateY: translateY.value },
+        { rotate },
+        { scale: scale.value }
+      ],
+    };
   });
 
-  const noOpacity = translateX.interpolate({
-    inputRange: [-SWIPE_THRESHOLD, 0],
-    outputRange: [1, 0],
-    extrapolate: 'clamp',
+  // Yes/Noインジケーターのアニメーションスタイル
+  const yesIndicatorStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(
+      translateX.value,
+      [0, SWIPE_THRESHOLD],
+      [0, 1],
+      Extrapolate.CLAMP
+    );
+
+    return { opacity };
+  });
+
+  const noIndicatorStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(
+      translateX.value,
+      [-SWIPE_THRESHOLD, 0],
+      [1, 0],
+      Extrapolate.CLAMP
+    );
+
+    return { opacity };
   });
 
   return (
-    <PanGestureHandler
-      onGestureEvent={onPanGestureEvent}
-      onHandlerStateChange={onPanStateChange}
-    >
-      <Animated.View
-        style={[
-          styles.card,
-          {
-            transform: [
-              { translateX },
-              { translateY },
-              { rotate }
-            ]
-          }
-        ]}
-      >
+    <PanGestureHandler onGestureEvent={gestureHandler}>
+      <Animated.View style={[styles.card, animatedCardStyle]}>
         <TouchableOpacity
           activeOpacity={0.9}
           onPress={onPress}
           className="bg-white rounded-xl shadow-lg overflow-hidden w-full h-full"
         >
-          <Image
-            source={{ uri: product.imageUrl }}
-            style={styles.image}
-            className="w-full"
-          />
-          
-          {/* Yes/Noインジケーター */}
-          <Animated.View 
-            style={[styles.indicator, styles.yesIndicator, { opacity: yesOpacity }]}
-          >
-            <Text style={styles.indicatorText}>YES</Text>
-          </Animated.View>
-          
-          <Animated.View 
-            style={[styles.indicator, styles.noIndicator, { opacity: noOpacity }]}
-          >
-            <Text style={styles.indicatorText}>NO</Text>
-          </Animated.View>
-          
-          <View className="absolute bottom-0 left-0 right-0 bg-black/50 p-4">
-            <View className="flex-row justify-between items-center">
-              <View className="flex-1">
-                <Text className="text-white font-bold text-xl" numberOfLines={1}>
-                  {product.title}
-                </Text>
-                {product.brand && (
-                  <Text className="text-gray-200 text-base" numberOfLines={1}>
-                    {product.brand}
+          <View className="w-full h-full">
+            <Image
+              source={{ uri: product.imageUrl }}
+              style={styles.image}
+              className="w-full h-full"
+            />
+            
+            {/* Yes/Noインジケーター */}
+            <Animated.View 
+              style={[styles.indicator, styles.yesIndicator, yesIndicatorStyle]}
+            >
+              <Text style={styles.indicatorText}>YES</Text>
+            </Animated.View>
+            
+            <Animated.View 
+              style={[styles.indicator, styles.noIndicator, noIndicatorStyle]}
+            >
+              <Text style={styles.indicatorText}>NO</Text>
+            </Animated.View>
+            
+            <View className="absolute bottom-0 left-0 right-0 bg-black/50 p-4">
+              <View className="flex-row justify-between items-center">
+                <View className="flex-1">
+                  <Text className="text-white font-bold text-xl" numberOfLines={1}>
+                    {product.title}
                   </Text>
-                )}
+                  {product.brand && (
+                    <Text className="text-gray-200 text-base" numberOfLines={1}>
+                      {product.brand}
+                    </Text>
+                  )}
+                </View>
+                <Text className="text-white font-bold text-xl ml-2">
+                  {formatPrice(product.price)}
+                </Text>
               </View>
-              <Text className="text-white font-bold text-xl ml-2">
-                {formatPrice(product.price)}
-              </Text>
+              
+              {product.tags && product.tags.length > 0 && (
+                <View className="mt-2">
+                  <Tags tags={product.tags} size="small" />
+                </View>
+              )}
             </View>
             
-            {product.tags && product.tags.length > 0 && (
-              <View className="flex-row flex-wrap mt-2">
-                {product.tags.slice(0, 4).map((tag, index) => (
-                  <View
-                    key={index}
-                    className="bg-black/30 px-2 py-1 rounded-full mr-1 mb-1"
-                  >
-                    <Text className="text-white text-xs">{tag}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
-          </View>
-          
-          {/* スワイプアクションボタン */}
-          <View className="absolute bottom-28 left-4 right-4 flex-row justify-between">
-            <TouchableOpacity 
-              className="w-16 h-16 bg-white rounded-full items-center justify-center shadow-md"
-              onPress={handleNoPress}
-            >
-              <Ionicons name="close" size={32} color="#F87171" />
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              className="w-16 h-16 bg-white rounded-full items-center justify-center shadow-md"
-              onPress={handleYesPress}
-            >
-              <Ionicons name="heart" size={32} color="#3B82F6" />
-            </TouchableOpacity>
+            {/* スワイプアクションボタン */}
+            <View className="absolute bottom-28 left-4 right-4 flex-row justify-between">
+              <TouchableOpacity 
+                className="w-16 h-16 bg-white rounded-full items-center justify-center shadow-md"
+                onPress={handleNoPress}
+              >
+                <Ionicons name="close" size={32} color="#F87171" />
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                className="w-16 h-16 bg-white rounded-full items-center justify-center shadow-md"
+                onPress={handleYesPress}
+              >
+                <Ionicons name="heart" size={32} color="#3B82F6" />
+              </TouchableOpacity>
+            </View>
           </View>
         </TouchableOpacity>
       </Animated.View>
@@ -216,11 +222,23 @@ const styles = StyleSheet.create({
     width: CARD_WIDTH,
     height: CARD_HEIGHT,
     borderRadius: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 5,
+      },
+      android: {
+        elevation: 5,
+      },
+    }),
   },
   image: {
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
+    borderRadius: 12,
   },
   indicator: {
     position: 'absolute',

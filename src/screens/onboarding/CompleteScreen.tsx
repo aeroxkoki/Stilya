@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, SafeAreaView, StyleSheet, Image, ActivityIndicator } from 'react-native';
+import { View, Text, SafeAreaView, ActivityIndicator, Alert } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/common';
@@ -43,9 +43,14 @@ const CompleteScreen: React.FC<Props> = ({ navigation }) => {
     setIsSaving(true);
     try {
       await saveUserProfile();
-      // 保存成功後のナビゲーションはApp.tsxで処理（プロフィール更新により自動的にMainスタックに遷移）
+      // 成功時は自動的にMainスタックに遷移（AppNavigatorで処理）
     } catch (error) {
       console.error('Error saving profile:', error);
+      Alert.alert(
+        'エラー',
+        'プロフィールの保存中にエラーが発生しました。もう一度お試しください。',
+        [{ text: 'OK' }]
+      );
     } finally {
       setIsSaving(false);
     }

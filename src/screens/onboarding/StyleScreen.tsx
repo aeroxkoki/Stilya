@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, SafeAreaView, TouchableOpacity, ScrollView, Image, StyleSheet } from 'react-native';
+import { View, Text, SafeAreaView, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { Button, Card } from '@/components/common';
+import { Button } from '@/components/common';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { OnboardingStackParamList } from '@/types';
 
@@ -105,16 +105,20 @@ const StyleScreen: React.FC<Props> = ({ navigation }) => {
             {styleOptions.map(style => (
               <TouchableOpacity
                 key={style.id}
-                style={styles.styleCard}
+                className="w-[48%] mb-4"
                 activeOpacity={0.7}
                 onPress={() => toggleStyle(style.id)}
               >
                 <View
                   className={`relative rounded-lg overflow-hidden ${
-                    selectedStyles.includes(style.id) ? 'border-2 border-primary' : ''
+                    selectedStyles.includes(style.id) ? 'border-2 border-primary' : 'border border-gray-200'
                   }`}
                 >
-                  <Image source={style.image} style={styles.styleImage} />
+                  <Image 
+                    source={style.image} 
+                    className="w-full h-32"
+                    resizeMode="cover"
+                  />
                   <View className="absolute top-0 right-0 m-2">
                     {selectedStyles.includes(style.id) && (
                       <View className="bg-primary rounded-full p-1">
@@ -123,8 +127,10 @@ const StyleScreen: React.FC<Props> = ({ navigation }) => {
                     )}
                   </View>
                   <View className="p-3 bg-white">
-                    <Text className="font-medium">{style.name}</Text>
-                    <Text className="text-xs text-gray-500" numberOfLines={2}>
+                    <Text className={`font-medium ${selectedStyles.includes(style.id) ? 'text-primary' : 'text-gray-800'}`}>
+                      {style.name}
+                    </Text>
+                    <Text className="text-xs text-gray-500 mt-1" numberOfLines={2}>
                       {style.description}
                     </Text>
                   </View>
@@ -148,17 +154,5 @@ const StyleScreen: React.FC<Props> = ({ navigation }) => {
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  styleCard: {
-    width: '48%',
-    marginBottom: 16,
-  },
-  styleImage: {
-    width: '100%',
-    height: 120,
-    resizeMode: 'cover',
-  },
-});
 
 export default StyleScreen;
