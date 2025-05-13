@@ -7,14 +7,18 @@ import { cleanImageCache, clearMemoryCache } from './src/utils/imageUtils';
 import AppNavigator from './src/navigation/AppNavigator';
 import { ThemeProvider } from './src/contexts/ThemeContext';
 import { NetworkProvider } from './src/contexts/NetworkContext';
+import { ErrorProvider } from './src/contexts/ErrorContext';
 import { LogBox, StyleSheet, AppState, Platform } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { Image } from 'expo-image';
+import Toast from 'react-native-toast-message';
+import toastConfig from './src/components/common/ToastConfig';
 import { flushQueue as flushAnalyticsQueue } from './src/services/analyticsService';
 import { 
   recordAppStartupTime,
   autoCleanupMemoryIfNeeded
 } from './src/utils/performance';
+import OfflineNotice from './src/components/common/OfflineNotice';
 
 // イメージキャッシュの設定
 Image.prefetchCache({
@@ -109,12 +113,16 @@ export default function App() {
   return (
     <GestureHandlerRootView style={styles.container}>
       <NetworkProvider>
-        <ThemeProvider>
-          <SafeAreaProvider>
-            <StatusBar style="auto" />
-            <AppNavigator />
-          </SafeAreaProvider>
-        </ThemeProvider>
+        <ErrorProvider>
+          <ThemeProvider>
+            <SafeAreaProvider>
+              <StatusBar style="auto" />
+              <AppNavigator />
+              <OfflineNotice />
+              <Toast config={toastConfig} />
+            </SafeAreaProvider>
+          </ThemeProvider>
+        </ErrorProvider>
       </NetworkProvider>
     </GestureHandlerRootView>
   );
