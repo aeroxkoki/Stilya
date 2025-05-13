@@ -3,14 +3,18 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useAppLifecycle } from './src/hooks/useAppLifecycle';
-import { cleanImageCache } from './src/utils/imageUtils';
+import { cleanImageCache, clearMemoryCache } from './src/utils/imageUtils';
 import AppNavigator from './src/navigation/AppNavigator';
 import { ThemeProvider } from './src/contexts/ThemeContext';
 import { NetworkProvider } from './src/contexts/NetworkContext';
-import { LogBox, StyleSheet } from 'react-native';
+import { LogBox, StyleSheet, AppState, Platform } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { Image } from 'expo-image';
 import { flushQueue as flushAnalyticsQueue } from './src/services/analyticsService';
+import { 
+  recordAppStartupTime,
+  autoCleanupMemoryIfNeeded
+} from './src/utils/performance';
 
 // イメージキャッシュの設定
 Image.prefetchCache({
@@ -18,6 +22,8 @@ Image.prefetchCache({
   diskCachePolicy: 'automatic',
   // キャッシュ期限: 7日間
   ttl: 7 * 24 * 60 * 60 * 1000,
+  maxDiskCapacity: 300 * 1024 * 1024, // 300MB（ディスクキャッシュ容量の上限）
+  maxMemoryCapacity: 60 * 1024 * 1024, // 60MB（メモリキャッシュ容量の上限）
 });
 
 // スプラッシュスクリーンを表示
@@ -42,7 +48,10 @@ export default function App() {
   useEffect(() => {
     const prepare = async () => {
       try {
-        // 必要な初期化処理
+        // パフォーマンスモニタリング（開発モードのみ）
+        if (__DEV__) {
+          recordAppStartupTime();
+        }
         
         // アナリティクスの未送信キューがあれば送信
         flushAnalyticsQueue().catch(error =>
@@ -59,6 +68,42 @@ export default function App() {
     };
     
     prepare();
+  }, []);
+
+  // アプリの状態変更を監視してメモリ管理を最適化
+  useEffect(() => {
+    // アプリがバックグラウンドに移動したときにメモリを解放
+    const subscription = AppState.addEventListener('change', nextAppState => {
+      if (nextAppState === 'background') {
+        // バックグラウンドに移動した時にメモリの一部を解放
+        clearMemoryCache();
+      } else if (nextAppState === 'active') {
+        // アプリがアクティブになった時にメモリ使用量をチェック
+        autoCleanupMemoryIfNeeded();
+      }
+    });
+
+    // クリーンアップ
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
+  // 定期的なメモリ使用量チェックとクリーンアップ
+  useEffect(() => {
+    // 古いキャッシュを削除（起動時に1回）
+    cleanImageCache().catch(error => 
+      console.error('Failed to clean image cache:', error)
+    );
+
+    // メモリ使用量を定期的にチェック（本番環境のみ）
+    if (!__DEV__) {
+      const intervalId = setInterval(() => {
+        autoCleanupMemoryIfNeeded();
+      }, 60000); // 60秒ごと
+      
+      return () => clearInterval(intervalId);
+    }
   }, []);
 
   return (

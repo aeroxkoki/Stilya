@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,10 +13,15 @@ import { Product } from '../types/product';
 import { Feather } from '@expo/vector-icons';
 import { CachedImage } from '../components/common';
 import { useTheme } from '../contexts/ThemeContext';
+import { useRenderMeasure } from '../utils/performance';
+import { InteractionManager } from 'react-native';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SWIPE_THRESHOLD = 0.25 * SCREEN_WIDTH;
 const SWIPE_OUT_DURATION = 300;
+
+// スロットリング時間（ms）- パフォーマンス最適化用
+const GESTURE_UPDATE_THROTTLE = 8;
 
 interface SwipeCardProps {
   product: Product;
@@ -33,10 +38,18 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
   onCardPress,
   index = 0,
 }) => {
+  // 開発モードのみパフォーマンスモニタリング
+  if (__DEV__) {
+    useRenderMeasure('SwipeCard');
+  }
+
   const { theme, isDarkMode } = useTheme();
   const position = useRef(new Animated.ValueXY()).current;
   const scale = useRef(new Animated.Value(index === 0 ? 1 : 0.95)).current;
   const opacity = useRef(new Animated.Value(index === 0 ? 1 : 0.8)).current;
+  
+  // 最後のジェスチャー更新時間（スロットリング用）
+  const lastGestureUpdate = useRef(Date.now());
 
   // 初期アニメーションの適用
   useEffect(() => {
@@ -56,93 +69,120 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
     }
   }, [index, scale, opacity]);
 
-  // カードの回転を計算
-  const rotate = position.x.interpolate({
-    inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
-    outputRange: ['-12deg', '0deg', '12deg'],
-    extrapolate: 'clamp',
-  });
+  // カードの回転を計算（メモ化して再計算を防止）
+  const rotate = useMemo(() => 
+    position.x.interpolate({
+      inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
+      outputRange: ['-12deg', '0deg', '12deg'],
+      extrapolate: 'clamp',
+    }), 
+    [position.x]
+  );
 
-  // Yes / No ラベルの透明度を計算
-  const likeOpacity = position.x.interpolate({
-    inputRange: [0, SCREEN_WIDTH / 5],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
-  });
+  // Yes / No ラベルの透明度を計算（メモ化して再計算を防止）
+  const likeOpacity = useMemo(() =>
+    position.x.interpolate({
+      inputRange: [0, SCREEN_WIDTH / 5],
+      outputRange: [0, 1],
+      extrapolate: 'clamp',
+    }),
+    [position.x]
+  );
 
-  const nopeOpacity = position.x.interpolate({
-    inputRange: [-SCREEN_WIDTH / 5, 0],
-    outputRange: [1, 0],
-    extrapolate: 'clamp',
-  });
+  const nopeOpacity = useMemo(() =>
+    position.x.interpolate({
+      inputRange: [-SCREEN_WIDTH / 5, 0],
+      outputRange: [1, 0],
+      extrapolate: 'clamp',
+    }),
+    [position.x]
+  );
 
-  // カードの背景色を変化させる
-  const cardColor = position.x.interpolate({
-    inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
-    outputRange: [
-      'rgba(239, 68, 68, 0.1)', // 薄い赤
-      'rgba(0, 0, 0, 0)',       // 透明
-      'rgba(34, 197, 94, 0.1)'  // 薄い緑
-    ],
-    extrapolate: 'clamp',
-  });
+  // カードの背景色を変化させる（メモ化して再計算を防止）
+  const cardColor = useMemo(() =>
+    position.x.interpolate({
+      inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
+      outputRange: [
+        'rgba(239, 68, 68, 0.1)', // 薄い赤
+        'rgba(0, 0, 0, 0)',       // 透明
+        'rgba(34, 197, 94, 0.1)'  // 薄い緑
+      ],
+      extrapolate: 'clamp',
+    }),
+    [position.x]
+  );
 
-  // スワイプ処理を設定
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderMove: (_, gesture) => {
-        position.setValue({ x: gesture.dx, y: gesture.dy });
-      },
-      onPanResponderRelease: (_, gesture) => {
-        if (gesture.dx > SWIPE_THRESHOLD) {
-          forceSwipe('right');
-        } else if (gesture.dx < -SWIPE_THRESHOLD) {
-          forceSwipe('left');
-        } else {
-          resetPosition();
-        }
-      },
-    })
-  ).current;
+  // スワイプ処理の最適化版
+  const handlePanResponderMove = useCallback((_, gesture) => {
+    const now = Date.now();
+    
+    // スロットリング適用（頻繁な更新を防止）
+    if (now - lastGestureUpdate.current > GESTURE_UPDATE_THROTTLE) {
+      position.setValue({ x: gesture.dx, y: gesture.dy });
+      lastGestureUpdate.current = now;
+    }
+  }, [position]);
+
+  const handlePanResponderRelease = useCallback((_, gesture) => {
+    if (gesture.dx > SWIPE_THRESHOLD) {
+      forceSwipe('right');
+    } else if (gesture.dx < -SWIPE_THRESHOLD) {
+      forceSwipe('left');
+    } else {
+      resetPosition();
+    }
+  }, []);
 
   // スワイプアニメーションを強制的に実行
-  const forceSwipe = (direction: 'right' | 'left') => {
+  const forceSwipe = useCallback((direction: 'right' | 'left') => {
     const x = direction === 'right' ? SCREEN_WIDTH + 100 : -SCREEN_WIDTH - 100;
     Animated.timing(position, {
       toValue: { x, y: direction === 'right' ? 30 : -30 },
       duration: SWIPE_OUT_DURATION,
       useNativeDriver: true,
     }).start(() => onSwipeComplete(direction));
-  };
+  }, [position]);
 
   // スワイプ完了時の処理
-  const onSwipeComplete = (direction: 'right' | 'left') => {
-    if (direction === 'right') {
-      onSwipeRight();
-    } else {
-      onSwipeLeft();
-    }
-    position.setValue({ x: 0, y: 0 });
-  };
+  const onSwipeComplete = useCallback((direction: 'right' | 'left') => {
+    // スワイプ処理をメインスレッドの処理完了後に実行
+    InteractionManager.runAfterInteractions(() => {
+      if (direction === 'right') {
+        onSwipeRight();
+      } else {
+        onSwipeLeft();
+      }
+      position.setValue({ x: 0, y: 0 });
+    });
+  }, [onSwipeLeft, onSwipeRight, position]);
 
   // カードの位置をリセット
-  const resetPosition = () => {
+  const resetPosition = useCallback(() => {
     Animated.spring(position, {
       toValue: { x: 0, y: 0 },
       friction: 5,
       tension: 40,
       useNativeDriver: true,
     }).start();
-  };
+  }, [position]);
+
+  // パンレスポンダーの設定（メモ化して再生成を防止）
+  const panResponder = useMemo(() => 
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderMove: handlePanResponderMove,
+      onPanResponderRelease: handlePanResponderRelease,
+    }),
+    [handlePanResponderMove, handlePanResponderRelease]
+  );
 
   // 価格をフォーマット
-  const formatPrice = (price: number): string => {
+  const formatPrice = useCallback((price: number): string => {
     return price.toLocaleString('ja-JP', { style: 'currency', currency: 'JPY' });
-  };
+  }, []);
 
-  // カードのスタイルを定義
-  const cardAnimStyle = {
+  // カードのスタイルを定義（メモ化して再計算を防止）
+  const cardAnimStyle = useMemo(() => ({
     transform: [
       { translateX: position.x },
       { translateY: position.y },
@@ -151,7 +191,7 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
     ],
     opacity,
     zIndex: 100 - index,
-  };
+  }), [position.x, position.y, rotate, scale, opacity, index]);
 
   return (
     <Animated.View
@@ -188,6 +228,10 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
           style={styles.image}
           resizeMode="cover"
           showLoadingIndicator={true}
+          // 優先度と最適化設定を追加
+          priority={index === 0 ? 'high' : index < 3 ? 'normal' : 'low'}
+          cachePolicy="memory-disk"
+          blurRadius={5} // 低解像度プレースホルダーを利用
         />
 
         <View 
@@ -222,9 +266,9 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
           </View>
 
           <View style={styles.tagsContainer}>
-            {product.tags.slice(0, 3).map((tag, index) => (
+            {product.tags.slice(0, 3).map((tag, tagIndex) => (
               <View 
-                key={index} 
+                key={tagIndex} 
                 style={[
                   styles.tag,
                   { backgroundColor: 'rgba(255, 255, 255, 0.2)' }
@@ -352,4 +396,5 @@ const styles = StyleSheet.create({
   },
 });
 
-export default SwipeCard;
+// メモ化して再レンダリングを最小限に
+export default React.memo(SwipeCard);
