@@ -1,85 +1,107 @@
-import { useCallback, useEffect, useRef } from 'react';
-import { AppState, AppStateStatus } from 'react-native';
-import NetInfo from '@react-native-community/netinfo';
+import { useEffect, useRef, useState } from 'react';
+import { AppState, AppStateStatus, Platform } from 'react-native';
+import { useAuthStore } from '@/store/authStore';
+import { 
+  EventType,
+  trackSessionStart,
+  trackSessionEnd,
+  trackEvent
+} from '@/services/analyticsService';
 
 /**
- * アプリのライフサイクルとネットワーク状態を管理するカスタムフック
- * バックグラウンド/フォアグラウンド切り替え時の処理やネットワーク変化を検知
+ * アプリのライフサイクル検知とアナリティクスを統合するフック
+ * - アプリの起動/終了を検知
+ * - セッション開始/終了を記録
+ * - バックグラウンド/フォアグラウンド遷移をトラック
  */
-export const useAppLifecycle = (options: {
-  onForeground?: () => void;
-  onBackground?: () => void;
-  onNetworkChange?: (isConnected: boolean) => void;
-}) => {
-  const { onForeground, onBackground, onNetworkChange } = options;
+export const useAppLifecycle = () => {
+  const { user } = useAuthStore();
   const appState = useRef(AppState.currentState);
-  
-  // フォアグラウンドに戻った時の処理
-  const handleAppStateChange = useCallback(
-    (nextAppState: AppStateStatus) => {
-      // アプリがバックグラウンドから戻ってきた場合
-      if (
-        appState.current.match(/inactive|background/) &&
-        nextAppState === 'active'
-      ) {
-        console.log('App has come to the foreground!');
-        onForeground?.();
-      } 
-      // アプリがバックグラウンドに移行した場合
-      else if (
-        appState.current === 'active' &&
-        nextAppState.match(/inactive|background/)
-      ) {
-        console.log('App has gone to the background!');
-        onBackground?.();
-      }
-      
-      appState.current = nextAppState;
-    },
-    [onForeground, onBackground]
-  );
-  
-  // ネットワーク状態変化時の処理
-  const handleNetworkChange = useCallback(
-    (state: any) => {
-      const isConnected = state.isConnected && state.isInternetReachable;
-      console.log('Network status changed:', isConnected ? 'online' : 'offline');
-      onNetworkChange?.(!!isConnected);
-    },
-    [onNetworkChange]
-  );
-  
-  // イベントリスナーの登録と解除
+  const [isActive, setIsActive] = useState(true);
+  const wasActiveRef = useRef(true);
+  const sessionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const userId = user?.id;
+
+  // ライフサイクルイベントのリスナー設定
   useEffect(() => {
-    // AppStateのリスナー登録
+    // アプリの起動をトラック
+    const trackAppOpen = async () => {
+      await trackEvent(EventType.APP_OPEN, {
+        device_info: {
+          platform: Platform.OS,
+          version: Platform.Version,
+        }
+      }, userId);
+      
+      // セッション開始を記録
+      await trackSessionStart(userId);
+    };
+
+    trackAppOpen();
+
+    // AppStateの変更を監視
     const subscription = AppState.addEventListener('change', handleAppStateChange);
-    
-    // NetInfoのリスナー登録
-    const netInfoSubscription = NetInfo.addEventListener(handleNetworkChange);
-    
-    // 初回のネットワーク状態確認
-    NetInfo.fetch().then(state => {
-      const isConnected = state.isConnected && state.isInternetReachable;
-      onNetworkChange?.(!!isConnected);
-    });
-    
-    // クリーンアップ
+
+    // クリーンアップ関数
     return () => {
       subscription.remove();
-      netInfoSubscription();
+
+      // セッションのタイムアウトクリア
+      if (sessionTimeoutRef.current) {
+        clearTimeout(sessionTimeoutRef.current);
+      }
+
+      // アプリ終了前にセッション終了記録を試みる
+      trackSessionEnd(userId).catch(console.error);
+      trackEvent(EventType.APP_CLOSE, {}, userId).catch(console.error);
     };
-  }, [handleAppStateChange, handleNetworkChange, onNetworkChange]);
-  
-  // 現在のネットワーク状態を確認するメソッド
-  const checkNetworkStatus = useCallback(async () => {
-    try {
-      const netInfo = await NetInfo.fetch();
-      return netInfo.isConnected && netInfo.isInternetReachable;
-    } catch (error) {
-      console.error('Error checking network status:', error);
-      return false;
+  }, [userId]);
+
+  // アプリの状態変更時の処理
+  const handleAppStateChange = async (nextAppState: AppStateStatus) => {
+    // バックグラウンド→フォアグラウンド
+    if (
+      appState.current.match(/inactive|background/) &&
+      nextAppState === 'active'
+    ) {
+      console.log('App has come to the foreground');
+      setIsActive(true);
+      
+      // セッションタイムアウトがある場合はクリア
+      if (sessionTimeoutRef.current) {
+        clearTimeout(sessionTimeoutRef.current);
+        sessionTimeoutRef.current = null;
+      }
+      
+      // アプリがバックグラウンドから復帰したイベントを記録
+      if (!wasActiveRef.current) {
+        trackEvent(EventType.APP_OPEN, { from_background: true }, userId)
+          .catch(console.error);
+          
+        // 新しいセッションを開始
+        trackSessionStart(userId).catch(console.error);
+      }
+    } 
+    // フォアグラウンド→バックグラウンド
+    else if (
+      nextAppState.match(/inactive|background/) &&
+      appState.current === 'active'
+    ) {
+      console.log('App has gone to the background');
+      setIsActive(false);
+      
+      // セッション終了のタイムアウトを設定（30秒以上バックグラウンドならセッション終了とみなす）
+      sessionTimeoutRef.current = setTimeout(() => {
+        wasActiveRef.current = false;
+        trackSessionEnd(userId).catch(console.error);
+      }, 30000); // 30秒
     }
-  }, []);
-  
-  return { checkNetworkStatus };
+
+    appState.current = nextAppState;
+    wasActiveRef.current = nextAppState === 'active';
+  };
+
+  return {
+    isActive
+  };
 };

@@ -10,7 +10,8 @@ import {
   StyleSheet, 
   Dimensions, 
   Linking, 
-  Share 
+  Share,
+  Platform
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,6 +21,9 @@ import { useProductStore } from '@/store/productStore';
 import { useAuthStore } from '@/store/authStore';
 import { formatPrice, getSimilarProducts } from '@/utils';
 import { useRecommendations } from '@/hooks/useRecommendations';
+import { useRecordClick } from '@/hooks/useRecordClick';
+import { useDeepLinks } from '@/utils/deepLinking';
+import { trackShare, trackProductView, EventType, trackEvent } from '@/services/analyticsService';
 import { recordProductView, recordProductClick } from '@/services/viewHistoryService';
 import { Product, RecommendStackParamList } from '@/types';
 
@@ -43,6 +47,12 @@ const ProductDetailScreen: React.FC = () => {
   // レコメンデーション関連の情報取得
   const { userPreference } = useRecommendations();
   
+  // クリック記録フック
+  const { recordProductClick: trackClick } = useRecordClick(user?.id);
+  
+  // ディープリンク
+  const { generateProductLink } = useDeepLinks();
+  
   // 商品データ
   const [product, setProduct] = useState<Product | null>(null);
   const [similarProducts, setSimilarProducts] = useState<Product[]>([]);
@@ -62,6 +72,21 @@ const ProductDetailScreen: React.FC = () => {
         if (user) {
           recordProductView(user.id, productData.id)
             .catch(err => console.error('Failed to record view:', err));
+            
+          // 商品閲覧イベントの記録（アナリティクス）
+          trackProductView(productData.id, {
+            title: productData.title,
+            brand: productData.brand,
+            price: productData.price,
+            category: productData.category,
+            source: productData.source,
+          }, user.id).catch(err => console.error('Failed to track view:', err));
+          
+          // 画面表示イベントの記録
+          trackEvent(EventType.SCREEN_VIEW, {
+            screen_name: 'ProductDetail',
+            product_id: productData.id,
+          }, user.id).catch(err => console.error('Failed to track screen view:', err));
         }
       }
     };
@@ -73,7 +98,10 @@ const ProductDetailScreen: React.FC = () => {
   const handleBuyPress = async () => {
     if (!product || !user) return;
     
-    // クリックログを記録（既存）
+    // 新しいクリックログ記録フックを使用
+    trackClick(product.id, product);
+
+    // データストア用のクリックログも記録（既存機能と連携）
     await logProductClick(user.id, product.id);
     
     // 閲覧履歴サービス経由でクリックログも記録
@@ -98,9 +126,21 @@ const ProductDetailScreen: React.FC = () => {
     if (!product) return;
     
     try {
+      // ディープリンク形式のURLを生成
+      const deepLink = generateProductLink(product.id);
+      const shareMessage = `${product.title} - ${formatPrice(product.price)} | Stilyaで見つけたアイテムです ${deepLink}`;
+      
       await Share.share({
-        message: `${product.title} - ${formatPrice(product.price)} | Stilyaで見つけたアイテムです ${product.affiliateUrl}`
+        message: shareMessage,
+        // iOS用（必要に応じて）
+        url: product.affiliateUrl
       });
+      
+      // シェアイベントを記録
+      if (user) {
+        trackShare(product.id, Platform.OS, user.id)
+          .catch(err => console.error('Failed to track share:', err));
+      }
     } catch (error) {
       console.error('シェアに失敗しました:', error);
     }

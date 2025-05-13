@@ -10,6 +10,7 @@ import { NetworkProvider } from './src/contexts/NetworkContext';
 import { LogBox, StyleSheet } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { Image } from 'expo-image';
+import { flushQueue as flushAnalyticsQueue } from './src/services/analyticsService';
 
 // イメージキャッシュの設定
 Image.prefetchCache({
@@ -35,31 +36,18 @@ if (__DEV__) {
 
 export default function App() {
   // アプリのライフサイクル管理
-  useAppLifecycle({
-    onForeground: () => {
-      // フォアグラウンドに戻った時の処理
-      console.log('App returned to foreground');
-    },
-    onBackground: () => {
-      // バックグラウンドに移行した時の処理
-      console.log('App went to background');
-      
-      // バックグラウンド移行時には不要なキャッシュをクリア
-      cleanImageCache().catch(error => 
-        console.error('Failed to clean image cache:', error)
-      );
-    },
-    onNetworkChange: (isConnected) => {
-      // ネットワーク状態が変化した時の処理
-      console.log('Network status changed:', isConnected ? 'online' : 'offline');
-    },
-  });
+  useAppLifecycle();
   
   // 初期化処理
   useEffect(() => {
     const prepare = async () => {
       try {
         // 必要な初期化処理
+        
+        // アナリティクスの未送信キューがあれば送信
+        flushAnalyticsQueue().catch(error =>
+          console.error('Failed to flush analytics queue:', error)
+        );
         
         // スプラッシュスクリーンを非表示
         await SplashScreen.hideAsync();

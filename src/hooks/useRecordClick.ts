@@ -1,54 +1,69 @@
-import { supabase } from './supabase';
-import { useAuth } from '@/hooks/useAuth';
+import { useState } from 'react';
+import { Platform } from 'react-native';
+import { recordClick } from '@/services/clickService';
+import { trackProductClick } from '@/services/analyticsService';
+import { Product } from '@/types';
 
 /**
- * 商品クリックを記録する
- * ユーザーが商品をクリックした時にアクセス解析用のログを保存
+ * 商品クリックの記録とトラッキングを行うためのフック
  */
-export const recordProductClick = async (
-  userId: string,
-  productId: string,
-  source: string = 'detail'
-): Promise<void> => {
-  try {
-    if (__DEV__) {
-      // 開発環境ではログのみ出力
-      console.log(`[Debug] Recorded click: user=${userId}, product=${productId}, source=${source}`);
-      return;
+export const useRecordClick = (userId?: string) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  /**
+   * 商品クリックを記録する
+   * - clickServiceを使ってDBにログを保存
+   * - analyticsServiceを使ってイベント分析用のデータを送信
+   * 
+   * @param productId 商品ID
+   * @param product 商品データ（オプショナル、アナリティクス用）
+   */
+  const recordProductClick = async (
+    productId: string,
+    product?: Product
+  ): Promise<boolean> => {
+    if (!userId) {
+      console.log('Cannot record click: No user ID provided');
+      return false;
     }
-
-    // Supabaseにログを保存
-    const { error } = await supabase.from('click_logs').insert({
-      user_id: userId,
-      product_id: productId,
-      source,
-    });
-
-    if (error) {
-      console.error('Error recording click:', error);
-    }
-  } catch (error) {
-    console.error('Failed to record click:', error);
-    // エラーは上位に伝播させない（UIに影響を与えないため）
-  }
-};
-
-/**
- * クリック記録用のカスタムフック
- * コンポーネント内で簡単に使用できるよう抽象化
- */
-export const useRecordClick = () => {
-  const { user } = useAuth();
-
-  const recordClick = async (productId: string, source: string = 'swipe') => {
-    if (!user) return;
+    
+    setLoading(true);
+    setError(null);
     
     try {
-      await recordProductClick(user.id, productId, source);
-    } catch (error) {
-      console.error('Error in useRecordClick:', error);
+      // Supabaseにクリックログを保存
+      await recordClick(userId, productId);
+      
+      // アナリティクスにイベントを送信
+      const productData = product ? {
+        title: product.title,
+        brand: product.brand,
+        price: product.price,
+        category: product.category,
+        source: product.source,
+      } : { id: productId };
+      
+      await trackProductClick(productId, {
+        ...productData,
+        platform: Platform.OS,
+        timestamp: new Date().toISOString(),
+      }, userId);
+      
+      setLoading(false);
+      return true;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      console.error('Failed to record product click:', errorMessage);
+      setError(`クリックの記録に失敗しました: ${errorMessage}`);
+      setLoading(false);
+      return false;
     }
   };
-
-  return recordClick;
+  
+  return {
+    recordProductClick,
+    loading,
+    error,
+  };
 };
