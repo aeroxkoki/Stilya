@@ -80,6 +80,7 @@ export type MainTabParamList = {
   Swipe: undefined;
   Recommend: undefined;
   Profile: undefined;
+  Dev: undefined;
 };
 
 export type OnboardingStackParamList = {
@@ -106,4 +107,8 @@ export type ProfileStackParamList = {
   Settings: undefined;
   Favorites: undefined;
   SwipeHistory: undefined;
+};
+
+export type DevNavigatorParamList = {
+  RecommendationTest: undefined;
 };

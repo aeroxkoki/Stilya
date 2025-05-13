@@ -7,6 +7,7 @@ import { MainTabParamList } from '@/types';
 import SwipeNavigator from './SwipeNavigator';
 import RecommendNavigator from './RecommendNavigator';
 import ProfileScreen from '@/screens/profile/ProfileScreen';
+import DevNavigator from './DevNavigator';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -24,6 +25,8 @@ const MainNavigator: React.FC = () => {
             iconName = focused ? 'star' : 'star-outline';
           } else if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline';
+          } else if (route.name === 'Dev') {
+            iconName = focused ? 'code-working' : 'code-outline';
           } else {
             iconName = 'help-circle';
           }
@@ -56,6 +59,18 @@ const MainNavigator: React.FC = () => {
         name="Profile"
         component={ProfileScreen}
         options={{ title: 'マイページ' }}
+      />
+      <Tab.Screen
+        name="Dev"
+        component={DevNavigator}
+        options={{ 
+          title: '開発ツール',
+          tabBarStyle: { 
+            paddingBottom: 5,
+            height: 60,
+            display: __DEV__ ? 'flex' : 'none'
+          }
+        }}
       />
     </Tab.Navigator>
   );
