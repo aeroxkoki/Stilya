@@ -30,15 +30,49 @@ Stilyaは、ユーザーのファッションの好みをスワイプUIを通じ
 
 ```bash
 # リポジトリをクローン
-git clone https://github.com/yourusername/Stilya.git
+git clone https://github.com/aeroxkoki/Stilya.git
 cd Stilya
 
 # 依存関係のインストール
 npm install
 
+# 環境変数ファイルの作成
+cp .env.example .env
+# .envファイルを編集して実際の値を設定
+
 # Expoの起動
 npx expo start
 ```
+
+## Supabaseのセットアップ
+
+1. **プロジェクト作成**:
+   - [Supabase](https://app.supabase.com/)でアカウント作成
+   - 新規プロジェクト「Stilya」作成
+   - データベースパスワードを安全に保管
+
+2. **SQL実行**:
+   - プロジェクト作成後、ダッシュボードの「SQL Editor」を開く
+   - `supabase/migrations/20250512201534_create_product_tables.sql`ファイルの内容を実行
+   - `supabase/migrations/create_view_logs.sql`ファイルの内容を実行
+
+3. **認証設定**:
+   - 「Authentication」→「Providers」→「Email」プロバイダーが有効か確認
+   - 「URL Configuration」で「Site URL」を設定（開発中はExpoのURL: `exp://192.168.X.X:19000`）
+   - 「Redirect URLs」に`exp://192.168.X.X:19000/auth/callback`を追加
+
+4. **APIキーの取得**:
+   - 「Project Settings」→「API」からプロジェクトURLとanon/publicキーを取得
+   - これらの値を`.env`ファイルに設定
+
+5. **テストデータの追加**:
+   ```sql
+   -- テスト商品データの追加
+   INSERT INTO products (title, brand, price, image_url, description, tags, category, affiliate_url, source)
+   VALUES 
+   ('ベーシックTシャツ', 'Simple', 2500, 'https://source.unsplash.com/random/500x600/?tshirt', 'シンプルなデザインの白Tシャツ', ARRAY['カジュアル', '白', 'ベーシック'], 'トップス', 'https://example.com/product1', 'テストデータ'),
+   ('スリムジーンズ', 'Denim Co.', 8500, 'https://source.unsplash.com/random/500x600/?jeans', 'スリムフィットのデニムパンツ', ARRAY['カジュアル', '青', 'デニム'], 'ボトムス', 'https://example.com/product2', 'テストデータ');
+   ```
 
 ## 環境変数の設定
 
@@ -52,6 +86,27 @@ LINKSHARE_MERCHANT_ID=your_merchant_id
 RAKUTEN_APP_ID=your_rakuten_app_id
 RAKUTEN_AFFILIATE_ID=your_rakuten_affiliate_id
 SENTRY_AUTH_TOKEN=your_sentry_auth_token
+```
+
+## ブランチ戦略とGitHub運用
+
+```
+# ブランチ構成
+- main: 本番リリース用ブランチ
+- develop: 開発統合ブランチ
+- feature/xxx: 機能開発ブランチ（例: feature/swipe-ui）
+- bugfix/xxx: バグ修正ブランチ
+- release/x.x.x: リリース準備ブランチ
+
+# コミットメッセージ規則
+- feat: 新機能追加
+- fix: バグ修正
+- docs: ドキュメント更新
+- style: コードスタイル変更（ロジック変更なし）
+- refactor: リファクタリング
+- perf: パフォーマンス改善
+- test: テスト追加/修正
+- chore: ビルド設定など
 ```
 
 ## プロジェクト構造
