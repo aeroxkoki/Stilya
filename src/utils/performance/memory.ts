@@ -7,7 +7,7 @@ const MEMORY_WARNING_THRESHOLD = 150; // MB
 const LOW_MEMORY_THRESHOLD = 80; // MB
 
 /**
- * アプリのメモリ使用量を取得（iOSのみ完全対応）
+ * アプリのメモリ使用量を取得（クロスプラットフォーム対応）
  * @returns メモリ使用量（MB）または-1（非対応）
  */
 export const getMemoryUsage = async (): Promise<number> => {
@@ -19,8 +19,19 @@ export const getMemoryUsage = async (): Promise<number> => {
         return await memory.currentMemoryUsage() / (1024 * 1024); // バイトからMBに変換
       }
     } else if (Platform.OS === 'android') {
-      // Androidでは直接のAPIがないため概算値を返す
-      // 実際のアプリでは、native moduleを作成して正確な値を取得することをお勧めします
+      // Androidでは利用可能なメモリ情報を概算取得
+      const { PerformanceMonitor } = NativeModules;
+      if (PerformanceMonitor?.getAvailableMemory) {
+        // 総メモリと利用可能メモリを取得（ネイティブモジュール経由）
+        const memoryInfo = await PerformanceMonitor.getAvailableMemory();
+        if (memoryInfo) {
+          const { totalMem, availableMem } = memoryInfo;
+          const usedMem = totalMem - availableMem;
+          return usedMem / (1024 * 1024); // バイトからMBに変換
+        }
+      }
+      
+      // ネイティブモジュールが利用できない場合は-1を返す
       return -1;
     }
   } catch (e) {
@@ -36,7 +47,19 @@ export const getMemoryUsage = async (): Promise<number> => {
 export const checkMemoryWarningLevel = async (): Promise<'normal' | 'warning' | 'critical'> => {
   const memoryUsage = await getMemoryUsage();
   
-  if (memoryUsage === -1) return 'normal'; // 測定できない場合
+  if (memoryUsage === -1) {
+    // メモリ測定不可の場合はヒープ使用率を概算
+    const heapUsed = global.performance?.memory?.usedJSHeapSize;
+    const heapTotal = global.performance?.memory?.totalJSHeapSize;
+    
+    if (heapUsed && heapTotal) {
+      const heapUsageRatio = heapUsed / heapTotal;
+      if (heapUsageRatio > 0.9) return 'critical';
+      if (heapUsageRatio > 0.7) return 'warning';
+    }
+    
+    return 'normal'; // 測定できない場合
+  }
   
   if (memoryUsage > MEMORY_WARNING_THRESHOLD) {
     return 'critical';
@@ -45,6 +68,41 @@ export const checkMemoryWarningLevel = async (): Promise<'normal' | 'warning' | 
   }
   
   return 'normal';
+};
+
+/**
+ * デバイスがローエンドかどうかを判定
+ * パフォーマンス最適化の判断に使用
+ */
+export const isLowEndDevice = async (): Promise<boolean> => {
+  // Androidの場合
+  if (Platform.OS === 'android') {
+    try {
+      const { PerformanceMonitor } = NativeModules;
+      if (PerformanceMonitor?.getDeviceInfo) {
+        const deviceInfo = await PerformanceMonitor.getDeviceInfo();
+        // プロセッサコア数・総メモリ量からローエンドデバイスを判定
+        if (deviceInfo) {
+          const { processorCount, totalMemory } = deviceInfo;
+          // 4GB未満のメモリ、または4コア以下のCPUをローエンドとみなす
+          return (
+            processorCount <= 4 || 
+            (totalMemory / (1024 * 1024 * 1024)) < 4
+          );
+        }
+      }
+    } catch (e) {
+      console.error('Failed to determine device capability:', e);
+    }
+  }
+  
+  // iOSの場合（実機ではモデル名から判定可能だが、シミュレータでは不可能）
+  // メモリ使用量から間接的に判定
+  const memoryUsage = await getMemoryUsage();
+  if (memoryUsage === -1) return false; // 判定不能
+  
+  // メモリ使用量が少ないデバイスはローエンドとみなす
+  return memoryUsage < 50; // 50MB未満はおそらく古いデバイス
 };
 
 /**
@@ -61,12 +119,26 @@ export const autoCleanupMemoryIfNeeded = async (): Promise<void> => {
       // 画像キャッシュをクリア
       clearMemoryCache();
       
-      // 明示的にガベージコレクションを促す（ただし強制ではない）
-      // 注意: JavaScriptではGCを強制できないので、間接的にヒントを与えるだけ
-      global.gc && global.gc();
+      // 明示的なガベージコレクションを促す
+      if (global.gc) {
+        try {
+          global.gc();
+        } catch (e) {
+          console.error('Failed to force garbage collection:', e);
+        }
+      }
     });
   } else if (warningLevel === 'warning') {
     console.log('[MEMORY] High memory usage detected');
+    
+    // 警告レベルでは非表示の画像のみキャッシュをクリア
+    if (Image.clearDiskCache) {
+      try {
+        await Image.clearDiskCache();
+      } catch (e) {
+        console.error('Failed to clear disk cache:', e);
+      }
+    }
   }
 };
 
@@ -75,13 +147,29 @@ export const autoCleanupMemoryIfNeeded = async (): Promise<void> => {
  */
 export const forceCleanupMemory = (): void => {
   try {
-    // 画像キャッシュクリア
+    // メモリキャッシュクリア
     clearMemoryCache();
     
-    // その他のクリーンアップ処理
-    // 必要に応じて追加のクリーンアップを実装
+    // ディスクキャッシュのクリア
+    if (Image.clearDiskCache) {
+      Image.clearDiskCache().catch(e => 
+        console.error('Failed to clear disk cache:', e)
+      );
+    }
     
-    console.log('[MEMORY] Memory cleanup completed');
+    // タイムアウト後に追加クリーンアップ
+    setTimeout(() => {
+      try {
+        // ガベージコレクションを促進
+        if (global.gc) {
+          global.gc();
+        }
+        
+        console.log('[MEMORY] Memory cleanup completed');
+      } catch (e) {
+        console.error('Failed to complete cleanup:', e);
+      }
+    }, 500);
   } catch (e) {
     console.error('Failed to cleanup memory:', e);
   }
@@ -97,6 +185,40 @@ export const logMemoryUsage = async (): Promise<void> => {
   if (memoryUsage !== -1) {
     console.log(`[MEMORY] Current memory usage: ${memoryUsage.toFixed(2)} MB`);
   } else {
-    console.log('[MEMORY] Unable to measure memory usage on this platform');
+    // JavaScriptヒープサイズを代替として表示
+    const heapUsed = global.performance?.memory?.usedJSHeapSize;
+    const heapTotal = global.performance?.memory?.totalJSHeapSize;
+    
+    if (heapUsed && heapTotal) {
+      const heapUsedMB = heapUsed / (1024 * 1024);
+      const heapTotalMB = heapTotal / (1024 * 1024);
+      console.log(`[MEMORY] JS Heap usage: ${heapUsedMB.toFixed(2)}MB / ${heapTotalMB.toFixed(2)}MB (${(heapUsed / heapTotal * 100).toFixed(1)}%)`);
+    } else {
+      console.log('[MEMORY] Unable to measure memory usage on this platform');
+    }
   }
+};
+
+/**
+ * メモリ警告イベントのリスナーを設定
+ */
+export const setupMemoryWarningListener = (): (() => void) => {
+  if (Platform.OS === 'ios' && NativeModules.PerfMonitor?.startObservingMemoryWarnings) {
+    try {
+      // iOSのメモリ警告イベントを監視
+      NativeModules.PerfMonitor.startObservingMemoryWarnings();
+      
+      // クリーンアップ関数を返す
+      return () => {
+        if (NativeModules.PerfMonitor?.stopObservingMemoryWarnings) {
+          NativeModules.PerfMonitor.stopObservingMemoryWarnings();
+        }
+      };
+    } catch (e) {
+      console.error('Failed to setup memory warning listener:', e);
+    }
+  }
+  
+  // 空のクリーンアップ関数を返す
+  return () => {};
 };
