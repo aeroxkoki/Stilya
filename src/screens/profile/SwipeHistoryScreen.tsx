@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { 
   View, 
   Text, 
@@ -8,11 +8,12 @@ import {
   ActivityIndicator, 
   StyleSheet,
   Dimensions,
-  RefreshControl
+  RefreshControl,
+  Alert
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { ProductCard } from '@/components/common';
+import { ProductCard, Button } from '@/components/common';
 import { useProductStore } from '@/store/productStore';
 import { useAuthStore } from '@/store/authStore';
 import { Product } from '@/types';
@@ -29,12 +30,16 @@ const SwipeHistoryScreen: React.FC = () => {
     getSwipeHistory, 
     loading,
     addToFavorites,
-    isFavorite
+    isFavorite,
+    removeFromFavorites
   } = useProductStore();
   
   // フィルタリング用の状態
   const [filter, setFilter] = useState<'all' | 'yes' | 'no'>('all');
   const [refreshing, setRefreshing] = useState(false);
+  const [filteredHistory, setFilteredHistory] = useState<Product[]>([]);
+  const [page, setPage] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
   
   // 初回表示時とフィルター変更時にデータを取得
   useEffect(() => {
@@ -51,14 +56,31 @@ const SwipeHistoryScreen: React.FC = () => {
     loadSwipeHistory();
   }, [user, filter]);
   
+  // スワイプ履歴がロードされたらフィルタリング
+  useEffect(() => {
+    if (swipeHistory.length > 0) {
+      // 簡易的なページネーション (1ページあたり20件)
+      const ITEMS_PER_PAGE = 20;
+      const startIndex = 0;
+      const endIndex = page * ITEMS_PER_PAGE;
+      setFilteredHistory(swipeHistory.slice(startIndex, endIndex));
+    } else {
+      setFilteredHistory([]);
+    }
+  }, [swipeHistory, page]);
+  
   // 商品タップハンドラー
   const handleProductPress = (product: Product) => {
     navigation.navigate('ProductDetail' as never, { productId: product.id } as never);
   };
   
-  // お気に入り追加ハンドラー
-  const handleAddToFavorite = (productId: string) => {
-    if (user) {
+  // お気に入り追加/削除ハンドラー
+  const handleToggleFavorite = (productId: string) => {
+    if (!user) return;
+    
+    if (isFavorite(productId)) {
+      removeFromFavorites(user.id, productId);
+    } else {
       addToFavorites(user.id, productId);
     }
   };
@@ -68,12 +90,45 @@ const SwipeHistoryScreen: React.FC = () => {
     if (!user) return;
     
     setRefreshing(true);
+    setPage(1); // ページをリセット
     if (filter === 'all') {
       await getSwipeHistory(user.id);
     } else {
       await getSwipeHistory(user.id, filter);
     }
     setRefreshing(false);
+  };
+  
+  // もっと読み込むハンドラー
+  const handleLoadMore = useCallback(() => {
+    if (loadingMore || filteredHistory.length >= swipeHistory.length) return;
+    
+    setLoadingMore(true);
+    setPage(prev => prev + 1);
+    setLoadingMore(false);
+  }, [loadingMore, filteredHistory.length, swipeHistory.length]);
+  
+  // 履歴をクリアするハンドラー
+  const handleClearHistory = () => {
+    Alert.alert(
+      '履歴をクリア',
+      'スワイプ履歴を削除してもよろしいですか？\n\n※この操作は元に戻せません',
+      [
+        { text: 'キャンセル', style: 'cancel' },
+        { 
+          text: 'クリア', 
+          style: 'destructive',
+          onPress: () => {
+            // MVPでは実装しないため、メッセージのみ表示
+            Alert.alert(
+              '機能制限',
+              'この機能はMVP版では実装されていません。',
+              [{ text: 'OK', style: 'default' }]
+            );
+          }
+        }
+      ]
+    );
   };
   
   // 戻るボタン
@@ -105,6 +160,18 @@ const SwipeHistoryScreen: React.FC = () => {
     </View>
   );
   
+  // リストフッター（もっと読み込む）
+  const renderFooter = () => {
+    if (!loadingMore) return null;
+    
+    return (
+      <View className="py-4 justify-center items-center">
+        <ActivityIndicator size="small" color="#3B82F6" />
+        <Text className="text-gray-500 text-sm mt-2">読み込み中...</Text>
+      </View>
+    );
+  };
+  
   // ローディング表示
   if (loading && !refreshing) {
     return (
@@ -135,7 +202,9 @@ const SwipeHistoryScreen: React.FC = () => {
           <Text className="text-xl font-bold ml-2">スワイプ履歴</Text>
           <Text className="text-gray-500 ml-2">({swipeHistory.length})</Text>
         </View>
-        <View style={{ width: 24 }} /> {/* バランス用の空のビュー */}
+        <TouchableOpacity onPress={handleClearHistory}>
+          <Ionicons name="trash-outline" size={24} color="#6B7280" />
+        </TouchableOpacity>
       </View>
       
       {/* フィルター */}
@@ -153,13 +222,16 @@ const SwipeHistoryScreen: React.FC = () => {
           </View>
         ) : (
           <FlatList
-            data={swipeHistory}
+            data={filteredHistory}
             keyExtractor={(item) => item.id}
             numColumns={COLUMN_NUM}
             contentContainerStyle={styles.listContainer}
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
             }
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={renderFooter}
             renderItem={({ item, index }) => (
               <View style={styles.cardContainer}>
                 <View className="relative">
@@ -181,15 +253,17 @@ const SwipeHistoryScreen: React.FC = () => {
                     </View>
                   )}
                   
-                  {/* お気に入りに追加ボタン（お気に入りでない場合のみ表示） */}
-                  {!isFavorite(item.id) && (
-                    <TouchableOpacity
-                      style={styles.favoriteButton}
-                      onPress={() => handleAddToFavorite(item.id)}
-                    >
-                      <Ionicons name="heart-outline" size={20} color="#6B7280" />
-                    </TouchableOpacity>
-                  )}
+                  {/* お気に入りボタン */}
+                  <TouchableOpacity
+                    style={styles.favoriteButton}
+                    onPress={() => handleToggleFavorite(item.id)}
+                  >
+                    <Ionicons 
+                      name={isFavorite(item.id) ? "heart" : "heart-outline"} 
+                      size={20} 
+                      color={isFavorite(item.id) ? "#EC4899" : "#6B7280"} 
+                    />
+                  </TouchableOpacity>
                 </View>
               </View>
             )}

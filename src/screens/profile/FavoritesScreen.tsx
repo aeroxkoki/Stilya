@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { 
   View, 
   Text, 
@@ -7,11 +7,13 @@ import {
   TouchableOpacity, 
   ActivityIndicator, 
   StyleSheet,
-  Dimensions
+  Dimensions,
+  RefreshControl,
+  Alert
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { ProductCard } from '@/components/common';
+import { ProductCard, Button } from '@/components/common';
 import { useProductStore } from '@/store/productStore';
 import { useAuthStore } from '@/store/authStore';
 import { Product } from '@/types';
@@ -30,6 +32,12 @@ const FavoritesScreen: React.FC = () => {
     loading 
   } = useProductStore();
   
+  const [refreshing, setRefreshing] = useState(false);
+  const [displayFavorites, setDisplayFavorites] = useState<Product[]>([]);
+  const [page, setPage] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [sortOrder, setSortOrder] = useState<'recent' | 'price_high' | 'price_low'>('recent');
+  
   // 初回表示時にデータを取得
   useEffect(() => {
     const loadFavorites = async () => {
@@ -41,6 +49,42 @@ const FavoritesScreen: React.FC = () => {
     loadFavorites();
   }, [user]);
   
+  // お気に入りがロードされたらソートして表示
+  useEffect(() => {
+    if (favorites.length > 0) {
+      const sorted = sortFavorites(favorites, sortOrder);
+      
+      // 簡易的なページネーション (1ページあたり20件)
+      const ITEMS_PER_PAGE = 20;
+      const startIndex = 0;
+      const endIndex = page * ITEMS_PER_PAGE;
+      
+      setDisplayFavorites(sorted.slice(startIndex, endIndex));
+    } else {
+      setDisplayFavorites([]);
+    }
+  }, [favorites, page, sortOrder]);
+  
+  // ソート機能
+  const sortFavorites = (items: Product[], order: string) => {
+    const clonedItems = [...items];
+    
+    switch (order) {
+      case 'price_high':
+        return clonedItems.sort((a, b) => b.price - a.price);
+      case 'price_low':
+        return clonedItems.sort((a, b) => a.price - b.price);
+      case 'recent':
+      default:
+        // 日付でソート（最新順）
+        // 日付情報がなければ元の順序を維持
+        return clonedItems.sort((a, b) => {
+          if (!a.createdAt || !b.createdAt) return 0;
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+    }
+  };
+  
   // 商品タップハンドラー
   const handleProductPress = (product: Product) => {
     navigation.navigate('ProductDetail' as never, { productId: product.id } as never);
@@ -48,9 +92,92 @@ const FavoritesScreen: React.FC = () => {
   
   // お気に入り削除ハンドラー
   const handleRemoveFavorite = (productId: string) => {
-    if (user) {
-      removeFromFavorites(user.id, productId);
-    }
+    Alert.alert(
+      'お気に入りから削除',
+      'この商品をお気に入りから削除しますか？',
+      [
+        { text: 'キャンセル', style: 'cancel' },
+        { 
+          text: '削除', 
+          style: 'destructive',
+          onPress: () => {
+            if (user) {
+              removeFromFavorites(user.id, productId);
+            }
+          }
+        }
+      ]
+    );
+  };
+  
+  // リフレッシュハンドラー
+  const handleRefresh = async () => {
+    if (!user) return;
+    
+    setRefreshing(true);
+    setPage(1);
+    await getFavorites(user.id);
+    setRefreshing(false);
+  };
+  
+  // もっと読み込むハンドラー
+  const handleLoadMore = useCallback(() => {
+    if (loadingMore || displayFavorites.length >= favorites.length) return;
+    
+    setLoadingMore(true);
+    setPage(prev => prev + 1);
+    setLoadingMore(false);
+  }, [loadingMore, displayFavorites.length, favorites.length]);
+  
+  // すべてのお気に入りをクリア
+  const handleClearAll = () => {
+    if (!user || favorites.length === 0) return;
+    
+    Alert.alert(
+      'すべて削除',
+      'お気に入りをすべて削除してもよろしいですか？\n\nこの操作は元に戻せません。',
+      [
+        { text: 'キャンセル', style: 'cancel' },
+        { 
+          text: 'すべて削除', 
+          style: 'destructive',
+          onPress: () => {
+            // MVPでは未実装のため、アラートのみ表示
+            Alert.alert(
+              '機能制限',
+              'この機能はMVP版では実装されていません。',
+              [{ text: 'OK', style: 'default' }]
+            );
+          }
+        }
+      ]
+    );
+  };
+  
+  // 並び替えメニュー
+  const handleShowSortOptions = () => {
+    Alert.alert(
+      '並び替え',
+      '表示順を選択してください',
+      [
+        {
+          text: '最新順',
+          onPress: () => setSortOrder('recent')
+        },
+        {
+          text: '価格が高い順',
+          onPress: () => setSortOrder('price_high')
+        },
+        {
+          text: '価格が低い順',
+          onPress: () => setSortOrder('price_low')
+        },
+        {
+          text: 'キャンセル',
+          style: 'cancel'
+        }
+      ]
+    );
   };
   
   // 戻るボタン
@@ -58,8 +185,20 @@ const FavoritesScreen: React.FC = () => {
     navigation.goBack();
   };
   
+  // リストフッター（もっと読み込む）
+  const renderFooter = () => {
+    if (!loadingMore) return null;
+    
+    return (
+      <View className="py-4 justify-center items-center">
+        <ActivityIndicator size="small" color="#3B82F6" />
+        <Text className="text-gray-500 text-sm mt-2">読み込み中...</Text>
+      </View>
+    );
+  };
+  
   // ローディング表示
-  if (loading) {
+  if (loading && !refreshing) {
     return (
       <SafeAreaView className="flex-1 bg-white">
         <View className="flex-row justify-between items-center px-6 pt-10 pb-4">
@@ -88,7 +227,23 @@ const FavoritesScreen: React.FC = () => {
           <Text className="text-xl font-bold ml-2">お気に入り</Text>
           <Text className="text-gray-500 ml-2">({favorites.length})</Text>
         </View>
-        <View style={{ width: 24 }} /> {/* バランス用の空のビュー */}
+        <View className="flex-row">
+          <TouchableOpacity onPress={handleShowSortOptions} className="mr-4">
+            <Ionicons name="filter-outline" size={24} color="#6B7280" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleClearAll}>
+            <Ionicons name="trash-outline" size={24} color="#6B7280" />
+          </TouchableOpacity>
+        </View>
+      </View>
+      
+      {/* ソート状態表示 */}
+      <View className="px-6 mb-2">
+        <Text className="text-xs text-gray-500">
+          {sortOrder === 'recent' ? '最新順' : 
+           sortOrder === 'price_high' ? '価格が高い順' : '価格が低い順'}
+           で表示中
+        </Text>
       </View>
       
       {/* 商品リスト */}
@@ -103,10 +258,16 @@ const FavoritesScreen: React.FC = () => {
           </View>
         ) : (
           <FlatList
-            data={favorites}
+            data={displayFavorites}
             keyExtractor={(item) => item.id}
             numColumns={COLUMN_NUM}
             contentContainerStyle={styles.listContainer}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+            }
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={renderFooter}
             renderItem={({ item }) => (
               <View style={styles.cardContainer}>
                 <View className="relative">

@@ -33,6 +33,7 @@ interface ProductState {
   addToFavorites: (userId: string, productId: string) => Promise<void>;
   removeFromFavorites: (userId: string, productId: string) => Promise<void>;
   getFavorites: (userId: string) => Promise<Product[]>;
+  clearFavorites: (userId: string) => Promise<void>;
   isFavorite: (productId: string) => boolean;
   
   // レコメンド関連
@@ -230,6 +231,28 @@ export const useProductStore = create<ProductState>((set, get) => ({
     }
   },
   
+  clearFavorites: async (userId: string) => {
+    try {
+      // お気に入りをすべてクリア
+      set({ favorites: [], loading: false });
+      
+      // コンソールにログを出力（テスト用）
+      console.log(`お気に入りクリア（テスト）: ユーザー ${userId} がお気に入りをすべて削除`);
+      
+      /*
+      // 本番環境では以下のコードを使用（Supabase連携）
+      const { error } = await supabase
+        .from('favorites')
+        .delete()
+        .eq('user_id', userId);
+        
+      if (error) throw error;
+      */
+    } catch (error: any) {
+      console.error('Error clearing favorites:', error);
+      // UI上でのエラー表示は必要に応じて
+    }
+  },
   getFavorites: async (userId: string) => {
     try {
       set({ loading: true, error: null });
