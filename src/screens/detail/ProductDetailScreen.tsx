@@ -15,12 +15,14 @@ import {
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/common';
+import { RecommendReason, SimilarProducts } from '@/components/recommend';
 import { useProductStore } from '@/store/productStore';
 import { useAuthStore } from '@/store/authStore';
 import { formatPrice, getSimilarProducts } from '@/utils';
-import { Product, SwipeStackParamList } from '@/types';
+import { useRecommendations } from '@/hooks/useRecommendations';
+import { Product, RecommendStackParamList } from '@/types';
 
-type ProductDetailScreenRouteProp = RouteProp<SwipeStackParamList, 'ProductDetail'>;
+type ProductDetailScreenRouteProp = RouteProp<RecommendStackParamList, 'ProductDetail'>;
 
 const { width } = Dimensions.get('window');
 
@@ -36,6 +38,9 @@ const ProductDetailScreen: React.FC = () => {
     error,
     logProductClick 
   } = useProductStore();
+  
+  // レコメンデーション関連の情報取得
+  const { userPreference } = useRecommendations();
   
   // 商品データ
   const [product, setProduct] = useState<Product | null>(null);
@@ -190,6 +195,14 @@ const ProductDetailScreen: React.FC = () => {
             </Text>
           </View>
           
+          {/* おすすめ理由（ログイン済みユーザーのみ） */}
+          {user && userPreference && (
+            <RecommendReason
+              product={product}
+              userPreference={userPreference}
+            />
+          )}
+          
           {/* タグ */}
           {product.tags && product.tags.length > 0 && (
             <View className="flex-row flex-wrap mb-4">
@@ -227,32 +240,13 @@ const ProductDetailScreen: React.FC = () => {
             </Text>
           </View>
           
-          {/* 類似商品 */}
+          {/* 類似商品（コンポーネント化） */}
           {similarProducts.length > 0 && (
-            <View className="mb-6">
-              <Text className="text-lg font-bold mb-3">類似商品</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} className="pb-2">
-                {similarProducts.map((similarProduct) => (
-                  <TouchableOpacity 
-                    key={similarProduct.id}
-                    onPress={() => handleSimilarProductPress(similarProduct)}
-                    className="mr-3"
-                  >
-                    <Image 
-                      source={{ uri: similarProduct.imageUrl }}
-                      style={styles.similarProductImage}
-                      className="rounded-lg"
-                    />
-                    <Text className="mt-1 text-sm font-medium" numberOfLines={1} style={{ width: width / 3 - 16 }}>
-                      {similarProduct.title}
-                    </Text>
-                    <Text className="text-sm font-bold text-blue-600">
-                      {formatPrice(similarProduct.price)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
+            <SimilarProducts
+              products={similarProducts}
+              onProductPress={handleSimilarProductPress}
+              title="類似アイテム"
+            />
           )}
           
           {/* 出典情報 */}
@@ -283,10 +277,6 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: width,
-  },
-  similarProductImage: {
-    width: width / 3 - 16,
-    height: width / 3 - 16,
   }
 });
 

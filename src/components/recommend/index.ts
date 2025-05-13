@@ -1,7 +1,15 @@
 import RecommendList from './RecommendList';
 import CategoryRecommendList from './CategoryRecommendList';
+import FilterModal from './FilterModal';
+import RecommendReason from './RecommendReason';
+import SimilarProducts from './SimilarProducts';
+import StyleTypeDisplay from './StyleTypeDisplay';
 
 export {
   RecommendList,
-  CategoryRecommendList
+  CategoryRecommendList,
+  FilterModal,
+  RecommendReason,
+  SimilarProducts,
+  StyleTypeDisplay
 };

@@ -7,6 +7,7 @@ import {
   getRecommendationsByCategory
 } from '@/services/recommendationService';
 import { getSwipeHistory } from '@/services/swipeService';
+import { FilterOptions } from '@/components/recommend/FilterModal';
 
 interface UseRecommendationsReturn {
   recommendations: Product[];
@@ -15,6 +16,7 @@ interface UseRecommendationsReturn {
   isLoading: boolean;
   error: string | null;
   refreshRecommendations: () => Promise<void>;
+  getFilteredRecommendations: (filters: FilterOptions) => Product[];
 }
 
 /**
@@ -83,12 +85,59 @@ export const useRecommendations = (
     await loadRecommendations();
   }, [loadRecommendations]);
 
+  /**
+   * フィルターを適用してレコメンデーション商品を絞り込む
+   */
+  const getFilteredRecommendations = useCallback((filters: FilterOptions): Product[] => {
+    // すべての商品を集める（レコメンド商品とカテゴリ別商品）
+    let allProducts: Product[] = [...recommendations];
+    
+    // カテゴリ別商品も追加
+    Object.values(categoryRecommendations).forEach(products => {
+      allProducts = [...allProducts, ...products];
+    });
+    
+    // 重複排除（IDで重複チェック）
+    const uniqueProducts = Array.from(
+      new Map(allProducts.map(product => [product.id, product])).values()
+    );
+    
+    // フィルタリング適用
+    return uniqueProducts.filter(product => {
+      // カテゴリフィルター
+      if (filters.categories.length > 0 && product.category) {
+        if (!filters.categories.includes(product.category)) {
+          return false;
+        }
+      }
+      
+      // 価格フィルター
+      if (product.price < filters.priceRange[0] || product.price > filters.priceRange[1]) {
+        return false;
+      }
+      
+      // タグフィルター
+      if (filters.selectedTags.length > 0 && product.tags) {
+        // いずれかのタグが含まれていればOK
+        const hasAnyTag = filters.selectedTags.some(tag => 
+          product.tags?.includes(tag)
+        );
+        if (!hasAnyTag) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
+  }, [recommendations, categoryRecommendations]);
+
   return {
     recommendations,
     categoryRecommendations,
     userPreference,
     isLoading,
     error,
-    refreshRecommendations
+    refreshRecommendations,
+    getFilteredRecommendations
   };
 };
