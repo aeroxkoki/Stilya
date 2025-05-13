@@ -20,6 +20,7 @@ import { useProductStore } from '@/store/productStore';
 import { useAuthStore } from '@/store/authStore';
 import { formatPrice, getSimilarProducts } from '@/utils';
 import { useRecommendations } from '@/hooks/useRecommendations';
+import { recordProductView, recordProductClick } from '@/services/viewHistoryService';
 import { Product, RecommendStackParamList } from '@/types';
 
 type ProductDetailScreenRouteProp = RouteProp<RecommendStackParamList, 'ProductDetail'>;
@@ -56,18 +57,28 @@ const ProductDetailScreen: React.FC = () => {
         // 類似商品を取得
         const similar = getSimilarProducts(productData, products, 5);
         setSimilarProducts(similar);
+        
+        // 閲覧履歴に記録（ログインしている場合のみ）
+        if (user) {
+          recordProductView(user.id, productData.id)
+            .catch(err => console.error('Failed to record view:', err));
+        }
       }
     };
     
     loadProduct();
-  }, [productId, fetchProductById, products]);
+  }, [productId, fetchProductById, products, user]);
   
   // 商品購入へのリンク
   const handleBuyPress = async () => {
     if (!product || !user) return;
     
-    // クリックログを記録
+    // クリックログを記録（既存）
     await logProductClick(user.id, product.id);
+    
+    // 閲覧履歴サービス経由でクリックログも記録
+    recordProductClick(user.id, product.id)
+      .catch(err => console.error('Failed to record click:', err));
     
     // アフィリエイトリンクを開く
     try {

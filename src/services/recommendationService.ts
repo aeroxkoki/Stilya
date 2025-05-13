@@ -2,15 +2,20 @@ import { supabase } from './supabase';
 import { Product, Swipe, UserPreference } from '@/types';
 import { getSwipeHistory } from './swipeService';
 import { fetchProductsByTags } from './productService';
+import { getProductViewHistory } from './viewHistoryService';
 
 // タグの重み付けスコア
-const TAG_SCORE_YES = 1;  // YESの場合のスコア
-const TAG_SCORE_NO = -0.5; // NOの場合のスコア
-const TAG_BONUS_THRESHOLD = 3; // このスコア以上のタグを重要タグとして扱う
+const TAG_SCORE_YES = 1.0;    // YESスワイプの場合のスコア
+const TAG_SCORE_NO = -0.5;    // NOスワイプの場合のスコア
+const TAG_SCORE_VIEW = 0.3;   // 閲覧履歴の場合のスコア
+const TAG_SCORE_CLICK = 0.5;  // クリック（購入リンク）の場合のスコア
+const TAG_BONUS_THRESHOLD = 3;  // このスコア以上のタグを重要タグとして扱う
 const MIN_CONFIDENCE_SCORE = 0.6; // この値以上のタグを使ったレコメンドを行う
 
 /**
- * スワイプ履歴からユーザーの好みを分析する
+ * ユーザーの行動履歴から好みを分析する（強化版）
+ * 
+ * スワイプ履歴、閲覧履歴、クリック履歴を組み合わせて、より精度の高い好み分析を行う
  * @param userId ユーザーID
  * @returns ユーザーの好みタグとスコア
  */
@@ -19,8 +24,12 @@ export const analyzeUserPreferences = async (userId: string): Promise<UserPrefer
     // ユーザーのスワイプ履歴を取得
     const swipeHistory = await getSwipeHistory(userId);
     
-    if (swipeHistory.length === 0) {
-      console.log('No swipe history found for user:', userId);
+    // 閲覧履歴を取得（最大100件）
+    const viewHistory = await getProductViewHistory(userId, 100);
+    
+    // ユーザー行動がない場合はnullを返す
+    if (swipeHistory.length === 0 && viewHistory.length === 0) {
+      console.log('No user activity found for user:', userId);
       return null;
     }
     
@@ -33,19 +42,40 @@ export const analyzeUserPreferences = async (userId: string): Promise<UserPrefer
       .filter(swipe => swipe.result === 'no')
       .map(swipe => swipe.productId);
     
+    // 閲覧履歴からIDを抽出（製品データは既に取得済みなので変換のみ）
+    const viewedProductIds = viewHistory.map(product => product.id);
+    
+    // 過去のクリックログを取得（購入リンククリック履歴）
+    const { data: clickLogs } = await supabase
+      .from('click_logs')
+      .select('product_id')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(50);
+    
+    const clickedProductIds = clickLogs ? clickLogs.map(log => log.product_id) : [];
+    
     // 商品IDから商品データを取得
     const yesProducts = await fetchProductsById(yesProductIds);
     const noProducts = await fetchProductsById(noProductIds);
+    const clickedProducts = await fetchProductsById(clickedProductIds);
     
-    // タグスコアを計算
-    const tagScores = calculateTagScores(yesProducts, noProducts);
+    // タグスコアを計算（拡張版 - 閲覧・クリック履歴も考慮）
+    const tagScores = calculateEnhancedTagScores(
+      yesProducts, 
+      noProducts, 
+      viewHistory, 
+      clickedProducts
+    );
     
     // デバッグ情報
-    console.log('User preference analysis:', {
+    console.log('Enhanced user preference analysis:', {
       userId,
       totalSwipes: swipeHistory.length,
       yesSwipes: yesProductIds.length,
       noSwipes: noProductIds.length,
+      viewedProducts: viewHistory.length,
+      clickedProducts: clickedProducts.length,
       topTags: Object.entries(tagScores)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 5)
@@ -103,7 +133,97 @@ const fetchProductsById = async (productIds: string[]): Promise<Product[]> => {
 };
 
 /**
- * 商品データからタグスコアを計算する
+ * 閲覧履歴やクリック履歴も考慮してタグスコアを計算する（拡張版）
+ * @param yesProducts YESスワイプされた商品
+ * @param noProducts NOスワイプされた商品
+ * @param viewedProducts 閲覧された商品
+ * @param clickedProducts クリック（購入リンク）された商品
+ * @returns タグとスコアのマップ
+ */
+const calculateEnhancedTagScores = (
+  yesProducts: Product[],
+  noProducts: Product[],
+  viewedProducts: Product[],
+  clickedProducts: Product[]
+): Record<string, number> => {
+  const tagScores: Record<string, number> = {};
+  
+  // YESスワイプの商品からタグスコアを加算
+  yesProducts.forEach(product => {
+    if (!product.tags) return;
+    
+    product.tags.forEach(tag => {
+      if (!tagScores[tag]) {
+        tagScores[tag] = 0;
+      }
+      tagScores[tag] += TAG_SCORE_YES;
+    });
+  });
+  
+  // NOスワイプの商品からタグスコアを減算
+  noProducts.forEach(product => {
+    if (!product.tags) return;
+    
+    product.tags.forEach(tag => {
+      if (!tagScores[tag]) {
+        tagScores[tag] = 0;
+      }
+      tagScores[tag] += TAG_SCORE_NO;
+    });
+  });
+  
+  // 閲覧履歴からタグスコアを加算（閲覧が複数回あると、より高いスコア）
+  // 閲覧履歴はIDベースで重複を除去したカウントマップを作成
+  const viewCountMap: Record<string, number> = {};
+  viewedProducts.forEach(product => {
+    viewCountMap[product.id] = (viewCountMap[product.id] || 0) + 1;
+  });
+  
+  // ユニークな閲覧商品のタグを処理
+  const uniqueViewedProducts = viewedProducts.filter(
+    (product, index, self) => 
+      index === self.findIndex(p => p.id === product.id)
+  );
+  
+  uniqueViewedProducts.forEach(product => {
+    if (!product.tags) return;
+    
+    const viewCount = viewCountMap[product.id] || 1;
+    const viewWeight = Math.min(viewCount, 3) * 0.1; // 最大3回まで重み付け（0.1, 0.2, 0.3）
+    
+    product.tags.forEach(tag => {
+      if (!tagScores[tag]) {
+        tagScores[tag] = 0;
+      }
+      tagScores[tag] += TAG_SCORE_VIEW + viewWeight;
+    });
+  });
+  
+  // クリック（購入リンク）履歴からタグスコアを加算
+  clickedProducts.forEach(product => {
+    if (!product.tags) return;
+    
+    product.tags.forEach(tag => {
+      if (!tagScores[tag]) {
+        tagScores[tag] = 0;
+      }
+      tagScores[tag] += TAG_SCORE_CLICK;
+    });
+  });
+  
+  // 最終スコアを計算（スコアが3を超えるタグには追加ボーナス）
+  Object.keys(tagScores).forEach(tag => {
+    if (tagScores[tag] >= TAG_BONUS_THRESHOLD) {
+      tagScores[tag] += 0.5; // 高スコアタグにボーナス
+    }
+  });
+  
+  return tagScores;
+};
+
+
+/**
+ * 商品データからタグスコアを計算する（基本版）
  * @param yesProducts YESスワイプされた商品
  * @param noProducts NOスワイプされた商品
  * @returns タグとスコアのマップ
@@ -137,9 +257,6 @@ const calculateTagScores = (yesProducts: Product[], noProducts: Product[]): Reco
   
   return tagScores;
 };
-
-/**
- * タグスコアから上位のタグを取得する
  * @param tagScores タグスコアのマップ
  * @param limit 取得するタグ数
  * @returns 上位のタグ配列

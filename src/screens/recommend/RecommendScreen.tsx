@@ -14,7 +14,9 @@ import {
   RecommendList, 
   CategoryRecommendList, 
   FilterModal, 
-  StyleTypeDisplay
+  StyleTypeDisplay,
+  PreferenceTrendsGraph,
+  StyleTips
 } from '@/components/recommend';
 import { Button } from '@/components/common';
 import { useAuth } from '@/hooks/useAuth';
@@ -239,7 +241,11 @@ const RecommendScreen: React.FC = () => {
         
         {/* スタイルタイプ表示（ユーザーの好みに基づく） */}
         {user && userPreference && (
-          <StyleTypeDisplay userPreference={userPreference} />
+          <>
+            <StyleTypeDisplay userPreference={userPreference} />
+            <PreferenceTrendsGraph userPreference={userPreference} />
+            <StyleTips userPreference={userPreference} />
+          </>
         )}
         
         {/* フィルター適用済み商品表示 */}
