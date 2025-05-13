@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Product } from '../../types/product';
+import { Product } from '@/types';
 import CachedImage from './CachedImage';
 
 interface ProductCardProps {
@@ -20,6 +20,8 @@ interface ProductCardProps {
   isFavorite?: boolean;
   onFavoritePress?: (productId: string) => void;
   horizontal?: boolean;
+  showTags?: boolean;
+  compact?: boolean;
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({
@@ -30,6 +32,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
   isFavorite = false,
   onFavoritePress,
   horizontal = false,
+  showTags = true,
+  compact = false,
 }) => {
   const { theme } = useTheme();
 
@@ -50,13 +54,18 @@ const ProductCard: React.FC<ProductCardProps> = ({
       style={[
         styles.container,
         horizontal ? styles.horizontalContainer : styles.verticalContainer,
+        compact && styles.compactContainer,
         { borderRadius: theme.radius.m, backgroundColor: theme.colors.background.card },
         style,
       ]}
       onPress={() => onPress(product.id)}
       activeOpacity={0.7}
     >
-      <View style={[styles.imageContainer, horizontal && styles.horizontalImageContainer]}>
+      <View style={[
+        styles.imageContainer, 
+        horizontal && styles.horizontalImageContainer,
+        compact && styles.compactImageContainer
+      ]}>
         <CachedImage
           uri={product.imageUrl}
           style={styles.image}
@@ -81,41 +90,62 @@ const ProductCard: React.FC<ProductCardProps> = ({
         )}
       </View>
 
-      <View style={styles.infoContainer}>
-        <Text style={[styles.brand, { color: theme.colors.text.secondary }]}>
-          {product.brand}
-        </Text>
+      <View style={[styles.infoContainer, compact && styles.compactInfoContainer]}>
+        {product.brand && (
+          <Text style={[
+            styles.brand, 
+            compact && styles.compactBrand,
+            { color: theme.colors.text.secondary }
+          ]}>
+            {product.brand}
+          </Text>
+        )}
         
         <Text
-          style={[styles.title, { color: theme.colors.text.primary }]}
-          numberOfLines={2}
+          style={[
+            styles.title, 
+            compact && styles.compactTitle,
+            { color: theme.colors.text.primary }
+          ]}
+          numberOfLines={compact ? 1 : 2}
           ellipsizeMode="tail"
         >
           {product.title}
         </Text>
         
-        <Text style={[styles.price, { color: theme.colors.primary }]}>
+        <Text style={[
+          styles.price, 
+          compact && styles.compactPrice,
+          { color: theme.colors.primary }
+        ]}>
           {formatPrice(product.price)}
         </Text>
 
-        <View style={styles.tagsContainer}>
-          {product.tags.slice(0, horizontal ? 1 : 2).map((tag, index) => (
-            <View
-              key={index}
-              style={[
-                styles.tag,
-                { backgroundColor: theme.colors.background.input },
-              ]}
-            >
-              <Text
-                style={[styles.tagText, { color: theme.colors.text.secondary }]}
-                numberOfLines={1}
+        {showTags && product.tags && product.tags.length > 0 && (
+          <View style={styles.tagsContainer}>
+            {product.tags.slice(0, compact ? 1 : (horizontal ? 1 : 2)).map((tag, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.tag,
+                  compact && styles.compactTag,
+                  { backgroundColor: theme.colors.background.input },
+                ]}
               >
-                {tag}
-              </Text>
-            </View>
-          ))}
-        </View>
+                <Text
+                  style={[
+                    styles.tagText, 
+                    compact && styles.compactTagText,
+                    { color: theme.colors.text.secondary }
+                  ]}
+                  numberOfLines={1}
+                >
+                  {tag}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -139,6 +169,9 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 120,
   },
+  compactContainer: {
+    maxWidth: 160,
+  },
   imageContainer: {
     position: 'relative',
   },
@@ -146,10 +179,13 @@ const styles = StyleSheet.create({
     width: 120,
     height: '100%',
   },
+  compactImageContainer: {
+    height: 150,
+  },
   image: {
     width: '100%',
-    aspectRatio: horizontal ? undefined : 1,
-    height: horizontal ? '100%' : undefined,
+    aspectRatio: 1,
+    height: undefined,
   },
   favoriteButton: {
     position: 'absolute',
@@ -170,9 +206,16 @@ const styles = StyleSheet.create({
     padding: 12,
     flex: 1,
   },
+  compactInfoContainer: {
+    padding: 8,
+  },
   brand: {
     fontSize: 12,
     marginBottom: 4,
+  },
+  compactBrand: {
+    fontSize: 10,
+    marginBottom: 2,
   },
   title: {
     fontSize: 14,
@@ -180,10 +223,19 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     height: 40,
   },
+  compactTitle: {
+    fontSize: 12,
+    marginBottom: 4,
+    height: 'auto',
+  },
   price: {
     fontSize: 16,
     fontWeight: '700',
     marginBottom: 8,
+  },
+  compactPrice: {
+    fontSize: 14,
+    marginBottom: 4,
   },
   tagsContainer: {
     flexDirection: 'row',
@@ -196,8 +248,17 @@ const styles = StyleSheet.create({
     marginRight: 6,
     marginBottom: 6,
   },
+  compactTag: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginRight: 4,
+    marginBottom: 4,
+  },
   tagText: {
     fontSize: 10,
+  },
+  compactTagText: {
+    fontSize: 8,
   },
 });
 

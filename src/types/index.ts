@@ -1,4 +1,4 @@
-// æü¶ü¢#n‹š©
+// ãƒ¦ãƒ¼ã‚¶ãƒ¼æƒ…å ±
 export interface User {
   id: string;
   email?: string;
@@ -8,7 +8,7 @@ export interface User {
   ageGroup?: string;
 }
 
-// FÁ¢#n‹š©
+// å•†å“æƒ…å ±
 export interface Product {
   id: string;
   title: string;
@@ -22,7 +22,7 @@ export interface Product {
   createdAt?: string;
 }
 
-// ¹ï¤×¢#n‹š©
+// ã‚¹ãƒ¯ã‚¤ãƒ—æƒ…å ±
 export interface Swipe {
   id: string;
   userId: string;
@@ -31,7 +31,7 @@ export interface Swipe {
   createdAt: string;
 }
 
-// JkeŠ¢#n‹š©
+// ãŠæ°—ã«å…¥ã‚Šæƒ…å ±
 export interface Favorite {
   id: string;
   userId: string;
@@ -39,7 +39,7 @@ export interface Favorite {
   createdAt: string;
 }
 
-// ¯êÃ¯í°¢#n‹š©
+// ã‚¯ãƒªãƒƒã‚¯ãƒ­ã‚°
 export interface ClickLog {
   id?: string;
   userId: string;
@@ -47,7 +47,15 @@ export interface ClickLog {
   createdAt?: string;
 }
 
-// <¢#n‹š©
+// ãƒ¦ãƒ¼ã‚¶ãƒ¼å¥½ã¿åˆ†ææƒ…å ±
+export interface UserPreference {
+  userId: string;
+  tagScores: Record<string, number>;
+  topTags: string[];
+  lastUpdated: string;
+}
+
+// èªè¨¼çŠ¶æ…‹
 export interface AuthState {
   user: User | null;
   session: any | null;
@@ -55,7 +63,7 @@ export interface AuthState {
   error: string | null;
 }
 
-// ÊÓ²ü·çó¢#n‹š©
+// ãƒŠãƒ“ã‚²ãƒ¼ã‚·ãƒ§ãƒ³å®šç¾©
 export type RootStackParamList = {
   Auth: undefined;
   Main: undefined;

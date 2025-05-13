@@ -1,63 +1,25 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, SafeAreaView, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { RecommendList } from '@/components/recommend';
+import { RecommendList, CategoryRecommendList } from '@/components/recommend';
 import { Button } from '@/components/common';
-import { useProductStore } from '@/store/productStore';
-import { useAuthStore } from '@/store/authStore';
+import { useAuth } from '@/hooks/useAuth';
+import { useRecommendations } from '@/hooks/useRecommendations';
 import { Product } from '@/types';
 
 const RecommendScreen: React.FC = () => {
   const navigation = useNavigation();
-  const { user } = useAuthStore();
+  const { user } = useAuth();
+  
+  // レコメンデーションデータ取得
   const { 
-    products, 
-    fetchProducts, 
-    getRecommendedProducts, 
-    loading, 
-    error 
-  } = useProductStore();
-  
-  // 状態管理
-  const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
-  const [recentProducts, setRecentProducts] = useState<Product[]>([]);
-  const [refreshing, setRefreshing] = useState<boolean>(false);
-  const [loadingRecommended, setLoadingRecommended] = useState<boolean>(false);
-  
-  // 初回データ読み込み
-  useEffect(() => {
-    loadData();
-  }, []);
-  
-  // データ読み込み
-  const loadData = async () => {
-    try {
-      if (products.length === 0) {
-        await fetchProducts();
-      }
-      
-      // 最新の商品を設定
-      setRecentProducts(products.slice(0, 10));
-      
-      // ユーザーがログインしている場合、おすすめの商品を取得
-      if (user) {
-        setLoadingRecommended(true);
-        const recommended = await getRecommendedProducts(user.id, 20);
-        setRecommendedProducts(recommended);
-        setLoadingRecommended(false);
-      }
-    } catch (error) {
-      console.error('Recommend screen load error:', error);
-      setLoadingRecommended(false);
-    }
-  };
-  
-  // リフレッシュハンドラー
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await loadData();
-    setRefreshing(false);
-  };
+    recommendations, 
+    categoryRecommendations, 
+    userPreference,
+    isLoading,
+    error,
+    refreshRecommendations
+  } = useRecommendations();
   
   // 商品タップハンドラー
   const handleProductPress = (product: Product) => {
@@ -70,12 +32,12 @@ const RecommendScreen: React.FC = () => {
   };
   
   // ローディング表示
-  if (loading && products.length === 0) {
+  if (isLoading && recommendations.length === 0) {
     return (
       <SafeAreaView className="flex-1 bg-white">
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#3B82F6" />
-          <Text className="mt-4 text-gray-500">商品を読み込み中...</Text>
+          <Text className="mt-4 text-gray-500">おすすめ商品を読み込み中...</Text>
         </View>
       </SafeAreaView>
     );
@@ -86,13 +48,20 @@ const RecommendScreen: React.FC = () => {
       <ScrollView
         className="flex-1"
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          <RefreshControl 
+            refreshing={isLoading} 
+            onRefresh={refreshRecommendations} 
+          />
         }
       >
         {/* ヘッダー */}
         <View className="px-4 py-5">
           <Text className="text-2xl font-bold">あなたにおすすめ</Text>
-          <Text className="text-gray-500 mt-1">好みに合わせたアイテムを探して見つけよう</Text>
+          <Text className="text-gray-500 mt-1">
+            {userPreference 
+              ? 'あなたの好みに合わせたアイテムをお届けします' 
+              : '好みに合わせたアイテムを探して見つけよう'}
+          </Text>
         </View>
         
         {/* ログインしていない場合 */}
@@ -110,28 +79,57 @@ const RecommendScreen: React.FC = () => {
           </View>
         )}
         
-        {/* おすすめ商品 */}
-        {user && (
-          <RecommendList
-            title="あなたへのおすすめ"
-            products={recommendedProducts}
-            loading={loadingRecommended}
-            error={null}
-            onProductPress={handleProductPress}
-            emptyMessage="まだおすすめ商品がありません。スワイプしてあなたの好みを教えてください。"
-          />
+        {/* スワイプ履歴がない場合 */}
+        {user && !userPreference && (
+          <View className="bg-blue-50 mx-4 p-4 rounded-lg mb-4">
+            <Text className="text-gray-800 mb-2">
+              スワイプして「好き」「興味なし」を教えると、AIがあなたの好みを学習します。
+            </Text>
+            <Button 
+              onPress={handleGoToSwipe}
+              className="bg-blue-600 mt-1"
+            >
+              スワイプしてみる
+            </Button>
+          </View>
         )}
         
-        {/* 最新の商品 */}
+        {/* あなたの好みのタグ表示 */}
+        {user && userPreference && userPreference.topTags && userPreference.topTags.length > 0 && (
+          <View className="mx-4 mb-2">
+            <Text className="text-sm text-gray-500 mb-2">あなたの好みの傾向:</Text>
+            <View className="flex-row flex-wrap">
+              {userPreference.topTags.slice(0, 5).map((tag, index) => (
+                <View 
+                  key={index} 
+                  className="bg-gray-100 rounded-full px-3 py-1 mr-2 mb-2"
+                >
+                  <Text className="text-xs text-gray-700">{tag}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+        
+        {/* おすすめ商品 */}
         <RecommendList
-          title="最新のアイテム"
-          products={recentProducts}
-          loading={loading && recentProducts.length === 0}
+          title="あなたへのおすすめ"
+          products={recommendations}
+          loading={isLoading}
           error={error}
           onProductPress={handleProductPress}
+          emptyMessage="まだおすすめ商品がありません。スワイプしてあなたの好みを教えてください。"
         />
         
-        {/* カテゴリ別商品（MVPでは実装しない、将来の拡張用） */}
+        {/* カテゴリー別おすすめ商品 */}
+        {user && Object.keys(categoryRecommendations).length > 0 && (
+          <CategoryRecommendList
+            categories={categoryRecommendations}
+            loading={isLoading}
+            error={error}
+            onProductPress={handleProductPress}
+          />
+        )}
       </ScrollView>
     </SafeAreaView>
   );
