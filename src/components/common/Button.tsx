@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import {
   TouchableOpacity,
   Text,
@@ -7,6 +7,8 @@ import {
   ViewStyle,
   TextStyle,
   StyleProp,
+  Animated,
+  Easing,
 } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 
@@ -40,7 +42,29 @@ const Button: React.FC<ButtonProps> = ({
   textStyle,
   fullWidth = false,
 }) => {
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
+  
+  // アニメーション用の値
+  const scaleAnimation = useRef(new Animated.Value(1)).current;
+
+  // タッチアニメーション
+  const handlePressIn = () => {
+    Animated.timing(scaleAnimation, {
+      toValue: 0.97,
+      duration: 150,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnimation, {
+      toValue: 1,
+      friction: 5,
+      tension: 40,
+      useNativeDriver: true,
+    }).start();
+  };
 
   // サイズに基づくスタイル
   const getSizeStyle = (): ViewStyle => {
@@ -106,7 +130,7 @@ const Button: React.FC<ButtonProps> = ({
   const getTextStyle = (): TextStyle => {
     if (disabled) {
       return {
-        color: theme.colors.text.hint,
+        color: isDarkMode ? theme.colors.text.secondary : theme.colors.text.hint,
         fontSize: getFontSize(),
         fontWeight: theme.fontWeights.medium,
       };
@@ -150,33 +174,48 @@ const Button: React.FC<ButtonProps> = ({
   };
 
   return (
-    <TouchableOpacity
-      onPress={onPress}
-      disabled={disabled || loading}
-      style={[
-        styles.button,
-        getVariantStyle(),
-        getSizeStyle(),
-        fullWidth && styles.fullWidth,
-        style,
-      ]}
-      activeOpacity={0.7}
+    <Animated.View
+      style={{
+        transform: [{ scale: scaleAnimation }],
+        width: fullWidth ? '100%' : 'auto',
+      }}
     >
-      {loading ? (
-        <ActivityIndicator
-          color={variant === 'outline' || variant === 'text' ? theme.colors.primary : theme.colors.text.inverse}
-          size="small"
-        />
-      ) : (
-        <>
-          {icon && iconPosition === 'left' && <>{icon}</>}
-          <Text style={[getTextStyle(), iconPosition === 'left' && icon && styles.textWithLeftIcon, iconPosition === 'right' && icon && styles.textWithRightIcon, textStyle]}>
-            {title}
-          </Text>
-          {icon && iconPosition === 'right' && <>{icon}</>}
-        </>
-      )}
-    </TouchableOpacity>
+      <TouchableOpacity
+        onPress={disabled || loading ? undefined : onPress}
+        disabled={disabled || loading}
+        style={[
+          styles.button,
+          getVariantStyle(),
+          getSizeStyle(),
+          style,
+        ]}
+        activeOpacity={0.9}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+      >
+        {loading ? (
+          <ActivityIndicator
+            color={variant === 'outline' || variant === 'text' ? theme.colors.primary : theme.colors.text.inverse}
+            size="small"
+          />
+        ) : (
+          <>
+            {icon && iconPosition === 'left' && <>{icon}</>}
+            <Text 
+              style={[
+                getTextStyle(), 
+                iconPosition === 'left' && icon && styles.textWithLeftIcon, 
+                iconPosition === 'right' && icon && styles.textWithRightIcon, 
+                textStyle
+              ]}
+            >
+              {title}
+            </Text>
+            {icon && iconPosition === 'right' && <>{icon}</>}
+          </>
+        )}
+      </TouchableOpacity>
+    </Animated.View>
   );
 };
 
@@ -185,9 +224,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  fullWidth: {
-    width: '100%',
   },
   textWithLeftIcon: {
     marginLeft: 8,

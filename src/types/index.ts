@@ -79,6 +79,7 @@ export type AuthStackParamList = {
 export type MainTabParamList = {
   Swipe: undefined;
   Recommend: undefined;
+  Report: undefined;
   Profile: undefined;
   Dev: undefined;
 };
@@ -111,4 +112,8 @@ export type ProfileStackParamList = {
 
 export type DevNavigatorParamList = {
   RecommendationTest: undefined;
+};
+
+export type ReportStackParamList = {
+  Report: undefined;
 };

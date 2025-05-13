@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,21 +7,23 @@ import {
   PanResponder,
   Dimensions,
   TouchableOpacity,
+  Platform,
 } from 'react-native';
 import { Product } from '../types/product';
 import { Feather } from '@expo/vector-icons';
 import { CachedImage } from '../components/common';
-import theme from '../styles/theme';
+import { useTheme } from '../contexts/ThemeContext';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SWIPE_THRESHOLD = 0.25 * SCREEN_WIDTH;
-const SWIPE_OUT_DURATION = 250;
+const SWIPE_OUT_DURATION = 300;
 
 interface SwipeCardProps {
   product: Product;
   onSwipeLeft: () => void;
   onSwipeRight: () => void;
   onCardPress: () => void;
+  index?: number;
 }
 
 const SwipeCard: React.FC<SwipeCardProps> = ({
@@ -29,26 +31,59 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
   onSwipeLeft,
   onSwipeRight,
   onCardPress,
+  index = 0,
 }) => {
+  const { theme, isDarkMode } = useTheme();
   const position = useRef(new Animated.ValueXY()).current;
+  const scale = useRef(new Animated.Value(index === 0 ? 1 : 0.95)).current;
+  const opacity = useRef(new Animated.Value(index === 0 ? 1 : 0.8)).current;
+
+  // 初期アニメーションの適用
+  useEffect(() => {
+    if (index === 0) {
+      Animated.spring(scale, {
+        toValue: 1,
+        friction: 6,
+        tension: 50,
+        useNativeDriver: true,
+      }).start();
+      
+      Animated.spring(opacity, {
+        toValue: 1,
+        friction: 6,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [index, scale, opacity]);
 
   // カードの回転を計算
   const rotate = position.x.interpolate({
     inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
-    outputRange: ['-10deg', '0deg', '10deg'],
+    outputRange: ['-12deg', '0deg', '12deg'],
     extrapolate: 'clamp',
   });
 
   // Yes / No ラベルの透明度を計算
   const likeOpacity = position.x.interpolate({
-    inputRange: [0, SCREEN_WIDTH / 4],
+    inputRange: [0, SCREEN_WIDTH / 5],
     outputRange: [0, 1],
     extrapolate: 'clamp',
   });
 
   const nopeOpacity = position.x.interpolate({
-    inputRange: [-SCREEN_WIDTH / 4, 0],
+    inputRange: [-SCREEN_WIDTH / 5, 0],
     outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+
+  // カードの背景色を変化させる
+  const cardColor = position.x.interpolate({
+    inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
+    outputRange: [
+      'rgba(239, 68, 68, 0.1)', // 薄い赤
+      'rgba(0, 0, 0, 0)',       // 透明
+      'rgba(34, 197, 94, 0.1)'  // 薄い緑
+    ],
     extrapolate: 'clamp',
   });
 
@@ -75,9 +110,9 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
   const forceSwipe = (direction: 'right' | 'left') => {
     const x = direction === 'right' ? SCREEN_WIDTH + 100 : -SCREEN_WIDTH - 100;
     Animated.timing(position, {
-      toValue: { x, y: 0 },
+      toValue: { x, y: direction === 'right' ? 30 : -30 },
       duration: SWIPE_OUT_DURATION,
-      useNativeDriver: false,
+      useNativeDriver: true,
     }).start(() => onSwipeComplete(direction));
   };
 
@@ -95,18 +130,10 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
   const resetPosition = () => {
     Animated.spring(position, {
       toValue: { x: 0, y: 0 },
-      friction: 4, // 摩擦（値が大きいほど早く止まる）
-      useNativeDriver: false,
+      friction: 5,
+      tension: 40,
+      useNativeDriver: true,
     }).start();
-  };
-
-  // カードの変形スタイルを定義
-  const cardStyle = {
-    transform: [
-      { translateX: position.x },
-      { translateY: position.y },
-      { rotate },
-    ],
   };
 
   // 価格をフォーマット
@@ -114,36 +141,101 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
     return price.toLocaleString('ja-JP', { style: 'currency', currency: 'JPY' });
   };
 
+  // カードのスタイルを定義
+  const cardAnimStyle = {
+    transform: [
+      { translateX: position.x },
+      { translateY: position.y },
+      { rotate },
+      { scale }
+    ],
+    opacity,
+    zIndex: 100 - index,
+  };
+
   return (
     <Animated.View
-      style={[styles.container, cardStyle]}
-      {...panResponder.panHandlers}
+      style={[
+        styles.container,
+        cardAnimStyle,
+        { padding: theme.spacing.s }
+      ]}
+      {...(index === 0 ? panResponder.panHandlers : {})}
     >
       <TouchableOpacity
-        activeOpacity={0.9}
-        onPress={onCardPress}
-        style={styles.card}
+        activeOpacity={0.95}
+        onPress={index === 0 ? onCardPress : undefined}
+        style={[
+          styles.card,
+          {
+            borderRadius: theme.radius.l,
+            backgroundColor: isDarkMode ? theme.colors.background.card : '#fff',
+            shadowColor: isDarkMode ? '#000' : '#222',
+            borderColor: theme.colors.border.light,
+            borderWidth: isDarkMode ? 1 : 0,
+          }
+        ]}
       >
-        <CachedImage
-          source={{ uri: product.imageUrl }}
-          style={styles.image}
-          resizeMode="cover"
-          showLoader={true}
-          loaderColor={theme.colors.primary}
-          priority="high"
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFill,
+            { backgroundColor: cardColor, zIndex: 1 }
+          ]}
         />
 
-        <View style={styles.overlay}>
+        <CachedImage
+          uri={product.imageUrl}
+          style={styles.image}
+          resizeMode="cover"
+          showLoadingIndicator={true}
+        />
+
+        <View 
+          style={[
+            styles.overlay,
+            {
+              backgroundColor: isDarkMode 
+                ? 'rgba(0, 0, 0, 0.6)' 
+                : 'rgba(0, 0, 0, 0.4)'
+            }
+          ]}
+        >
           <View style={styles.titleContainer}>
-            <Text style={styles.brand}>{product.brand}</Text>
-            <Text style={styles.title}>{product.title}</Text>
-            <Text style={styles.price}>{formatPrice(product.price)}</Text>
+            <Text style={[
+              styles.brand,
+              { color: theme.colors.text.inverse }
+            ]}>
+              {product.brand}
+            </Text>
+            <Text style={[
+              styles.title,
+              { color: theme.colors.text.inverse }
+            ]}>
+              {product.title}
+            </Text>
+            <Text style={[
+              styles.price,
+              { color: theme.colors.accent }
+            ]}>
+              {formatPrice(product.price)}
+            </Text>
           </View>
 
           <View style={styles.tagsContainer}>
             {product.tags.slice(0, 3).map((tag, index) => (
-              <View key={index} style={styles.tag}>
-                <Text style={styles.tagText}>{tag}</Text>
+              <View 
+                key={index} 
+                style={[
+                  styles.tag,
+                  { backgroundColor: 'rgba(255, 255, 255, 0.2)' }
+                ]}
+              >
+                <Text style={[
+                  styles.tagText,
+                  { color: theme.colors.text.inverse }
+                ]}>
+                  {tag}
+                </Text>
               </View>
             ))}
           </View>
@@ -156,7 +248,11 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
             { opacity: likeOpacity },
           ]}
         >
-          <Feather name="check-circle" size={80} color={theme.colors.success} />
+          <Feather 
+            name="check-circle" 
+            size={80} 
+            color={theme.colors.status.success} 
+          />
         </Animated.View>
 
         <Animated.View
@@ -165,7 +261,11 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
             { opacity: nopeOpacity },
           ]}
         >
-          <Feather name="x-circle" size={80} color={theme.colors.error} />
+          <Feather 
+            name="x-circle" 
+            size={80} 
+            color={theme.colors.status.error} 
+          />
         </Animated.View>
       </TouchableOpacity>
     </Animated.View>
@@ -177,14 +277,20 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: SCREEN_WIDTH,
     height: '100%',
-    padding: theme.spacing.sm,
   },
   card: {
     flex: 1,
-    borderRadius: theme.borderRadius.lg,
-    backgroundColor: theme.colors.white,
-    ...theme.shadows.md,
     overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
   image: {
     flex: 1,
@@ -196,57 +302,53 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    padding: theme.spacing.md,
-    borderBottomLeftRadius: theme.borderRadius.lg,
-    borderBottomRightRadius: theme.borderRadius.lg,
+    padding: 16,
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
   },
   titleContainer: {
-    marginBottom: theme.spacing.sm,
+    marginBottom: 8,
   },
   brand: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.gray300,
-    fontWeight: theme.fontWeight.medium,
+    fontSize: 14,
+    fontWeight: '500',
   },
   title: {
-    fontSize: theme.fontSize.xl,
-    color: theme.colors.white,
-    fontWeight: theme.fontWeight.bold,
-    marginBottom: theme.spacing.xs,
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 4,
   },
   price: {
-    fontSize: theme.fontSize.lg,
-    color: theme.colors.white,
-    fontWeight: theme.fontWeight.medium,
+    fontSize: 18,
+    fontWeight: '600',
   },
   tagsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
   },
   tag: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: theme.spacing.xs,
-    borderRadius: theme.borderRadius.round,
-    marginRight: theme.spacing.xs,
-    marginBottom: theme.spacing.xs,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    marginRight: 6,
+    marginBottom: 6,
   },
   tagText: {
-    color: theme.colors.white,
-    fontSize: theme.fontSize.xs,
+    fontSize: 12,
   },
   yesLabel: {
     position: 'absolute',
     top: 50,
     right: 40,
     transform: [{ rotate: '15deg' }],
+    zIndex: 10,
   },
   noLabel: {
     position: 'absolute',
     top: 50,
     left: 40,
     transform: [{ rotate: '-15deg' }],
+    zIndex: 10,
   },
 });
 

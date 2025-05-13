@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { ActivityIndicator, View } from 'react-native';
@@ -16,6 +16,7 @@ import OnboardingScreen from '../screens/OnboardingScreen';
 // サービスと状態管理
 import { supabase } from '../services/supabase';
 import { useAuth } from '../hooks/useAuth';
+import { useTheme } from '../contexts/ThemeContext';
 
 // 型定義
 type RootStackParamList = {
@@ -37,15 +38,26 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 
 // メインのタブナビゲーション
 const MainTabNavigator = () => {
+  const { theme, isDarkMode } = useTheme();
+
   return (
     <Tab.Navigator
       screenOptions={{
-        tabBarActiveTintColor: '#3B82F6',
-        tabBarInactiveTintColor: '#9CA3AF',
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.text.secondary,
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
+          backgroundColor: theme.colors.background.main,
           borderTopWidth: 1,
-          borderTopColor: '#E5E7EB',
+          borderTopColor: theme.colors.border.light,
+          elevation: 0, // Android用シャドウ除去
+          shadowOpacity: 0, // iOS用シャドウ除去
+          height: 60, // タブバーの高さ調整
+          paddingBottom: 8, // 下部のパディング
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '500',
+          marginBottom: 4,
         },
         headerShown: false,
       }}
@@ -84,10 +96,32 @@ const MainTabNavigator = () => {
   );
 };
 
+// カスタムナビゲーションテーマ
+const getNavigationTheme = (appTheme: any, isDark: boolean) => {
+  const baseTheme = isDark ? DarkTheme : DefaultTheme;
+  
+  return {
+    ...baseTheme,
+    colors: {
+      ...baseTheme.colors,
+      primary: appTheme.colors.primary,
+      background: appTheme.colors.background.main,
+      card: appTheme.colors.background.card,
+      text: appTheme.colors.text.primary,
+      border: appTheme.colors.border.light,
+      notification: appTheme.colors.status.error,
+    },
+  };
+};
+
 // ルートナビゲーター
 const AppNavigator = () => {
   const { user, isLoading, fetchProfile, isSessionValid } = useAuth();
+  const { theme, isDarkMode } = useTheme();
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean>(false);
+  
+  // カスタムナビゲーションテーマを取得
+  const navigationTheme = getNavigationTheme(theme, isDarkMode);
 
   // セッションの有効性を定期的にチェック
   useEffect(() => {
@@ -120,18 +154,41 @@ const AppNavigator = () => {
     checkOnboardingStatus();
   }, [user]);
 
-  // ローディング中はスプラッシュスクリーンを表示
+  // ローディング中はローディング画面を表示
   if (isLoading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#3B82F6" />
+      <View 
+        style={{ 
+          flex: 1, 
+          justifyContent: 'center', 
+          alignItems: 'center',
+          backgroundColor: theme.colors.background.main 
+        }}
+      >
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <NavigationContainer theme={navigationTheme}>
+      <Stack.Navigator 
+        screenOptions={{ 
+          headerShown: false,
+          headerStyle: {
+            backgroundColor: theme.colors.background.main,
+            elevation: 0,
+            shadowOpacity: 0,
+          },
+          headerTintColor: theme.colors.text.primary,
+          headerTitleStyle: {
+            fontWeight: '600',
+          },
+          cardStyle: {
+            backgroundColor: theme.colors.background.main,
+          }
+        }}
+      >
         {user ? (
           hasCompletedOnboarding ? (
             <>

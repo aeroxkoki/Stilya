@@ -17,11 +17,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { Button, Card, Input } from '@/components/common';
 import { useAuthStore } from '@/store/authStore';
 import { useProductStore } from '@/store/productStore';
+import { useTheme } from '@/contexts/ThemeContext';
 
 const SettingsScreen: React.FC = () => {
   const navigation = useNavigation();
   const { user, updateProfile, loading } = useAuthStore();
   const { clearFavorites } = useProductStore();
+  const { isDarkMode, toggleDarkMode, isSystemTheme, setSystemTheme } = useTheme();
   
   // フォーム状態
   const [gender, setGender] = useState<'male' | 'female' | 'other'>(
@@ -259,44 +261,66 @@ const SettingsScreen: React.FC = () => {
   // ローディング表示
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-white">
+      <SafeAreaView 
+        className={`flex-1 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}
+      >
         <View className="flex-row items-center px-6 pt-10 pb-4">
           <TouchableOpacity onPress={handleBackPress}>
-            <Ionicons name="arrow-back" size={24} color="#000" />
+            <Ionicons 
+              name="arrow-back" 
+              size={24} 
+              color={isDarkMode ? '#FFFFFF' : '#000000'} 
+            />
           </TouchableOpacity>
-          <Text className="text-xl font-bold ml-2">設定</Text>
+          <Text className={`text-xl font-bold ml-2 ${isDarkMode ? 'text-white' : 'text-black'}`}>
+            設定
+          </Text>
         </View>
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#3B82F6" />
-          <Text className="mt-4 text-gray-500">読み込み中...</Text>
+          <Text className={`mt-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+            読み込み中...
+          </Text>
         </View>
       </SafeAreaView>
     );
   }
   
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView 
+      className={`flex-1 ${isDarkMode 
+        ? 'bg-gray-900' 
+        : 'bg-white'}`}
+    >
       <ScrollView className="flex-1">
         {/* ヘッダー */}
         <View className="flex-row items-center px-6 pt-10 pb-4">
           <TouchableOpacity onPress={handleBackPress}>
-            <Ionicons name="arrow-back" size={24} color="#000" />
+            <Ionicons 
+              name="arrow-back" 
+              size={24} 
+              color={isDarkMode ? '#FFFFFF' : '#000000'} 
+            />
           </TouchableOpacity>
-          <Text className="text-xl font-bold ml-2">設定</Text>
+          <Text className={`text-xl font-bold ml-2 ${isDarkMode ? 'text-white' : 'text-black'}`}>
+            設定
+          </Text>
         </View>
         
         {/* アカウント設定 */}
         <View className="px-6 mb-6">
-          <Text className="text-lg font-bold mb-3">アカウント設定</Text>
-          <Card className="p-4">
+          <Text className={`text-lg font-bold mb-3 ${isDarkMode ? 'text-white' : 'text-black'}`}>
+            アカウント設定
+          </Text>
+          <Card className={`p-4 ${isDarkMode ? 'bg-gray-800' : ''}`}>
             {/* プロフィール情報 */}
             <View className="flex-row items-center justify-between mb-4">
               <View>
-                <Text className="text-gray-500 mb-1">メールアドレス</Text>
-                <Text className="font-medium">{user?.email || '未設定'}</Text>
+                <Text className={`text-gray-500 mb-1 ${isDarkMode ? 'text-gray-400' : ''}`}>メールアドレス</Text>
+                <Text className={`font-medium ${isDarkMode ? 'text-white' : ''}`}>{user?.email || '未設定'}</Text>
               </View>
               <TouchableOpacity 
-                className="bg-blue-50 p-2 rounded"
+                className={`${isDarkMode ? 'bg-blue-900' : 'bg-blue-50'} p-2 rounded`}
                 onPress={() => setIsEditModalVisible(true)}
               >
                 <Text className="text-blue-500">編集</Text>
@@ -309,10 +333,10 @@ const SettingsScreen: React.FC = () => {
               onPress={handleChangePassword}
             >
               <View>
-                <Text className="text-gray-500 mb-1">パスワード</Text>
-                <Text className="font-medium">••••••••</Text>
+                <Text className={`text-gray-500 mb-1 ${isDarkMode ? 'text-gray-400' : ''}`}>パスワード</Text>
+                <Text className={`font-medium ${isDarkMode ? 'text-white' : ''}`}>••••••••</Text>
               </View>
-              <View className="bg-blue-50 p-2 rounded">
+              <View className={`${isDarkMode ? 'bg-blue-900' : 'bg-blue-50'} p-2 rounded`}>
                 <Text className="text-blue-500">変更</Text>
               </View>
             </TouchableOpacity>
@@ -398,62 +422,39 @@ const SettingsScreen: React.FC = () => {
           </Card>
         </View>
         
-        {/* 通知設定 */}
+        {/* 表示設定 */}
         <View className="px-6 mb-6">
-          <Text className="text-lg font-bold mb-3">通知設定</Text>
+          <Text className="text-lg font-bold mb-3">表示設定</Text>
           <Card variant="outlined" className="p-0 divide-y divide-gray-100">
+            {/* ダークモード切替 */}
             <View className="p-4 flex-row justify-between items-center">
               <View className="flex-1">
-                <Text className="font-medium">プッシュ通知</Text>
-                <Text className="text-xs text-gray-500">新商品やお得な情報をお知らせ</Text>
+                <Text className={`font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>ダークモード</Text>
+                <Text className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>暗い背景でアプリを表示します</Text>
               </View>
               <Switch
-                value={notifications.push}
-                onValueChange={(value) => 
-                  setNotifications({ ...notifications, push: value })
-                }
+                value={isDarkMode}
+                onValueChange={toggleDarkMode}
                 trackColor={{ false: '#CBD5E1', true: '#93C5FD' }}
-                thumbColor={notifications.push ? '#3B82F6' : '#f4f3f4'}
+                thumbColor={isDarkMode ? '#3B82F6' : '#f4f3f4'}
+                ios_backgroundColor={isDarkMode ? '#1F2937' : '#CBD5E1'}
               />
             </View>
             
+            {/* システムテーマ使用設定 */}
             <View className="p-4 flex-row justify-between items-center">
               <View className="flex-1">
-                <Text className="font-medium">メール通知</Text>
-                <Text className="text-xs text-gray-500">セール情報やお知らせメール</Text>
+                <Text className={`font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>システムの設定に合わせる</Text>
+                <Text className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>端末の設定に応じて自動切替</Text>
               </View>
               <Switch
-                value={notifications.email}
-                onValueChange={(value) => 
-                  setNotifications({ ...notifications, email: value })
-                }
+                value={isSystemTheme}
+                onValueChange={() => isSystemTheme ? toggleDarkMode() : setSystemTheme()}
                 trackColor={{ false: '#CBD5E1', true: '#93C5FD' }}
-                thumbColor={notifications.email ? '#3B82F6' : '#f4f3f4'}
+                thumbColor={isSystemTheme ? '#3B82F6' : '#f4f3f4'}
+                ios_backgroundColor={isDarkMode ? '#1F2937' : '#CBD5E1'}
               />
             </View>
-            
-            <View className="p-4 flex-row justify-between items-center">
-              <View className="flex-1">
-                <Text className="font-medium">おすすめ商品通知</Text>
-                <Text className="text-xs text-gray-500">あなたの好みに合った商品をお知らせ</Text>
-              </View>
-              <Switch
-                value={notifications.recommendations}
-                onValueChange={(value) => 
-                  setNotifications({ ...notifications, recommendations: value })
-                }
-                trackColor={{ false: '#CBD5E1', true: '#93C5FD' }}
-                thumbColor={notifications.recommendations ? '#3B82F6' : '#f4f3f4'}
-              />
-            </View>
-            
-            <TouchableOpacity
-              className="p-4 flex-row items-center"
-              onPress={handleOpenNotificationSettings}
-            >
-              <Text className="flex-1 text-blue-500">詳細設定</Text>
-              <Ionicons name="chevron-forward" size={20} color="#3B82F6" />
-            </TouchableOpacity>
           </Card>
         </View>
         

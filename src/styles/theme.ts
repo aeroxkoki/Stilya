@@ -71,8 +71,8 @@ export interface Theme {
   radius: ThemeRadius;
 }
 
-// デフォルトテーマ
-export const defaultTheme: Theme = {
+// ライトテーマ（デフォルトテーマ）
+export const lightTheme: Theme = {
   colors: {
     primary: '#3B82F6',    // メインカラー（青）
     secondary: '#6366F1',  // セカンダリカラー（紫がかった青）
@@ -134,35 +134,124 @@ export const defaultTheme: Theme = {
   },
 };
 
-// 男性向けテーマ
-export const maleTheme: Partial<ThemeColors> = {
+// ダークテーマ
+export const darkTheme: Theme = {
+  colors: {
+    primary: '#60A5FA',    // メインカラー（明るい青）
+    secondary: '#818CF8',  // セカンダリカラー（明るい紫がかった青）
+    accent: '#FBBF24',     // アクセントカラー（明るいオレンジ）
+    background: {
+      main: '#111827',     // 背景メインカラー（濃いグレー）
+      card: '#1F2937',     // カード背景（濃いグレー）
+      input: '#374151',    // 入力フィールド背景（グレー）
+    },
+    text: {
+      primary: '#F9FAFB',  // メインテキスト（白）
+      secondary: '#E5E7EB', // セカンダリテキスト（薄いグレー）
+      hint: '#9CA3AF',     // ヒントテキスト（グレー）
+      inverse: '#111827',  // 反転テキスト（黒、明るい背景用）
+    },
+    button: {
+      primary: '#60A5FA',  // プライマリボタン（明るい青）
+      secondary: '#6B7280', // セカンダリボタン（グレー）
+      disabled: '#4B5563', // 無効ボタン（濃いグレー）
+    },
+    border: {
+      light: '#374151',    // 薄いボーダー
+      medium: '#4B5563',   // 中程度のボーダー
+    },
+    status: {
+      success: '#34D399',  // 成功（明るい緑）
+      error: '#F87171',    // エラー（明るい赤）
+      warning: '#FBBF24',  // 警告（明るいオレンジ）
+      info: '#60A5FA',     // 情報（明るい青）
+    },
+  },
+  spacing: {
+    xs: 4,
+    s: 8,
+    m: 16,
+    l: 24,
+    xl: 32,
+    xxl: 48,
+  },
+  fontSizes: {
+    xs: 12,
+    s: 14,
+    m: 16,
+    l: 18,
+    xl: 24,
+    xxl: 32,
+  },
+  fontWeights: {
+    regular: '400',
+    medium: '500',
+    bold: '700',
+  },
+  radius: {
+    xs: 4,
+    s: 8,
+    m: 12,
+    l: 20,
+    round: 9999,
+  },
+};
+
+// デフォルトテーマ（ライトテーマと同じ）
+export const defaultTheme: Theme = lightTheme;
+
+// 男性向けテーマ（ライトモード）
+export const maleLightTheme: Partial<ThemeColors> = {
   primary: '#3B82F6',      // より青みの強いプライマリカラー
   secondary: '#1E40AF',    // 濃い青のセカンダリカラー
   accent: '#0284C7',       // 水色系アクセント
 };
 
-// 女性向けテーマ
-export const femaleTheme: Partial<ThemeColors> = {
+// 女性向けテーマ（ライトモード）
+export const femaleLightTheme: Partial<ThemeColors> = {
   primary: '#EC4899',      // ピンク系プライマリカラー  
   secondary: '#BE185D',    // 濃いピンク系セカンダリカラー
   accent: '#F472B6',       // 明るいピンク系アクセント
 };
 
+// 男性向けテーマ（ダークモード）
+export const maleDarkTheme: Partial<ThemeColors> = {
+  primary: '#60A5FA',      // 明るい青みのプライマリカラー
+  secondary: '#3B82F6',    // 水色系セカンダリカラー
+  accent: '#38BDF8',       // 水色系アクセント
+};
+
+// 女性向けテーマ（ダークモード）
+export const femaleDarkTheme: Partial<ThemeColors> = {
+  primary: '#F472B6',      // 明るいピンク系プライマリカラー  
+  secondary: '#EC4899',    // ピンク系セカンダリカラー
+  accent: '#FB7185',       // 明るいピンク系アクセント
+};
+
 // ユーザー設定に基づいてテーマを取得する関数
 export const getThemeByUserPreferences = (
-  gender?: 'male' | 'female' | 'other'
+  gender?: 'male' | 'female' | 'other',
+  isDarkMode: boolean = false
 ): Theme => {
-  let colors = { ...defaultTheme.colors };
+  // ベースとなるテーマを設定
+  const baseTheme = isDarkMode ? darkTheme : lightTheme;
+  let colors = { ...baseTheme.colors };
 
   // 性別に基づいた色の調整
   if (gender === 'male') {
-    colors = { ...colors, ...maleTheme };
+    colors = { 
+      ...colors, 
+      ...(isDarkMode ? maleDarkTheme : maleLightTheme) 
+    };
   } else if (gender === 'female') {
-    colors = { ...colors, ...femaleTheme };
+    colors = { 
+      ...colors, 
+      ...(isDarkMode ? femaleDarkTheme : femaleLightTheme) 
+    };
   }
 
   return {
-    ...defaultTheme,
+    ...baseTheme,
     colors,
   };
 };

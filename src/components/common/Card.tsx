@@ -5,6 +5,7 @@ import {
   StyleProp,
   ViewStyle,
   TouchableOpacity,
+  Platform,
 } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 
@@ -14,6 +15,7 @@ interface CardProps {
   elevation?: 'none' | 'small' | 'medium' | 'large';
   onPress?: () => void;
   disabled?: boolean;
+  variant?: 'filled' | 'outlined';
 }
 
 const Card: React.FC<CardProps> = ({
@@ -22,8 +24,9 @@ const Card: React.FC<CardProps> = ({
   elevation = 'small',
   onPress,
   disabled = false,
+  variant = 'filled',
 }) => {
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
 
   // 影のレベルに基づいたスタイルを取得
   const getElevationStyle = (): ViewStyle => {
@@ -36,42 +39,61 @@ const Card: React.FC<CardProps> = ({
       case 'small':
         return {
           shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.1,
+          shadowOpacity: isDarkMode ? 0.3 : 0.1,
           shadowRadius: 2,
           elevation: 1,
         };
       case 'medium':
         return {
           shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.15,
+          shadowOpacity: isDarkMode ? 0.4 : 0.15,
           shadowRadius: 3,
           elevation: 3,
         };
       case 'large':
         return {
           shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.2,
+          shadowOpacity: isDarkMode ? 0.5 : 0.2,
           shadowRadius: 4,
           elevation: 5,
         };
       default:
         return {
           shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.1,
+          shadowOpacity: isDarkMode ? 0.3 : 0.1,
           shadowRadius: 2,
           elevation: 1,
         };
     }
   };
 
+  // アウトライン表示の場合のスタイル
+  const variantStyle: ViewStyle = variant === 'outlined' 
+    ? {
+        backgroundColor: 'transparent',
+        borderWidth: 1,
+        borderColor: theme.colors.border.light,
+      }
+    : {};
+
   const cardStyle = [
     styles.card,
     {
-      backgroundColor: theme.colors.background.card,
+      backgroundColor: variant === 'outlined' 
+        ? 'transparent'
+        : theme.colors.background.card,
       borderRadius: theme.radius.m,
-      shadowColor: '#000',
+      shadowColor: isDarkMode ? '#000' : '#222',
+      ...Platform.select({
+        ios: {
+          ...getElevationStyle(),
+        },
+        android: {
+          elevation: variant === 'outlined' ? 0 : getElevationStyle().elevation,
+        },
+      }),
     },
-    getElevationStyle(),
+    variantStyle,
     style,
   ];
 
@@ -80,7 +102,7 @@ const Card: React.FC<CardProps> = ({
       <TouchableOpacity
         style={cardStyle}
         onPress={onPress}
-        activeOpacity={0.7}
+        activeOpacity={0.8}
         disabled={disabled}
       >
         {children}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Image,
   ImageProps,
@@ -7,8 +7,11 @@ import {
   StyleSheet,
   View,
   ActivityIndicator,
+  Animated,
+  Platform,
 } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
+import { Feather } from '@expo/vector-icons';
 
 interface CachedImageProps extends Omit<ImageProps, 'source'> {
   uri: string;
@@ -28,9 +31,23 @@ const CachedImage: React.FC<CachedImageProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
+  const opacityAnim = useRef(new Animated.Value(0)).current;
 
   const placeholderColorToUse = placeholderColor || theme.colors.background.card;
+
+  useEffect(() => {
+    if (!isLoading && !hasError) {
+      // フェードインアニメーション
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      opacityAnim.setValue(0);
+    }
+  }, [isLoading, hasError]);
 
   const handleLoadStart = () => {
     setIsLoading(true);
@@ -48,19 +65,23 @@ const CachedImage: React.FC<CachedImageProps> = ({
 
   return (
     <View style={[styles.container, style]}>
-      {hasError ? (
-        // エラー時のプレースホルダー
-        <View
-          style={[
-            styles.placeholder,
-            { backgroundColor: placeholderColorToUse },
-            style,
-          ]}
-        />
-      ) : (
-        <Image
+      {/* バックグラウンドプレースホルダー */}
+      <View
+        style={[
+          styles.placeholder,
+          { backgroundColor: placeholderColorToUse },
+          style,
+        ]}
+      />
+
+      {!hasError && (
+        <Animated.Image
           source={{ uri }}
-          style={[styles.image, style]}
+          style={[
+            styles.image,
+            style,
+            { opacity: opacityAnim },
+          ]}
           resizeMode={resizeMode}
           onLoadStart={handleLoadStart}
           onLoadEnd={handleLoadEnd}
@@ -69,8 +90,22 @@ const CachedImage: React.FC<CachedImageProps> = ({
         />
       )}
 
+      {hasError && (
+        <View style={[styles.errorContainer, style]}>
+          <Feather 
+            name="image" 
+            size={24} 
+            color={isDarkMode ? theme.colors.text.hint : theme.colors.text.secondary} 
+          />
+        </View>
+      )}
+
       {isLoading && showLoadingIndicator && (
-        <View style={[styles.loadingContainer, style]}>
+        <View style={[
+          styles.loadingContainer, 
+          style, 
+          { backgroundColor: isDarkMode ? 'rgba(0, 0, 0, 0.3)' : 'rgba(255, 255, 255, 0.5)' }
+        ]}>
           <ActivityIndicator
             color={theme.colors.primary}
             size="small"
@@ -84,14 +119,28 @@ const CachedImage: React.FC<CachedImageProps> = ({
 const styles = StyleSheet.create({
   container: {
     overflow: 'hidden',
+    position: 'relative',
   },
   image: {
     width: '100%',
     height: '100%',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   placeholder: {
     width: '100%',
     height: '100%',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  errorContainer: {
+    ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -99,7 +148,6 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
   },
 });
 
