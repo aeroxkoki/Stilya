@@ -2,8 +2,8 @@ import 'react-native-url-polyfill/auto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 import * as SecureStore from 'expo-secure-store';
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/utils/env';
-import { User } from '@/types';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../utils/env';
+import { User } from '../types';
 
 // JSONデータの安全な保存・取得ヘルパー
 const saveToSecureStore = async (key: string, value: string): Promise<void> => {

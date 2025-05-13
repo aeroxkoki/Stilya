@@ -109,21 +109,28 @@ SENTRY_AUTH_TOKEN=your_sentry_auth_token
 - chore: ビルド設定など
 ```
 
-## プロジェクト構造
+## 実装ステータス
 
-```
-src/
-├── assets/          # 画像、フォント、アイコン
-├── components/      # 再利用可能なコンポーネント
-├── hooks/           # カスタムフック
-├── navigation/      # ナビゲーション設定
-├── screens/         # 画面コンポーネント
-├── services/        # APIサービス
-├── store/           # Zustand状態管理
-├── types/           # TypeScript型定義
-├── utils/           # ユーティリティ関数
-└── locales/         # 多言語対応ファイル
-```
+## 設定済み
+- ✅ 環境構築（React Native, Expo, TypeScript, Supabase連携）
+- ✅ Supabase接続情報の設定（.envファイル）
+- ✅ テスト用データスクリプトの作成
+
+## 実装予定
+- 🔲 Supabaseへのマイグレーションの適用（テーブル作成）
+- 🔲 テスト商品データの登録
+- 🔲 スワイプUIの動作確認
+- 🔲 ユーザー認証機能の実装と確認
+- 🔲 商品レコメンド機能の実装
+- 🔲 オフライン対応の確認
+- 🔲 アフィリエイト連携の実装
+
+## 次のステップ
+1. Supabaseダッシュボードで以下のSQLを実行：
+   - `/supabase/migrations/20250512201534_create_product_tables.sql`
+   - `/supabase/migrations/sample_products.sql`
+2. アプリを起動して接続テスト：`npm run start`
+3. 基本機能の動作確認（認証、スワイプ、レコメンド）
 
 ## ビルドとデプロイ
 

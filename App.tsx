@@ -19,6 +19,7 @@ import {
   autoCleanupMemoryIfNeeded
 } from './src/utils/performance';
 import OfflineNotice from './src/components/common/OfflineNotice';
+import TestConnection from './TestConnection';
 
 // イメージキャッシュの設定
 Image.prefetchCache({
