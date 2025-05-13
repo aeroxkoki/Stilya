@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   View, 
   Text, 
@@ -10,10 +10,12 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/common';
-import SwipeCard from '@/components/swipe/SwipeCard';
-import { useProductStore } from '@/store/productStore';
-import { useAuthStore } from '@/store/authStore';
+import SwipeContainer from '@/components/swipe/SwipeContainer';
+import { useAuth } from '@/hooks/useAuth';
+import { useNetwork } from '@/contexts/NetworkContext';
 import { Product } from '@/types';
+import { fetchProducts, fetchNextPage } from '@/services/productService';
+import { saveSwipeResult } from '@/services/swipeService';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
@@ -27,18 +29,15 @@ const { width, height } = Dimensions.get('window');
 
 const SwipeScreen: React.FC = () => {
   const navigation = useNavigation();
-  const { user } = useAuthStore();
-  const { 
-    products, 
-    fetchProducts, 
-    addSwipe, 
-    loading, 
-    error 
-  } = useProductStore();
+  const { user } = useAuth();
+  const { isConnected } = useNetwork();
 
-  // スワイプ中の商品管理
-  const [currentIndex, setCurrentIndex] = useState<number>(0);
+  // 状態管理
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [swipedProductIds, setSwipedProductIds] = useState<Set<string>>(new Set());
+  const [hasMoreProducts, setHasMoreProducts] = useState(true);
   const swipeCount = useRef<number>(0);
   
   // アニメーション値
@@ -48,29 +47,73 @@ const SwipeScreen: React.FC = () => {
   // 商品データの読み込み
   useEffect(() => {
     const loadProducts = async () => {
-      await fetchProducts();
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // 商品データの取得（ページネーション対応）
+        const result = await fetchProducts(20, 0, true);
+        setProducts(result.products);
+        setHasMoreProducts(result.hasMore);
+        
+        // オフラインモードの通知
+        if (!isConnected) {
+          console.log('Loading products in offline mode');
+        }
+      } catch (err: any) {
+        console.error('Failed to load products:', err);
+        setError(err.message || 'Failed to load products');
+      } finally {
+        setLoading(false);
+      }
     };
     
     loadProducts();
-  }, [fetchProducts]);
+  }, [isConnected]);
 
-  // 表示する商品のフィルタリング（スワイプ済みを除外）
-  const availableProducts: Product[] = products.filter(p => !swipedProductIds.has(p.id));
+  // 追加の商品を読み込む
+  const handleLoadMore = useCallback(async () => {
+    if (!hasMoreProducts || loading) return;
+    
+    try {
+      // 次のページを取得
+      const result = await fetchNextPage();
+      
+      if (result.products.length > 0) {
+        // スワイプ済みの商品をフィルタリング
+        const newProducts = result.products.filter(
+          product => !swipedProductIds.has(product.id)
+        );
+        
+        setProducts(prevProducts => [...prevProducts, ...newProducts]);
+        setHasMoreProducts(result.hasMore);
+      } else {
+        setHasMoreProducts(false);
+      }
+    } catch (err: any) {
+      console.error('Failed to load more products:', err);
+      // エラーがあっても続行できるようにする（通知だけ）
+    }
+  }, [hasMoreProducts, loading, swipedProductIds]);
 
-  // スワイプ可能な商品が残っているか
-  const hasProducts = availableProducts.length > 0 && currentIndex < availableProducts.length;
-
-  // 次の商品を表示
-  const handleSwipeCompleted = (productId: string, result: 'yes' | 'no') => {
+  // スワイプ操作の処理
+  const handleSwipe = useCallback(async (product: Product, direction: 'left' | 'right') => {
     if (!user) return;
 
-    // スワイプデータをSupabaseに保存
-    addSwipe(user.id, productId, result);
+    const swipeResult = direction === 'right' ? 'yes' : 'no';
+    
+    // スワイプデータをSupabaseに保存（オフライン対応）
+    try {
+      await saveSwipeResult(user.id, product.id, swipeResult);
+    } catch (err) {
+      console.error('Failed to save swipe result:', err);
+      // エラー時の処理（UI通知など）
+    }
     
     // スワイプ済み商品を記録
     setSwipedProductIds(prev => {
       const newSet = new Set(prev);
-      newSet.add(productId);
+      newSet.add(product.id);
       return newSet;
     });
 
@@ -83,54 +126,46 @@ const SwipeScreen: React.FC = () => {
       withTiming(1, { duration: 100 })
     );
     
-    // 次の商品へ
-    setCurrentIndex(prevIndex => prevIndex + 1);
-    
     // 商品がなくなった場合は空の状態をフェードイン
-    if (currentIndex >= availableProducts.length - 1) {
+    if (products.filter(p => !swipedProductIds.has(p.id)).length <= 1) {
       emptyStateOpacity.value = withTiming(1, { duration: 500 });
     }
-  };
-
-  // 右スワイプ（YES）ハンドラー
-  const handleSwipeRight = () => {
-    if (!hasProducts) return;
-    
-    const currentProduct = availableProducts[currentIndex];
-    handleSwipeCompleted(currentProduct.id, 'yes');
-  };
-
-  // 左スワイプ（NO）ハンドラー
-  const handleSwipeLeft = () => {
-    if (!hasProducts) return;
-    
-    const currentProduct = availableProducts[currentIndex];
-    handleSwipeCompleted(currentProduct.id, 'no');
-  };
+  }, [user, products, swipedProductIds, emptyStateOpacity, headerScale]);
 
   // 商品詳細画面へ
-  const handleCardPress = () => {
-    if (!hasProducts) return;
-    
-    const currentProduct = availableProducts[currentIndex];
-    navigation.navigate('ProductDetail' as never, { productId: currentProduct.id } as never);
-  };
+  const handleCardPress = useCallback((product: Product) => {
+    navigation.navigate('ProductDetail' as never, { productId: product.id } as never);
+  }, [navigation]);
 
   // 商品をリロード
-  const handleReload = () => {
+  const handleReload = useCallback(async () => {
     // フェードアウト
     emptyStateOpacity.value = withTiming(0, { duration: 300 }, () => {
       runOnJS(resetData)();
     });
-  };
+  }, [emptyStateOpacity]);
   
   // データリセット
-  const resetData = () => {
-    fetchProducts();
-    setCurrentIndex(0);
-    setSwipedProductIds(new Set());
-    swipeCount.current = 0;
+  const resetData = async () => {
+    try {
+      setLoading(true);
+      const result = await fetchProducts(20, 0, true);
+      setProducts(result.products);
+      setHasMoreProducts(result.hasMore);
+      setSwipedProductIds(new Set());
+      swipeCount.current = 0;
+    } catch (err: any) {
+      setError(err.message || 'Failed to reload products');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  // 商品切れ時の処理
+  const handleEmptyProducts = useCallback(() => {
+    // 空の状態をアニメーションで表示
+    emptyStateOpacity.value = withTiming(1, { duration: 500 });
+  }, [emptyStateOpacity]);
 
   // アニメーションスタイル
   const headerAnimatedStyle = useAnimatedStyle(() => {
@@ -144,6 +179,9 @@ const SwipeScreen: React.FC = () => {
       opacity: emptyStateOpacity.value
     };
   });
+
+  // 表示するフィルタリング済み商品リスト
+  const filteredProducts = products.filter(p => !swipedProductIds.has(p.id));
 
   // ローディング表示
   if (loading && products.length === 0) {
@@ -166,10 +204,21 @@ const SwipeScreen: React.FC = () => {
           <Text className="text-red-500 text-xl font-bold mt-4 mb-2">エラーが発生しました</Text>
           <Text className="text-gray-700 mb-8 text-center">{error}</Text>
           <Button onPress={handleReload}>再読み込み</Button>
+          
+          {isConnected === false && (
+            <View className="mt-6 bg-yellow-50 p-4 rounded-lg w-full">
+              <Text className="text-yellow-700 text-center">
+                オフラインモードです。インターネット接続を確認してください。
+              </Text>
+            </View>
+          )}
         </View>
       </SafeAreaView>
     );
   }
+
+  // 全ての商品をスワイプし終わった場合
+  const allProductsSwiped = filteredProducts.length === 0 && products.length > 0;
 
   return (
     <SafeAreaView className="flex-1 bg-white">
@@ -185,18 +234,21 @@ const SwipeScreen: React.FC = () => {
           Stilya
         </Text>
         <Text className="text-gray-400 text-sm">
-          残り{availableProducts.length - currentIndex}件
+          残り{filteredProducts.length}件
         </Text>
       </Animated.View>
       
       <View className="flex-1 items-center justify-center p-4">
-        {/* スワイプカード */}
-        {hasProducts ? (
-          <SwipeCard
-            product={availableProducts[currentIndex]}
-            onSwipeLeft={handleSwipeLeft}
-            onSwipeRight={handleSwipeRight}
-            onPress={handleCardPress}
+        {/* スワイプコンテナ */}
+        {!allProductsSwiped ? (
+          <SwipeContainer
+            products={filteredProducts}
+            isLoading={loading}
+            onSwipe={handleSwipe}
+            onCardPress={handleCardPress}
+            onEmptyProducts={handleEmptyProducts}
+            onLoadMore={handleLoadMore}
+            hasMoreProducts={hasMoreProducts}
           />
         ) : (
           <Animated.View 
@@ -224,16 +276,16 @@ const SwipeScreen: React.FC = () => {
                 おすすめを見る
               </Button>
             </View>
+            
+            {/* オフライン状態表示 */}
+            {isConnected === false && (
+              <View className="mt-6 bg-red-50 p-4 rounded-lg w-full">
+                <Text className="text-red-700 text-center">
+                  オフラインモードです。インターネット接続時に新しい商品が表示されます。
+                </Text>
+              </View>
+            )}
           </Animated.View>
-        )}
-        
-        {/* フッター情報 */}
-        {hasProducts && (
-          <View className="w-full items-center mt-4 mb-4">
-            <Text className="text-gray-400 text-sm text-center">
-              左右にスワイプするか、ボタンをタップしてください
-            </Text>
-          </View>
         )}
       </View>
     </SafeAreaView>

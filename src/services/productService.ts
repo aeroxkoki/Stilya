@@ -15,23 +15,74 @@ let productsCache: {
   timestamp: number;
 } | null = null;
 
+// ページネーション情報
+let paginationInfo = {
+  hasMore: true,
+  currentOffset: 0,
+  totalFetched: 0,
+};
+
 /**
  * 商品リストを取得する
  * キャッシュとPrefetchを活用して高速化
  */
-export const fetchProducts = async (limit = 20, offset = 0): Promise<Product[]> => {
+export const fetchProducts = async (limit = 20, offset = 0, forceRefresh = false): Promise<{
+  products: Product[];
+  hasMore: boolean;
+  totalFetched: number;
+}> => {
   try {
+    // 強制更新フラグがあるかキャッシュが無効の場合はキャッシュをクリア
+    if (forceRefresh || !productsCache || Date.now() - productsCache.timestamp >= CACHE_TIMEOUT) {
+      productsCache = null;
+      paginationInfo = {
+        hasMore: true,
+        currentOffset: 0,
+        totalFetched: 0,
+      };
+    }
+
     if (USE_MOCK || __DEV__) {
       // 開発モードまたはモックフラグがtrueの場合はモックデータを返す
       console.log('Using mock products data');
-      await prefetchImages(mockProducts);
-      return mockProducts;
+      
+      // モックデータでページネーションをシミュレート
+      const paginatedMockProducts = mockProducts.slice(offset, offset + limit);
+      
+      // プリフェッチは最初のセットだけ
+      if (offset === 0) {
+        await prefetchImages(paginatedMockProducts);
+      }
+      
+      const hasMore = offset + limit < mockProducts.length;
+      const totalFetched = Math.min(offset + limit, mockProducts.length);
+      
+      // ページネーション情報を更新
+      paginationInfo = {
+        hasMore,
+        currentOffset: offset + limit,
+        totalFetched,
+      };
+      
+      return {
+        products: paginatedMockProducts,
+        hasMore,
+        totalFetched,
+      };
     }
 
-    // キャッシュチェック
-    if (productsCache && Date.now() - productsCache.timestamp < CACHE_TIMEOUT) {
+    // キャッシュチェック (初回または最初のページの場合は常に使用)
+    if (productsCache && offset === 0) {
       console.log('Using cached products data');
-      return productsCache.data;
+      
+      // キャッシュからページに対応するデータを取得
+      const paginatedProducts = productsCache.data.slice(offset, offset + limit);
+      
+      return {
+        products: paginatedProducts,
+        hasMore: paginationInfo.hasMore,
+        totalFetched: paginationInfo.totalFetched,
+      };
     }
 
     // Supabaseから商品データを取得
@@ -47,7 +98,14 @@ export const fetchProducts = async (limit = 20, offset = 0): Promise<Product[]> 
     }
 
     if (!data || data.length === 0) {
-      return [];
+      // ページネーション情報を更新
+      paginationInfo.hasMore = false;
+      
+      return {
+        products: [],
+        hasMore: false,
+        totalFetched: paginationInfo.totalFetched,
+      };
     }
 
     // データの形式を変換 (Supabaseのスネークケースをキャメルケースに)
@@ -65,24 +123,75 @@ export const fetchProducts = async (limit = 20, offset = 0): Promise<Product[]> 
       createdAt: item.created_at,
     }));
 
-    // キャッシュを更新
-    productsCache = {
-      data: products,
-      timestamp: Date.now(),
+    // ページネーション情報を更新 (取得数がlimitより少ない場合は最後と判断)
+    const hasMore = products.length === limit;
+    const totalFetched = paginationInfo.totalFetched + products.length;
+    
+    paginationInfo = {
+      hasMore,
+      currentOffset: offset + products.length,
+      totalFetched,
     };
+    
+    // キャッシュを更新 (新しいデータを追加)
+    if (productsCache) {
+      // 既存のキャッシュにデータを追加
+      productsCache = {
+        data: [...productsCache.data, ...products],
+        timestamp: Date.now(),
+      };
+    } else {
+      // 新規にキャッシュを作成
+      productsCache = {
+        data: products,
+        timestamp: Date.now(),
+      };
+    }
 
     // 画像のプリフェッチ
     await prefetchImages(products);
 
-    return products;
+    return {
+      products,
+      hasMore,
+      totalFetched,
+    };
   } catch (error) {
     console.error('Unexpected error in fetchProducts:', error);
     // エラー発生時もモックデータを返す（開発用）
     if (__DEV__) {
-      return mockProducts;
+      const paginatedMockProducts = mockProducts.slice(offset, offset + limit);
+      const hasMore = offset + limit < mockProducts.length;
+      
+      return {
+        products: paginatedMockProducts,
+        hasMore,
+        totalFetched: offset + paginatedMockProducts.length,
+      };
     }
     throw error;
   }
+};
+
+/**
+ * 次のページの商品を取得する
+ */
+export const fetchNextPage = async (limit = 20): Promise<{
+  products: Product[];
+  hasMore: boolean;
+  totalFetched: number;
+}> => {
+  // 次のページが存在しない場合は空配列を返す
+  if (!paginationInfo.hasMore) {
+    return {
+      products: [],
+      hasMore: false,
+      totalFetched: paginationInfo.totalFetched,
+    };
+  }
+  
+  // 次のページを取得
+  return fetchProducts(limit, paginationInfo.currentOffset);
 };
 
 /**
@@ -177,6 +286,11 @@ export const fetchProductById = async (productId: string): Promise<Product | nul
  */
 export const clearProductsCache = () => {
   productsCache = null;
+  paginationInfo = {
+    hasMore: true,
+    currentOffset: 0,
+    totalFetched: 0,
+  };
   console.log('Products cache cleared');
 };
 

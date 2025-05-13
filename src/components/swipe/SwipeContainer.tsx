@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, ActivityIndicator, Text } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, StyleSheet, ActivityIndicator, Text, TouchableOpacity } from 'react-native';
 import { PanGestureHandler } from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedGestureHandler,
@@ -8,9 +8,11 @@ import Animated, {
   Extrapolate,
   runOnJS,
 } from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
 import { useSwipe } from '@/hooks/useSwipe';
 import { Product } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
+import { useNetwork } from '@/contexts/NetworkContext';
 import SwipeCard from './SwipeCard';
 
 interface SwipeContainerProps {
@@ -19,6 +21,8 @@ interface SwipeContainerProps {
   onSwipe?: (product: Product, direction: 'left' | 'right') => void;
   onCardPress?: (product: Product) => void;
   onEmptyProducts?: () => void;
+  onLoadMore?: () => Promise<void>;
+  hasMoreProducts?: boolean;
 }
 
 const SwipeContainer: React.FC<SwipeContainerProps> = ({
@@ -27,10 +31,37 @@ const SwipeContainer: React.FC<SwipeContainerProps> = ({
   onSwipe,
   onCardPress,
   onEmptyProducts,
+  onLoadMore,
+  hasMoreProducts = false,
 }) => {
   const { user } = useAuth();
+  const { isConnected } = useNetwork();
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const loadMoreThreshold = useRef(5); // あと5枚になったら追加読み込み
   const currentProduct = products[currentIndex];
+
+  // 商品が少なくなってきたら追加読み込み
+  useEffect(() => {
+    const handleLoadMore = async () => {
+      if (
+        hasMoreProducts && 
+        onLoadMore && 
+        !loadingMore && 
+        products.length > 0 && 
+        products.length - currentIndex <= loadMoreThreshold.current
+      ) {
+        try {
+          setLoadingMore(true);
+          await onLoadMore();
+        } finally {
+          setLoadingMore(false);
+        }
+      }
+    };
+
+    handleLoadMore();
+  }, [currentIndex, products.length, hasMoreProducts, onLoadMore, loadingMore]);
 
   // 全ての商品をスワイプし終わったら通知
   useEffect(() => {
@@ -159,7 +190,7 @@ const SwipeContainer: React.FC<SwipeContainerProps> = ({
   }, [currentProduct, onCardPress]);
 
   // ローディング中の表示
-  if (isLoading) {
+  if (isLoading && products.length === 0) {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color="#3B82F6" />
@@ -172,13 +203,37 @@ const SwipeContainer: React.FC<SwipeContainerProps> = ({
   if (products.length === 0 || currentIndex >= products.length) {
     return (
       <View style={styles.centerContainer}>
+        <Ionicons name="cart-outline" size={64} color="#9CA3AF" />
         <Text style={styles.emptyText}>表示できる商品がありません</Text>
+        {isConnected === false && (
+          <View style={styles.offlineContainer}>
+            <Ionicons name="cloud-offline-outline" size={24} color="#F87171" />
+            <Text style={styles.offlineText}>オフラインモードです</Text>
+            <Text style={styles.offlineSubText}>インターネット接続時に商品が更新されます</Text>
+          </View>
+        )}
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
+      {/* オフライン通知 */}
+      {isConnected === false && (
+        <View style={styles.offlineBanner}>
+          <Ionicons name="cloud-offline-outline" size={18} color="#FFFFFF" />
+          <Text style={styles.offlineBannerText}>オフラインモード</Text>
+        </View>
+      )}
+      
+      {/* 追加ローディング */}
+      {loadingMore && (
+        <View style={styles.loadingMoreContainer}>
+          <ActivityIndicator size="small" color="#3B82F6" />
+          <Text style={styles.loadingMoreText}>もっと読み込み中...</Text>
+        </View>
+      )}
+      
       <PanGestureHandler onGestureEvent={gestureHandler}>
         <Animated.View style={[styles.cardContainer, animatedCardStyle]}>
           {currentProduct && (
@@ -193,6 +248,13 @@ const SwipeContainer: React.FC<SwipeContainerProps> = ({
           )}
         </Animated.View>
       </PanGestureHandler>
+      
+      {/* 残りカード数表示 */}
+      <View style={styles.remainingContainer}>
+        <Text style={styles.remainingText}>
+          残り {products.length - currentIndex} / {products.length} 件
+        </Text>
+      </View>
     </View>
   );
 };
@@ -218,12 +280,90 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#757575',
     textAlign: 'center',
+    marginVertical: 12,
   },
   cardContainer: {
     width: '90%',
     height: '70%',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  loadingMoreContainer: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+    zIndex: 10,
+  },
+  loadingMoreText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: '#4B5563',
+  },
+  remainingContainer: {
+    position: 'absolute',
+    bottom: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  remainingText: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  offlineBanner: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#F87171',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 6,
+    zIndex: 20,
+  },
+  offlineBannerText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 14,
+    marginLeft: 6,
+  },
+  offlineContainer: {
+    alignItems: 'center',
+    backgroundColor: '#FEF2F2',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 16,
+    width: '90%',
+  },
+  offlineText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#EF4444',
+    marginTop: 8,
+  },
+  offlineSubText: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginTop: 4,
   },
 });
 
