@@ -1,0 +1,50 @@
+name: EAS Build
+
+on:
+  push:
+    branches: [main, develop]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build App
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🏗 Setup repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # 完全な履歴を取得
+
+      - name: 🏗 Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18.x
+          cache: yarn
+
+      - name: 📦 Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: 🧹 Clean Git state if needed
+        run: |
+          if [[ -n $(git status --porcelain) ]]; then
+            echo "Cleaning Git working directory..."
+            git config --global user.name "GitHub Action"
+            git config --global user.email "action@github.com"
+            git add -A
+            git commit -m "Auto-commit by GitHub Actions [skip ci]"
+            git push origin ${GITHUB_REF#refs/heads/}
+          else
+            echo "Git working directory is clean."
+          fi
+
+      - name: 🏗 Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: 🚀 Build App (Android)
+        run: npx eas build --platform android --profile ci --non-interactive
+
+      - name: 🚀 Build App (iOS)
+        run: npx eas build --platform ios --profile ci --non-interactive
