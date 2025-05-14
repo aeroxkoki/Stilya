@@ -26,7 +26,7 @@ jobs:
         yarn config set ignore-engines true
         yarn config set checksumBehavior ignore
         # インテグリティチェックを回避して依存関係をインストール
-        YARN_CHECKSUM_BEHAVIOR=ignore yarn install --network-timeout 300000
+        YARN_CHECKSUM_BEHAVIOR=ignore yarn install --legacy-peer-deps --network-timeout 300000
     
     - name: Clean Git state if needed
       run: |
