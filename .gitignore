@@ -41,6 +41,9 @@ yarn-error.*
 # test coverage
 coverage/
 
+# backup files
+*.bak
+
 # utility scripts (開発補助用スクリプト)
 fix-dependencies-legacy.sh
 fix-nvm-conflict.sh
