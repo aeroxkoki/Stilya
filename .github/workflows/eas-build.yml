@@ -73,7 +73,7 @@ jobs:
           # 必要に応じてプロジェクトを登録/更新
           npx eas-cli project:info || (
             echo "Project not found or not properly linked. Creating/linking project..."
-            npx eas-cli init --id c2a98f3b-d8dc-4bc3-9b53-8ff63bc2cfd9 --non-interactive || true
+            npx eas-cli init --id beb25e0f-344b-4f2f-8b64-20614b9744a3 --non-interactive || true
           )
 
       - name: 🚀 Build App (Android)
