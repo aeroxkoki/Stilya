@@ -58,9 +58,45 @@ jobs:
           expo-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
+      - name: 🛠 Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
       - name: 📱 Build Preview
         run: |
           echo "Building app preview for branch ${{ github.ref_name }}"
+          
+          # EASプロジェクトの作成（存在しない場合）
+          echo "Creating or using existing EAS project..."
+          eas project:create --non-interactive --name="Stilya" || true
+          
+          # プロジェクトIDの取得と表示
+          PROJECT_ID=$(eas project:info --json | jq -r '.projectId')
+          echo "Using EAS Project ID: $PROJECT_ID"
+          
+          # app.jsonにプロジェクトIDを設定
+          if [ -n "$PROJECT_ID" ]; then
+            echo "Updating app.json with the project ID..."
+            if [ -f "app.json" ]; then
+              # jqを使用してapp.jsonを更新
+              jq --arg projid "$PROJECT_ID" '.expo.extra.eas.projectId = $projid' app.json > app.json.tmp && mv app.json.tmp app.json
+              
+              # app.config.jsのupdates.urlも更新
+              if [ -f "app.config.js" ]; then
+                sed -i "s|EXPO_PROJECT_ID|$PROJECT_ID|g" app.config.js
+              fi
+              
+              # app.config.tsも更新
+              if [ -f "app.config.ts" ]; then
+                sed -i "s|EXPO_PROJECT_ID|$PROJECT_ID|g" app.config.ts
+              fi
+              
+              echo "Configuration updated with project ID: $PROJECT_ID"
+            else
+              echo "app.json not found!"
+            fi
+          else
+            echo "Could not retrieve project ID!"
+          fi
           
           # CI用のプロフィールを使用
           if [[ "${{ github.ref_name }}" == "main" ]]; then

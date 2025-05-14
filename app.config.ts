@@ -31,7 +31,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   extra: {
     eas: {
-      projectId: 'c2a98f3b-d8dc-4bc3-9b53-8ff63bc2cfd9'
+      // プロジェクトIDは自動生成されるため削除
     }
   }
 });
