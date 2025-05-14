@@ -335,10 +335,9 @@ export const getRecommendedProducts = async (
       });
     }
     
-    // 型アサーションを使って型の互換性を確保
-    const tagsArray = tagsForSearch as unknown as Parameters<typeof fetchProductsByTags>[0];
+    // tagsForSearchを直接使用して型の互換性問題を回避
     let recommendedProducts = await fetchProductsByTags(
-      tagsArray,
+      tagsForSearch,
       limit * 2, // 多めに取得して後でフィルタリング
       excludeIds
     );
@@ -592,12 +591,10 @@ export const getRecommendationsByCategory = async (
             });
           }
           
-          // 型アサーションを使ってTypeScriptに型が正しいことを伝える
-          const safeTagsArray = safeTopTags as unknown as Parameters<typeof fetchProductsByCategoryAndTags>[1];
-          
+          // safeTopTagsを直接使用して型の互換性問題を回避
           products = await fetchProductsByCategoryAndTags(
             category,
-            safeTagsArray,
+            safeTopTags,
             limit,
             swipedProductIds
           );
