@@ -5,9 +5,6 @@ import { fetchProductsByTags } from './productService';
 import { mockProducts } from '@/mocks/mockProducts';
 import { getProductViewHistory } from './viewHistoryService';
 
-// fetchProductsByTagsの引数型を定義（明示的に）
-type TagsArray = string[];
-
 // 定数: タグスコア調整用
 const TAG_SCORE_YES = 1.0;      // YESスワイプされたアイテムのタグスコア
 const TAG_SCORE_NO = -0.5;      // NOスワイプされたアイテムのタグスコア
@@ -334,7 +331,7 @@ export const getRecommendedProducts = async (
     let recommendedProducts: Product[] = [];
     
     // タグに基づく検索のための準備
-    const validTags: TagsArray = [];
+    const validTags: string[] = [];
     
     // userPreferenceからタグを抽出（型安全性を確保）
     if (userPreference.topTags && Array.isArray(userPreference.topTags)) {
@@ -350,7 +347,6 @@ export const getRecommendedProducts = async (
     if (validTags.length > 0) {
       console.log(`Searching with ${validTags.length} tags:`, validTags);
       
-      // validTagsはすでにstring[]型なのでキャストは不要
       recommendedProducts = await fetchProductsByTags(
         validTags,
         limit * 2, // 多めに取得して後でフィルタリング
@@ -608,7 +604,7 @@ export const getRecommendationsByCategory = async (
         
         if (userPreference && userPreference.topTags && userPreference.topTags.length > 0) {
           // カテゴリと好みのタグで商品を検索
-          const validTags: TagsArray = [];
+          const validTags: string[] = [];
           
           // userPreferenceからタグを抽出（型安全性を確保）
           if (userPreference.topTags && Array.isArray(userPreference.topTags)) {
@@ -694,7 +690,7 @@ export const getRecommendationsByCategory = async (
  */
 const fetchProductsByCategoryAndTags = async (
   category: string,
-  tags: TagsArray,
+  tags: string[],
   limit: number,
   excludeIds: string[] = []
 ): Promise<Product[]> => {
