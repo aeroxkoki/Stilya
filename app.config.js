@@ -73,7 +73,6 @@ module.exports = {
   },
   plugins: [
     'expo-secure-store',
-    'expo-image',
     'expo-notifications',
     'expo-linking',
     'expo-localization'

@@ -33,6 +33,18 @@ yarn-error.*
 # local env files
 .env*.local
 .env
+.env.development
 
 # typescript
 *.tsbuildinfo
+
+# utility scripts (開発補助用スクリプト)
+fix-dependencies-legacy.sh
+fix-nvm-conflict.sh
+fix-project.sh
+install-node-lts.sh
+launch.sh
+setup-all-in-one.sh
+setup-stilya.sh
+start-with-lts.sh
+start.sh

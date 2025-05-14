@@ -1,66 +1,30 @@
 {
   "expo": {
     "name": "Stilya",
-    "slug": "Stilya",
+    "slug": "stilya",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "automatic",
-    "jsEngine": "hermes",
-    "newArchEnabled": true,
-    "scheme": "stilya",
+    "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "updates": {
-      "fallbackToCacheTimeout": 0,
-      "url": "https://u.expo.dev/your-project-id"
-    },
     "assetBundlePatterns": [
-      "assets/images/*",
-      "assets/fonts/*"
+      "**/*"
     ],
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.stilya.app",
-      "buildNumber": "1.0.0",
-      "infoPlist": {
-        "UIBackgroundModes": ["fetch"]
-      }
+      "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      },
-      "package": "com.stilya.app",
-      "versionCode": 1,
-      "edgeToEdgeEnabled": true
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    },
-    "plugins": [
-      "expo-image"
-    ],
-    "extra": {
-      "eas": {
-        "projectId": "your-eas-project-id"
-      }
-    },
-    "hooks": {
-      "postPublish": [
-        {
-          "file": "sentry-expo/upload-sourcemaps",
-          "config": {
-            "organization": "your-sentry-org",
-            "project": "stilya",
-            "authToken": "YOUR_SENTRY_AUTH_TOKEN"
-          }
-        }
-      ]
     }
   }
 }
