@@ -115,6 +115,7 @@ SENTRY_AUTH_TOKEN=your_sentry_auth_token
 - ✅ 環境構築（React Native, Expo, TypeScript, Supabase連携）
 - ✅ Supabase接続情報の設定（.envファイル）
 - ✅ テスト用データスクリプトの作成
+- ✅ GitHub Actions自動ビルド設定
 
 ## 実装予定
 - 🔲 Supabaseへのマイグレーションの適用（テーブル作成）
@@ -134,6 +135,8 @@ SENTRY_AUTH_TOKEN=your_sentry_auth_token
 
 ## ビルドとデプロイ
 
+### 手動ビルド
+
 ```bash
 # 開発ビルド
 eas build --profile development --platform ios
@@ -152,12 +155,23 @@ eas submit --platform ios
 eas submit --platform android
 ```
 
+### GitHub Actions による自動ビルド
+
+このリポジトリではGitHub Actionsを使用して、コードのプッシュ時に自動的にビルドが実行されます。
+
+- `main`ブランチへのプッシュ: プロダクションビルド（iOS/Android）が自動実行
+- `develop`ブランチへのプッシュ: プレビュービルド（Android）が自動実行
+- プルリクエスト: ESLintとJestテストが自動実行
+
+詳細な設定方法については、[GitHub Actions セットアップガイド](./docs/GITHUB_ACTIONS_SETUP.md)を参照してください。
+
 ## ドキュメント
 
 詳細なドキュメントは `docs/` ディレクトリに保存されています：
 
 - [API ドキュメント](./docs/API_DOCUMENTATION.md)
 - [コードドキュメントガイド](./docs/CODE_DOCUMENTATION_GUIDE.md)
+- [GitHub Actions セットアップガイド](./docs/GITHUB_ACTIONS_SETUP.md)
 - [ユーザーマニュアル (英語)](./docs/USER_MANUAL_EN.md)
 - [ユーザーマニュアル (日本語)](./docs/USER_MANUAL_JA.md)
 - [プライバシーポリシー](./docs/PRIVACY_POLICY.md)

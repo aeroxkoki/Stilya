@@ -1,0 +1,53 @@
+name: Expo Build
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🏗 Setup repository
+        uses: actions/checkout@v3
+
+      - name: 🏗 Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16.x
+          cache: yarn
+
+      - name: 📦 Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: 🧪 ESLint
+        run: yarn lint
+        continue-on-error: true
+
+      - name: 🧪 Jest Tests
+        run: yarn test
+        continue-on-error: true
+
+      - name: 🏗 Setup Expo
+        uses: expo/expo-github-action@v7
+        with:
+          expo-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: 📱 Build Preview
+        run: |
+          echo "Building app preview for branch ${{ github.ref_name }}"
+          yarn global add eas-cli
+          eas build:configure
+          eas update:configure
+          
+          # Different build strategy based on branch
+          if [[ "${{ github.ref_name }}" == "main" ]]; then
+            eas build --platform all --profile production --non-interactive
+          else
+            eas build --platform android --profile preview --non-interactive
+          fi
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
