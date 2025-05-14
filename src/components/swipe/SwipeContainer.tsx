@@ -105,12 +105,12 @@ const SwipeContainer: React.FC<SwipeContainerProps> = ({
 
   // パンジェスチャーハンドラー
   const gestureHandler = useAnimatedGestureHandler({
-    onStart: (_, ctx: any) => {
+    onStart: (_: any, ctx: any) => {
       ctx.startX = translateX.value;
       ctx.startY = translateY.value;
       runOnJS(handleSwipeStart)();
     },
-    onActive: (event, ctx) => {
+    onActive: (event: any, ctx: any) => {
       translateX.value = ctx.startX + event.translationX;
       translateY.value = ctx.startY + event.translationY * 0.5; // Y軸の動きは抑制
       
@@ -121,7 +121,7 @@ const SwipeContainer: React.FC<SwipeContainerProps> = ({
         [-15, 0, 15]
       );
     },
-    onEnd: (event) => {
+    onEnd: (event: any) => {
       // しきい値を超えたら対応するスワイプアクションを実行
       if (event.translationX > SWIPE_THRESHOLD && currentProduct) {
         runOnJS(handleSwipeRight)(currentProduct);

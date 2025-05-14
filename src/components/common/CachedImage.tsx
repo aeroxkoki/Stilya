@@ -14,6 +14,7 @@ import { Feather } from '@expo/vector-icons';
 
 interface CachedImageProps extends Omit<ImageProps, 'source'> {
   uri: string;
+  source?: any; // 後方互換性のため
   style?: StyleProp<ImageStyle>;
   resizeMode?: 'cover' | 'contain' | 'stretch' | 'repeat' | 'center';
   showLoadingIndicator?: boolean;
@@ -22,6 +23,9 @@ interface CachedImageProps extends Omit<ImageProps, 'source'> {
   // 最適化のための追加プロパティ
   priority?: 'low' | 'normal' | 'high';
   cachePolicy?: 'none' | 'memory' | 'memory-disk';
+  containerStyle?: StyleProp<ViewStyle>;
+  onLoad?: () => void;
+  testID?: string;
 }
 
 /**
@@ -33,15 +37,26 @@ interface CachedImageProps extends Omit<ImageProps, 'source'> {
  */
 const CachedImage: React.FC<CachedImageProps> = ({
   uri,
+  source,
   style,
+  containerStyle,
   resizeMode = 'cover',
   showLoadingIndicator = true,
   placeholderColor,
   blurRadius = 0,
   priority = 'normal',
   cachePolicy = 'memory-disk',
+  onLoad,
+  testID,
   ...rest
 }) => {
+  // sourceプロパティが渡された場合はそちらを優先
+  const imageUri = useMemo(() => {
+    if (source) {
+      return typeof source === 'string' ? source : source.uri;
+    }
+    return uri;
+  }, [source, uri]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const { theme, isDarkMode } = useTheme();
@@ -56,19 +71,19 @@ const CachedImage: React.FC<CachedImageProps> = ({
 
   // 解像度に応じたサイズ最適化
   const optimizedUri = useMemo(() => {
-    if (!uri) return '';
+    if (!imageUri) return '';
     
     // CDNがある場合は最適化パラメータを付与（例: クラウディナリなど）
     // 今回はダミー実装
-    return uri;
-  }, [uri]);
+    return imageUri;
+  }, [imageUri]);
   
   // 低解像度プレースホルダーURL（ぼかし画像用）
   const thumbUri = useMemo(() => {
-    if (!uri || !blurRadius) return '';
+    if (!imageUri || !blurRadius) return '';
     // 実際のプロダクトではCDN等で低解像度版を生成
-    return uri;
-  }, [uri, blurRadius]);
+    return imageUri;
+  }, [imageUri, blurRadius]);
 
   useEffect(() => {
     if (!isLoading && !hasError) {
@@ -100,8 +115,11 @@ const CachedImage: React.FC<CachedImageProps> = ({
     setHasError(false);
   };
 
-  const handleLoadEnd = () => {
+  const handleLoadComplete = () => {
     setIsLoading(false);
+    if (onLoad) {
+      onLoad();
+    }
   };
 
   const handleError = () => {
@@ -109,14 +127,8 @@ const CachedImage: React.FC<CachedImageProps> = ({
     setHasError(true);
   };
 
-  // 画像キャッシュの設定
-  const cacheConfig = {
-    cachePolicy,
-    priority,
-  };
-
   return (
-    <View style={[styles.container, style]}>
+    <View style={[styles.container, containerStyle || style]} testID={testID}>
       {/* バックグラウンドプレースホルダー */}
       <View
         style={[
@@ -151,7 +163,7 @@ const CachedImage: React.FC<CachedImageProps> = ({
             style={[styles.image, style]}
             resizeMode={resizeMode}
             onLoadStart={handleLoadStart}
-            onLoadEnd={handleLoadEnd}
+            onLoadEnd={handleLoadComplete}
             onError={handleError}
             contentFit={resizeMode}
             transition={300}

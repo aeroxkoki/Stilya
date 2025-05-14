@@ -15,9 +15,10 @@ import { useTheme } from '../../contexts/ThemeContext';
 export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'text';
 export type ButtonSize = 'small' | 'medium' | 'large';
 
-interface ButtonProps {
+export interface ButtonProps {
   onPress: () => void;
-  title: string;
+  title?: string;
+  children?: React.ReactNode;
   variant?: ButtonVariant;
   size?: ButtonSize;
   disabled?: boolean;
@@ -27,11 +28,15 @@ interface ButtonProps {
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
   fullWidth?: boolean;
+  isFullWidth?: boolean; // 互換性のため
+  className?: string; // NativeWindとの互換性
+  testID?: string;
 }
 
 const Button: React.FC<ButtonProps> = ({
   onPress,
   title,
+  children,
   variant = 'primary',
   size = 'medium',
   disabled = false,
@@ -41,7 +46,12 @@ const Button: React.FC<ButtonProps> = ({
   style,
   textStyle,
   fullWidth = false,
+  isFullWidth,
+  className,
+  testID,
 }) => {
+  // isFullWidthをfullWidthに統合（互換性のため）
+  const useFullWidth = fullWidth || isFullWidth;
   const { theme, isDarkMode } = useTheme();
   
   // アニメーション用の値
@@ -175,10 +185,14 @@ const Button: React.FC<ButtonProps> = ({
 
   return (
     <Animated.View
-      style={{
-        transform: [{ scale: scaleAnimation }],
-        width: fullWidth ? '100%' : 'auto',
-      }}
+      style={[
+        {
+          transform: [{ scale: scaleAnimation }],
+          width: useFullWidth ? '100%' : 'auto',
+        },
+        className && { className } // NativeWindとの互換性
+      ]}
+      testID={testID}
     >
       <TouchableOpacity
         onPress={disabled || loading ? undefined : onPress}
@@ -209,7 +223,7 @@ const Button: React.FC<ButtonProps> = ({
                 textStyle
               ]}
             >
-              {title}
+              {children || title}
             </Text>
             {icon && iconPosition === 'right' && <>{icon}</>}
           </>

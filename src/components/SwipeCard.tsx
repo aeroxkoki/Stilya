@@ -29,6 +29,7 @@ interface SwipeCardProps {
   onSwipeRight: () => void;
   onCardPress: () => void;
   index?: number;
+  testID?: string;
 }
 
 const SwipeCard: React.FC<SwipeCardProps> = ({
@@ -37,6 +38,7 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
   onSwipeRight,
   onCardPress,
   index = 0,
+  testID,
 }) => {
   // 開発モードのみパフォーマンスモニタリング
   if (__DEV__) {
@@ -113,7 +115,10 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
   );
 
   // スワイプ処理の最適化版
-  const handlePanResponderMove = useCallback((_, gesture) => {
+  const handlePanResponderMove = useCallback((
+    _: any, 
+    gesture: { dx: number; dy: number }
+  ) => {
     const now = Date.now();
     
     // スロットリング適用（頻繁な更新を防止）
@@ -123,7 +128,10 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
     }
   }, [position]);
 
-  const handlePanResponderRelease = useCallback((_, gesture) => {
+  const handlePanResponderRelease = useCallback((
+    _: any, 
+    gesture: { dx: number; dy: number }
+  ) => {
     if (gesture.dx > SWIPE_THRESHOLD) {
       forceSwipe('right');
     } else if (gesture.dx < -SWIPE_THRESHOLD) {
@@ -200,6 +208,7 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
         cardAnimStyle,
         { padding: theme.spacing.s }
       ]}
+      testID={testID}
       {...(index === 0 ? panResponder.panHandlers : {})}
     >
       <TouchableOpacity
