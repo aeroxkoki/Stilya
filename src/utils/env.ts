@@ -19,8 +19,8 @@ interface ExpoConfig {
 const mockExpoConstants = {
   expoConfig: {
     extra: {
-      supabaseUrl: process.env.SUPABASE_URL || 'your_supabase_url',
-      supabaseAnonKey: process.env.SUPABASE_ANON_KEY || 'your_supabase_anon_key',
+      supabaseUrl: process.env.SUPABASE_URL || 'https://ddypgpljprljqrblpuli.supabase.co',
+      supabaseAnonKey: process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkeXBncGxqcHJsanFyYmxwdWxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcxMDMwOTcsImV4cCI6MjA2MjY3OTA5N30.u4310NL9FYdxcMSrGxEzEXP0M5y5pDuG3_mz7IRAhMU',
       linkshareApiToken: process.env.LINKSHARE_API_TOKEN || 'your_linkshare_token',
       linkshareMerchantId: process.env.LINKSHARE_MERCHANT_ID || 'your_merchant_id',
       rakutenAppId: process.env.RAKUTEN_APP_ID || 'your_rakuten_app_id',
@@ -51,8 +51,9 @@ export const getEnvVariable = (key: string, defaultValue: string = ''): string =
 };
 
 // Supabase関連の環境変数
-export const SUPABASE_URL = getEnvVariable('SUPABASE_URL', 'your_supabase_url');
-export const SUPABASE_ANON_KEY = getEnvVariable('SUPABASE_ANON_KEY', 'your_supabase_anon_key');
+// テスト環境とプロダクション環境で適切なURLを設定
+export const SUPABASE_URL = getEnvVariable('SUPABASE_URL', process.env.NODE_ENV === 'test' ? 'https://test-supabase.com' : 'https://ddypgpljprljqrblpuli.supabase.co');
+export const SUPABASE_ANON_KEY = getEnvVariable('SUPABASE_ANON_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkeXBncGxqcHJsanFyYmxwdWxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcxMDMwOTcsImV4cCI6MjA2MjY3OTA5N30.u4310NL9FYdxcMSrGxEzEXP0M5y5pDuG3_mz7IRAhMU');
 
 // LinkShare API関連の環境変数
 export const LINKSHARE_API_TOKEN = getEnvVariable('LINKSHARE_API_TOKEN', 'your_linkshare_token');

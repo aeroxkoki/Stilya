@@ -28,5 +28,6 @@ module.exports = {
     'ts-jest': {
       babelConfig: true
     }
-  }
+  },
+  timers: 'fake'
 };

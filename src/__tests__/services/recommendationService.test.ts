@@ -1,15 +1,15 @@
-import { 
-  analyzeUserPreferences, 
-  getRecommendedProducts, 
-  getRecommendationsByCategory 
-} from '@/services/recommendationService';
-import { getSwipeHistory } from '@/services/swipeService';
-import { fetchProductsByTags } from '@/services/productService';
-import { getProductViewHistory } from '@/services/viewHistoryService';
-import { supabase } from '@/services/supabase';
+// Import the module itself to mock later
+import * as recommendationModule from '../../services/recommendationService';
+import { getSwipeHistory } from '../../services/swipeService';
+import { fetchProductsByTags } from '../../services/productService';
+import { getProductViewHistory } from '../../services/viewHistoryService';
+import { supabase } from '../../services/supabase';
+
+// Extract functions for easier reference
+const { analyzeUserPreferences, getRecommendedProducts, getRecommendationsByCategory } = recommendationModule;
 
 // Mock dependencies
-jest.mock('@/services/supabase', () => ({
+jest.mock('../../services/supabase', () => ({
   supabase: {
     from: jest.fn().mockReturnThis(),
     select: jest.fn().mockReturnThis(),
@@ -22,9 +22,9 @@ jest.mock('@/services/supabase', () => ({
   }
 }));
 
-jest.mock('@/services/swipeService');
-jest.mock('@/services/productService');
-jest.mock('@/services/viewHistoryService');
+jest.mock('../../services/swipeService');
+jest.mock('../../services/productService');
+jest.mock('../../services/viewHistoryService');
 
 describe('Recommendation Service', () => {
   beforeEach(() => {
@@ -215,7 +215,7 @@ describe('Recommendation Service', () => {
   describe('getRecommendedProducts', () => {
     it('should return popular products when no user preferences exist', async () => {
       // Mock analyzeUserPreferences to return null (no preferences)
-      jest.spyOn(global, 'analyzeUserPreferences').mockResolvedValue(null);
+      jest.spyOn(recommendationModule, 'analyzeUserPreferences').mockResolvedValue(null);
       
       // Mock supabase response for popular products
       (supabase.from as jest.Mock).mockReturnThis();
@@ -245,7 +245,7 @@ describe('Recommendation Service', () => {
     
     it('should return products based on user preferences', async () => {
       // Mock user preferences
-      jest.spyOn(global, 'analyzeUserPreferences').mockResolvedValue({
+      jest.spyOn(recommendationModule, 'analyzeUserPreferences').mockResolvedValue({
         userId: mockUserId,
         tagScores: { 'casual': 2.0, 'cotton': 1.5, 'formal': 1.0 },
         topTags: ['casual', 'cotton', 'formal'],
@@ -272,7 +272,7 @@ describe('Recommendation Service', () => {
       ]);
       
       // Mock user preferences
-      jest.spyOn(global, 'analyzeUserPreferences').mockResolvedValue({
+      jest.spyOn(recommendationModule, 'analyzeUserPreferences').mockResolvedValue({
         userId: mockUserId,
         tagScores: { 'casual': 2.0, 'cotton': 1.5 },
         topTags: ['casual', 'cotton'],
@@ -296,7 +296,7 @@ describe('Recommendation Service', () => {
   describe('getRecommendationsByCategory', () => {
     it('should return recommendations grouped by category', async () => {
       // Mock user preferences
-      jest.spyOn(global, 'analyzeUserPreferences').mockResolvedValue({
+      jest.spyOn(recommendationModule, 'analyzeUserPreferences').mockResolvedValue({
         userId: mockUserId,
         tagScores: { 'casual': 2.0, 'cotton': 1.5 },
         topTags: ['casual', 'cotton'],
@@ -387,7 +387,7 @@ describe('Recommendation Service', () => {
     
     it('should handle empty results for categories', async () => {
       // Mock user preferences
-      jest.spyOn(global, 'analyzeUserPreferences').mockResolvedValue({
+      jest.spyOn(recommendationModule, 'analyzeUserPreferences').mockResolvedValue({
         userId: mockUserId,
         tagScores: { 'casual': 2.0 },
         topTags: ['casual'],
@@ -487,7 +487,7 @@ describe('Recommendation Service', () => {
         error: null
       });
       
-      // Mock database error
+      // Mock database error for products
       (supabase.from as jest.Mock).mockReturnThis();
       (supabase.select as jest.Mock).mockReturnThis();
       (supabase.in as jest.Mock).mockResolvedValue({

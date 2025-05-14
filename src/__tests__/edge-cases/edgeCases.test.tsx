@@ -3,9 +3,9 @@ import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { NetworkProvider, useNetwork } from '../../contexts/NetworkContext';
 import { ThemeProvider } from '../../contexts/ThemeContext';
 import { ErrorProvider } from '../../contexts/ErrorContext';
-import AuthScreen from '../../screens/auth/AuthScreen';
-import SwipeScreen from '../../screens/swipe/SwipeScreen';
-import RecommendationsScreen from '../../screens/recommend/RecommendScreen';
+import AuthScreen from '../../screens/auth/AuthScreen.tsx';
+import SwipeScreen from '../../screens/swipe/SwipeScreen.tsx';
+import RecommendationsScreen from '../../screens/recommend/RecommendScreen.tsx';
 import Toast from 'react-native-toast-message';
 
 // モックの作成

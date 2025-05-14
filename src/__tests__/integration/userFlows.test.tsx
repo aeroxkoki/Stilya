@@ -5,12 +5,12 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { ThemeProvider } from '../../contexts/ThemeContext';
 import { ErrorProvider } from '../../contexts/ErrorContext';
 import { NetworkProvider } from '../../contexts/NetworkContext';
-import AuthScreen from '../../screens/auth/AuthScreen';
-import OnboardingScreen from '../../screens/onboarding/OnboardingScreen';
-import SwipeScreen from '../../screens/swipe/SwipeScreen';
-import RecommendationsScreen from '../../screens/recommend/RecommendScreen';
-import ProfileScreen from '../../screens/profile/ProfileScreen';
-import ProductDetailScreen from '../../screens/detail/ProductDetailScreen';
+import AuthScreen from '../../screens/auth/AuthScreen.tsx';
+import OnboardingScreen from '../../screens/onboarding/OnboardingScreen.tsx';
+import SwipeScreen from '../../screens/swipe/SwipeScreen.tsx';
+import RecommendationsScreen from '../../screens/recommend/RecommendScreen.tsx';
+import ProfileScreen from '../../screens/profile/ProfileScreen.tsx';
+import ProductDetailScreen from '../../screens/detail/ProductDetailScreen.tsx';
 
 // モックの作成
 jest.mock('../../services/supabase', () => ({
