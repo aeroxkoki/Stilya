@@ -5,6 +5,7 @@ module.exports = {
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'automatic',
+  owner: "aeroxkoki",
   splash: {
     image: './assets/splash-icon.png',
     resizeMode: 'contain',

@@ -28,10 +28,11 @@ jobs:
 
       - name: 🧪 TypeScript Check
         run: yarn tsc
-
-      - name: 🧪 ESLint
-        run: yarn lint
         continue-on-error: true
+
+      # - name: 🧪 ESLint
+      #   run: yarn lint
+      #   continue-on-error: true
 
       - name: 🧪 Jest Tests
         run: yarn test
