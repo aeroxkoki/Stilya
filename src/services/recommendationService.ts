@@ -332,14 +332,19 @@ export const getRecommendedProducts = async (
     // userPreferenceからタグを抽出（型安全性を確保）
     if (userPreference.topTags && Array.isArray(userPreference.topTags)) {
       // 文字列のタグのみを収集
-      validTags.push(...userPreference.topTags.filter(tag => typeof tag === 'string'));
+      const stringTags: string[] = userPreference.topTags.filter((tag): tag is string => typeof tag === 'string');
+      validTags.push(...stringTags);
     }
     
     // 有効なタグがある場合は、それを使って商品を検索
     if (validTags.length > 0) {
       console.log(`Searching with ${validTags.length} tags:`, validTags);
+      
+      // 文字列配列であることを確認して型を明示的に指定
+      const stringTags: string[] = validTags.filter((tag): tag is string => typeof tag === 'string');
+      
       recommendedProducts = await fetchProductsByTags(
-        validTags,
+        stringTags,
         limit * 2, // 多めに取得して後でフィルタリング
         excludeIds
       );
@@ -600,7 +605,8 @@ export const getRecommendationsByCategory = async (
           // userPreferenceからタグを抽出（型安全性を確保）
           if (userPreference.topTags && Array.isArray(userPreference.topTags)) {
             // 文字列のタグのみを収集
-            validTags.push(...userPreference.topTags.filter(tag => typeof tag === 'string'));
+            const stringTags: string[] = userPreference.topTags.filter((tag): tag is string => typeof tag === 'string');
+            validTags.push(...stringTags);
           }
           
           // 有効なタグがある場合は、それを使って商品を検索
