@@ -335,9 +335,24 @@ export const getRecommendedProducts = async (
       });
     }
     
-    // 明示的な型キャストを使用せず、変数自体が正しい型であることを確認
+    // tagsForSearchが空の場合のエラーハンドリングを追加
+    if (tagsForSearch.length === 0) {
+      console.log('No tags found for search, using popular products instead');
+      // 好みに合うタグがない場合は人気商品を返す
+      const popularProducts = await getPopularProducts(limit, excludeIds);
+      
+      // キャッシュに保存
+      recommendationCache.set(cacheKey, {
+        products: popularProducts,
+        timestamp: Date.now()
+      });
+      
+      return popularProducts;
+    }
+    
+    // 明示的に文字列配列として渡す
     let recommendedProducts = await fetchProductsByTags(
-      tagsForSearch,
+      tagsForSearch as string[],
       limit * 2, // 多めに取得して後でフィルタリング
       excludeIds
     );
@@ -591,13 +606,23 @@ export const getRecommendationsByCategory = async (
             });
           }
           
-          // 明示的な型キャストを使用せず、変数自体が正しい型であることを確認
-          products = await fetchProductsByCategoryAndTags(
-            category,
-            safeTopTags,
-            limit,
-            swipedProductIds
-          );
+          // tagsForSearchが空の場合のエラーハンドリングを追加
+          if (safeTopTags.length === 0) {
+            // タグが見つからない場合はカテゴリのみで検索
+            products = await fetchProductsByCategory(
+              category,
+              limit,
+              swipedProductIds
+            );
+          } else {
+            // 明示的に文字列配列として渡す
+            products = await fetchProductsByCategoryAndTags(
+              category,
+              safeTopTags as string[],
+              limit,
+              swipedProductIds
+            );
+          }
           
           if (products.length > 0 && userPreference.tagScores) {
             // タグスコアを使用してランク付け
