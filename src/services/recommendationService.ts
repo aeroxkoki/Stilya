@@ -23,8 +23,11 @@ const USE_MOCK = true; // 本番環境では必ず false にすること
  * @param excludeIds 除外する商品ID配列
  * @returns 商品の配列
  */
+// 明示的な型定義で再宣言
+type TagsArray = string[];
+
 const fetchProductsByTags = async (
-  tags: string[],
+  tags: TagsArray,
   limit: number = 10, 
   excludeIds: string[] = []
 ): Promise<Product[]> => {
@@ -406,7 +409,7 @@ export const getRecommendedProducts = async (
     let recommendedProducts: Product[] = [];
     
     // タグに基づく検索のための準備
-    const validTags: string[] = [];
+    const validTags: TagsArray = [];
     
     // userPreferenceからタグを抽出（型安全性を確保）
     if (userPreference.topTags && Array.isArray(userPreference.topTags)) {
@@ -680,7 +683,7 @@ export const getRecommendationsByCategory = async (
         
         if (userPreference && userPreference.topTags && userPreference.topTags.length > 0) {
           // カテゴリと好みのタグで商品を検索
-          const validTags: string[] = [];
+          const validTags: TagsArray = [];
           
           // userPreferenceからタグを抽出（型安全性を確保）
           if (userPreference.topTags && Array.isArray(userPreference.topTags)) {
@@ -766,7 +769,7 @@ export const getRecommendationsByCategory = async (
  */
 const fetchProductsByCategoryAndTags = async (
   category: string,
-  tags: string[],
+  tags: TagsArray,
   limit: number,
   excludeIds: string[] = []
 ): Promise<Product[]> => {
