@@ -335,9 +335,9 @@ export const getRecommendedProducts = async (
       });
     }
     
-    // tagsForSearchを直接使用して型の互換性問題を回避
+    // tagsForSearchを明示的にstring[]型として使用
     let recommendedProducts = await fetchProductsByTags(
-      tagsForSearch,
+      tagsForSearch as string[],
       limit * 2, // 多めに取得して後でフィルタリング
       excludeIds
     );
@@ -591,10 +591,10 @@ export const getRecommendationsByCategory = async (
             });
           }
           
-          // safeTopTagsを直接使用して型の互換性問題を回避
+          // safeTopTagsを明示的にstring[]型として使用
           products = await fetchProductsByCategoryAndTags(
             category,
-            safeTopTags,
+            safeTopTags as string[],
             limit,
             swipedProductIds
           );
