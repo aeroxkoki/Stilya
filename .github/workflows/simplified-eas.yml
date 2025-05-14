@@ -1,0 +1,25 @@
+name: Expo Build
+
+on:
+  push:
+    branches: [main, develop]
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18.x
+          cache: yarn
+      - name: Install dependencies
+        run: yarn install
+      - name: Install EAS CLI globally
+        run: yarn global add eas-cli
+      - name: Add global yarn bin to PATH
+        run: echo "$(yarn global bin)" >> $GITHUB_PATH
+      - name: EAS Login
+        run: npx eas-cli login --non-interactive --token ${{ secrets.EXPO_TOKEN }}
+      - name: EAS Project Link
+        run: npx eas-cli project:link --non-interactive || echo "Project may already exist"
