@@ -1,3 +1,24 @@
+#\!/bin/bash
+
+# エラー時に実行を停止
+set -e
+
+echo "🛠️ Stilyaプロジェクト修復スクリプト 🛠️"
+echo "================================================="
+echo "これからExpoの設定や依存関係の問題を解決します。"
+echo "================================================="
+
+# 現在の作業ディレクトリを確認
+echo "📂 現在のディレクトリは $(pwd) です"
+
+# ステップ1: 古いnode_modulesと依存関係を削除
+echo "🧹 古いnode_modulesとロックファイルを削除しています..."
+rm -rf node_modules
+rm -f yarn.lock package-lock.json
+
+# ステップ2: package.jsonを修正
+echo "📝 package.jsonを修正しています..."
+cat > package.json << 'JSONEOF'
 {
   "name": "stilya",
   "version": "1.0.0",
@@ -95,3 +116,43 @@
   },
   "private": true
 }
+JSONEOF
+
+# ステップ3: app.config.tsを修正
+echo "📝 app.config.tsを修正しています..."
+cat > app.config.ts << 'TSEOF'
+import { ExpoConfig } from 'expo/config';
+import appJson from './app.json';
+
+// app.jsonの内容を使用する統合設定
+export default (): ExpoConfig => {
+  return appJson.expo;
+};
+TSEOF
+
+# ステップ4: app.config.jsを退避
+echo "📝 app.config.jsをバックアップとして移動しています..."
+if [ -f "app.config.js" ]; then
+  mv app.config.js app.config.js.bak
+fi
+
+# ステップ5: 依存関係のクリーンインストール
+echo "📦 依存関係を再インストールしています..."
+echo "このコマンドを実行してください: npm install"
+echo "または: yarn install"
+
+# ステップ6: Expoプロジェクトの再構築
+echo "🔄 Expoプロジェクトを再構築しています..."
+echo "依存関係のインストールが完了したら、次のコマンドを実行してください: npx expo prebuild --clean"
+
+# ステップ7: GitHubにプッシュするための準備
+echo "🚀 GitHubへの変更をコミットする準備ができました"
+echo "インストールと再構築が完了したら、次のコマンドでコミット・プッシュしてください:"
+echo "git add ."
+echo "git commit -m \"Fix: Resolve Expo and Autolinking configuration issues\""
+echo "git push origin main"
+
+echo "================================================="
+echo "修復スクリプトが完了しました。"
+echo "上記のコマンドを順番に実行して、プロジェクトを完全に修復してください。"
+echo "================================================="

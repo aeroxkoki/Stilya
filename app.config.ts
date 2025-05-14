@@ -1,37 +1,7 @@
-import { ExpoConfig, ConfigContext } from 'expo/config';
+import { ExpoConfig } from 'expo/config';
+import appJson from './app.json';
 
-// シンプルな設定ファイル
-export default ({ config }: ConfigContext): ExpoConfig => ({
-  name: 'Stilya',
-  slug: 'stilya',
-  version: '1.0.0',
-  orientation: 'portrait',
-  icon: './assets/icon.png',
-  userInterfaceStyle: 'light',
-  owner: 'aeroxkoki', // GitHub Actionsで使用するowner
-  splash: {
-    image: './assets/icon.png',
-    resizeMode: 'contain',
-    backgroundColor: '#ffffff'
-  },
-  assetBundlePatterns: ['**/*'],
-  ios: {
-    supportsTablet: true,
-    bundleIdentifier: 'com.stilya.app'
-  },
-  android: {
-    adaptiveIcon: {
-      foregroundImage: './assets/icon.png',
-      backgroundColor: '#ffffff'
-    },
-    package: 'com.stilya.app'
-  },
-  web: {
-    favicon: './assets/icon.png'
-  },
-  extra: {
-    eas: {
-      projectId: 'beb25e0f-344b-4f2f-8b64-20614b9744a3'
-    }
-  }
-});
+// app.jsonの内容を使用する統合設定
+export default (): ExpoConfig => {
+  return appJson.expo;
+};
