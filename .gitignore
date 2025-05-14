@@ -38,6 +38,9 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+# test coverage
+coverage/
+
 # utility scripts (開発補助用スクリプト)
 fix-dependencies-legacy.sh
 fix-nvm-conflict.sh
