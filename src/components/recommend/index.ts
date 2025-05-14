@@ -6,6 +6,8 @@ import SimilarProducts from './SimilarProducts';
 import StyleTypeDisplay from './StyleTypeDisplay';
 import PreferenceTrendsGraph from './PreferenceTrendsGraph';
 import StyleTips from './StyleTips';
+import ProductHorizontalList from './ProductHorizontalList';
+import OutfitRecommendation from './OutfitRecommendation';
 
 export {
   RecommendList,
@@ -15,5 +17,7 @@ export {
   SimilarProducts,
   StyleTypeDisplay,
   PreferenceTrendsGraph,
-  StyleTips
+  StyleTips,
+  ProductHorizontalList,
+  OutfitRecommendation
 };

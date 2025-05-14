@@ -1,12 +1,17 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import RecommendScreen from '@/screens/recommend/RecommendScreen';
+import EnhancedRecommendScreen from '@/screens/recommend/EnhancedRecommendScreen';
 import ProductDetailScreen from '@/screens/detail/ProductDetailScreen';
 import { RecommendStackParamList } from '@/types';
 
 const Stack = createStackNavigator<RecommendStackParamList>();
 
 const RecommendNavigator: React.FC = () => {
+  // 拡張版レコメンド画面を使用するかどうか
+  // 実際のアプリでは設定やフラグなどで切り替える
+  const useEnhancedRecommend = true;
+
   return (
     <Stack.Navigator
       screenOptions={{
@@ -14,7 +19,11 @@ const RecommendNavigator: React.FC = () => {
         cardStyle: { backgroundColor: 'white' },
       }}
     >
-      <Stack.Screen name="RecommendHome" component={RecommendScreen} />
+      {useEnhancedRecommend ? (
+        <Stack.Screen name="RecommendHome" component={EnhancedRecommendScreen} />
+      ) : (
+        <Stack.Screen name="RecommendHome" component={RecommendScreen} />
+      )}
       <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
     </Stack.Navigator>
   );
