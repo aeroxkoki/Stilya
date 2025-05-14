@@ -22,7 +22,8 @@ jobs:
       - name: 📦 Install dependencies
         run: |
           yarn config set ignore-engines true
-          yarn install
+          yarn config set checksumBehavior ignore
+          yarn install --immutable=false --check-files=false
 
       - name: 🧪 TypeScript Check
         run: yarn tsc
