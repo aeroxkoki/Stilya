@@ -7,8 +7,8 @@ cd /Users/koki_air/Documents/GitHub/Stilya
 # EASへのログイン（既にログイン済みであればスキップされます）
 npx eas login
 
-# プロジェクトの初期化 - 既存のプロジェクトを最新の設定で更新
-npx eas project:init --id c2a98f3b-d8dc-4bc3-9b53-8ff63bc2cfd9 --non-interactive
+# プロジェクトの初期化 - プロジェクトIDを指定せず新規に作成
+npx eas project:create --name "Stilya" --non-interactive
 
 # ビルドプロファイルの設定を確認
 npx eas build:configure

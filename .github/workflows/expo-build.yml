@@ -77,11 +77,11 @@ jobs:
           echo "Checking EAS authentication status..."
           eas whoami
           
-          # プロジェクト登録 (現在の構文に合わせて修正)
-          echo "Configuring EAS project..."
-          eas init --non-interactive --id=c2a98f3b-d8dc-4bc3-9b53-8ff63bc2cfd9 || eas init --non-interactive || true
+          # プロジェクト登録 - プロジェクトを新規作成
+          echo "Creating new EAS project..."
+          eas project:create --name "Stilya" --non-interactive
           
-          # EASプロジェクト情報の出力
+          # プロジェクト構成の出力
           echo "Current project configuration:"
           cat app.json || echo "app.json not found"
           
@@ -93,4 +93,3 @@ jobs:
           fi
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          EAS_PROJECT_ID: c2a98f3b-d8dc-4bc3-9b53-8ff63bc2cfd9
