@@ -9,6 +9,8 @@ jobs:
   build:
     name: Build App
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: 🏗 Setup repo
         uses: actions/checkout@v3
@@ -22,7 +24,7 @@ jobs:
           cache: yarn
 
       - name: 📦 Install dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install
 
       - name: 🧹 Clean Git state if needed
         run: |
@@ -32,7 +34,12 @@ jobs:
             git config --global user.email "action@github.com"
             git add -A
             git commit -m "Auto-commit by GitHub Actions [skip ci]"
-            git push origin ${GITHUB_REF#refs/heads/}
+            # Pull Requestではなく、直接pushの場合のみpushを実行
+            if [[ "${{ github.event_name }}" != "pull_request" ]]; then
+              git push origin ${GITHUB_REF#refs/heads/}
+            else
+              echo "Pull Request中のため変更はpushせず"
+            fi
           else
             echo "Git working directory is clean."
           fi

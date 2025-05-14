@@ -9,6 +9,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
     - uses: actions/checkout@v3
@@ -34,7 +36,12 @@ jobs:
           git config --global user.email "action@github.com"
           git add -A
           git commit -m "Auto-commit by GitHub Actions [skip ci]"
-          git status
+          # Pull Requestではなく、直接pushの場合のみpushを実行
+          if [[ "${{ github.event_name }}" != "pull_request" ]]; then
+            git push origin ${GITHUB_REF#refs/heads/}
+          else
+            echo "Pull Request中のため変更はpushせず"
+          fi
         else
           echo "Git working directory is clean."
         fi
