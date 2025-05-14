@@ -62,8 +62,20 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
+      - name: 📝 Configure EAS Project
+        run: |
+          # プロジェクトの状態を確認
+          echo "Checking EAS project configuration..."
+          npx eas-cli project:info || true
+          
+          # 必要に応じてプロジェクトを登録/更新
+          if ! npx eas-cli project:info 2>/dev/null; then
+            echo "Project ID not found. Creating/linking project..."
+            npx eas-cli project:create || npx eas-cli project:link --non-interactive
+          fi
+
       - name: 🚀 Build App (Android)
-        run: npx eas build --platform android --profile ci --non-interactive
+        run: npx eas-cli build --platform android --profile ci --non-interactive
 
       - name: 🚀 Build App (iOS)
-        run: npx eas build --platform ios --profile ci --non-interactive
+        run: npx eas-cli build --platform ios --profile ci --non-interactive
