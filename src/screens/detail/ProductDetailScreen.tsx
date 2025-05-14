@@ -226,7 +226,7 @@ const ProductDetailScreen: React.FC = () => {
         {/* 画像部分 */}
         <View className="relative">
           <Image 
-            source={{ uri: product.imageUrl ? product.imageUrl : '' }} 
+            source={{ uri: product.imageUrl || '' }} 
             style={styles.image} 
             resizeMode="cover"
           />

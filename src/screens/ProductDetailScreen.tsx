@@ -252,7 +252,7 @@ const ProductDetailScreen: React.FC = () => {
             showsHorizontalScrollIndicator={false}
             renderItem={({ item }) => (
               <RNImage
-                source={{ uri: item ? item : '' }}
+                source={{ uri: item || '' }}
                 style={styles.image}
                 resizeMode="cover"
               />

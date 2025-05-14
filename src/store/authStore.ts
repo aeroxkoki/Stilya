@@ -99,9 +99,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       if (!session) return false;
       
       if (isSessionExpired(session)) {
-        const { data: { session: refreshedSession } } = await refreshSession();
-        if (refreshedSession) {
-          set({ session: refreshedSession });
+        const refreshResult = await refreshSession();
+        if (refreshResult.session) {
+          set({ session: refreshResult.session });
           return true;
         }
         return false;
