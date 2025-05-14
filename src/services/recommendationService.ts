@@ -1,16 +1,87 @@
 import { supabase } from './supabase';
 import { Product, Swipe, UserPreference } from '@/types';
 import { getSwipeHistory } from './swipeService';
-import { fetchProductsByTags } from './productService';
+// 直接依存を減らすため、fetchProductsByTags のインポートを削除
+// import { fetchProductsByTags } from './productService';
+import { mockProducts } from '@/mocks/mockProducts';
 import { getProductViewHistory } from './viewHistoryService';
 
-// タグの重み付けスコア
-const TAG_SCORE_YES = 1.0;    // YESスワイプの場合のスコア
-const TAG_SCORE_NO = -0.5;    // NOスワイプの場合のスコア
-const TAG_SCORE_VIEW = 0.3;   // 閲覧履歴の場合のスコア
-const TAG_SCORE_CLICK = 0.5;  // クリック（購入リンク）の場合のスコア
-const TAG_BONUS_THRESHOLD = 3;  // このスコア以上のタグを重要タグとして扱う
-const MIN_CONFIDENCE_SCORE = 0.6; // この値以上のタグを使ったレコメンドを行う
+// モック使用フラグ (開発モードでAPI連携ができない場合に使用)
+const USE_MOCK = true; // 本番環境では必ず false にすること
+/**
+ * 特定のタグを持つ商品を取得する（内部実装版）
+ * @param tags 検索対象のタグ配列
+ * @param limit 取得する商品数
+ * @param excludeIds 除外する商品ID配列
+ * @returns 商品の配列
+ */
+const fetchProductsByTags = async (
+  tags: string[],
+  limit: number = 10, 
+  excludeIds: string[] = []
+): Promise<Product[]> => {
+  try {
+    if (!tags || tags.length === 0) {
+      return [];
+    }
+
+    if (USE_MOCK) {
+      // モックデータからタグで絞り込む
+      const filteredProducts = mockProducts
+        .filter(p => 
+          // 除外IDチェック
+          !excludeIds.includes(p.id) && 
+          // タグの一致チェック（少なくとも1つ一致）
+          p.tags && p.tags.some(tag => tags.includes(tag))
+        )
+        .slice(0, limit);
+      
+      return filteredProducts;
+    }
+
+    let query = supabase
+      .from('products')
+      .select('*')
+      .or(tags.map(tag => `tags.cs.{${tag}}`).join(','))
+      .limit(limit);
+
+    // 除外IDがある場合
+    if (excludeIds.length > 0) {
+      query = query.not('id', 'in', excludeIds);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Error fetching products by tags:', error);
+      throw new Error(error.message);
+    }
+
+    if (!data || data.length === 0) {
+      return [];
+    }
+
+    // データ変換
+    const products = data.map((item: any) => ({
+      id: item.id,
+      title: item.title,
+      brand: item.brand,
+      price: item.price,
+      imageUrl: item.image_url,
+      description: item.description,
+      tags: item.tags || [],
+      category: item.category,
+      affiliateUrl: item.affiliate_url,
+      source: item.source,
+      createdAt: item.created_at,
+    }));
+
+    return products;
+  } catch (error) {
+    console.error('Unexpected error in fetchProductsByTags:', error);
+    return [];
+  }
+};
 
 // キャッシュ設定
 const CACHE_TTL = 5 * 60 * 1000; // 5分（ミリ秒）
@@ -701,7 +772,7 @@ const fetchProductsByCategoryAndTags = async (
       .from('products')
       .select('*')
       .eq('category', category)
-      .contains('tags', usedTags)
+      .or(usedTags.map(tag => `tags.cs.{${tag}}`).join(','))
       .limit(limit);
       
     // 除外IDがある場合

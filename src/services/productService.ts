@@ -448,7 +448,7 @@ export const fetchProductsByTags = async (
     let query = supabase
       .from('products')
       .select('*')
-      .contains('tags', tags)
+      .or(tags.map(tag => `tags.cs.{${tag}}`).join(','))
       .limit(limit);
 
     // 除外IDがある場合
