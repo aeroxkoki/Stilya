@@ -128,11 +128,12 @@ const ProductDetailScreen: React.FC = () => {
     
     // アフィリエイトリンクを開く
     try {
-      const supported = await Linking.canOpenURL(product.affiliateUrl);
+      const affiliateUrl = product.affiliateUrl || '';
+      const supported = await Linking.canOpenURL(affiliateUrl);
       if (supported) {
-        await Linking.openURL(product.affiliateUrl);
+        await Linking.openURL(affiliateUrl);
       } else {
-        console.error('このURLは開けません:', product.affiliateUrl);
+        console.error('このURLは開けません:', affiliateUrl);
       }
     } catch (error) {
       console.error('リンクを開く際にエラーが発生しました:', error);

@@ -112,10 +112,11 @@ const ProductDetailScreen: React.FC = () => {
       }
 
       // 外部リンクを開く
-      const canOpen = await Linking.canOpenURL(product.affiliateUrl);
+      const affiliateUrl = product.affiliateUrl || '';
+      const canOpen = await Linking.canOpenURL(affiliateUrl);
       
       if (canOpen) {
-        await Linking.openURL(product.affiliateUrl);
+        await Linking.openURL(affiliateUrl);
       } else {
         Alert.alert('エラー', 'このリンクを開くことができません。');
       }
