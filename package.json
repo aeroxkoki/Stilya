@@ -1,7 +1,7 @@
 {
   "name": "stilya",
   "version": "1.0.0",
-  "main": "App.js",
+  "main": "App.tsx",
   "scripts": {
     "start": "EXPO_NO_TYPESCRIPT_TRANSPILE=true npx expo start --clear",
     "start:dev": "EXPO_NO_TYPESCRIPT_TRANSPILE=true npx expo start",
@@ -44,6 +44,9 @@
     "react-native-reanimated": "~3.8.0",
     "expo-secure-store": "^14.2.3",
     "expo-status-bar": "~2.2.3",
+    "expo-notifications": "~0.30.2",
+    "expo-linking": "~6.3.0",
+    "expo-localization": "~14.8.1",
     "nativewind": "^4.1.23",
     "react": "19.1.0",
     "react-native": "0.79.2",
