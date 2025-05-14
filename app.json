@@ -6,6 +6,12 @@
   "icon": "./assets/icon.png",
   "userInterfaceStyle": "light",
   "owner": "aeroxkoki",
+  "runtimeVersion": {
+    "policy": "sdkVersion"
+  },
+  "updates": {
+    "url": "https://u.expo.dev/c2a98f3b-d8dc-4bc3-9b53-8ff63bc2cfd9"
+  },
   "projectId": "c2a98f3b-d8dc-4bc3-9b53-8ff63bc2cfd9",
   "splash": {
     "image": "./assets/splash.png",

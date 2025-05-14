@@ -68,13 +68,13 @@ jobs:
         run: |
           # プロジェクトの状態を確認
           echo "Checking EAS project configuration..."
-          npx eas-cli project:info || true
+          npx eas-cli whoami
           
           # 必要に応じてプロジェクトを登録/更新
-          if ! npx eas-cli project:info 2>/dev/null; then
-            echo "Project ID not found. Creating/linking project..."
-            npx eas-cli project:create || npx eas-cli project:link --non-interactive
-          fi
+          npx eas-cli project:info || (
+            echo "Project not found or not properly linked. Creating/linking project..."
+            npx eas-cli init --id c2a98f3b-d8dc-4bc3-9b53-8ff63bc2cfd9 --non-interactive || true
+          )
 
       - name: 🚀 Build App (Android)
         run: npx eas-cli build --platform android --profile ci --non-interactive
