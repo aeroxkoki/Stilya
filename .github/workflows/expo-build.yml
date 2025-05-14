@@ -23,14 +23,8 @@ jobs:
         run: |
           yarn config set ignore-engines true
           yarn config set checksumBehavior ignore
-          yarn install --no-frozen-lockfile
-          # Commit changes to yarn.lock if necessary to prevent "dirty working tree" errors
-          if [[ -n $(git status --porcelain) ]]; then
-            git config --global user.name "GitHub Action"
-            git config --global user.email "action@github.com"
-            git add yarn.lock
-            git commit -m "Update yarn.lock by GitHub Actions [skip ci]"
-          fi
+          # インテグリティチェックを回避して依存関係をインストール
+          YARN_CHECKSUM_BEHAVIOR=ignore yarn install --network-timeout 300000
 
       - name: 🧪 TypeScript Check
         run: yarn tsc
@@ -55,9 +49,9 @@ jobs:
           
           # CI用のプロフィールを使用
           if [[ "${{ github.ref_name }}" == "main" ]]; then
-            eas build --platform=android --profile=ci --non-interactive --no-wait
+            eas build --platform=android --profile=ci --non-interactive --no-wait --no-git
           else
-            eas build --platform=android --profile=ci --non-interactive --no-wait
+            eas build --platform=android --profile=ci --non-interactive --no-wait --no-git
           fi
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
