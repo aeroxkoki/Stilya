@@ -335,11 +335,10 @@ export const getRecommendedProducts = async (
       });
     }
     
-    // 型アサーションを使ってTypeScriptに型が正しいことを伝える
-    const recommendTagsArray = tagsForSearch as unknown as Parameters<typeof fetchProductsByTags>[0];
-    
+    // 型アサーションを使って型の互換性を確保
+    const tagsArray = tagsForSearch as unknown as Parameters<typeof fetchProductsByTags>[0];
     let recommendedProducts = await fetchProductsByTags(
-      recommendTagsArray,
+      tagsArray,
       limit * 2, // 多めに取得して後でフィルタリング
       excludeIds
     );
