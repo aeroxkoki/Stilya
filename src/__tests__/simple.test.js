@@ -1,6 +1,10 @@
 // src/__tests__/simple.test.js
-describe('Simple Test', () => {
-  it('should pass this test', () => {
+describe('Basic test', () => {
+  it('verifies testing environment works', () => {
+    expect(true).toBe(true);
+  });
+  
+  it('can add two numbers', () => {
     expect(1 + 1).toBe(2);
   });
 });

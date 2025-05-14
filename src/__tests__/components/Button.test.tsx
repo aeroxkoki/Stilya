@@ -1,25 +1,19 @@
 // src/__tests__/components/Button.test.tsx
 import React from 'react';
-import { Text, TouchableOpacity } from 'react-native';
 import { render, fireEvent } from '@testing-library/react-native';
+import { Button } from '../../components/common/Button';
 
-// Simple Button component for testing
-const Button = ({ onPress, title }: { onPress: () => void; title: string }) => (
-  <TouchableOpacity onPress={onPress} testID="button">
-    <Text>{title}</Text>
-  </TouchableOpacity>
-);
-
-describe('Button Component', () => {
-  it('renders correctly', () => {
-    const { getByText } = render(<Button onPress={() => {}} title="Test Button" />);
+describe('Button component', () => {
+  it('renders correctly with default props', () => {
+    const { getByText } = render(<Button>Test Button</Button>);
     expect(getByText('Test Button')).toBeTruthy();
   });
 
   it('calls onPress when pressed', () => {
     const onPressMock = jest.fn();
-    const { getByTestId } = render(<Button onPress={onPressMock} title="Test Button" />);
-    fireEvent.press(getByTestId('button'));
+    const { getByText } = render(<Button onPress={onPressMock}>Press Me</Button>);
+    
+    fireEvent.press(getByText('Press Me'));
     expect(onPressMock).toHaveBeenCalledTimes(1);
   });
 });

@@ -18,3 +18,11 @@ function testFunction() {
     console.log("テスト成功: 型エラーは発生しませんでした");
 }
 testFunction();
+// test/test.js
+// 最もシンプルなテスト
+
+describe('Basic test', () => {
+  it('should pass', () => {
+    expect(true).toBe(true);
+  });
+});
