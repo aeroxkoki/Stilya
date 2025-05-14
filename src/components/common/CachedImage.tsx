@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Animated,
   Platform,
+  ViewStyle,
 } from 'react-native';
 import { Image, ImageProps } from 'expo-image';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -18,6 +19,7 @@ interface CachedImageProps extends Omit<ImageProps, 'source'> {
   style?: StyleProp<ImageStyle>;
   resizeMode?: 'cover' | 'contain' | 'stretch' | 'repeat' | 'center';
   showLoadingIndicator?: boolean;
+  showLoader?: boolean; // テストとの互換性のため
   placeholderColor?: string;
   blurRadius?: number;
   // 最適化のための追加プロパティ
@@ -26,6 +28,8 @@ interface CachedImageProps extends Omit<ImageProps, 'source'> {
   containerStyle?: StyleProp<ViewStyle>;
   onLoad?: () => void;
   testID?: string;
+  // テスト関連の props
+  showLoader?: boolean; // テストとの互換性のため
 }
 
 /**
@@ -42,6 +46,7 @@ const CachedImage: React.FC<CachedImageProps> = ({
   containerStyle,
   resizeMode = 'cover',
   showLoadingIndicator = true,
+  showLoader, // テストとの互換性のため
   placeholderColor,
   blurRadius = 0,
   priority = 'normal',
@@ -165,7 +170,7 @@ const CachedImage: React.FC<CachedImageProps> = ({
             onLoadStart={handleLoadStart}
             onLoadEnd={handleLoadComplete}
             onError={handleError}
-            contentFit={resizeMode}
+            contentFit={resizeMode as any}
             transition={300}
             recyclingKey={`main-${optimizedUri}`}
             cachePolicy={cachePolicy}
@@ -186,7 +191,7 @@ const CachedImage: React.FC<CachedImageProps> = ({
       )}
 
       {/* ローディングインジケーター */}
-      {isLoading && showLoadingIndicator && (
+      {isLoading && (showLoadingIndicator || showLoader) && (
         <View style={[
           styles.loadingContainer, 
           style, 

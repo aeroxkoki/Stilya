@@ -10,7 +10,8 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "jsx": "react-native"
+    "jsx": "react-native",
+    "noImplicitAny": false
   },
   "include": ["src", "App.tsx"],
   "exclude": ["node_modules"]

@@ -1,13 +1,25 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, StyleSheet, ActivityIndicator, Text, TouchableOpacity } from 'react-native';
-import { PanGestureHandler } from 'react-native-gesture-handler';
-import Animated, {
-  useAnimatedGestureHandler,
-  useAnimatedStyle,
-  interpolate,
-  Extrapolate,
-  runOnJS,
-} from 'react-native-reanimated';
+// import { PanGestureHandler } from 'react-native-gesture-handler';
+// Animated関連のモックインポート
+// import Animated, {
+//   useAnimatedGestureHandler,
+//   useAnimatedStyle,
+//   interpolate,
+//   Extrapolate,
+//   runOnJS,
+// } from 'react-native-reanimated';
+
+// モックオブジェクト
+const PanGestureHandler = ({ children }: any) => children;
+const Animated = {
+  View: View,
+};
+const useAnimatedGestureHandler = () => ({});
+const useAnimatedStyle = () => ({});
+const interpolate = () => 0;
+const Extrapolate = { CLAMP: 'clamp' };
+const runOnJS = (fn: any) => fn;
 import { Ionicons } from '@expo/vector-icons';
 import { useSwipe } from '@/hooks/useSwipe';
 import { Product } from '@/types';

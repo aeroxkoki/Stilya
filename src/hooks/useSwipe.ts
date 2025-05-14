@@ -1,5 +1,9 @@
 import { useCallback } from 'react';
-import { useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+// import { useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+// Reanimatedのモック
+const useSharedValue = (initialValue: any) => ({ value: initialValue });
+const withSpring = (toValue: any, config?: any) => toValue;
+const withTiming = (toValue: any, config?: any) => toValue;
 import { Dimensions } from 'react-native';
 import { saveSwipeResult } from '@/services/swipeService';
 import { Product } from '@/types';

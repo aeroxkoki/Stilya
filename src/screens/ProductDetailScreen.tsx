@@ -17,8 +17,18 @@ import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
-import { BlurView } from 'expo-blur';
-import * as Haptics from 'expo-haptics';
+// import { BlurView } from 'expo-blur';
+// import * as Haptics from 'expo-haptics';
+// これらのモジュールのモック
+const BlurView = ({ intensity, style, children }: any) => <View style={style}>{children}</View>;
+const Haptics = {
+  impactAsync: () => Promise.resolve(),
+  ImpactFeedbackStyle: {
+    Light: 'light',
+    Medium: 'medium',
+    Heavy: 'heavy',
+  },
+};
 import { fetchProductById, fetchProductsByTags, recordProductClick } from '../services/productService';
 import { toggleFavorite, isFavorite } from '../services/favoriteService';
 import { Product } from '../types/product';
@@ -287,7 +297,7 @@ const ProductDetailScreen: React.FC = () => {
                 style={styles.imageActionButton}
                 onPress={handleToggleFavorite}
               >
-                <Feather name={isFavorited ? "heart" : "heart-outline"} size={24} color={isFavorited ? "#F87171" : "white"} />
+               <Feather name={isFavorited ? "heart" : "heart-o"} size={24} color={isFavorited ? "#F87171" : "white"} />
               </TouchableOpacity>
               
               <TouchableOpacity

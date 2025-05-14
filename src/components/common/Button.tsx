@@ -23,6 +23,7 @@ export interface ButtonProps {
   size?: ButtonSize;
   disabled?: boolean;
   loading?: boolean;
+  isLoading?: boolean; // 互換性のため
   icon?: React.ReactNode;
   iconPosition?: 'left' | 'right';
   style?: StyleProp<ViewStyle>;
@@ -41,6 +42,7 @@ const Button: React.FC<ButtonProps> = ({
   size = 'medium',
   disabled = false,
   loading = false,
+  isLoading,
   icon,
   iconPosition = 'left',
   style,
@@ -52,6 +54,8 @@ const Button: React.FC<ButtonProps> = ({
 }) => {
   // isFullWidthをfullWidthに統合（互換性のため）
   const useFullWidth = fullWidth || isFullWidth;
+  // isLoadingをloadingに統合（互換性のため）
+  const isButtonLoading = loading || isLoading;
   const { theme, isDarkMode } = useTheme();
   
   // アニメーション用の値
@@ -142,7 +146,7 @@ const Button: React.FC<ButtonProps> = ({
       return {
         color: isDarkMode ? theme.colors.text.secondary : theme.colors.text.hint,
         fontSize: getFontSize(),
-        fontWeight: theme.fontWeights.medium,
+        fontWeight: theme.fontWeights.medium as any,
       };
     }
 
@@ -151,13 +155,13 @@ const Button: React.FC<ButtonProps> = ({
         return {
           color: theme.colors.primary,
           fontSize: getFontSize(),
-          fontWeight: theme.fontWeights.medium,
+          fontWeight: theme.fontWeights.medium as any,
         };
       case 'text':
         return {
           color: theme.colors.primary,
           fontSize: getFontSize(),
-          fontWeight: theme.fontWeights.medium,
+          fontWeight: theme.fontWeights.medium as any,
         };
       case 'primary':
       case 'secondary':
@@ -165,7 +169,7 @@ const Button: React.FC<ButtonProps> = ({
         return {
           color: theme.colors.text.inverse,
           fontSize: getFontSize(),
-          fontWeight: theme.fontWeights.medium,
+          fontWeight: theme.fontWeights.medium as any,
         };
     }
   };
@@ -195,8 +199,8 @@ const Button: React.FC<ButtonProps> = ({
       testID={testID}
     >
       <TouchableOpacity
-        onPress={disabled || loading ? undefined : onPress}
-        disabled={disabled || loading}
+        onPress={disabled || isButtonLoading ? undefined : onPress}
+        disabled={disabled || isButtonLoading}
         style={[
           styles.button,
           getVariantStyle(),
@@ -207,7 +211,7 @@ const Button: React.FC<ButtonProps> = ({
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
       >
-        {loading ? (
+        {isButtonLoading ? (
           <ActivityIndicator
             color={variant === 'outline' || variant === 'text' ? theme.colors.primary : theme.colors.text.inverse}
             size="small"
