@@ -10,35 +10,35 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: ğŸ— Setup repository
+      - name: <× Setup repository
         uses: actions/checkout@v3
 
-      - name: ğŸ— Setup Node
+      - name: <× Setup Node
         uses: actions/setup-node@v3
         with:
           node-version: 18.x
           cache: yarn
 
-      - name: ğŸ“¦ Install dependencies
+      - name: =æ Install dependencies
         run: |
           yarn config set ignore-engines true
           yarn config set checksumBehavior ignore
-          # ã‚¤ãƒ³ãƒ†ã‚°ãƒªãƒ†ã‚£ãƒã‚§ãƒƒã‚¯ã‚’å›é¿ã—ã¦ä¾å­˜é–¢ä¿‚ã‚’ã‚¤ãƒ³ã‚¹ãƒˆãƒ¼ãƒ«
+          # ¤óÆ°êÆ£Á§Ã¯’ŞWfX¢Â’¤ó¹Èüë
           YARN_CHECKSUM_BEHAVIOR=ignore yarn install --network-timeout 300000
 
-      - name: ğŸ§ª TypeScript Check
+      - name: >ê TypeScript Check
         run: yarn tsc
         continue-on-error: true
 
-      # - name: ğŸ§ª ESLint
+      # - name: >ê ESLint
       #   run: yarn lint
       #   continue-on-error: true
 
-      - name: ğŸ§ª Jest Tests
+      - name: >ê Jest Tests
         run: yarn test
         continue-on-error: true
 
-      - name: ğŸ§¹ Clean Git state if needed
+      - name: >ù Clean Git state if needed
         run: |
           if [[ -n $(git status --porcelain) ]]; then
             echo "Cleaning Git working directory..."
@@ -51,41 +51,41 @@ jobs:
             echo "Git working directory is clean."
           fi
 
-      - name: ğŸ— Setup Expo and EAS
+      - name: <× Setup Expo and EAS
         uses: expo/expo-github-action@v8
         with:
           eas-version: latest
           expo-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: ğŸ›  Install jq
+      - name: =à Install jq
         run: sudo apt-get update && sudo apt-get install -y jq
 
-      - name: ğŸ“± Build Preview
+      - name: =ñ Build Preview
         run: |
           echo "Building app preview for branch ${{ github.ref_name }}"
           
-          # EAS CLIã®ãƒãƒ¼ã‚¸ãƒ§ãƒ³ç¢ºèª
+          # EAS CLInĞü¸çóº
           echo "EAS CLI version:"
           eas --version
           
-          # åˆ©ç”¨å¯èƒ½ãªEASã‚³ãƒãƒ³ãƒ‰ã®ç¢ºèª
+          # )(ïıjEAS³ŞóÉnº
           echo "Available EAS commands:"
           eas --help
           
-          # ãƒ­ã‚°ã‚¤ãƒ³æƒ…å ±ã®ç¢ºèª
+          # í°¤óÅ1nº
           echo "Checking EAS authentication status..."
           eas whoami
           
-          # ãƒ—ãƒ­ã‚¸ã‚§ã‚¯ãƒˆç™»éŒ² - ãƒ—ãƒ­ã‚¸ã‚§ã‚¯ãƒˆã‚’æ–°è¦ä½œæˆ
-          echo "Creating new EAS project..."
-          eas project:create --name "Stilya" --non-interactive
+          # ×í¸§¯È{2 - ×í¸§¯È’
+          echo "Initializing EAS project..."
+          eas init --non-interactive
           
-          # ãƒ—ãƒ­ã‚¸ã‚§ã‚¯ãƒˆæ§‹æˆã®å‡ºåŠ›
+          # ×í¸§¯ÈËnú›
           echo "Current project configuration:"
           cat app.json || echo "app.json not found"
           
-          # CIç”¨ã®ãƒ—ãƒ­ãƒ•ã‚£ãƒ¼ãƒ«ã‚’ä½¿ç”¨
+          # CI(n×íÕ£üë’(
           if [[ "${{ github.ref_name }}" == "main" ]]; then
             eas build --platform=android --profile=ci --non-interactive --no-wait
           else
