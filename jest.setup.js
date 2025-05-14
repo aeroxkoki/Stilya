@@ -218,4 +218,14 @@ jest.mock('@supabase/supabase-js', () => ({
 }));
 
 // Silence animation warnings
-jest.mock('react-native/Libraries/Animated/NativeAnimatedHelper');
+jest.mock('react-native/Libraries/Animated/NativeAnimatedHelper', () => ({
+  __esModule: true,
+  default: {
+    setWaitingForIdentifier: jest.fn(),
+    unsetWaitingForIdentifier: jest.fn(),
+    disableQueue: jest.fn(),
+    API: {
+      createAnimatedComponent: jest.fn(() => null),
+    },
+  },
+}));
