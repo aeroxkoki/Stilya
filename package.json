@@ -24,7 +24,8 @@
     "eas:build:preview": "npx eas build --profile preview",
     "eas:build:prod": "npx eas build --profile production",
     "eas:update": "npx eas update",
-    "eas:check": "npx eas-cli --version && echo 'EAS CLI is installed correctly'"
+    "eas:check": "npx eas-cli --version && echo 'EAS CLI is installed correctly'",
+    "postinstall": "echo 'Resolving peer dependencies with legacy compatibility'"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",

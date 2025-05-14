@@ -13,8 +13,8 @@ rm -f yarn.lock
 rm -f package-lock.json
 
 # Install dependencies with yarn (without frozen-lockfile)
-echo "📦 Installing dependencies with yarn..."
-yarn install
+echo "📦 Installing dependencies with yarn and legacy-peer-deps..."
+yarn install --legacy-peer-deps
 
 # Verify installation
 if [ -d "node_modules" ]; then
