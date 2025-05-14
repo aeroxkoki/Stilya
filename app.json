@@ -10,9 +10,9 @@
     "policy": "sdkVersion"
   },
   "updates": {
-    "url": "https://u.expo.dev/c2a98f3b-d8dc-4bc3-9b53-8ff63bc2cfd9"
+    "url": "https://u.expo.dev/beb25e0f-1234-5678-9abc-def123456789"
   },
-  "projectId": "c2a98f3b-d8dc-4bc3-9b53-8ff63bc2cfd9",
+  "projectId": "beb25e0f-1234-5678-9abc-def123456789",
   "splash": {
     "image": "./assets/splash.png",
     "resizeMode": "contain",
