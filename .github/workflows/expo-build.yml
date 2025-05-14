@@ -24,6 +24,13 @@ jobs:
           yarn config set ignore-engines true
           yarn config set checksumBehavior ignore
           yarn install --no-frozen-lockfile
+          # Commit changes to yarn.lock if necessary to prevent "dirty working tree" errors
+          if [[ -n $(git status --porcelain) ]]; then
+            git config --global user.name "GitHub Action"
+            git config --global user.email "action@github.com"
+            git add yarn.lock
+            git commit -m "Update yarn.lock by GitHub Actions [skip ci]"
+          fi
 
       - name: 🧪 TypeScript Check
         run: yarn tsc
