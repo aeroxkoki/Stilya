@@ -335,8 +335,11 @@ export const getRecommendedProducts = async (
       });
     }
     
+    // 型アサーションを使ってTypeScriptに型が正しいことを伝える
+    const recommendTagsArray = tagsForSearch as unknown as Parameters<typeof fetchProductsByTags>[0];
+    
     let recommendedProducts = await fetchProductsByTags(
-      tagsForSearch,
+      recommendTagsArray,
       limit * 2, // 多めに取得して後でフィルタリング
       excludeIds
     );
@@ -590,9 +593,12 @@ export const getRecommendationsByCategory = async (
             });
           }
           
+          // 型アサーションを使ってTypeScriptに型が正しいことを伝える
+          const safeTagsArray = safeTopTags as unknown as Parameters<typeof fetchProductsByCategoryAndTags>[1];
+          
           products = await fetchProductsByCategoryAndTags(
             category,
-            safeTopTags,
+            safeTagsArray,
             limit,
             swipedProductIds
           );
