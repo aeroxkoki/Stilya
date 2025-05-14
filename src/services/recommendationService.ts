@@ -411,17 +411,20 @@ export const getRecommendedProducts = async (
     // userPreferenceからタグを抽出（型安全性を確保）
     if (userPreference.topTags && Array.isArray(userPreference.topTags)) {
       // 文字列のタグのみを収集
-      const stringTags: string[] = userPreference.topTags.filter((tag): tag is string => typeof tag === 'string');
-      validTags.push(...stringTags);
+      userPreference.topTags.forEach(tag => {
+        if (typeof tag === 'string') {
+          validTags.push(tag);
+        }
+      });
     }
     
     // 有効なタグがある場合は、それを使って商品を検索
     if (validTags.length > 0) {
       console.log(`Searching with ${validTags.length} tags:`, validTags);
       
-      // 明示的に型を指定してタグを検索に使用
+      // validTagsはすでにstring[]型なのでキャストは不要
       recommendedProducts = await fetchProductsByTags(
-        validTags as string[], // 明示的に string[] として扱う
+        validTags,
         limit * 2, // 多めに取得して後でフィルタリング
         excludeIds
       );
@@ -682,8 +685,11 @@ export const getRecommendationsByCategory = async (
           // userPreferenceからタグを抽出（型安全性を確保）
           if (userPreference.topTags && Array.isArray(userPreference.topTags)) {
             // 文字列のタグのみを収集
-            const stringTags: string[] = userPreference.topTags.filter((tag): tag is string => typeof tag === 'string');
-            validTags.push(...stringTags);
+            userPreference.topTags.forEach(tag => {
+              if (typeof tag === 'string') {
+                validTags.push(tag);
+              }
+            });
           }
           
           // 有効なタグがある場合は、それを使って商品を検索
@@ -691,7 +697,7 @@ export const getRecommendationsByCategory = async (
             // カテゴリとタグを使用して商品検索
             products = await fetchProductsByCategoryAndTags(
               category,
-              validTags as string[], // 明示的に string[] として扱う
+              validTags,
               limit,
               swipedProductIds
             );
