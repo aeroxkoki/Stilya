@@ -32,11 +32,23 @@ jobs:
             echo "Cleaning Git working directory..."
             git config --global user.name "GitHub Action"
             git config --global user.email "action@github.com"
+            
+            # リモートの変更を取得
+            git fetch origin
+            
+            # 現在のブランチ名を取得
+            CURRENT_BRANCH=${GITHUB_REF#refs/heads/}
+            
+            # リモートの変更を取り込む
+            git pull --rebase origin $CURRENT_BRANCH
+            
+            # 変更をコミット
             git add -A
             git commit -m "Auto-commit by GitHub Actions [skip ci]"
+            
             # Pull Requestではなく、直接pushの場合のみpushを実行
             if [[ "${{ github.event_name }}" != "pull_request" ]]; then
-              git push origin ${GITHUB_REF#refs/heads/}
+              git push origin $CURRENT_BRANCH
             else
               echo "Pull Request中のため変更はpushせず"
             fi
