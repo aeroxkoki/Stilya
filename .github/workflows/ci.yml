@@ -30,32 +30,34 @@ jobs:
     
     - name: Clean Git state if needed
       run: |
+        # Git設定を行う
+        git config --global user.name "GitHub Action"
+        git config --global user.email "action@github.com"
+        
+        # 変更がある場合はまずコミットする
         if [[ -n $(git status --porcelain) ]]; then
-          echo "Cleaning Git working directory..."
-          git config --global user.name "GitHub Action"
-          git config --global user.email "action@github.com"
-          
-          # リモートの変更を取得
-          git fetch origin
-          
-          # 現在のブランチ名を取得
-          CURRENT_BRANCH=${GITHUB_REF#refs/heads/}
-          
-          # リモートの変更を取り込む
-          git pull --rebase origin $CURRENT_BRANCH
-          
-          # 変更をコミット
+          echo "Changes detected, committing them first..."
           git add -A
           git commit -m "Auto-commit by GitHub Actions [skip ci]"
-          
-          # Pull Requestではなく、直接pushの場合のみpushを実行
-          if [[ "${{ github.event_name }}" != "pull_request" ]]; then
-            git push origin $CURRENT_BRANCH
-          else
-            echo "Pull Request中のため変更はpushせず"
-          fi
         else
           echo "Git working directory is clean."
+        fi
+        
+        # リモートの変更を取得
+        git fetch origin
+        
+        # 現在のブランチ名を取得
+        CURRENT_BRANCH=${GITHUB_REF#refs/heads/}
+        
+        # リモートの変更を取り込む
+        git pull --rebase origin $CURRENT_BRANCH || echo "No changes to pull or rebase failed"
+        
+        # Pull Requestではなく、直接pushの場合のみpushを実行
+        if [[ "${{ github.event_name }}" != "pull_request" && -n $(git log origin/$CURRENT_BRANCH..$CURRENT_BRANCH) ]]; then
+          echo "Pushing changes to origin..."
+          git push origin $CURRENT_BRANCH
+        else
+          echo "No changes to push or Pull Request中のため変更はpushせず"
         fi
     
     - name: Run TypeScript check
