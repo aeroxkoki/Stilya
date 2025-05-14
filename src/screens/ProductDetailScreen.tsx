@@ -96,7 +96,7 @@ const ProductDetailScreen: React.FC = () => {
     };
 
     loadProduct();
-  }, [productId, user, fetchProductById, isFavorite, fetchProductsByTags]);
+  }, [productId, user]);
 
   // 外部リンク（購入ページ）を開く
   const handleBuyPress = async () => {
@@ -104,7 +104,7 @@ const ProductDetailScreen: React.FC = () => {
 
     try {
       // 触覚フィードバック
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      await Haptics.impactAsync();
       
       // クリックログを記録
       if (user) {
@@ -131,7 +131,7 @@ const ProductDetailScreen: React.FC = () => {
     
     try {
       // 触覚フィードバック
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      await Haptics.impactAsync();
       
       // まずUIを先に更新（楽観的更新）
       setIsFavorited(prev => !prev);
@@ -152,7 +152,7 @@ const ProductDetailScreen: React.FC = () => {
     
     try {
       // 触覚フィードバック
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      await Haptics.impactAsync();
       
       await Share.share({
         title: product.title,

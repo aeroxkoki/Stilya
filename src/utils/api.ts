@@ -73,7 +73,7 @@ export const handleApiError = (error: AxiosError | Error): ApiError => {
   // その他のエラー
   return {
     type: ApiErrorType.UNKNOWN_ERROR,
-    message: error.message || '予期せぬエラーが発生しました',
+    message: error instanceof Error ? error.message : '予期せぬエラーが発生しました',
     originalError: error,
   };
 };

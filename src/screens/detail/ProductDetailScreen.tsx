@@ -66,8 +66,14 @@ const ProductDetailScreen: React.FC = () => {
             const existingProduct = products.find(p => p.id === id);
             if (existingProduct) return existingProduct;
           }
-          // 商品データを取得
-          return await useProductStore.getState().fetchProductById(id);
+          // 商品データを取得（getState経由でstore内のメソッドにアクセス）
+          const productStore = useProductStore.getState();
+          // productStore内にfetchProductByIdメソッドがあることを確認
+          if (typeof productStore.loadProducts === 'function') {
+            await productStore.loadProducts();
+            const foundProduct = productStore.products.find(p => p.id === id);
+            if (foundProduct) return foundProduct;
+          }
         };
         
         const productData = await fetchProduct(productId);
@@ -115,8 +121,10 @@ const ProductDetailScreen: React.FC = () => {
     trackClick(product.id, product);
 
     // 閲覧履歴サービス経由でクリックログも記録
-    recordProductClick(user.id, product.id)
-      .catch(err => console.error('Failed to record click:', err));
+    if (product && user && user.id) {
+      recordProductClick(user.id, product.id)
+        .catch(err => console.error('Failed to record click:', err));
+    }
     
     // アフィリエイトリンクを開く
     try {
@@ -140,14 +148,19 @@ const ProductDetailScreen: React.FC = () => {
       const deepLink = generateProductLink(product.id);
       const shareMessage = `${product.title} - ${formatPrice(product.price)} | Stilyaで見つけたアイテムです ${deepLink}`;
       
-      await Share.share({
-        message: shareMessage,
-        // iOS用（必要に応じて）
-        url: product.affiliateUrl
-      });
+      const shareContent: { message: string; url?: string } = {
+        message: shareMessage
+      };
+      
+      // iOSの場合のみurlを追加
+      if (Platform.OS === 'ios' && product.affiliateUrl) {
+        shareContent.url = product.affiliateUrl;
+      }
+      
+      await Share.share(shareContent);
       
       // シェアイベントを記録
-      if (user) {
+      if (user && user.id) {
         trackShare(product.id, Platform.OS, user.id)
           .catch(err => console.error('Failed to track share:', err));
       }
