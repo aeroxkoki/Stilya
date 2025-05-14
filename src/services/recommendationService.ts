@@ -324,21 +324,28 @@ export const getRecommendedProducts = async (
     }
     
     // 上位タグを使用して関連商品を取得
-    const tagsForSearch: string[] = []; // 明示的な型の指定
+    let recommendedProducts: Product[] = [];
     
-    // topTagsが配列であることを確認してから追加
+    // タグに基づく検索のための準備
+    const validTags: string[] = [];
+    
+    // userPreferenceからタグを抽出（型安全性を確保）
     if (userPreference.topTags && Array.isArray(userPreference.topTags)) {
-      userPreference.topTags.forEach(tag => {
-        if (typeof tag === 'string') {
-          tagsForSearch.push(tag);
-        }
-      });
+      // 文字列のタグのみを収集
+      validTags.push(...userPreference.topTags.filter(tag => typeof tag === 'string'));
     }
     
-    // tagsForSearchが空の場合のエラーハンドリングを追加
-    if (tagsForSearch.length === 0) {
-      console.log('No tags found for search, using popular products instead');
-      // 好みに合うタグがない場合は人気商品を返す
+    // 有効なタグがある場合は、それを使って商品を検索
+    if (validTags.length > 0) {
+      console.log(`Searching with ${validTags.length} tags:`, validTags);
+      recommendedProducts = await fetchProductsByTags(
+        validTags,
+        limit * 2, // 多めに取得して後でフィルタリング
+        excludeIds
+      );
+    } else {
+      console.log('No valid tags found for search, using popular products instead');
+      // 有効なタグが見つからない場合は人気商品を返す
       const popularProducts = await getPopularProducts(limit, excludeIds);
       
       // キャッシュに保存
@@ -349,13 +356,6 @@ export const getRecommendedProducts = async (
       
       return popularProducts;
     }
-    
-    // 明示的に文字列配列として渡す
-    let recommendedProducts = await fetchProductsByTags(
-      tagsForSearch as string[],
-      limit * 2, // 多めに取得して後でフィルタリング
-      excludeIds
-    );
     
     if (recommendedProducts.length === 0) {
       // タグで検索してもヒットしなければ人気商品を返す
@@ -595,30 +595,26 @@ export const getRecommendationsByCategory = async (
         
         if (userPreference && userPreference.topTags && userPreference.topTags.length > 0) {
           // カテゴリと好みのタグで商品を検索
-          const safeTopTags: string[] = []; // 明示的な型の指定
+          const validTags: string[] = [];
           
-          // topTagsが配列であることを確認してから追加
+          // userPreferenceからタグを抽出（型安全性を確保）
           if (userPreference.topTags && Array.isArray(userPreference.topTags)) {
-            userPreference.topTags.forEach(tag => {
-              if (typeof tag === 'string') {
-                safeTopTags.push(tag);
-              }
-            });
+            // 文字列のタグのみを収集
+            validTags.push(...userPreference.topTags.filter(tag => typeof tag === 'string'));
           }
           
-          // tagsForSearchが空の場合のエラーハンドリングを追加
-          if (safeTopTags.length === 0) {
-            // タグが見つからない場合はカテゴリのみで検索
-            products = await fetchProductsByCategory(
+          // 有効なタグがある場合は、それを使って商品を検索
+          if (validTags.length > 0) {
+            products = await fetchProductsByCategoryAndTags(
               category,
+              validTags,
               limit,
               swipedProductIds
             );
           } else {
-            // 明示的に文字列配列として渡す
-            products = await fetchProductsByCategoryAndTags(
+            // タグが見つからない場合はカテゴリのみで検索
+            products = await fetchProductsByCategory(
               category,
-              safeTopTags as string[],
               limit,
               swipedProductIds
             );
