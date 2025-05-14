@@ -2,94 +2,51 @@ name: Expo Build
 
 on:
   push:
-    branches: [main, develop]
+    branches: [ main, develop ]
   pull_request:
-    branches: [main, develop]
+    branches: [ main, develop ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: <× Setup repository
+      - name: ðŸ— Setup repo
         uses: actions/checkout@v3
 
-      - name: <× Setup Node
+      - name: ðŸ— Setup Node
         uses: actions/setup-node@v3
         with:
           node-version: 18.x
           cache: yarn
 
-      - name: =æ Install dependencies
-        run: |
-          yarn config set ignore-engines true
-          yarn config set checksumBehavior ignore
-          # ¤óÆ°êÆ£Á§Ã¯’ÞWfX¢Â’¤ó¹Èüë
-          YARN_CHECKSUM_BEHAVIOR=ignore yarn install --network-timeout 300000
-
-      - name: >ê TypeScript Check
-        run: yarn tsc
-        continue-on-error: true
-
-      # - name: >ê ESLint
-      #   run: yarn lint
-      #   continue-on-error: true
-
-      - name: >ê Jest Tests
-        run: yarn test
-        continue-on-error: true
-
-      - name: >ù Clean Git state if needed
-        run: |
-          if [[ -n $(git status --porcelain) ]]; then
-            echo "Cleaning Git working directory..."
-            git config --global user.name "GitHub Action"
-            git config --global user.email "action@github.com"
-            git add -A
-            git commit -m "Auto-commit by GitHub Actions [skip ci]"
-            git status
-          else
-            echo "Git working directory is clean."
-          fi
-
-      - name: <× Setup Expo and EAS
+      - name: ðŸ— Setup EAS
         uses: expo/expo-github-action@v8
         with:
           eas-version: latest
-          expo-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: =à Install jq
-        run: sudo apt-get update && sudo apt-get install -y jq
+      - name: ðŸ“¦ Install dependencies
+        run: yarn install
 
-      - name: =ñ Build Preview
+      - name: ðŸ§ª Run tests
+        run: yarn test
+
+      - name: ðŸ“ Create EAS project if needed
         run: |
-          echo "Building app preview for branch ${{ github.ref_name }}"
-          
-          # EAS CLInÐü¸çóº
-          echo "EAS CLI version:"
-          eas --version
-          
-          # )(ïýjEAS³ÞóÉnº
-          echo "Available EAS commands:"
-          eas --help
-          
-          # í°¤óÅ1nº
-          echo "Checking EAS authentication status..."
-          eas whoami
-          
-          # ×í¸§¯È{2 - ×í¸§¯È’
-          echo "Initializing EAS project..."
-          eas init --non-interactive
-          
-          # ×í¸§¯ÈËnú›
-          echo "Current project configuration:"
-          cat app.json || echo "app.json not found"
-          
-          # CI(n×íÕ£üë’(
-          if [[ "${{ github.ref_name }}" == "main" ]]; then
-            eas build --platform=android --profile=ci --non-interactive --no-wait
-          else
-            eas build --platform=android --profile=ci --non-interactive --no-wait
+          # Check if project exists using eas whoami and redirecting errors
+          if ! npx eas whoami &>/dev/null; then
+            echo "Logging in to EAS..."
+            npx eas login --non-interactive
           fi
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          
+          # Initialize EAS project - this approach is different from eas init which requires interaction
+          export EXPO_TOKEN=${{ secrets.EXPO_TOKEN }}
+          npx eas project:link --non-interactive || echo "Project may already exist, continuing..."
+
+      - name: ðŸš€ Build preview for develop branch
+        if: github.ref == 'refs/heads/develop'
+        run: npx eas build --platform android --profile preview --non-interactive --no-wait
+
+      - name: ðŸš€ Build production for main branch
+        if: github.ref == 'refs/heads/main'
+        run: npx eas build --platform all --profile production --non-interactive --no-wait
