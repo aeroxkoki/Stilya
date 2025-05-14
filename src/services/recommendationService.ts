@@ -343,8 +343,9 @@ export const getRecommendedProducts = async (
       // 文字列配列であることを確認して型を明示的に指定
       const stringTags: string[] = validTags.filter((tag): tag is string => typeof tag === 'string');
       
+      // タグ型の互換性を確保
       recommendedProducts = await fetchProductsByTags(
-        stringTags,
+        stringTags as string[],
         limit * 2, // 多めに取得して後でフィルタリング
         excludeIds
       );
@@ -611,9 +612,10 @@ export const getRecommendationsByCategory = async (
           
           // 有効なタグがある場合は、それを使って商品を検索
           if (validTags.length > 0) {
+            // タグ型の互換性を確保
             products = await fetchProductsByCategoryAndTags(
               category,
-              validTags,
+              validTags as string[],
               limit,
               swipedProductIds
             );
