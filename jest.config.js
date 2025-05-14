@@ -18,16 +18,22 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^react-native$': '<rootDir>/node_modules/react-native',
-    'react-native/Libraries/Animated/NativeAnimatedHelper': '<rootDir>/src/__mocks__/react-native/Libraries/Animated/NativeAnimatedHelper.js'
+    'react-native/Libraries/Animated/NativeAnimatedHelper': '<rootDir>/src/__mocks__/react-native/Libraries/Animated/NativeAnimatedHelper.js',
+    '@react-native/virtualized-lists/(.*)': '<rootDir>/src/__mocks__/@react-native/virtualized-lists/$1',
+    'react-native/Libraries/Lists/(.*)': '<rootDir>/src/__mocks__/react-native/Libraries/Lists/$1'
   },
   transform: {
     '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { configFile: './babel.config.js' }]
   },
-  testEnvironment: 'node',
+  testEnvironment: 'jest-environment-jsdom',
+  testTimeout: 30000,
   globals: {
     'ts-jest': {
       babelConfig: true
     }
   },
-  timers: 'fake'
+  fakeTimers: {
+    enableGlobally: true,
+    legacyFakeTimers: true
+  }
 };

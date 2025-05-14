@@ -1,6 +1,9 @@
-// Basic test to ensure Jest is working
-describe('Simple test', () => {
-  it('should pass a basic test', () => {
-    expect(true).toBeTruthy();
+/**
+ * Simple test to check if Jest is working
+ */
+
+describe('Basic test', () => {
+  it('should pass', () => {
+    expect(1 + 1).toBe(2);
   });
 });

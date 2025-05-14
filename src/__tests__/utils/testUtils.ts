@@ -1,73 +1,87 @@
-// src/__tests__/utils/testUtils.ts
-import React from 'react';
-import { render } from '@testing-library/react-native';
+/**
+ * テスト用のユーティリティ関数
+ */
 
-// モックプロバイダー
-export const TestProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
-  return React.createElement(React.Fragment, null, children);
+// モック用のSupabase
+export const mockSupabase = {
+  auth: {
+    signUp: jest.fn(),
+    signIn: jest.fn(),
+    signOut: jest.fn(),
+    getSession: jest.fn(),
+    getUser: jest.fn(),
+    onAuthStateChange: jest.fn(() => ({ data: { subscription: { unsubscribe: jest.fn() } } })),
+  },
+  from: jest.fn().mockReturnValue({
+    select: jest.fn().mockReturnThis(),
+    insert: jest.fn().mockReturnThis(),
+    update: jest.fn().mockReturnThis(),
+    upsert: jest.fn().mockReturnThis(),
+    delete: jest.fn().mockReturnThis(),
+    eq: jest.fn().mockReturnThis(),
+    in: jest.fn().mockReturnThis(),
+    order: jest.fn().mockReturnThis(),
+    limit: jest.fn().mockReturnThis(),
+    single: jest.fn().mockReturnThis(),
+    match: jest.fn().mockReturnThis(),
+    then: jest.fn(cb => cb({
+      data: [],
+      error: null,
+    })),
+    catch: jest.fn(),
+  }),
 };
 
-// テスト用のレンダリングヘルパー
-export const renderWithProviders = (ui: React.ReactElement) => {
-  return render(React.createElement(TestProvider, null, ui));
-};
-
-// モックナビゲーション
-export const mockNavigation = {
-  navigate: jest.fn(),
-  goBack: jest.fn(),
-  setOptions: jest.fn(),
-  addListener: jest.fn(() => jest.fn()),
-  removeListener: jest.fn(),
-};
-
-// モックルート
-export const mockRoute = {
-  params: {},
-};
-
-// テスト用スタブデータ
+// モック用の製品データ
 export const mockProducts = [
   {
-    id: 'product-1',
-    title: 'テスト商品1',
-    image_url: 'https://example.com/image1.jpg',
-    price: 4500,
-    brand: 'テストブランド',
-    tags: ['カジュアル', 'トップス'],
-    affiliate_url: 'https://example.com/product/1',
+    id: 'prod1',
+    name: 'ベーシックTシャツ',
+    brand: 'UNIQLO',
+    price: 1990,
+    image_url: 'https://example.com/tshirt.jpg',
+    tags: ['casual', 'men', 'basic'],
+    affiliate_url: 'https://example.com/affiliate/tshirt'
   },
   {
-    id: 'product-2',
-    title: 'テスト商品2',
-    image_url: 'https://example.com/image2.jpg',
-    price: 3000,
-    brand: 'テストブランド2',
-    tags: ['ストリート', 'ボトムス'],
-    affiliate_url: 'https://example.com/product/2',
-  },
+    id: 'prod2',
+    name: 'スキニージーンズ',
+    brand: 'GU',
+    price: 2990,
+    image_url: 'https://example.com/jeans.jpg',
+    tags: ['casual', 'men', 'denim'],
+    affiliate_url: 'https://example.com/affiliate/jeans'
+  }
 ];
 
-// テスト用ユーザースタブ
-export const mockUser = {
-  id: 'user-1',
+// スワイプ履歴のモックデータ
+export const mockSwipes = [
+  { id: 'swipe1', user_id: 'user1', product_id: 'prod1', result: 'yes', created_at: '2025-05-10T00:00:00Z' },
+  { id: 'swipe2', user_id: 'user1', product_id: 'prod2', result: 'no', created_at: '2025-05-11T00:00:00Z' }
+];
+
+// お気に入りのモックデータ
+export const mockFavorites = [
+  { id: 'fav1', user_id: 'user1', product_id: 'prod1', created_at: '2025-05-12T00:00:00Z' }
+];
+
+// ユーザープロファイルのモックデータ
+export const mockUserProfile = {
+  id: 'user1',
   email: 'test@example.com',
+  gender: 'men',
+  age_group: '20s',
+  style_preferences: ['casual', 'basic']
 };
 
-// テスト用スワイプデータ
-export const mockSwipes = [
-  {
-    id: 'swipe-1',
-    user_id: 'user-1',
-    product_id: 'product-1',
-    result: 'yes',
-    created_at: '2023-01-01T00:00:00Z',
-  },
-  {
-    id: 'swipe-2',
-    user_id: 'user-1',
-    product_id: 'product-2',
-    result: 'no',
-    created_at: '2023-01-02T00:00:00Z',
-  },
-];
+// モック成功レスポンス
+export const mockSuccessResponse = (data = {}) => ({
+  data,
+  error: null
+});
+
+// モックエラーレスポンス
+export const mockErrorResponse = (message = 'エラーが発生しました') => ({
+  data: null,
+  error: { message }
+});

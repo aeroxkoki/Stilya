@@ -52,6 +52,34 @@ jest.mock('react-native', () => {
         updateView: jest.fn(),
         getViewManagerConfig: jest.fn(() => ({ Commands: {} })),
       },
+      DevMenu: {
+        reload: jest.fn(),
+        debugRemotely: jest.fn(),
+        devMenu: jest.fn(),
+      },
+      StatusBarManager: {
+        getHeight: jest.fn(),
+        setStyle: jest.fn(),
+        setHidden: jest.fn(),
+      },
+      BlobModule: {
+        ...RN.NativeModules?.BlobModule,
+        addNetworkingHandler: jest.fn(),
+        createFromParts: jest.fn(),
+        release: jest.fn(),
+      },
+      ImageLoader: {
+        getSize: jest.fn((uri, success) => success(100, 100)),
+        prefetchImage: jest.fn(),
+      },
+      RNGestureHandlerModule: {
+        attachGestureHandler: jest.fn(),
+        createGestureHandler: jest.fn(),
+        dropGestureHandler: jest.fn(),
+        updateGestureHandler: jest.fn(),
+        State: {},
+        Directions: {},
+      },
     },
     PanResponder: {
       create: jest.fn(() => ({
@@ -193,11 +221,16 @@ process.env.LINKSHARE_MERCHANT_ID = 'test-merchant-id';
 process.env.RAKUTEN_APP_ID = 'test-rakuten-app-id';
 process.env.RAKUTEN_AFFILIATE_ID = 'test-rakuten-affiliate-id';
 
-// グローバル設定
-global.__reanimatedWorkletInit = jest.fn();
-global._WORKLET = false;
-global.window = {};
-global.__DEV__ = true;
+// @testing-library/jest-native のモック
+jest.mock('@testing-library/jest-native', () => ({
+  ...jest.requireActual('@testing-library/jest-native'),
+  'toBeVisible': jest.fn().mockReturnValue(true),
+}));
+
+// @testing-library/jest-native/extend-expect のモック
+jest.mock('@testing-library/jest-native/extend-expect', () => ({
+  ...jest.requireActual('@testing-library/jest-native/extend-expect'),
+}));
 
 // グローバル関数のセットアップ
 // analyzeUserPreferences関数のモック
@@ -206,3 +239,9 @@ global.analyzeUserPreferences = jest.fn().mockResolvedValue({
   tagScores: { 'casual': 2.0, 'cotton': 1.5, 'formal': 1.0 },
   topTags: ['casual', 'cotton', 'formal']
 });
+
+// グローバル設定
+global.__reanimatedWorkletInit = jest.fn();
+global._WORKLET = false;
+global.window = {};
+global.__DEV__ = true;
