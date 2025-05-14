@@ -26,6 +26,19 @@ jobs:
         # インテグリティチェックを回避して依存関係をインストール
         YARN_CHECKSUM_BEHAVIOR=ignore yarn install --network-timeout 300000
     
+    - name: Clean Git state if needed
+      run: |
+        if [[ -n $(git status --porcelain) ]]; then
+          echo "Cleaning Git working directory..."
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git add -A
+          git commit -m "Auto-commit by GitHub Actions [skip ci]"
+          git status
+        else
+          echo "Git working directory is clean."
+        fi
+    
     - name: Run TypeScript check
       run: yarn tsc
     

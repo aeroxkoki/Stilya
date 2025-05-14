@@ -37,6 +37,19 @@ jobs:
         run: yarn test
         continue-on-error: true
 
+      - name: 🧹 Clean Git state if needed
+        run: |
+          if [[ -n $(git status --porcelain) ]]; then
+            echo "Cleaning Git working directory..."
+            git config --global user.name "GitHub Action"
+            git config --global user.email "action@github.com"
+            git add -A
+            git commit -m "Auto-commit by GitHub Actions [skip ci]"
+            git status
+          else
+            echo "Git working directory is clean."
+          fi
+
       - name: 🏗 Setup Expo and EAS
         uses: expo/expo-github-action@v8
         with:
@@ -49,9 +62,9 @@ jobs:
           
           # CI用のプロフィールを使用
           if [[ "${{ github.ref_name }}" == "main" ]]; then
-            eas build --platform=android --profile=ci --non-interactive --no-wait --no-git
+            eas build --platform=android --profile=ci --non-interactive --no-wait
           else
-            eas build --platform=android --profile=ci --non-interactive --no-wait --no-git
+            eas build --platform=android --profile=ci --non-interactive --no-wait
           fi
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
