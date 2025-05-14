@@ -69,7 +69,6 @@ const ProductDetailScreen: React.FC = () => {
         setIsLoading(true);
         setError(null);
         
-        // 商品データを取得
         const productData = await fetchProductById(productId);
         setProduct(productData);
         
@@ -109,7 +108,7 @@ const ProductDetailScreen: React.FC = () => {
       
       // クリックログを記録
       if (user) {
-        await recordProductClick(user.id, product.id);
+        await recordProductClick(product.id);
       }
 
       // 外部リンクを開く

@@ -38,7 +38,7 @@ export const handleApiError = (error: AxiosError | Error): ApiError => {
       if (statusCode >= 400 && statusCode < 500) {
         return {
           type: ApiErrorType.CLIENT_ERROR,
-          message: axiosError.response.data?.message || 'クライアントエラーが発生しました',
+          message: error.response.data?.message || 'クライアントエラーが発生しました',
           statusCode,
           originalError: axiosError,
         };

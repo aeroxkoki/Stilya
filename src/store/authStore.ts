@@ -44,7 +44,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       
       // セッションを取得
       const { data } = await supabase.auth.getSession();
-      const session = data.session;
+      const { session } = data;
       
       if (session) {
         // セッションの有効期限をチェック

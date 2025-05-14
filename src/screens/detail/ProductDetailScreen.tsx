@@ -37,7 +37,6 @@ const ProductDetailScreen: React.FC = () => {
   const { productId } = route.params;
   const { user } = useAuthStore();
   const { 
-    fetchProductById, 
     products, 
     loading, 
     error

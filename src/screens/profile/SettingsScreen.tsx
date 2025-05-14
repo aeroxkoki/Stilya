@@ -16,7 +16,7 @@ import { useAuthStore } from '@/store/authStore';
 
 const SettingsScreen: React.FC = () => {
   const navigation = useNavigation();
-  const { signOut, user } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const [darkMode, setDarkMode] = useState(false);
   const [pushNotifications, setPushNotifications] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -55,7 +55,7 @@ const SettingsScreen: React.FC = () => {
   // ログアウト処理
   const handleSignOut = async () => {
     try {
-      await signOut();
+      await logout();
       navigation.reset({
         index: 0,
         routes: [{ name: 'Auth' as never }],
