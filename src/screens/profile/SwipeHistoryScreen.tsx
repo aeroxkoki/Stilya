@@ -71,7 +71,8 @@ const SwipeHistoryScreen: React.FC = () => {
   
   // 商品タップハンドラー
   const handleProductPress = (product: Product) => {
-    navigation.navigate('ProductDetail' as never, { productId: product.id } as never);
+    // @ts-ignore
+    navigation.navigate('ProductDetail', { productId: product.id });
   };
   
   // お気に入り追加/削除ハンドラー

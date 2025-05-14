@@ -81,12 +81,12 @@ export const useProducts = (): UseProductsReturn => {
       const newProducts = await fetchProducts(pageSize, page * pageSize);
       
       // スワイプ済みの商品を除外
-      const filteredProducts = newProducts.filter(
+      const filteredProducts = Array.isArray(newProducts) ? newProducts.filter(
         product => !swipedProductIds.includes(product.id)
-      );
+      ) : [];
 
       // 結果が十分でない場合の処理
-      if (filteredProducts.length === 0 && newProducts.length > 0) {
+      if (filteredProducts.length === 0 && (Array.isArray(newProducts) ? newProducts.length > 0 : false)) {
         // スワイプ済みを除外した結果、商品がない場合は次のページを試みる
         setPage(prevPage => prevPage + 1);
         if (!reset) {
@@ -96,7 +96,7 @@ export const useProducts = (): UseProductsReturn => {
       }
 
       // 商品が取得できなかった場合
-      const hasMoreProducts = newProducts.length >= pageSize;
+      const hasMoreProducts = Array.isArray(newProducts) ? newProducts.length >= pageSize : false;
 
       // 商品データを更新
       setProductsData(prev => {

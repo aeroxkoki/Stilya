@@ -91,12 +91,14 @@ const RecommendScreen: React.FC = () => {
   
   // 商品タップハンドラー
   const handleProductPress = (product: Product) => {
-    navigation.navigate('ProductDetail' as never, { productId: product.id } as never);
+    // @ts-ignore
+    navigation.navigate('ProductDetail', { productId: product.id });
   };
   
   // スワイプ画面に移動
   const handleGoToSwipe = () => {
-    navigation.navigate('Swipe' as never);
+    // @ts-ignore
+    navigation.navigate('Swipe');
   };
   
   // フィルターモーダルを開く

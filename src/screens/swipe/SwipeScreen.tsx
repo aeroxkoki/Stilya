@@ -134,7 +134,8 @@ const SwipeScreen: React.FC = () => {
 
   // 商品詳細画面へ
   const handleCardPress = useCallback((product: Product) => {
-    navigation.navigate('ProductDetail' as never, { productId: product.id } as never);
+    // @ts-ignore
+    navigation.navigate('ProductDetail', { productId: product.id });
   }, [navigation]);
 
   // 商品をリロード
@@ -273,7 +274,10 @@ const SwipeScreen: React.FC = () => {
                 もっと見る
               </Button>
               <Button 
-                onPress={() => navigation.navigate('Recommend' as never)}
+                onPress={() => {
+                  // @ts-ignore
+                  navigation.navigate('Recommend');
+                }}
                 style={[styles.button, styles.primaryButton]}
               >
                 おすすめを見る

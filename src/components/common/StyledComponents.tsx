@@ -14,16 +14,15 @@ import {
   ImageProps,
   KeyboardAvoidingViewProps
 } from 'react-native';
-import { styled } from 'nativewind/styled';
 
-// スタイル付きコンポーネントを作成
-export const View = styled(RNView);
-export const Text = styled(RNText);
-export const TouchableOpacity = styled(RNTouchableOpacity);
-export const SafeAreaView = styled(RNSafeAreaView);
-export const ScrollView = styled(RNScrollView);
-export const Image = styled(RNImage);
-export const KeyboardAvoidingView = styled(RNKeyboardAvoidingView);
+// スタイル付きコンポーネントを作成 (className を使うためには nativewind が必要)
+export const View = RNView;
+export const Text = RNText;
+export const TouchableOpacity = RNTouchableOpacity;
+export const SafeAreaView = RNSafeAreaView;
+export const ScrollView = RNScrollView;
+export const Image = RNImage;
+export const KeyboardAvoidingView = RNKeyboardAvoidingView;
 
 // 型定義を簡略化するためのヘルパー
 export type ViewType = React.ComponentProps<typeof View>;

@@ -1,6 +1,5 @@
 import React from 'react';
-import { Image, StyleProp, ImageStyle } from 'react-native';
-import { styled } from 'nativewind/styled';
+import { Image, StyleProp, ImageStyle, StyleSheet } from 'react-native';
 
 // 既存のExpo Imageパッケージがインストールされていない場合、ポリフィルを提供
 // 実際の実装ではexpo-imageをインストールする必要があります
@@ -30,17 +29,15 @@ const MockExpoImage: React.FC<ExpoImageProps> = ({
     contentFit === 'fill' ? 'stretch' : 'cover';
     
   return (
-    <StyledImage
+    <Image
       source={source}
       style={style}
-      className={className}
       resizeMode={resizeMode}
       {...restProps}
     />
   );
 };
 
-const StyledImage = styled(Image);
-export const ExpoImage = styled(MockExpoImage);
+export const ExpoImage = MockExpoImage;
 
 export default ExpoImage;

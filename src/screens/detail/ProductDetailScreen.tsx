@@ -40,8 +40,7 @@ const ProductDetailScreen: React.FC = () => {
     fetchProductById, 
     products, 
     loading, 
-    error,
-    logProductClick 
+    error
   } = useProductStore();
   
   // レコメンデーション関連の情報取得
@@ -101,9 +100,6 @@ const ProductDetailScreen: React.FC = () => {
     // 新しいクリックログ記録フックを使用
     trackClick(product.id, product);
 
-    // データストア用のクリックログも記録（既存機能と連携）
-    await logProductClick(user.id, product.id);
-    
     // 閲覧履歴サービス経由でクリックログも記録
     recordProductClick(user.id, product.id)
       .catch(err => console.error('Failed to record click:', err));
@@ -148,10 +144,8 @@ const ProductDetailScreen: React.FC = () => {
   
   // 類似商品のタップ
   const handleSimilarProductPress = (similarProduct: Product) => {
-    navigation.navigate(
-      'ProductDetail' as never, 
-      { productId: similarProduct.id } as never
-    );
+    // @ts-ignore - タイプエラーを一時的に無視
+    navigation.navigate('ProductDetail', { productId: similarProduct.id });
   };
   
   // 戻るボタン
