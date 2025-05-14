@@ -15,6 +15,7 @@ module.exports = function(api) {
         plugins: [
           // Plugins for test environment only
           ['@babel/plugin-transform-runtime', { regenerator: true }],
+          '@babel/plugin-transform-template-literals',
         ],
       },
     },

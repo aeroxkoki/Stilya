@@ -37,5 +37,7 @@ module.exports = {
   fakeTimers: {
     enableGlobally: true,
     legacyFakeTimers: true
-  }
+  },
+  // Reanimated関連の問題を修正
+  injectGlobals: false
 };
