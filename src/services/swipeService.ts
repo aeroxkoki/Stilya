@@ -1,177 +1,146 @@
 import { supabase } from './supabase';
-import { Swipe } from '@/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import NetInfo from '@react-native-community/netinfo';
+import { isOffline } from '@/utils/networkUtils';
 
-// オフラインスワイプキャッシュ用のキー
-const OFFLINE_SWIPES_KEY = 'stilya_offline_swipes';
+// スワイプ結果の型定義
+export type SwipeResult = 'yes' | 'no';
+
+// スワイプデータの型定義
+export interface SwipeData {
+  id?: string;
+  userId: string;
+  productId: string;
+  result: SwipeResult;
+  createdAt?: string;
+}
+
+// オフライン用のスワイプデータストレージキー
+const OFFLINE_SWIPE_STORAGE_KEY = 'offline_swipe_data';
 
 /**
  * スワイプ結果を保存する
  * @param userId ユーザーID
  * @param productId 商品ID
- * @param result 'yes' または 'no'
+ * @param result スワイプ結果 ('yes' or 'no')
+ * @returns 保存に成功したかどうか
  */
 export const saveSwipeResult = async (
   userId: string,
   productId: string,
-  result: 'yes' | 'no'
-): Promise<Swipe | null> => {
+  result: SwipeResult
+): Promise<boolean> => {
   try {
-    // 開発モード（__DEV__）ではモック処理としてログ出力のみ行い、
-    // 成功したことにする
-    if (__DEV__) {
-      console.log(`[DEV] Saved swipe result: ${userId} ${result} ${productId}`);
-      return {
-        id: 'mock-id',
-        userId,
-        productId,
-        result,
-        createdAt: new Date().toISOString(),
-      };
-    }
-
-    // ネットワーク状態をチェック
-    const netInfo = await NetInfo.fetch();
-    
-    // スワイプデータの作成
-    const swipeData = {
-      user_id: userId,
-      product_id: productId,
-      result,
-      created_at: new Date().toISOString(),
-    };
-
-    // オフラインの場合はローカルストレージに保存
-    if (!netInfo.isConnected) {
-      await saveSwipeOffline(userId, productId, result);
-      
-      // オフラインでの仮のレスポンスを返す
-      return {
-        id: `offline-${Date.now()}`,
-        userId,
-        productId,
-        result,
-        createdAt: new Date().toISOString(),
-      };
-    }
-
-    // オンラインならSupabaseに保存
-    const { data, error } = await supabase
-      .from('swipes')
-      .insert([swipeData])
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error saving swipe result:', error);
-      // エラー時もオフラインキャッシュに保存
-      await saveSwipeOffline(userId, productId, result);
-      throw new Error(error.message);
-    }
-
-    // Supabaseからの応答をアプリの型に変換
-    return {
-      id: data.id,
-      userId: data.user_id,
-      productId: data.product_id,
-      result: data.result,
-      createdAt: data.created_at,
-    };
-  } catch (error) {
-    console.error('Failed to save swipe result:', error);
-    return null;
-  }
-};
-
-/**
- * オフラインスワイプデータをローカルに保存
- */
-const saveSwipeOffline = async (
-  userId: string,
-  productId: string,
-  result: 'yes' | 'no'
-) => {
-  try {
-    // 現在のオフラインデータを取得
-    const offlineSwipesJSON = await AsyncStorage.getItem(OFFLINE_SWIPES_KEY);
-    let offlineSwipes: Array<{
-      userId: string;
-      productId: string;
-      result: 'yes' | 'no';
-      timestamp: string;
-    }> = [];
-    
-    if (offlineSwipesJSON) {
-      offlineSwipes = JSON.parse(offlineSwipesJSON);
-    }
-    
-    // 新しいスワイプを追加
-    offlineSwipes.push({
+    const swipeData: SwipeData = {
       userId,
       productId,
       result,
-      timestamp: new Date().toISOString(),
-    });
+      createdAt: new Date().toISOString(),
+    };
+
+    // オフラインの場合はローカルに保存
+    const networkOffline = await isOffline();
+    if (networkOffline) {
+      return await saveSwipeOffline(swipeData);
+    }
+
+    // オンラインの場合はSupabaseに保存
+    const { error } = await supabase
+      .from('swipes')
+      .insert([
+        {
+          user_id: userId,
+          product_id: productId,
+          result,
+        },
+      ]);
+
+    if (error) throw error;
+
+    // オフラインキャッシュも更新
+    await syncOfflineSwipes();
     
-    // 保存
-    await AsyncStorage.setItem(OFFLINE_SWIPES_KEY, JSON.stringify(offlineSwipes));
-    
-    console.log('Swipe saved offline. Will sync when online.');
+    return true;
   } catch (error) {
-    console.error('Error saving swipe offline:', error);
+    console.error('Error saving swipe result:', error);
+    // エラー時はオフラインに保存
+    return await saveSwipeOffline({
+      userId,
+      productId,
+      result,
+      createdAt: new Date().toISOString(),
+    });
   }
 };
 
 /**
- * オフラインスワイプデータを同期する（オンラインに戻った時に呼び出す）
+ * オフラインでのスワイプ結果を保存する
+ * @param swipeData スワイプデータ
+ * @returns 保存に成功したかどうか
  */
-export const syncOfflineSwipes = async () => {
+const saveSwipeOffline = async (swipeData: SwipeData): Promise<boolean> => {
   try {
-    // ネットワーク状態をチェック
-    const netInfo = await NetInfo.fetch();
-    if (!netInfo.isConnected) {
-      console.log('Still offline. Cannot sync swipes.');
-      return false;
+    // 既存のオフラインデータを取得
+    const storedData = await AsyncStorage.getItem(OFFLINE_SWIPE_STORAGE_KEY);
+    let offlineSwipes: SwipeData[] = storedData ? JSON.parse(storedData) : [];
+
+    // 既存のスワイプをチェック（同じ商品に対して）
+    const existingIndex = offlineSwipes.findIndex(
+      (item) => item.userId === swipeData.userId && item.productId === swipeData.productId
+    );
+
+    if (existingIndex >= 0) {
+      // 既存のデータを更新
+      offlineSwipes[existingIndex] = swipeData;
+    } else {
+      // 新しいデータを追加
+      offlineSwipes.push(swipeData);
     }
-    
-    // オフラインデータを取得
-    const offlineSwipesJSON = await AsyncStorage.getItem(OFFLINE_SWIPES_KEY);
-    if (!offlineSwipesJSON) {
-      return true; // 同期するデータがない
-    }
-    
-    const offlineSwipes = JSON.parse(offlineSwipesJSON);
-    if (offlineSwipes.length === 0) {
-      return true; // 同期するデータがない
-    }
-    
-    console.log(`Syncing ${offlineSwipes.length} offline swipes...`);
-    
-    // Supabaseの一括挿入用の形式に変換
-    const swipesForInsert = offlineSwipes.map((swipe: any) => ({
-      user_id: swipe.userId,
-      product_id: swipe.productId,
-      result: swipe.result,
-      created_at: swipe.timestamp,
-    }));
-    
-    // Supabaseに一括挿入
-    const { error } = await supabase
-      .from('swipes')
-      .insert(swipesForInsert);
-    
-    if (error) {
-      console.error('Error syncing offline swipes:', error);
-      return false;
-    }
-    
-    // 同期に成功したらローカルデータをクリア
-    await AsyncStorage.removeItem(OFFLINE_SWIPES_KEY);
-    console.log('Offline swipes synced successfully');
+
+    // 更新されたデータを保存
+    await AsyncStorage.setItem(OFFLINE_SWIPE_STORAGE_KEY, JSON.stringify(offlineSwipes));
     return true;
   } catch (error) {
-    console.error('Failed to sync offline swipes:', error);
+    console.error('Error saving offline swipe:', error);
+    return false;
+  }
+};
+
+/**
+ * オフラインのスワイプデータをサーバーと同期する
+ * @returns 同期に成功したかどうか
+ */
+export const syncOfflineSwipes = async (): Promise<boolean> => {
+  try {
+    // ネットワーク接続を確認
+    const networkOffline = await isOffline();
+    if (networkOffline) {
+      return false; // オフラインなので同期不可
+    }
+
+    // オフラインデータを取得
+    const storedData = await AsyncStorage.getItem(OFFLINE_SWIPE_STORAGE_KEY);
+    if (\!storedData) return true; // 同期するデータなし
+
+    const offlineSwipes: SwipeData[] = JSON.parse(storedData);
+    if (offlineSwipes.length === 0) return true; // 同期するデータなし
+
+    // バッチで同期
+    const { error } = await supabase.from('swipes').insert(
+      offlineSwipes.map((swipe) => ({
+        user_id: swipe.userId,
+        product_id: swipe.productId,
+        result: swipe.result,
+        created_at: swipe.createdAt,
+      }))
+    );
+
+    if (error) throw error;
+
+    // 同期完了後、オフラインデータをクリア
+    await AsyncStorage.removeItem(OFFLINE_SWIPE_STORAGE_KEY);
+    return true;
+  } catch (error) {
+    console.error('Error syncing offline swipes:', error);
     return false;
   }
 };
@@ -179,90 +148,64 @@ export const syncOfflineSwipes = async () => {
 /**
  * ユーザーのスワイプ履歴を取得する
  * @param userId ユーザーID
- * @param result 結果でフィルタリング（オプション）
- * @param limit 取得数の上限
+ * @returns スワイプデータの配列
  */
-export const getSwipeHistory = async (
-  userId: string,
-  result?: 'yes' | 'no',
-  limit = 50
-): Promise<Swipe[]> => {
+export const getSwipeHistory = async (userId: string): Promise<SwipeData[]> => {
   try {
-    // オフラインの場合はローカルのスワイプデータを使用
-    const netInfo = await NetInfo.fetch();
-    if (!netInfo.isConnected) {
-      const offlineSwipes = await getOfflineSwipes(userId, result);
-      return offlineSwipes;
+    // オンラインデータ取得
+    const networkOffline = await isOffline();
+    if (\!networkOffline) {
+      const { data, error } = await supabase
+        .from('swipes')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const onlineSwipes = data.map((item) => ({
+        id: item.id,
+        userId: item.user_id,
+        productId: item.product_id,
+        result: item.result as SwipeResult,
+        createdAt: item.created_at,
+      }));
+
+      // オフラインデータとマージ
+      const offlineSwipes = await getOfflineSwipes(userId);
+      
+      // 重複を排除してマージ
+      const allSwipes = [...onlineSwipes];
+      offlineSwipes.forEach(offlineSwipe => {
+        if (\!allSwipes.some(s => s.productId === offlineSwipe.productId)) {
+          allSwipes.push(offlineSwipe);
+        }
+      });
+      
+      return allSwipes;
+    } else {
+      // オフラインならローカルデータのみ
+      return await getOfflineSwipes(userId);
     }
-
-    let query = supabase
-      .from('swipes')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(limit);
-
-    // 結果でフィルターする場合
-    if (result) {
-      query = query.eq('result', result);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      console.error('Error fetching swipe history:', error);
-      throw new Error(error.message);
-    }
-
-    // Supabaseからの応答をアプリの型に変換
-    return data.map((item: any) => ({
-      id: item.id,
-      userId: item.user_id,
-      productId: item.product_id,
-      result: item.result,
-      createdAt: item.created_at,
-    }));
   } catch (error) {
-    console.error('Failed to fetch swipe history:', error);
-    return [];
+    console.error('Error getting swipe history:', error);
+    // エラー時はローカルデータから取得
+    return await getOfflineSwipes(userId);
   }
 };
 
 /**
- * ローカルに保存されたオフラインスワイプを取得
+ * ローカルに保存されたスワイプデータを取得する
+ * @param userId ユーザーID
+ * @returns スワイプデータの配列
  */
-const getOfflineSwipes = async (
-  userId: string,
-  result?: 'yes' | 'no'
-): Promise<Swipe[]> => {
+const getOfflineSwipes = async (userId: string): Promise<SwipeData[]> => {
   try {
-    const offlineSwipesJSON = await AsyncStorage.getItem(OFFLINE_SWIPES_KEY);
-    if (!offlineSwipesJSON) {
-      return [];
-    }
-    
-    const offlineSwipes = JSON.parse(offlineSwipesJSON);
-    
-    // ユーザーIDでフィルタリング
-    let filteredSwipes = offlineSwipes.filter(
-      (swipe: any) => swipe.userId === userId
-    );
-    
-    // 結果でフィルタリング（オプション）
-    if (result) {
-      filteredSwipes = filteredSwipes.filter(
-        (swipe: any) => swipe.result === result
-      );
-    }
-    
-    // Swipe型に変換
-    return filteredSwipes.map((swipe: any) => ({
-      id: `offline-${swipe.timestamp}`,
-      userId: swipe.userId,
-      productId: swipe.productId,
-      result: swipe.result,
-      createdAt: swipe.timestamp,
-    }));
+    const storedData = await AsyncStorage.getItem(OFFLINE_SWIPE_STORAGE_KEY);
+    if (\!storedData) return [];
+
+    const offlineSwipes: SwipeData[] = JSON.parse(storedData);
+    return offlineSwipes.filter((swipe) => swipe.userId === userId);
   } catch (error) {
     console.error('Error getting offline swipes:', error);
     return [];
@@ -270,49 +213,29 @@ const getOfflineSwipes = async (
 };
 
 /**
- * 特定の商品に対するスワイプ結果を取得する
+ * ユーザーが特定の結果でスワイプした商品IDのリストを取得する
  * @param userId ユーザーID
- * @param productId 商品ID
+ * @param result スワイプ結果 ('yes' or 'no')
+ * @returns 商品IDの配列
  */
-export const getSwipeForProduct = async (
+export const getSwipedProductIds = async (
   userId: string,
-  productId: string
-): Promise<Swipe | null> => {
+  result?: SwipeResult
+): Promise<string[]> => {
   try {
-    // オフラインの場合はローカルのスワイプデータを確認
-    const netInfo = await NetInfo.fetch();
-    if (!netInfo.isConnected) {
-      const offlineSwipes = await getOfflineSwipes(userId);
-      const offlineSwipe = offlineSwipes.find(swipe => swipe.productId === productId);
-      return offlineSwipe || null;
+    const swipeHistory = await getSwipeHistory(userId);
+    
+    if (result) {
+      // 特定のスワイプ結果だけ取得
+      return swipeHistory
+        .filter((swipe) => swipe.result === result)
+        .map((swipe) => swipe.productId);
+    } else {
+      // すべてのスワイプを含む
+      return swipeHistory.map((swipe) => swipe.productId);
     }
-
-    const { data, error } = await supabase
-      .from('swipes')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('product_id', productId)
-      .single();
-
-    if (error) {
-      if (error.code === 'PGRST116') {
-        // レコードが見つからない場合
-        return null;
-      }
-      console.error('Error fetching swipe for product:', error);
-      throw new Error(error.message);
-    }
-
-    // Supabaseからの応答をアプリの型に変換
-    return {
-      id: data.id,
-      userId: data.user_id,
-      productId: data.product_id,
-      result: data.result,
-      createdAt: data.created_at,
-    };
   } catch (error) {
-    console.error('Failed to fetch swipe for product:', error);
-    return null;
+    console.error('Error getting swiped product IDs:', error);
+    return [];
   }
 };
