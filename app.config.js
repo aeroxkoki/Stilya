@@ -95,7 +95,7 @@ module.exports = {
     
     // eas
     eas: {
-      projectId: 'your-project-id'
+      projectId: 'c2a98f3b-d8dc-4bc3-9b53-8ff63bc2cfd9'
     }
   },
   updates: {
