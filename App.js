@@ -1,71 +1,30 @@
-import React from 'react';
-import { StatusBar } from 'expo-status-bar';
-import { View, Text, StyleSheet, Button, SafeAreaView } from 'react-native';
-
-// シンプルなテスト用アプリコンポーネント
-export default function App() {
-  return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>Stilya</Text>
-        <Text style={styles.subtitle}>ファッション好みを学習するアプリ</Text>
-        
-        <View style={styles.card}>
-          <Text style={styles.cardText}>シンプルモードで起動中</Text>
-          <Text style={styles.description}>
-            この画面はTypeScript処理の問題を回避するために表示されています。
-          </Text>
-        </View>
-        
-        <Button 
-          title="タップしてみよう" 
-          onPress={() => alert('Stilyaへようこそ！')} 
-        />
-      </View>
-      <StatusBar style="auto" />
-    </SafeAreaView>
-  );
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.default = App;
+var react_1 = __importDefault(require("react"));
+var expo_status_bar_1 = require("expo-status-bar");
+var react_native_safe_area_context_1 = require("react-native-safe-area-context");
+var react_native_toast_message_1 = __importDefault(require("react-native-toast-message"));
+var AppNavigator_1 = __importDefault(require("./src/navigation/AppNavigator"));
+var AuthContext_1 = require("./src/contexts/AuthContext");
+var ThemeContext_1 = require("./src/contexts/ThemeContext");
+var NetworkContext_1 = require("./src/contexts/NetworkContext");
+var react_native_gesture_handler_1 = require("react-native-gesture-handler");
+function App() {
+    return (<react_native_gesture_handler_1.GestureHandlerRootView style={{ flex: 1 }}>
+      <react_native_safe_area_context_1.SafeAreaProvider>
+        <NetworkContext_1.NetworkProvider>
+          <ThemeContext_1.ThemeProvider>
+            <AuthContext_1.AuthProvider>
+              <expo_status_bar_1.StatusBar style="auto"/>
+              <AppNavigator_1.default />
+              <react_native_toast_message_1.default />
+            </AuthContext_1.AuthProvider>
+          </ThemeContext_1.ThemeProvider>
+        </NetworkContext_1.NetworkProvider>
+      </react_native_safe_area_context_1.SafeAreaProvider>
+    </react_native_gesture_handler_1.GestureHandlerRootView>);
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  content: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    color: '#3B82F6',
-  },
-  subtitle: {
-    fontSize: 18,
-    color: '#666',
-    marginBottom: 30,
-  },
-  card: {
-    backgroundColor: '#F5F5F5',
-    padding: 20,
-    borderRadius: 12,
-    width: '100%',
-    marginBottom: 30,
-    alignItems: 'center',
-  },
-  cardText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  description: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-});
