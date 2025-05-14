@@ -24,6 +24,9 @@ jobs:
           yarn config set ignore-engines true
           yarn install
 
+      - name: 🧪 TypeScript Check
+        run: yarn tsc
+
       - name: 🧪 ESLint
         run: yarn lint
         continue-on-error: true
@@ -32,24 +35,21 @@ jobs:
         run: yarn test
         continue-on-error: true
 
-      - name: 🏗 Setup Expo
-        uses: expo/expo-github-action@v7
+      - name: 🏗 Setup Expo and EAS
+        uses: expo/expo-github-action@v8
         with:
-          expo-version: latest
+          eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: 📱 Build Preview
         run: |
           echo "Building app preview for branch ${{ github.ref_name }}"
-          yarn global add eas-cli
-          eas build:configure
-          eas update:configure
           
-          # Different build strategy based on branch
+          # CI用のプロフィールを使用
           if [[ "${{ github.ref_name }}" == "main" ]]; then
-            eas build --platform all --profile production --non-interactive
+            eas build --platform=android --profile=ci --non-interactive --no-wait
           else
-            eas build --platform android --profile preview --non-interactive
+            eas build --platform=android --profile=ci --non-interactive --no-wait
           fi
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}

@@ -1,6 +1,8 @@
 {
   "cli": {
-    "version": ">= 5.2.0"
+    "version": ">= 5.2.0",
+    "requireCommit": true,
+    "appVersionSource": "remote"
   },
   "build": {
     "development": {
@@ -20,10 +22,24 @@
       },
       "android": {
         "buildType": "apk"
-      }
+      },
+      "channel": "preview"
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "channel": "production"
+    },
+    "ci": {
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
+      },
+      "ios": {
+        "simulator": true
+      },
+      "channel": "ci",
+      "autoIncrement": true,
+      "distribution": "internal"
     }
   },
   "submit": {

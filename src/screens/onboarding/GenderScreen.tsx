@@ -62,7 +62,7 @@ const GenderScreen: React.FC<Props> = ({ navigation }) => {
         <Button
           isFullWidth
           onPress={handleNext}
-          disabled={\!gender}
+          disabled={!gender}
           className="mt-auto"
         >
           次へ
