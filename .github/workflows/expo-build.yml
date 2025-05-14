@@ -23,7 +23,7 @@ jobs:
         run: |
           yarn config set ignore-engines true
           yarn config set checksumBehavior ignore
-          yarn install --frozen-lockfile false
+          yarn install --no-frozen-lockfile
 
       - name: 🧪 TypeScript Check
         run: yarn tsc
