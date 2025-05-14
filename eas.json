@@ -22,22 +22,20 @@
       },
       "android": {
         "buildType": "apk"
-      },
-      "channel": "preview"
+      }
     },
     "production": {
-      "autoIncrement": true,
-      "channel": "production"
+      "autoIncrement": true
     },
     "ci": {
       "android": {
         "buildType": "apk",
-        "gradleCommand": ":app:assembleRelease"
+        "gradleCommand": ":app:assembleRelease",
+        "withoutCredentials": true
       },
       "ios": {
         "simulator": true
       },
-      "channel": "ci",
       "autoIncrement": true,
       "distribution": "internal"
     }
