@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Platform, ActivityIndicator } from 'react-native';
-import { Image } from 'expo-image';
+import { StyleSheet, Dimensions, Platform, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 // import Animated from 'react-native-reanimated';
 // 一時的にAnimatedをモックして型エラーを解消
@@ -12,6 +11,8 @@ import { formatPrice } from '@/utils';
 import { Tags } from '@/components/common';
 import { handleImageLoadError } from '@/utils/imageUtils';
 import { useNetwork } from '@/contexts/NetworkContext';
+import { View, Text, TouchableOpacity } from '../common/StyledComponents';
+import { ExpoImage } from '../common/CachedImage';
 
 export interface SwipeCardProps {
   product: Product;
@@ -99,7 +100,7 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
               </View>
             )}
             
-            <Image
+            <ExpoImage
               source={{ uri: imageUrl }}
               style={styles.image}
               className="w-full h-full"

@@ -1,7 +1,8 @@
 import React from 'react';
-import { TouchableOpacity, Text, View, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '@/components/common';
+import { View, Text, TouchableOpacity } from '../common/StyledComponents';
 
 interface SelectionButtonProps {
   title: string;

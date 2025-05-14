@@ -1,13 +1,12 @@
 import React from 'react';
 import {
-  View,
   StyleSheet,
   StyleProp,
   ViewStyle,
-  TouchableOpacity,
   Platform,
 } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
+import { View, TouchableOpacity } from './StyledComponents';
 
 export interface CardProps {
   children: React.ReactNode;
@@ -30,7 +29,7 @@ const Card: React.FC<CardProps> = ({
   variant = 'filled',
   padding,
   testID,
-  className, // NativeWindとの互換性のため（無視されます）
+  className,
 }) => {
   const { theme, isDarkMode } = useTheme();
 
@@ -117,13 +116,14 @@ const Card: React.FC<CardProps> = ({
         activeOpacity={0.8}
         disabled={disabled}
         testID={testID}
+        className={className}
       >
         {children}
       </TouchableOpacity>
     );
   }
 
-  return <View style={cardStyle} testID={testID}>{children}</View>;
+  return <View style={cardStyle} testID={testID} className={className}>{children}</View>;
 };
 
 const styles = StyleSheet.create({
