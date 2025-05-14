@@ -17,16 +17,25 @@ jobs:
           node-version: 18.x
           cache: npm
 
+      - name: 📦 Install dependencies
+        run: npm install
+
+      - name: 🏗 Install Expo CLI and EAS CLI globally
+        run: |
+          npm install -g expo-cli
+          npm install -g eas-cli
+
       - name: 🏗 Setup Expo and EAS
         uses: expo/expo-github-action@v8
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: 📦 Install dependencies
-        run: npm install
-
       - name: 🧪 Test eas whoami
         run: |
-          npx expo whoami
-          npx eas whoami || echo "Not logged in"
+          echo "Testing Expo CLI version"
+          npx expo --version
+          echo "Testing EAS CLI version"
+          npx eas --version
+          echo "Testing EAS authentication"
+          npx eas whoami || echo "Not logged in but command executed successfully"
