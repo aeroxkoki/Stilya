@@ -4,12 +4,12 @@ import { render } from '@testing-library/react-native';
 
 // モックプロバイダー
 export const TestProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
-  return <>{children}</>;
+  return React.createElement(React.Fragment, null, children);
 };
 
 // テスト用のレンダリングヘルパー
 export const renderWithProviders = (ui: React.ReactElement) => {
-  return render(<TestProvider>{ui}</TestProvider>);
+  return render(React.createElement(TestProvider, null, ui));
 };
 
 // モックナビゲーション
