@@ -421,7 +421,7 @@ export const getRecommendedProducts = async (
       
       // 明示的に型を指定してタグを検索に使用
       recommendedProducts = await fetchProductsByTags(
-        validTags, // validTags は既にstring[]として定義済み
+        validTags as string[], // 明示的に string[] として扱う
         limit * 2, // 多めに取得して後でフィルタリング
         excludeIds
       );
@@ -691,7 +691,7 @@ export const getRecommendationsByCategory = async (
             // カテゴリとタグを使用して商品検索
             products = await fetchProductsByCategoryAndTags(
               category,
-              validTags, // validTags は既にstring[]として定義済み
+              validTags as string[], // 明示的に string[] として扱う
               limit,
               swipedProductIds
             );

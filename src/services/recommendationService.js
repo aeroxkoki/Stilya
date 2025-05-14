@@ -48,15 +48,95 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.clearRecommendationCaches = exports.getRecommendationsByCategory = exports.getRecommendedProducts = exports.analyzeUserPreferences = void 0;
 var supabase_1 = require("./supabase");
 var swipeService_1 = require("./swipeService");
-var productService_1 = require("./productService");
+// 直接依存を減らすため、fetchProductsByTags のインポートを削除
+// import { fetchProductsByTags } from './productService';
+var mockProducts_1 = require("@/mocks/mockProducts");
 var viewHistoryService_1 = require("./viewHistoryService");
-// タグの重み付けスコア
-var TAG_SCORE_YES = 1.0; // YESスワイプの場合のスコア
-var TAG_SCORE_NO = -0.5; // NOスワイプの場合のスコア
-var TAG_SCORE_VIEW = 0.3; // 閲覧履歴の場合のスコア
-var TAG_SCORE_CLICK = 0.5; // クリック（購入リンク）の場合のスコア
-var TAG_BONUS_THRESHOLD = 3; // このスコア以上のタグを重要タグとして扱う
-var MIN_CONFIDENCE_SCORE = 0.6; // この値以上のタグを使ったレコメンドを行う
+// 定数: タグスコア調整用
+var TAG_SCORE_YES = 1.0; // YESスワイプされたアイテムのタグスコア
+var TAG_SCORE_NO = -0.5; // NOスワイプされたアイテムのタグスコア
+var TAG_SCORE_VIEW = 0.3; // 閲覧されたアイテムのタグスコア
+var TAG_SCORE_CLICK = 0.7; // クリック（購入リンク）されたアイテムのタグスコア
+var TAG_BONUS_THRESHOLD = 3; // ボーナススコアが適用される閾値
+var MIN_CONFIDENCE_SCORE = 0.5; // 信頼度スコアの最小値（これ以下のタグは無視）
+// モック使用フラグ (開発モードでAPI連携ができない場合に使用)
+var USE_MOCK = true; // 本番環境では必ず false にすること
+/**
+ * 特定のタグを持つ商品を取得する（内部実装版）
+ * @param tags 検索対象のタグ配列
+ * @param limit 取得する商品数
+ * @param excludeIds 除外する商品ID配列
+ * @returns 商品の配列
+ */
+var fetchProductsByTags = function (tags_1) {
+    var args_1 = [];
+    for (var _i = 1; _i < arguments.length; _i++) {
+        args_1[_i - 1] = arguments[_i];
+    }
+    return __awaiter(void 0, __spreadArray([tags_1], args_1, true), void 0, function (tags, limit, excludeIds) {
+        var filteredProducts, query, _a, data, error, products, error_1;
+        if (limit === void 0) { limit = 10; }
+        if (excludeIds === void 0) { excludeIds = []; }
+        return __generator(this, function (_b) {
+            switch (_b.label) {
+                case 0:
+                    _b.trys.push([0, 2, , 3]);
+                    if (!tags || tags.length === 0) {
+                        return [2 /*return*/, []];
+                    }
+                    if (USE_MOCK) {
+                        filteredProducts = mockProducts_1.mockProducts
+                            .filter(function (p) {
+                            // 除外IDチェック
+                            return !excludeIds.includes(p.id) &&
+                                // タグの一致チェック（少なくとも1つ一致）
+                                p.tags && p.tags.some(function (tag) { return tags.includes(tag); });
+                        })
+                            .slice(0, limit);
+                        return [2 /*return*/, filteredProducts];
+                    }
+                    query = supabase_1.supabase
+                        .from('products')
+                        .select('*')
+                        .or(tags.map(function (tag) { return "tags.cs.{".concat(tag, "}"); }).join(','))
+                        .limit(limit);
+                    // 除外IDがある場合
+                    if (excludeIds.length > 0) {
+                        query = query.not('id', 'in', excludeIds);
+                    }
+                    return [4 /*yield*/, query];
+                case 1:
+                    _a = _b.sent(), data = _a.data, error = _a.error;
+                    if (error) {
+                        console.error('Error fetching products by tags:', error);
+                        throw new Error(error.message);
+                    }
+                    if (!data || data.length === 0) {
+                        return [2 /*return*/, []];
+                    }
+                    products = data.map(function (item) { return ({
+                        id: item.id,
+                        title: item.title,
+                        brand: item.brand,
+                        price: item.price,
+                        imageUrl: item.image_url,
+                        description: item.description,
+                        tags: item.tags || [],
+                        category: item.category,
+                        affiliateUrl: item.affiliate_url,
+                        source: item.source,
+                        createdAt: item.created_at,
+                    }); });
+                    return [2 /*return*/, products];
+                case 2:
+                    error_1 = _b.sent();
+                    console.error('Unexpected error in fetchProductsByTags:', error_1);
+                    return [2 /*return*/, []];
+                case 3: return [2 /*return*/];
+            }
+        });
+    });
+};
 // キャッシュ設定
 var CACHE_TTL = 5 * 60 * 1000; // 5分（ミリ秒）
 var userPreferenceCache = new Map();
@@ -74,7 +154,7 @@ var analyzeUserPreferences = function (userId_1) {
         args_1[_i - 1] = arguments[_i];
     }
     return __awaiter(void 0, __spreadArray([userId_1], args_1, true), void 0, function (userId, skipCache) {
-        var cachedPreference, swipeHistory, viewHistory, yesProductIds, noProductIds, viewedProductIds, _a, clickLogs, clickError, clickedProductIds, _b, yesProducts, noProducts, clickedProducts, tagScores, result, error_1;
+        var cachedPreference, swipeHistory, viewHistory, yesProductIds, noProductIds, viewedProductIds, _a, clickLogs, clickError, clickedProductIds, _b, yesProducts, noProducts, clickedProducts, tagScores, result, error_2;
         if (skipCache === void 0) { skipCache = false; }
         return __generator(this, function (_c) {
             switch (_c.label) {
@@ -143,8 +223,8 @@ var analyzeUserPreferences = function (userId_1) {
                     });
                     return [2 /*return*/, result];
                 case 6:
-                    error_1 = _c.sent();
-                    console.error('Error analyzing user preferences:', error_1);
+                    error_2 = _c.sent();
+                    console.error('Error analyzing user preferences:', error_2);
                     return [2 /*return*/, null];
                 case 7: return [2 /*return*/];
             }
@@ -158,7 +238,7 @@ exports.analyzeUserPreferences = analyzeUserPreferences;
  * @returns 商品データの配列
  */
 var fetchProductsById = function (productIds) { return __awaiter(void 0, void 0, void 0, function () {
-    var BATCH_SIZE, batches, i, batchIds, batchResults, combinedData, error_2;
+    var BATCH_SIZE, batches, i, batchIds, batchResults, combinedData, error_3;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -210,8 +290,8 @@ var fetchProductsById = function (productIds) { return __awaiter(void 0, void 0,
                         createdAt: item.created_at,
                     }); })];
             case 3:
-                error_2 = _a.sent();
-                console.error('Unexpected error in fetchProductsById:', error_2);
+                error_3 = _a.sent();
+                console.error('Unexpected error in fetchProductsById:', error_3);
                 return [2 /*return*/, []];
             case 4: return [2 /*return*/];
         }
@@ -320,7 +400,7 @@ var getRecommendedProducts = function (userId_1) {
         args_1[_i - 1] = arguments[_i];
     }
     return __awaiter(void 0, __spreadArray([userId_1], args_1, true), void 0, function (userId, limit, excludeIds, skipCache) {
-        var cacheKey, cached, userPreference, popularProducts, recommendedProducts, validTags, stringTags, stringTags, popularProducts, popularProducts, result, error_3;
+        var cacheKey, cached, userPreference, popularProducts, recommendedProducts, validTags, stringTags, popularProducts, popularProducts, result, error_4;
         if (limit === void 0) { limit = 10; }
         if (excludeIds === void 0) { excludeIds = []; }
         if (skipCache === void 0) { skipCache = false; }
@@ -361,11 +441,11 @@ var getRecommendedProducts = function (userId_1) {
                     }
                     if (!(validTags.length > 0)) return [3 /*break*/, 5];
                     console.log("Searching with ".concat(validTags.length, " tags:"), validTags);
-                    stringTags = validTags.filter(function (tag) { return typeof tag === 'string'; });
-                    return [4 /*yield*/, (0, productService_1.fetchProductsByTags)(stringTags, limit * 2, // 多めに取得して後でフィルタリング
+                    return [4 /*yield*/, fetchProductsByTags(validTags, // validTags は既にstring[]として定義済み
+                        limit * 2, // 多めに取得して後でフィルタリング
                         excludeIds)];
                 case 4:
-                    // タグ型の互換性を確保
+                    // 明示的に型を指定してタグを検索に使用
                     recommendedProducts = _a.sent();
                     return [3 /*break*/, 7];
                 case 5:
@@ -401,8 +481,8 @@ var getRecommendedProducts = function (userId_1) {
                     });
                     return [2 /*return*/, result];
                 case 10:
-                    error_3 = _a.sent();
-                    console.error('Error getting recommended products:', error_3);
+                    error_4 = _a.sent();
+                    console.error('Error getting recommended products:', error_4);
                     // エラー時は空配列を返す（UIがクラッシュしないように）
                     return [2 /*return*/, []];
                 case 11: return [2 /*return*/];
@@ -450,7 +530,7 @@ var getPopularProducts = function () {
         args_1[_i] = arguments[_i];
     }
     return __awaiter(void 0, __spreadArray([], args_1, true), void 0, function (limit, excludeIds) {
-        var cacheKey, cached, query, filterExcludedProducts, _a, data_1, error_5, filteredData, result_1, _b, data, error, result, error_4;
+        var cacheKey, cached, query, filterExcludedProducts, _a, data_1, error_6, filteredData, result_1, _b, data, error, result, error_5;
         if (limit === void 0) { limit = 10; }
         if (excludeIds === void 0) { excludeIds = []; }
         return __generator(this, function (_c) {
@@ -479,10 +559,10 @@ var getPopularProducts = function () {
                             .select('*')
                             .limit(limit * 3)];
                 case 2:
-                    _a = _c.sent(), data_1 = _a.data, error_5 = _a.error;
-                    if (error_5) {
-                        console.error('Error fetching popular products:', error_5);
-                        throw new Error(error_5.message);
+                    _a = _c.sent(), data_1 = _a.data, error_6 = _a.error;
+                    if (error_6) {
+                        console.error('Error fetching popular products:', error_6);
+                        throw new Error(error_6.message);
                     }
                     if (!data_1 || data_1.length === 0) {
                         return [2 /*return*/, []];
@@ -541,8 +621,8 @@ var getPopularProducts = function () {
                     });
                     return [2 /*return*/, result];
                 case 6:
-                    error_4 = _c.sent();
-                    console.error('Unexpected error in getPopularProducts:', error_4);
+                    error_5 = _c.sent();
+                    console.error('Unexpected error in getPopularProducts:', error_5);
                     return [2 /*return*/, []];
                 case 7: return [2 /*return*/];
             }
@@ -565,7 +645,7 @@ var getRecommendationsByCategory = function (userId_1) {
         args_1[_i - 1] = arguments[_i];
     }
     return __awaiter(void 0, __spreadArray([userId_1], args_1, true), void 0, function (userId, categories, limit, skipCache) {
-        var cacheKey, cached, result_2, userPreference_1, swipeHistory, swipedProductIds_1, categoryPromises, categoryResults, error_6;
+        var cacheKey, cached, result_2, userPreference_1, swipeHistory, swipedProductIds_1, categoryPromises, categoryResults, error_7;
         if (categories === void 0) { categories = ['tops', 'bottoms', 'outerwear', 'accessories']; }
         if (limit === void 0) { limit = 5; }
         if (skipCache === void 0) { skipCache = false; }
@@ -591,7 +671,7 @@ var getRecommendationsByCategory = function (userId_1) {
                     swipeHistory = _a.sent();
                     swipedProductIds_1 = swipeHistory.map(function (swipe) { return swipe.productId; });
                     categoryPromises = categories.map(function (category) { return __awaiter(void 0, void 0, void 0, function () {
-                        var products, validTags, stringTags, error_7;
+                        var products, validTags, stringTags, error_8;
                         return __generator(this, function (_a) {
                             switch (_a.label) {
                                 case 0:
@@ -605,9 +685,10 @@ var getRecommendationsByCategory = function (userId_1) {
                                         validTags.push.apply(validTags, stringTags);
                                     }
                                     if (!(validTags.length > 0)) return [3 /*break*/, 2];
-                                    return [4 /*yield*/, fetchProductsByCategoryAndTags(category, validTags, limit, swipedProductIds_1)];
+                                    return [4 /*yield*/, fetchProductsByCategoryAndTags(category, validTags, // validTags は既にstring[]として定義済み
+                                        limit, swipedProductIds_1)];
                                 case 1:
-                                    // タグ型の互換性を確保
+                                    // カテゴリとタグを使用して商品検索
                                     products = _a.sent();
                                     return [3 /*break*/, 4];
                                 case 2: return [4 /*yield*/, fetchProductsByCategory(category, limit, swipedProductIds_1)];
@@ -629,8 +710,8 @@ var getRecommendationsByCategory = function (userId_1) {
                                     _a.label = 7;
                                 case 7: return [2 /*return*/, { category: category, products: products }];
                                 case 8:
-                                    error_7 = _a.sent();
-                                    console.error("Error fetching products for category ".concat(category, ":"), error_7);
+                                    error_8 = _a.sent();
+                                    console.error("Error fetching products for category ".concat(category, ":"), error_8);
                                     return [2 /*return*/, { category: category, products: [] }];
                                 case 9: return [2 /*return*/];
                             }
@@ -651,8 +732,8 @@ var getRecommendationsByCategory = function (userId_1) {
                     });
                     return [2 /*return*/, result_2];
                 case 4:
-                    error_6 = _a.sent();
-                    console.error('Error getting recommendations by category:', error_6);
+                    error_7 = _a.sent();
+                    console.error('Error getting recommendations by category:', error_7);
                     return [2 /*return*/, {}];
                 case 5: return [2 /*return*/];
             }
@@ -662,6 +743,11 @@ var getRecommendationsByCategory = function (userId_1) {
 exports.getRecommendationsByCategory = getRecommendationsByCategory;
 /**
  * カテゴリとタグで商品を検索する
+ * @param category 商品カテゴリ
+ * @param tags 検索タグ配列
+ * @param limit 取得数
+ * @param excludeIds 除外ID配列
+ * @returns 商品配列
  */
 var fetchProductsByCategoryAndTags = function (category_1, tags_1, limit_1) {
     var args_1 = [];
@@ -669,7 +755,7 @@ var fetchProductsByCategoryAndTags = function (category_1, tags_1, limit_1) {
         args_1[_i - 3] = arguments[_i];
     }
     return __awaiter(void 0, __spreadArray([category_1, tags_1, limit_1], args_1, true), void 0, function (category, tags, limit, excludeIds) {
-        var usedTags, query, _a, data_2, error_9, excludeSet_1, filteredData, _b, data, error, error_8;
+        var usedTags, query, _a, data_2, error_10, excludeSet_1, filteredData, _b, data, error, error_9;
         if (excludeIds === void 0) { excludeIds = []; }
         return __generator(this, function (_c) {
             switch (_c.label) {
@@ -683,16 +769,16 @@ var fetchProductsByCategoryAndTags = function (category_1, tags_1, limit_1) {
                         .from('products')
                         .select('*')
                         .eq('category', category)
-                        .contains('tags', usedTags)
+                        .or(usedTags.map(function (tag) { return "tags.cs.{".concat(tag, "}"); }).join(','))
                         .limit(limit);
                     if (!(excludeIds.length > 0)) return [3 /*break*/, 3];
                     if (!(excludeIds.length > 100)) return [3 /*break*/, 2];
                     return [4 /*yield*/, query];
                 case 1:
-                    _a = _c.sent(), data_2 = _a.data, error_9 = _a.error;
-                    if (error_9) {
-                        console.error('Error fetching products by category and tags:', error_9);
-                        throw new Error(error_9.message);
+                    _a = _c.sent(), data_2 = _a.data, error_10 = _a.error;
+                    if (error_10) {
+                        console.error('Error fetching products by category and tags:', error_10);
+                        throw new Error(error_10.message);
                     }
                     if (!data_2 || data_2.length === 0) {
                         return [2 /*return*/, []];
@@ -741,8 +827,8 @@ var fetchProductsByCategoryAndTags = function (category_1, tags_1, limit_1) {
                             createdAt: item.created_at,
                         }); })];
                 case 5:
-                    error_8 = _c.sent();
-                    console.error('Unexpected error in fetchProductsByCategoryAndTags:', error_8);
+                    error_9 = _c.sent();
+                    console.error('Unexpected error in fetchProductsByCategoryAndTags:', error_9);
                     return [2 /*return*/, []];
                 case 6: return [2 /*return*/];
             }
@@ -751,6 +837,10 @@ var fetchProductsByCategoryAndTags = function (category_1, tags_1, limit_1) {
 };
 /**
  * カテゴリで商品を検索する
+ * @param category 商品カテゴリ
+ * @param limit 取得数
+ * @param excludeIds 除外ID配列
+ * @returns 商品配列
  */
 var fetchProductsByCategory = function (category_1, limit_1) {
     var args_1 = [];
@@ -758,7 +848,7 @@ var fetchProductsByCategory = function (category_1, limit_1) {
         args_1[_i - 2] = arguments[_i];
     }
     return __awaiter(void 0, __spreadArray([category_1, limit_1], args_1, true), void 0, function (category, limit, excludeIds) {
-        var query, _a, data_3, error_11, excludeSet_2, filteredData, _b, data, error, error_10;
+        var query, _a, data_3, error_12, excludeSet_2, filteredData, _b, data, error, error_11;
         if (excludeIds === void 0) { excludeIds = []; }
         return __generator(this, function (_c) {
             switch (_c.label) {
@@ -773,10 +863,10 @@ var fetchProductsByCategory = function (category_1, limit_1) {
                     if (!(excludeIds.length > 100)) return [3 /*break*/, 2];
                     return [4 /*yield*/, query];
                 case 1:
-                    _a = _c.sent(), data_3 = _a.data, error_11 = _a.error;
-                    if (error_11) {
-                        console.error('Error fetching products by category:', error_11);
-                        throw new Error(error_11.message);
+                    _a = _c.sent(), data_3 = _a.data, error_12 = _a.error;
+                    if (error_12) {
+                        console.error('Error fetching products by category:', error_12);
+                        throw new Error(error_12.message);
                     }
                     if (!data_3 || data_3.length === 0) {
                         return [2 /*return*/, []];
@@ -825,8 +915,8 @@ var fetchProductsByCategory = function (category_1, limit_1) {
                             createdAt: item.created_at,
                         }); })];
                 case 5:
-                    error_10 = _c.sent();
-                    console.error('Unexpected error in fetchProductsByCategory:', error_10);
+                    error_11 = _c.sent();
+                    console.error('Unexpected error in fetchProductsByCategory:', error_11);
                     return [2 /*return*/, []];
                 case 6: return [2 /*return*/];
             }
