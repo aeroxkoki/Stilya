@@ -1,25 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, StyleSheet, ActivityIndicator, Text, TouchableOpacity } from 'react-native';
-// import { PanGestureHandler } from 'react-native-gesture-handler';
-// Animated関連のモックインポート
-// import Animated, {
-//   useAnimatedGestureHandler,
-//   useAnimatedStyle,
-//   interpolate,
-//   Extrapolate,
-//   runOnJS,
-// } from 'react-native-reanimated';
-
-// モックオブジェクト
-const PanGestureHandler = ({ children, onGestureEvent, enabled, testID }: any) => children;
-const Animated = {
-  View: View,
-};
-const useAnimatedGestureHandler = () => ({});
-const useAnimatedStyle = () => ({});
-const interpolate = () => 0;
-const Extrapolate = { CLAMP: 'clamp' };
-const runOnJS = (fn: any) => fn;
+import { PanGestureHandler } from 'react-native-gesture-handler';
+import Animated, {
+  useAnimatedGestureHandler,
+  useAnimatedStyle,
+  interpolate,
+  Extrapolate,
+  runOnJS,
+} from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useSwipe } from '@/hooks/useSwipe';
 import { Product } from '@/types';
@@ -116,28 +104,76 @@ const SwipeContainer: React.FC<SwipeContainerProps> = ({
   });
 
   // パンジェスチャーハンドラー
-  const gestureHandler = {}; // モック用に簡略化
+  const gestureHandler = useAnimatedGestureHandler({
+    onStart: () => {
+      runOnJS(handleSwipeStart)();
+    },
+    onActive: (event) => {
+      translateX.value = event.translationX;
+      translateY.value = event.translationY;
+      rotation.value = interpolate(
+        event.translationX,
+        [-200, 0, 200],
+        [-15, 0, 15],
+        Extrapolate.CLAMP
+      );
+    },
+    onEnd: (event) => {
+      if (event.translationX > SWIPE_THRESHOLD && currentProduct) {
+        runOnJS(handleSwipeRight)(currentProduct);
+      } else if (event.translationX < -SWIPE_THRESHOLD && currentProduct) {
+        runOnJS(handleSwipeLeft)(currentProduct);
+      } else {
+        runOnJS(resetPosition)();
+      }
+    },
+  });
 
   // カードのアニメーションスタイル
-  const animatedCardStyle = {}; // モック用に簡略化
+  const animatedCardStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        { translateX: translateX.value },
+        { translateY: translateY.value },
+        { rotate: `${rotation.value}deg` },
+        { scale: scale.value },
+      ],
+    };
+  });
 
   // Yes/Noインジケーターのアニメーションスタイル
-  const yesIndicatorStyle = {}; // モック用に簡略化
+  const yesIndicatorStyle = useAnimatedStyle(() => {
+    return {
+      opacity: interpolate(
+        translateX.value,
+        [0, SWIPE_THRESHOLD / 2, SWIPE_THRESHOLD],
+        [0, 0.5, 1],
+        Extrapolate.CLAMP
+      ),
+    };
+  });
 
-  const noIndicatorStyle = {}; // モック用に簡略化
+  const noIndicatorStyle = useAnimatedStyle(() => {
+    return {
+      opacity: interpolate(
+        translateX.value,
+        [-SWIPE_THRESHOLD, -SWIPE_THRESHOLD / 2, 0],
+        [1, 0.5, 0],
+        Extrapolate.CLAMP
+      ),
+    };
+  });
 
   // ボタンによるスワイプ操作ハンドラー
   const handleNoButtonPress = useCallback(() => {
     if (currentProduct) {
-      // 型エラーを回避するためにTypeScriptの型アサーションを使用
-      (handleSwipeLeft as unknown as (product: Product) => void)(currentProduct);
+      handleSwipeLeft(currentProduct);
     }
   }, [currentProduct, handleSwipeLeft]);
 
   const handleYesButtonPress = useCallback(() => {
     if (currentProduct) {
-      // 型エラーを回避するためにTypeScriptの型アサーションを使用
-      (handleSwipeRight as unknown as (product: Product) => void)(currentProduct);
+      handleSwipeRight(currentProduct);
     }
   }, [currentProduct, handleSwipeRight]);
 

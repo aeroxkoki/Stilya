@@ -4,6 +4,7 @@
   "main": "App.js",
   "scripts": {
     "start": "EXPO_NO_TYPESCRIPT_TRANSPILE=true npx expo start --clear",
+    "start:dev": "EXPO_NO_TYPESCRIPT_TRANSPILE=true npx expo start",
     "android": "npx expo start --android",
     "ios": "npx expo start --ios",
     "web": "npx expo start --web",
@@ -15,7 +16,8 @@
     "tsc": "tsc",
     "docs": "node scripts/generate-docs.js",
     "docs:serve": "npx http-server ./docs/generated -o",
-    "simple": "node start-app.js"
+    "simple": "node start-app.js",
+    "fix-deps": "sh ./fix-dependencies.sh"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",

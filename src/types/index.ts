@@ -114,6 +114,7 @@ export type ProfileStackParamList = {
 
 export type DevNavigatorParamList = {
   RecommendationTest: undefined;
+  AnimationTest: undefined;
 };
 
 export type ReportStackParamList = {

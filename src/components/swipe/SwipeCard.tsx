@@ -1,11 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Dimensions, Platform, ActivityIndicator } from 'react-native';
+import { StyleSheet, Dimensions, Platform, ActivityIndicator, View as RNView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-// import Animated from 'react-native-reanimated';
-// 一時的にAnimatedをモックして型エラーを解消
-const Animated = {
-  View: View
-};
+import Animated from 'react-native-reanimated';
 import { Product } from '@/types';
 import { formatPrice } from '@/utils';
 import { Tags } from '@/components/common';

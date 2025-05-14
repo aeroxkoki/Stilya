@@ -2,6 +2,7 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { DevNavigatorParamList } from '@/types';
 import RecommendationTestScreen from '@/screens/dev/RecommendationTestScreen';
+import AnimationTestScreen from '@/screens/dev/AnimationTestScreen';
 
 const Stack = createNativeStackNavigator<DevNavigatorParamList>();
 
@@ -17,6 +18,14 @@ const DevNavigator: React.FC = () => {
         options={{ 
           title: 'レコメンド機能テスト',
           headerLargeTitle: true
+        }} 
+      />
+      <Stack.Screen 
+        name="AnimationTest" 
+        component={AnimationTestScreen} 
+        options={{ 
+          title: 'アニメーションテスト',
+          headerShown: false
         }} 
       />
     </Stack.Navigator>

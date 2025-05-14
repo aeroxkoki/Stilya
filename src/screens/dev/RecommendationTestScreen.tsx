@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button, View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useRecommendations } from '@/hooks/useRecommendations';
 import { runRecommendationPerformanceTest } from '@/utils/recommendationProfiler';
 import { useAuth } from '@/hooks/useAuth';
@@ -9,6 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
  * 開発者用ツールとして利用可能
  */
 const RecommendationTestScreen: React.FC = () => {
+  const navigation = useNavigation();
   const { user } = useAuth();
   const {
     recommendations,
@@ -170,6 +172,17 @@ const RecommendationTestScreen: React.FC = () => {
             title="手動更新（キャッシュ使用）" 
             onPress={() => refreshRecommendations(false)}
             disabled={isLoading || !user}
+          />
+        </View>
+        
+        <View style={styles.buttonContainer}>
+          <Button 
+            title="アニメーションテスト画面" 
+            onPress={() => {
+              // @ts-ignore
+              navigation.navigate('AnimationTest');
+            }}
+            color="#9C27B0"
           />
         </View>
       </View>

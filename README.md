@@ -33,16 +33,34 @@ Stilyaは、ユーザーのファッションの好みをスワイプUIを通じ
 git clone https://github.com/aeroxkoki/Stilya.git
 cd Stilya
 
-# 依存関係のインストール
-npm install
+# 依存関係のインストール（推奨方法）
+yarn
+
+# または、問題が発生した場合は修復スクリプトを使用
+yarn fix-deps
+# または
+npm run fix-deps
 
 # 環境変数ファイルの作成
 cp .env.example .env
 # .envファイルを編集して実際の値を設定
 
 # Expoの起動
-npx expo start
+yarn start
+# または
+npm run start
 ```
+
+### 依存関係エラーの解決
+
+`yarn install --frozen-lockfile` でエラーが発生した場合は、次の方法で解決できます：
+
+1. 既存の yarn.lock を削除: `rm yarn.lock`
+2. 通常の方法でインストール: `yarn install`（--frozen-lockfile フラグなし）
+3. または修復スクリプトを使用: `yarn fix-deps`
+
+これにより、依存関係が正しくインストールされ、新しい yarn.lock ファイルが生成されます。
+
 
 ## Supabaseのセットアップ
 
