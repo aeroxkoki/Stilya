@@ -340,12 +340,11 @@ export const getRecommendedProducts = async (
     if (validTags.length > 0) {
       console.log(`Searching with ${validTags.length} tags:`, validTags);
       
-      // 文字列配列であることを確認して型を明示的に指定
-      const stringTags: string[] = validTags.filter((tag): tag is string => typeof tag === 'string');
+      // 文字列のみを含む配列を新しく作成（型互換性のため）
+      const searchTags: string[] = [...validTags]; 
       
-      // タグ型の互換性を確保
       recommendedProducts = await fetchProductsByTags(
-        stringTags as string[],
+        searchTags,
         limit * 2, // 多めに取得して後でフィルタリング
         excludeIds
       );
@@ -612,10 +611,12 @@ export const getRecommendationsByCategory = async (
           
           // 有効なタグがある場合は、それを使って商品を検索
           if (validTags.length > 0) {
-            // タグ型の互換性を確保
+            // 文字列のみを含む配列を新しく作成（型互換性のため）
+            const searchTags: string[] = [...validTags];
+            
             products = await fetchProductsByCategoryAndTags(
               category,
-              validTags as string[],
+              searchTags,
               limit,
               swipedProductIds
             );
@@ -676,6 +677,11 @@ export const getRecommendationsByCategory = async (
 
 /**
  * カテゴリとタグで商品を検索する
+ * @param category 商品カテゴリ
+ * @param tags 検索タグ配列
+ * @param limit 取得数
+ * @param excludeIds 除外ID配列
+ * @returns 商品配列
  */
 const fetchProductsByCategoryAndTags = async (
   category: string,
@@ -769,6 +775,10 @@ const fetchProductsByCategoryAndTags = async (
 
 /**
  * カテゴリで商品を検索する
+ * @param category 商品カテゴリ
+ * @param limit 取得数
+ * @param excludeIds 除外ID配列
+ * @returns 商品配列
  */
 const fetchProductsByCategory = async (
   category: string,

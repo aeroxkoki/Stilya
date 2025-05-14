@@ -416,10 +416,14 @@ export const recordProductClick = async (productId: string, product?: Product): 
 
 /**
  * 特定のタグを持つ商品を取得する
+ * @param tags 検索対象のタグ配列
+ * @param limit 取得する商品数
+ * @param excludeIds 除外する商品ID配列
+ * @returns 商品の配列
  */
 export const fetchProductsByTags = async (
   tags: string[],
-  limit = 10, 
+  limit: number = 10, 
   excludeIds: string[] = []
 ): Promise<Product[]> => {
   try {
