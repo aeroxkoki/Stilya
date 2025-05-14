@@ -324,8 +324,19 @@ export const getRecommendedProducts = async (
     }
     
     // 上位タグを使用して関連商品を取得
+    const tagsForSearch: string[] = []; // 明示的な型の指定
+    
+    // topTagsが配列であることを確認してから追加
+    if (userPreference.topTags && Array.isArray(userPreference.topTags)) {
+      userPreference.topTags.forEach(tag => {
+        if (typeof tag === 'string') {
+          tagsForSearch.push(tag);
+        }
+      });
+    }
+    
     let recommendedProducts = await fetchProductsByTags(
-      userPreference.topTags && Array.isArray(userPreference.topTags) ? userPreference.topTags : [],
+      tagsForSearch,
       limit * 2, // 多めに取得して後でフィルタリング
       excludeIds
     );
@@ -568,9 +579,20 @@ export const getRecommendationsByCategory = async (
         
         if (userPreference && userPreference.topTags && userPreference.topTags.length > 0) {
           // カテゴリと好みのタグで商品を検索
+          const safeTopTags: string[] = []; // 明示的な型の指定
+          
+          // topTagsが配列であることを確認してから追加
+          if (userPreference.topTags && Array.isArray(userPreference.topTags)) {
+            userPreference.topTags.forEach(tag => {
+              if (typeof tag === 'string') {
+                safeTopTags.push(tag);
+              }
+            });
+          }
+          
           products = await fetchProductsByCategoryAndTags(
             category,
-            userPreference.topTags && Array.isArray(userPreference.topTags) ? userPreference.topTags : [],
+            safeTopTags,
             limit,
             swipedProductIds
           );
