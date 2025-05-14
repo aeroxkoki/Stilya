@@ -76,6 +76,7 @@ jest.mock('react-native/Libraries/Lists/FlatList', () => {
 // React 関連のモック
 jest.mock('react-native', () => {
   const RN = jest.requireActual('react-native');
+  const React = require('react');
   
   // VirtualizedListのモック
   const VirtualizedListMock = function(props) {
@@ -202,7 +203,9 @@ jest.mock('react-native', () => {
     // FlatListとVirtualizedListを明示的に提供
     FlatList: FlatListMock,
     VirtualizedList: VirtualizedListMock,
-    SectionList: jest.fn(props => React.createElement('SectionList', props, props.children)),
+    SectionList: jest.fn(props => {
+      return React.createElement('SectionList', props, props.children);
+    }),
   };
 });
 
