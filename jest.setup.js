@@ -1,30 +1,25 @@
-// jest.setup.js
-// This file configures necessary mocks before jest-expo's setup runs
+// Jest setup file
 
-// Required globals
+// Fix common Reanimated issues
+global.__reanimatedWorkletInit = jest.fn();
+global._WORKLET = false;
+global._log = jest.fn();
+
+// Basic globals required for React Native tests
 global.window = {};
 global.__DEV__ = true;
 
-// Mock Reanimated
-jest.mock('react-native-reanimated', () => {
-  const Reanimated = require('react-native-reanimated/mock');
-  // The mock for `call` immediately calls the callback with an empty first argument 
-  // which is not how the Reanimated call() behaves. Fix it to preserve the call stack.
-  Reanimated.default.call = function(cb) {
-    return cb(null);
-  };
-  return Reanimated;
-});
+// -- Begin common mock definitions --
 
-// Mock NativeModules before they are used
+// Consolidated React Native mock
 jest.mock('react-native', () => {
-  const reactNative = jest.requireActual('react-native');
+  const RN = jest.requireActual('react-native');
   
-  // Extend NativeModules for animations and gesture handling
-  reactNative.NativeModules = {
-    ...reactNative.NativeModules,
+  // Mock NativeModules
+  RN.NativeModules = {
+    ...RN.NativeModules,
     UIManager: {
-      ...reactNative.NativeModules.UIManager,
+      ...RN.NativeModules.UIManager,
       RCTView: {},
       createView: jest.fn(),
       updateView: jest.fn(),
@@ -57,10 +52,54 @@ jest.mock('react-native', () => {
     },
   };
   
-  return reactNative;
+  // Mock dimensions
+  RN.Dimensions.get = jest.fn().mockImplementation((dim) => {
+    if (dim === 'window' || dim === 'screen') {
+      return { width: 390, height: 844, scale: 2, fontScale: 1 };
+    }
+    return jest.requireActual('react-native').Dimensions.get(dim);
+  });
+  
+  // Mock Image component
+  RN.Image = jest.fn(({source, style, onLoad, testID}) => {
+    if (onLoad) {
+      setTimeout(() => {
+        onLoad({ nativeEvent: { source: { width: 100, height: 100 } } });
+      }, 10);
+    }
+    return RN.View; 
+  });
+  
+  return RN;
 });
 
-// Mock Expo modules
+// Reanimated mock
+jest.mock('react-native-reanimated', () => {
+  const Reanimated = require('react-native-reanimated/mock');
+  Reanimated.default.call = function(cb) {
+    return cb(null);
+  };
+  return Reanimated;
+});
+
+// Gesture handler mock
+jest.mock('react-native-gesture-handler', () => {
+  const View = require('react-native').View;
+  return {
+    Swipeable: View,
+    DrawerLayout: View,
+    GestureHandlerRootView: View,
+    State: {},
+    ScrollView: View,
+    PanGestureHandler: View,
+    TapGestureHandler: View,
+    TouchableOpacity: View,
+    PinchGestureHandler: View,
+    createNativeWrapper: jest.fn(() => View),
+  };
+});
+
+// Expo modules mocks
 jest.mock('expo-status-bar', () => ({
   StatusBar: jest.fn(() => null),
 }));
@@ -94,23 +133,19 @@ jest.mock('expo-device', () => ({
   osVersion: '16.0',
 }));
 
-// Mock react-native modules
-jest.mock('react-native-gesture-handler', () => {
-  const View = require('react-native').View;
-  return {
-    Swipeable: View,
-    DrawerLayout: View,
-    GestureHandlerRootView: View,
-    State: {},
-    ScrollView: View,
-    PanGestureHandler: View,
-    TapGestureHandler: View,
-    TouchableOpacity: View,
-    PinchGestureHandler: View,
-    createNativeWrapper: jest.fn(() => View),
-  };
-});
+jest.mock('expo-image', () => ({
+  Image: require('react-native').View,
+  ImageBackground: require('react-native').View,
+  ContentFit: {
+    COVER: 'cover',
+    CONTAIN: 'contain',
+    FILL: 'fill',
+    NONE: 'none',
+    SCALE_DOWN: 'scale-down',
+  },
+}));
 
+// Other third-party libraries
 jest.mock('@react-native-async-storage/async-storage', () => ({
   getItem: jest.fn(() => Promise.resolve(null)),
   setItem: jest.fn(() => Promise.resolve(null)),
@@ -126,7 +161,16 @@ jest.mock('@react-native-community/netinfo', () => ({
   })),
 }));
 
-// Add Navigation Mocks
+jest.mock('react-native-toast-message', () => ({
+  show: jest.fn(),
+  hide: jest.fn(),
+}));
+
+jest.mock('nativewind', () => ({
+  styled: (component) => component,
+}));
+
+// Navigation mocks
 jest.mock('@react-navigation/native', () => ({
   ...jest.requireActual('@react-navigation/native'),
   useNavigation: () => ({
@@ -146,7 +190,7 @@ jest.mock('@react-navigation/native', () => ({
   }),
 }));
 
-// Mock @supabase/supabase-js
+// Supabase mock
 jest.mock('@supabase/supabase-js', () => ({
   createClient: jest.fn(() => ({
     auth: {
@@ -173,64 +217,5 @@ jest.mock('@supabase/supabase-js', () => ({
   })),
 }));
 
-// Silence warnings for NativeAnimated
+// Silence animation warnings
 jest.mock('react-native/Libraries/Animated/NativeAnimatedHelper');
-
-// Mock NativeWind
-jest.mock('nativewind', () => ({
-  styled: (component) => component,
-}));
-
-// Mock react-native-toast-message
-jest.mock('react-native-toast-message', () => ({
-  show: jest.fn(),
-  hide: jest.fn(),
-}));
-
-// Handle custom dimensions for testing
-jest.mock('react-native', () => {
-  const RN = jest.requireActual('react-native');
-  
-  // Override the Dimensions to provide test values
-  RN.Dimensions.get = jest.fn().mockImplementation((dim) => {
-    if (dim === 'window' || dim === 'screen') {
-      return { width: 390, height: 844, scale: 2, fontScale: 1 };
-    }
-    return jest.requireActual('react-native').Dimensions.get(dim);
-  });
-  
-  return RN;
-});
-
-// Make sure we have a properly mocked Image component
-const MockImage = ({source, style, onLoad, onError, testID}) => {
-  const sourceUri = source && source.uri ? source.uri : (typeof source === 'string' ? source : undefined);
-  
-  // Simulate load event after a small timeout
-  if (onLoad) {
-    setTimeout(() => {
-      onLoad({ nativeEvent: { source: { width: 100, height: 100 } } });
-    }, 10);
-  }
-  
-  return jest.requireActual('react-native').View;
-};
-
-jest.mock('react-native', () => {
-  const RN = jest.requireActual('react-native');
-  RN.Image = MockImage;
-  return RN;
-});
-
-// Mock Expo Image component
-jest.mock('expo-image', () => ({
-  Image: require('react-native').View,
-  ImageBackground: require('react-native').View,
-  ContentFit: {
-    COVER: 'cover',
-    CONTAIN: 'contain',
-    FILL: 'fill',
-    NONE: 'none',
-    SCALE_DOWN: 'scale-down',
-  },
-}));
