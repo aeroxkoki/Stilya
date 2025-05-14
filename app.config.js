@@ -95,12 +95,12 @@ module.exports = {
     
     // eas
     eas: {
-      projectId: 'c2a98f3b-d8dc-4bc3-9b53-8ff63bc2cfd9'
+      projectId: 'beb25e0f-344b-4f2f-8b64-20614b9744a3'
     }
   },
   updates: {
     fallbackToCacheTimeout: 0,
-    url: 'https://u.expo.dev/c2a98f3b-d8dc-4bc3-9b53-8ff63bc2cfd9'
+    url: 'https://u.expo.dev/beb25e0f-344b-4f2f-8b64-20614b9744a3'
   },
   runtimeVersion: {
     policy: 'sdkVersion'
