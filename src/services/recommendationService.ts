@@ -325,7 +325,7 @@ export const getRecommendedProducts = async (
     
     // 上位タグを使用して関連商品を取得
     let recommendedProducts = await fetchProductsByTags(
-      Array.isArray(userPreference.topTags) ? userPreference.topTags : [],
+      userPreference.topTags,
       limit * 2, // 多めに取得して後でフィルタリング
       excludeIds
     );
@@ -570,7 +570,7 @@ export const getRecommendationsByCategory = async (
           // カテゴリと好みのタグで商品を検索
           products = await fetchProductsByCategoryAndTags(
             category,
-            Array.isArray(userPreference.topTags) ? userPreference.topTags : [],
+            userPreference.topTags,
             limit,
             swipedProductIds
           );

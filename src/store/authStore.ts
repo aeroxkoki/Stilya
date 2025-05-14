@@ -43,20 +43,17 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       set({ loading: true, error: null });
       
       // セッションを取得
-      const { data: sessionData } = await supabase.auth.getSession();
-      const session = sessionData.session;
+      const { data: { session } } = await supabase.auth.getSession();
       
       if (session) {
         // セッションの有効期限をチェック
         if (isSessionExpired(session)) {
           // セッションの更新が必要な場合
           const refreshResult = await refreshSession();
-          const refreshData = refreshResult.data;
+          const { session: refreshedSession } = refreshResult;
           
-          if (refreshData.session) {
-            const userResult = await supabase.auth.getUser();
-            const userData = userResult.data;
-            const user = userData.user;
+          if (refreshedSession) {
+            const { data: { user } } = await supabase.auth.getUser();
             
             if (user) {
               await get().fetchUserProfile();
@@ -68,9 +65,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
           }
         } else {
           // 有効なセッションがある場合はユーザー情報を取得
-          const userResult = await supabase.auth.getUser();
-          const userData = userResult.data;
-          const user = userData.user;
+          const { data: { user } } = await supabase.auth.getUser();
           
           if (user) {
             // ユーザープロファイルを取得
@@ -104,10 +99,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       if (!session) return false;
       
       if (isSessionExpired(session)) {
-        const refreshResult = await refreshSession();
-        const refreshData = refreshResult.data;
-        if (refreshData.session) {
-          set({ session: refreshData.session });
+        const { data: { session: refreshedSession } } = await refreshSession();
+        if (refreshedSession) {
+          set({ session: refreshedSession });
           return true;
         }
         return false;
