@@ -23,7 +23,7 @@ const AuthScreen: React.FC = () => {
   const [mode, setMode] = useState<AuthMode>('signin');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const { login, register } = useAuth();
 
   const toggleMode = () => {
     setMode(mode === 'signin' ? 'signup' : 'signin');
@@ -38,28 +38,22 @@ const AuthScreen: React.FC = () => {
     setIsLoading(true);
 
     try {
-      let result;
-
       if (mode === 'signin') {
-        result = await signIn(email, password);
+        await login(email, password);
       } else {
-        result = await signUp(email, password);
-      }
-
-      if (result.error) {
-        let errorMessage = 'エラーが発生しました。';
-
-        if (mode === 'signin') {
-          errorMessage = 'ログインに失敗しました。メールアドレスまたはパスワードが正しくありません。';
-        } else {
-          errorMessage = '新規登録に失敗しました。別のメールアドレスを試すか、パスワードを変更してください。';
-        }
-
-        Alert.alert('エラー', errorMessage);
+        await register(email, password);
       }
     } catch (error) {
       console.error('Auth error:', error);
-      Alert.alert('エラー', '予期せぬエラーが発生しました。');
+      
+      let errorMessage = 'エラーが発生しました。';
+      if (mode === 'signin') {
+        errorMessage = 'ログインに失敗しました。メールアドレスまたはパスワードが正しくありません。';
+      } else {
+        errorMessage = '新規登録に失敗しました。別のメールアドレスを試すか、パスワードを変更してください。';
+      }
+      
+      Alert.alert('エラー', errorMessage);
     } finally {
       setIsLoading(false);
     }

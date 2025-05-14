@@ -1,9 +1,23 @@
 import React, { createContext, useState, useEffect, useCallback, useContext } from 'react';
 import { supabase, signIn, signUp, signOut, getSession, refreshSession, isSessionExpired, getUserProfile } from '@/services/supabase';
 import { User } from '@/types';
-import * as SecureStore from 'expo-secure-store';
+// import * as SecureStore from 'expo-secure-store';
 import { syncOfflineSwipes } from '@/services/swipeService';
 import NetInfo from '@react-native-community/netinfo';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// SecureStore のモック
+const SecureStore = {
+  setItemAsync: async (key: string, value: string): Promise<void> => {
+    await AsyncStorage.setItem(`secure_${key}`, value);
+  },
+  getItemAsync: async (key: string): Promise<string | null> => {
+    return await AsyncStorage.getItem(`secure_${key}`);
+  },
+  deleteItemAsync: async (key: string): Promise<void> => {
+    await AsyncStorage.removeItem(`secure_${key}`);
+  }
+};
 
 // ユーザーセッションストレージキー
 const SESSION_KEY = 'stilya_user_session';
@@ -95,7 +109,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
 
           setIsLoading(false);
-        } else if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+        } else if (event === 'SIGNED_OUT') {
           // ログアウトまたはユーザー削除時
           setUser(null);
           setProfile(null);

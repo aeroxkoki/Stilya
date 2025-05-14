@@ -4,6 +4,12 @@ import { Product } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import { getSwipeHistory } from '@/services/swipeService';
 
+interface ProductsData {
+  products: Product[];
+  hasMore: boolean;
+  totalFetched: number;
+}
+
 interface UseProductsReturn {
   products: Product[];
   currentIndex: number;
@@ -14,6 +20,8 @@ interface UseProductsReturn {
   resetProducts: () => void;
   refreshProducts: () => Promise<void>;
   handleSwipe: (product: Product, direction: 'left' | 'right') => void;
+  hasMore: boolean;
+  totalFetched: number;
 }
 
 /**
@@ -21,17 +29,20 @@ interface UseProductsReturn {
  */
 export const useProducts = (): UseProductsReturn => {
   const { user } = useAuth();
-  const [products, setProducts] = useState<Product[]>([]);
+  const [productsData, setProductsData] = useState<ProductsData>({
+    products: [],
+    hasMore: true,
+    totalFetched: 0
+  });
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const pageSize = 10;
   
   // 現在表示中の商品
-  const currentProduct = products[currentIndex];
+  const currentProduct = productsData.products[currentIndex];
 
   // 商品データを取得
   const loadProducts = useCallback(async (reset = false) => {
@@ -40,9 +51,13 @@ export const useProducts = (): UseProductsReturn => {
         setIsLoading(true);
         setCurrentIndex(0);
         setPage(0);
-        setHasMore(true);
+        setProductsData({
+          products: [],
+          hasMore: true,
+          totalFetched: 0
+        });
         setError(null);
-      } else if (!hasMore) {
+      } else if (!productsData.hasMore) {
         return;
       }
 
@@ -81,24 +96,21 @@ export const useProducts = (): UseProductsReturn => {
       }
 
       // 商品が取得できなかった場合
-      if (newProducts.length === 0) {
-        setHasMore(false);
-      }
+      const hasMoreProducts = newProducts.length >= pageSize;
 
       // 商品データを更新
-      setProducts(prevProducts => {
-        if (reset) {
-          return filteredProducts;
-        } else {
-          // 重複を排除して結合
-          const combinedProducts = [...prevProducts];
-          filteredProducts.forEach(product => {
-            if (!combinedProducts.some(p => p.id === product.id)) {
-              combinedProducts.push(product);
-            }
-          });
-          return combinedProducts;
-        }
+      setProductsData(prev => {
+        const updatedProducts = reset 
+          ? filteredProducts 
+          : [...prev.products, ...filteredProducts.filter(
+              p => !prev.products.some(existing => existing.id === p.id)
+            )];
+
+        return {
+          products: updatedProducts,
+          hasMore: hasMoreProducts,
+          totalFetched: prev.totalFetched + filteredProducts.length
+        };
       });
     } catch (err) {
       setError('商品データの読み込みに失敗しました。');
@@ -107,7 +119,7 @@ export const useProducts = (): UseProductsReturn => {
       setIsLoading(false);
       setRefreshing(false);
     }
-  }, [user, page, pageSize, hasMore]);
+  }, [user, page, pageSize, productsData.hasMore]);
 
   // 初回マウント時に商品データを取得
   useEffect(() => {
@@ -116,10 +128,10 @@ export const useProducts = (): UseProductsReturn => {
 
   // 追加データ読み込み
   const loadMore = useCallback(async () => {
-    if (isLoading || !hasMore) return;
+    if (isLoading || !productsData.hasMore) return;
     setPage(prevPage => prevPage + 1);
     await loadProducts(false);
-  }, [isLoading, hasMore, loadProducts]);
+  }, [isLoading, productsData.hasMore, loadProducts]);
 
   // データリセット
   const resetProducts = useCallback(() => {
@@ -139,16 +151,16 @@ export const useProducts = (): UseProductsReturn => {
       const nextIndex = prevIndex + 1;
       
       // 残りの商品が少なくなったら追加ロード
-      if (products.length - nextIndex <= 5 && hasMore && !isLoading) {
+      if (productsData.products.length - nextIndex <= 5 && productsData.hasMore && !isLoading) {
         loadMore();
       }
       
       return nextIndex;
     });
-  }, [products.length, hasMore, isLoading, loadMore]);
+  }, [productsData.products.length, productsData.hasMore, isLoading, loadMore]);
 
   return {
-    products,
+    products: productsData.products,
     currentIndex,
     currentProduct,
     isLoading,
@@ -157,5 +169,7 @@ export const useProducts = (): UseProductsReturn => {
     resetProducts,
     refreshProducts,
     handleSwipe,
+    hasMore: productsData.hasMore,
+    totalFetched: productsData.totalFetched
   };
 };

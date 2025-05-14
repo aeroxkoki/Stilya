@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 
-interface CardProps {
+export interface CardProps {
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   elevation?: 'none' | 'small' | 'medium' | 'large';
@@ -18,6 +18,7 @@ interface CardProps {
   variant?: 'filled' | 'outlined';
   padding?: number | string; // カスタムパディングのサポート
   testID?: string;
+  className?: string; // NativeWindとの互換性のため
 }
 
 const Card: React.FC<CardProps> = ({
@@ -29,6 +30,7 @@ const Card: React.FC<CardProps> = ({
   variant = 'filled',
   padding,
   testID,
+  className, // NativeWindとの互換性のため（無視されます）
 }) => {
   const { theme, isDarkMode } = useTheme();
 

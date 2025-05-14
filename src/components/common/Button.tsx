@@ -31,6 +31,7 @@ export interface ButtonProps {
   fullWidth?: boolean;
   isFullWidth?: boolean; // 互換性のため
   testID?: string;
+  className?: string; // NativeWindとの互換性のため
 }
 
 const Button: React.FC<ButtonProps> = ({
@@ -49,6 +50,7 @@ const Button: React.FC<ButtonProps> = ({
   fullWidth = false,
   isFullWidth,
   testID,
+  className, // NativeWindを使用する場合（無視されます）
 }) => {
   // isFullWidthをfullWidthに統合（互換性のため）
   const useFullWidth = fullWidth || isFullWidth;
@@ -185,6 +187,9 @@ const Button: React.FC<ButtonProps> = ({
     }
   };
 
+  // classNameがあればconvertしたスタイルを適用する（実際は無視する）
+  // 実際のNativeWindの処理はランタイムで行われるため、ここでは単にpropsとして扱う
+  
   return (
     <Animated.View
       style={[
@@ -207,6 +212,7 @@ const Button: React.FC<ButtonProps> = ({
         activeOpacity={0.9}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
+        {...(className ? { className } : {})}
       >
         {isButtonLoading ? (
           <ActivityIndicator

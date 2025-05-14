@@ -17,7 +17,7 @@ import {
   ProductHorizontalList,
   OutfitRecommendation
 } from '@/components/recommend';
-import { Button, Chip, Card } from '@/components/common';
+import { Button, Card } from '@/components/common';
 import { useAuth } from '@/hooks/useAuth';
 import { 
   getEnhancedRecommendations, 

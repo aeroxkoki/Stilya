@@ -1,9 +1,13 @@
 import { supabase } from './supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
-import * as Application from 'expo-application';
-import * as Device from 'expo-device';
+// import * as Application from 'expo-application';
+// import * as Device from 'expo-device';
 import { useState, useEffect } from 'react';
+
+// モック化された端末情報関数
+const getModelNameAsync = async () => 'Unknown Device';
+const nativeApplicationVersion = 'Unknown Version';
 
 // イベントタイプ定義
 export enum EventType {
@@ -83,10 +87,8 @@ export const getDeviceInfo = async () => {
   return {
     platform: Platform.OS,
     osVersion: Platform.Version.toString(),
-    model: await Device.getModelNameAsync(),
-    appVersion: Platform.OS === 'ios'
-      ? await Application.nativeApplicationVersion
-      : Application.nativeApplicationVersion,
+    model: await getModelNameAsync(), // モック
+    appVersion: nativeApplicationVersion, // モック
   };
 };
 

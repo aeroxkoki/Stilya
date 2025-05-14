@@ -2,7 +2,7 @@ import { Product } from '@/types';
 import { getRandomTags } from './index';
 
 // ダミー商品データ生成関数
-export const generateDummyProducts = (count: number): Product[] => {
+export const generateDummyProducts = (count: number = 10): Product[] => {
   const dummyProducts: Product[] = [];
   
   // ブランド候補
@@ -69,13 +69,7 @@ export const generateDummyProducts = (count: number): Product[] => {
     const title = `${brand} ${adjective} ${color} ${productName}`;
     
     // タグ生成
-    const tags = getRandomTags();
-    if (!tags.includes(category)) {
-      tags.push(category);
-    }
-    if (!tags.includes(color)) {
-      tags.push(color);
-    }
+    const tags = getRandomTags(brand, category, color);
     
     dummyProducts.push({
       id: `dummy-${i}`,

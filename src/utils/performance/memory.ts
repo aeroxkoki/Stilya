@@ -48,20 +48,9 @@ export const checkMemoryWarningLevel = async (): Promise<'normal' | 'warning' | 
   const memoryUsage = await getMemoryUsage();
   
   if (memoryUsage === -1) {
-    // メモリ測定不可の場合はヒープ使用率を概算
-    // global.performanceはブラウザ環境固有なので条件付きで使用
-    const performance = typeof window !== 'undefined' ? window.performance : undefined;
-    const memory = performance && 'memory' in performance ? performance.memory : undefined;
-    const heapUsed = memory?.usedJSHeapSize;
-    const heapTotal = memory?.totalJSHeapSize;
-    
-    if (heapUsed && heapTotal) {
-      const heapUsageRatio = heapUsed / heapTotal;
-      if (heapUsageRatio > 0.9) return 'critical';
-      if (heapUsageRatio > 0.7) return 'warning';
-    }
-    
-    return 'normal'; // 測定できない場合
+    // メモリ測定不可の場合はモバイル環境(ios/android)で実行されていない可能性があり、
+    // そのような場合は常に'normal'を返す
+    return 'normal';
   }
   
   if (memoryUsage > MEMORY_WARNING_THRESHOLD) {
@@ -188,20 +177,7 @@ export const logMemoryUsage = async (): Promise<void> => {
   if (memoryUsage !== -1) {
     console.log(`[MEMORY] Current memory usage: ${memoryUsage.toFixed(2)} MB`);
   } else {
-    // JavaScriptヒープサイズを代替として表示
-    // global.performanceはブラウザ環境固有なので条件付きで使用
-    const performance = typeof window !== 'undefined' ? window.performance : undefined;
-    const memory = performance && 'memory' in performance ? performance.memory : undefined;
-    const heapUsed = memory?.usedJSHeapSize;
-    const heapTotal = memory?.totalJSHeapSize;
-    
-    if (heapUsed && heapTotal) {
-      const heapUsedMB = heapUsed / (1024 * 1024);
-      const heapTotalMB = heapTotal / (1024 * 1024);
-      console.log(`[MEMORY] JS Heap usage: ${heapUsedMB.toFixed(2)}MB / ${heapTotalMB.toFixed(2)}MB (${(heapUsed / heapTotal * 100).toFixed(1)}%)`);
-    } else {
-      console.log('[MEMORY] Unable to measure memory usage on this platform');
-    }
+    console.log('[MEMORY] Unable to measure memory usage on this platform');
   }
 };
 

@@ -136,35 +136,32 @@ const FilterModal: React.FC<FilterModalProps> = ({
       visible={visible}
       onRequestClose={onClose}
     >
-      <View className="flex-1 bg-black/30 justify-end">
-        <View className="bg-white rounded-t-3xl min-h-[60%] max-h-[90%]">
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
           {/* ヘッダー */}
-          <View className="flex-row justify-between items-center px-5 py-4 border-b border-gray-200">
-            <Text className="text-xl font-bold">フィルター</Text>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>フィルター</Text>
             <TouchableOpacity onPress={onClose}>
               <Ionicons name="close" size={24} color="#000" />
             </TouchableOpacity>
           </View>
           
-          <ScrollView className="flex-1 px-5 py-4">
+          <ScrollView style={styles.scrollContent}>
             {/* カテゴリーセクション */}
-            <View className="mb-6">
-              <Text className="text-base font-bold mb-3">カテゴリー</Text>
-              <View className="flex-row flex-wrap">
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>カテゴリー</Text>
+              <View style={styles.tagContainer}>
                 {AVAILABLE_CATEGORIES.map(category => (
                   <TouchableOpacity
                     key={category}
-                    className={`m-1 px-4 py-2 rounded-full border ${
-                      filters.categories.includes(category)
-                        ? 'bg-blue-500 border-blue-500'
-                        : 'bg-gray-100 border-gray-200'
-                    }`}
+                    style={[
+                      styles.tagButton,
+                      filters.categories.includes(category) ? styles.tagActive : styles.tagInactive
+                    ]}
                     onPress={() => toggleCategory(category)}
                   >
                     <Text
-                      className={`${
-                        filters.categories.includes(category) ? 'text-white' : 'text-gray-800'
-                      }`}
+                      style={filters.categories.includes(category) ? styles.tagTextActive : styles.tagTextInactive}
                     >
                       {CATEGORY_LABELS[category] || category}
                     </Text>
@@ -174,25 +171,25 @@ const FilterModal: React.FC<FilterModalProps> = ({
             </View>
             
             {/* 価格帯セクション */}
-            <View className="mb-6">
-              <Text className="text-base font-bold mb-3">価格帯</Text>
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>価格帯</Text>
               <View>
                 {PRICE_RANGES.map((range, index) => (
                   <TouchableOpacity
                     key={index}
-                    className={`mb-2 px-4 py-3 rounded-lg ${
-                      filters.priceRange[0] === range[0] && filters.priceRange[1] === range[1]
-                        ? 'bg-blue-100 border border-blue-300'
-                        : 'bg-gray-50 border border-gray-200'
-                    }`}
+                    style={[
+                      styles.priceButton,
+                      filters.priceRange[0] === range[0] && filters.priceRange[1] === range[1] 
+                        ? styles.priceActive : styles.priceInactive
+                    ]}
                     onPress={() => selectPriceRange(range)}
                   >
                     <Text
-                      className={`${
+                      style={
                         filters.priceRange[0] === range[0] && filters.priceRange[1] === range[1]
-                          ? 'text-blue-700'
-                          : 'text-gray-800'
-                      }`}
+                          ? styles.priceTextActive
+                          : styles.priceTextInactive
+                      }
                     >
                       {getPriceRangeText(range)}
                     </Text>
@@ -203,23 +200,23 @@ const FilterModal: React.FC<FilterModalProps> = ({
             
             {/* タグセクション */}
             {availableTags.length > 0 && (
-              <View className="mb-6">
-                <Text className="text-base font-bold mb-3">スタイル・特徴</Text>
-                <View className="flex-row flex-wrap">
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>スタイル・特徴</Text>
+                <View style={styles.tagContainer}>
                   {availableTags.map(tag => (
                     <TouchableOpacity
                       key={tag}
-                      className={`m-1 px-3 py-1 rounded-full border ${
-                        filters.selectedTags.includes(tag)
-                          ? 'bg-blue-500 border-blue-500'
-                          : 'bg-gray-100 border-gray-200'
-                      }`}
+                      style={[
+                        styles.styleTags,
+                        filters.selectedTags.includes(tag) ? styles.tagActive : styles.tagInactive
+                      ]}
                       onPress={() => toggleTag(tag)}
                     >
                       <Text
-                        className={`${
-                          filters.selectedTags.includes(tag) ? 'text-white' : 'text-gray-800'
-                        } text-sm`}
+                        style={[
+                          filters.selectedTags.includes(tag) ? styles.tagTextActive : styles.tagTextInactive,
+                          styles.smallText
+                        ]}
                       >
                         {tag}
                       </Text>
@@ -231,18 +228,18 @@ const FilterModal: React.FC<FilterModalProps> = ({
           </ScrollView>
           
           {/* ボタン部分 */}
-          <View className="px-5 py-4 border-t border-gray-200 flex-row">
+          <View style={styles.buttonContainer}>
             <TouchableOpacity
-              className="flex-1 mr-2 py-3 border border-gray-300 rounded-lg items-center"
+              style={styles.resetButton}
               onPress={resetFilters}
             >
-              <Text className="text-gray-700 font-medium">リセット</Text>
+              <Text style={styles.resetButtonText}>リセット</Text>
             </TouchableOpacity>
             <Button
-              className="flex-1 bg-blue-600"
+              style={styles.applyButton}
               onPress={applyFilters}
             >
-              <Text className="text-white font-bold">適用する</Text>
+              <Text style={styles.applyButtonText}>適用する</Text>
             </Button>
           </View>
         </View>
@@ -250,5 +247,128 @@ const FilterModal: React.FC<FilterModalProps> = ({
     </Modal>
   );
 };
+
+const styles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    minHeight: '60%',
+    maxHeight: '90%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  scrollContent: {
+    flex: 1,
+    padding: 20,
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  tagContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  tagButton: {
+    margin: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  styleTags: {
+    margin: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  tagActive: {
+    backgroundColor: '#3b82f6',
+    borderColor: '#3b82f6',
+  },
+  tagInactive: {
+    backgroundColor: '#f3f4f6',
+    borderColor: '#e5e7eb',
+  },
+  tagTextActive: {
+    color: 'white',
+  },
+  tagTextInactive: {
+    color: '#333333',
+  },
+  smallText: {
+    fontSize: 14,
+  },
+  priceButton: {
+    marginBottom: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  priceActive: {
+    backgroundColor: '#ebf5ff',
+    borderColor: '#93c5fd',
+  },
+  priceInactive: {
+    backgroundColor: '#f9fafb',
+    borderColor: '#e5e7eb',
+  },
+  priceTextActive: {
+    color: '#1d4ed8',
+  },
+  priceTextInactive: {
+    color: '#333333',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+  },
+  resetButton: {
+    flex: 1,
+    marginRight: 8,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  resetButtonText: {
+    color: '#4b5563',
+    fontWeight: '500',
+  },
+  applyButton: {
+    flex: 1,
+    backgroundColor: '#2563eb',
+  },
+  applyButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+});
 
 export default FilterModal;

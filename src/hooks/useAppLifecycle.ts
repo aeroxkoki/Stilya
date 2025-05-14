@@ -19,7 +19,7 @@ export const useAppLifecycle = () => {
   const appState = useRef(AppState.currentState);
   const [isActive, setIsActive] = useState(true);
   const wasActiveRef = useRef(true);
-  const sessionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const sessionTimeoutRef = useRef<number | null>(null);
   const userId = user?.id;
 
   // ライフサイクルイベントのリスナー設定

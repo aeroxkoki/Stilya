@@ -64,12 +64,25 @@ async function fetchProductsFromLinkShare(
   }
 }
 
+interface NormalizedProduct {
+  title: string;
+  brand: string;
+  price: number;
+  image_url: string;
+  description: string;
+  tags: string[];
+  category: string;
+  affiliate_url: string;
+  source: string;
+  created_at: string;
+}
+
 /**
  * 商品データを正規化して保存用フォーマットに変換
  */
-function normalizeProduct(product: any, source: string) {
+function normalizeProduct(product: any, source: string): NormalizedProduct {
   // タグの抽出（カテゴリから一部を抽出）
-  const extractedTags = [];
+  const extractedTags: string[] = [];
   if (product.category) {
     // カテゴリをタグに変換
     const categoryParts = product.category.split(' > ');
@@ -111,7 +124,7 @@ function normalizeProduct(product: any, source: string) {
 /**
  * 商品データをSupabaseに保存
  */
-async function saveProductsToSupabase(products: any[]) {
+async function saveProductsToSupabase(products: NormalizedProduct[]) {
   try {
     const { data, error } = await supabase
       .from('products')

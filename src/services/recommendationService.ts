@@ -642,7 +642,7 @@ const fetchProductsByCategoryAndTags = async (
       .from('products')
       .select('*')
       .eq('category', category)
-      .containsAny('tags', usedTags)
+      .contains('tags', usedTags)
       .limit(limit);
       
     // 除外IDがある場合

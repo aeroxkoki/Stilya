@@ -28,6 +28,42 @@ const OutfitRecommendation: React.FC<OutfitRecommendationProps> = ({
     return null;
   }
   
+  // アイテムのURL取得ヘルパー
+  const getImage = (product: Product | null | undefined): string => {
+    if (!product) return '';
+    // ここでimageUrlかimage_urlの区別をしておく
+    return product.imageUrl || product.image_url || '';
+  };
+  
+  // コーディネートの合計金額を計算
+  const getTotalPrice = (): number => {
+    let total = 0;
+    if (top) total += top.price;
+    if (bottom) total += bottom.price;
+    if (outerwear) total += outerwear.price;
+    if (accessories) total += accessories.price;
+    return total;
+  };
+  
+  // コーディネートの説明文を生成
+  const getOutfitDescription = (): string => {
+    const items: string[] = [];
+    if (top) items.push(top.brand || 'ブランド');
+    if (bottom) items.push(bottom.brand || 'ブランド');
+    
+    return `${items.join(' × ')} コーディネート`;
+  };
+  
+  // コーディネートのアイテム数を取得
+  const getItemCount = (): number => {
+    let count = 0;
+    if (top) count++;
+    if (bottom) count++;
+    if (outerwear) count++;
+    if (accessories) count++;
+    return count;
+  };
+  
   // カードレイアウト用のレンダリング
   if (layout === 'card') {
     return (
@@ -40,7 +76,7 @@ const OutfitRecommendation: React.FC<OutfitRecommendationProps> = ({
           {/* メインアイテム */}
           <View style={styles.mainImageContainer}>
             <Image 
-              source={{ uri: top?.imageUrl || bottom?.imageUrl || '' }}
+              source={{ uri: getImage(top) || getImage(bottom) }}
               style={styles.mainImage}
               resizeMode="cover"
             />
@@ -50,7 +86,7 @@ const OutfitRecommendation: React.FC<OutfitRecommendationProps> = ({
           <View style={styles.subImagesContainer}>
             {bottom && top && (
               <Image 
-                source={{ uri: bottom.imageUrl }}
+                source={{ uri: getImage(bottom) }}
                 style={styles.subImage}
                 resizeMode="cover"
               />
@@ -58,7 +94,7 @@ const OutfitRecommendation: React.FC<OutfitRecommendationProps> = ({
             
             {outerwear && (
               <Image 
-                source={{ uri: outerwear.imageUrl }}
+                source={{ uri: getImage(outerwear) }}
                 style={styles.subImage}
                 resizeMode="cover"
               />
@@ -66,7 +102,7 @@ const OutfitRecommendation: React.FC<OutfitRecommendationProps> = ({
             
             {accessories && (
               <Image 
-                source={{ uri: accessories.imageUrl }}
+                source={{ uri: getImage(accessories) }}
                 style={styles.subImage}
                 resizeMode="cover"
               />
@@ -100,7 +136,7 @@ const OutfitRecommendation: React.FC<OutfitRecommendationProps> = ({
         {/* 左側にメインアイテム */}
         <View style={styles.fullMainImageContainer}>
           <Image 
-            source={{ uri: top?.imageUrl || bottom?.imageUrl || '' }}
+            source={{ uri: getImage(top) || getImage(bottom) }}
             style={styles.fullMainImage}
             resizeMode="cover"
           />
@@ -110,7 +146,7 @@ const OutfitRecommendation: React.FC<OutfitRecommendationProps> = ({
         <View style={styles.fullSubImagesContainer}>
           {bottom && top && (
             <Image 
-              source={{ uri: bottom.imageUrl }}
+              source={{ uri: getImage(bottom) }}
               style={styles.fullSubImage}
               resizeMode="cover"
             />
@@ -118,7 +154,7 @@ const OutfitRecommendation: React.FC<OutfitRecommendationProps> = ({
           
           {outerwear && (
             <Image 
-              source={{ uri: outerwear.imageUrl }}
+              source={{ uri: getImage(outerwear) }}
               style={styles.fullSubImage}
               resizeMode="cover"
             />
@@ -126,7 +162,7 @@ const OutfitRecommendation: React.FC<OutfitRecommendationProps> = ({
           
           {accessories && (
             <Image 
-              source={{ uri: accessories.imageUrl }}
+              source={{ uri: getImage(accessories) }}
               style={styles.fullSubImage}
               resizeMode="cover"
             />
@@ -149,35 +185,6 @@ const OutfitRecommendation: React.FC<OutfitRecommendationProps> = ({
       </View>
     </TouchableOpacity>
   );
-  
-  // コーディネートの合計金額を計算
-  function getTotalPrice(): number {
-    let total = 0;
-    if (top) total += top.price;
-    if (bottom) total += bottom.price;
-    if (outerwear) total += outerwear.price;
-    if (accessories) total += accessories.price;
-    return total;
-  }
-  
-  // コーディネートの説明文を生成
-  function getOutfitDescription(): string {
-    const items = [];
-    if (top) items.push(top.brand || 'ブランド');
-    if (bottom) items.push(bottom.brand || 'ブランド');
-    
-    return `${items.join(' × ')} コーディネート`;
-  }
-  
-  // コーディネートのアイテム数を取得
-  function getItemCount(): number {
-    let count = 0;
-    if (top) count++;
-    if (bottom) count++;
-    if (outerwear) count++;
-    if (accessories) count++;
-    return count;
-  }
 };
 
 const styles = StyleSheet.create({

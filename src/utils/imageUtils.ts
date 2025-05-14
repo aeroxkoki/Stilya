@@ -321,7 +321,7 @@ const isLowMemoryDevice = async (): Promise<boolean> => {
 export const useImagePrefetch = () => {
   const [isPrefetching, setIsPrefetching] = useState(false);
   const isMounted = useRef(true);
-  const prefetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const prefetchTimeoutRef = useRef<number | null>(null);
   const prefetchErrorCount = useRef(0);
   
   // コンポーネントのアンマウント時にクリーンアップ
@@ -366,20 +366,19 @@ export const useImagePrefetch = () => {
         // エラーが多すぎる場合はユーザーに通知（オプション）
         if (prefetchErrorCount.current > 5 && prefetchErrorCount.current > highPriorityUrls.length / 2) {
           // ネットワーク接続の問題の可能性を示唆
-          Toast?.show?.(({
+          Toast?.show?.((({
             type: 'info',
             text1: '画像の読み込みに問題が発生しています',
             text2: 'ネットワーク接続を確認してください',
             position: 'bottom',
             visibilityTime: 3000,
-          }) as any);
+          }) as any));
           prefetchErrorCount.current = 0; // カウンターリセット
         }
       }
       
       // 低プライオリティ画像を遅延プリフェッチ（UIスレッドをブロックしない）
       if (lowPriorityUrls.length > 0) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         prefetchTimeoutRef.current = setTimeout(() => {
           InteractionManager.runAfterInteractions(() => {
             if (!isMounted.current) return;

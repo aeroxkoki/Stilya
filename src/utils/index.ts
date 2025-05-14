@@ -2,10 +2,30 @@ import formatPrice from './formatPrice';
 import { getAuthErrorMessage, getApiErrorMessage, handleError } from './errorUtils';
 import * as env from './env';
 
-// タグからランダムなものを選ぶヘルパー関数
-export const getRandomTags = (allTags: string[], count: number = 3): string[] => {
-  const shuffled = [...allTags].sort(() => 0.5 - Math.random());
-  return shuffled.slice(0, Math.min(count, allTags.length));
+// ランダムなタグを生成するヘルパー関数
+export const getRandomTags = (...inputs: string[]): string[] => {
+  // 一般的なファッションタグ
+  const commonTags = [
+    'カジュアル', 'モード', 'ナチュラル', 'ストリート', 'クラシック', 'フェミニン',
+    '春', '夏', '秋', '冬', 'おすすめ', 'トレンド', 'ベーシック', '定番',
+    'コーデ', 'オフィス', 'デート', 'デイリー', 'リラックス', 'スポーティ'
+  ];
+  
+  // 引数で渡された文字列をタグとして追加
+  const tags = [...inputs].filter(Boolean);
+  
+  // 追加のランダムタグを選択（重複を避ける）
+  const additionalTagsNeeded = Math.max(0, 5 - tags.length);
+  
+  if (additionalTagsNeeded > 0) {
+    // すでに入っているタグを除外
+    const availableTags = commonTags.filter(tag => !tags.includes(tag));
+    // ランダムに選択
+    const shuffled = [...availableTags].sort(() => 0.5 - Math.random());
+    tags.push(...shuffled.slice(0, additionalTagsNeeded));
+  }
+  
+  return tags;
 };
 
 // エラーメッセージのフォーマット

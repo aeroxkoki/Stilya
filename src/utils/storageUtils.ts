@@ -51,7 +51,7 @@ export const removeData = async (key: string): Promise<void> => {
 // 複数のデータを一度に保存する
 export const storeMultipleData = async (keyValuePairs: [string, any][]): Promise<void> => {
   try {
-    const pairs = keyValuePairs.map(([key, value]) => [key, JSON.stringify(value)]);
+    const pairs: [string, string][] = keyValuePairs.map(([key, value]) => [key, JSON.stringify(value)]);
     await AsyncStorage.multiSet(pairs);
   } catch (error) {
     console.error('Error storing multiple data:', error);

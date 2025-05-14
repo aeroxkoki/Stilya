@@ -3,6 +3,13 @@ import { getRecommendedProducts, getRecommendationsByCategory } from './recommen
 import { fetchRakutenFashionProducts, fetchRelatedProducts } from './rakutenService';
 import { analyzeUserPreferences } from './recommendationService';
 
+interface OutfitRecommendation {
+  top: Product | null;
+  bottom: Product | null;
+  outerwear: Product | null;
+  accessories: Product | null;
+}
+
 /**
  * 複数ソースから統合的なレコメンド結果を取得
  * 内部DB + 楽天API
@@ -145,12 +152,7 @@ export const getOutfitRecommendations = async (
   userId: string,
   limit: number = 5
 ): Promise<{
-  outfits: Array<{
-    top: Product | null;
-    bottom: Product | null;
-    outerwear?: Product | null;
-    accessories?: Product | null;
-  }>
+  outfits: OutfitRecommendation[]
 }> => {
   try {
     // カテゴリ別レコメンドを取得
@@ -182,7 +184,7 @@ export const getOutfitRecommendations = async (
     ];
 
     // コーディネートを作成
-    const outfits = [];
+    const outfits: OutfitRecommendation[] = [];
     
     for (let i = 0; i < limit; i++) {
       // 各カテゴリから1つずつ選択
@@ -191,7 +193,7 @@ export const getOutfitRecommendations = async (
         bottom: bottoms[i % bottoms.length] || null,
         outerwear: i % 2 === 0 ? outerwear[i % outerwear.length] || null : null, // 半分のコーデのみアウターを追加
         accessories: i % 3 === 0 ? accessories[i % accessories.length] || null : null, // 1/3のコーデにアクセサリー
-      };
+      } as OutfitRecommendation;
       
       // 最低限トップスまたはボトムスがあるものだけ追加
       if (outfit.top || outfit.bottom) {

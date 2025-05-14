@@ -10,10 +10,10 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { useAuth } from '../hooks/useAuth';
 import { Card, Button } from '../components/common';
-import theme from '../styles/theme';
+import { defaultTheme } from '../styles/theme';
 
 const ProfileScreen: React.FC = () => {
-  const { user, signOut } = useAuth();
+  const { user, logout } = useAuth();
 
   // ログアウト確認
   const handleSignOut = () => {
@@ -30,7 +30,7 @@ const ProfileScreen: React.FC = () => {
           style: 'destructive',
           onPress: async () => {
             try {
-              await signOut();
+              await logout();
             } catch (error) {
               console.error('Error signing out:', error);
               Alert.alert('エラー', 'ログアウトに失敗しました。');
@@ -44,9 +44,9 @@ const ProfileScreen: React.FC = () => {
 
   const MenuItem = ({ icon, title, onPress }: { icon: string; title: string; onPress?: () => void }) => (
     <TouchableOpacity style={styles.menuItem} onPress={onPress}>
-      <Feather name={icon as any} size={24} color={theme.colors.gray600} style={styles.menuIcon} />
+      <Feather name={icon as any} size={24} color={defaultTheme.colors.status.success} style={styles.menuIcon} />
       <Text style={styles.menuText}>{title}</Text>
-      <Feather name="chevron-right" size={24} color={theme.colors.gray400} />
+      <Feather name="chevron-right" size={24} color={defaultTheme.colors.text.hint} />
     </TouchableOpacity>
   );
 
@@ -58,7 +58,7 @@ const ProfileScreen: React.FC = () => {
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.profileIcon}>
-          <Feather name="user" size={50} color={theme.colors.primary} />
+          <Feather name="user" size={50} color={defaultTheme.colors.primary} />
         </View>
         <Text style={styles.email}>{user?.email}</Text>
       </View>
@@ -89,7 +89,7 @@ const ProfileScreen: React.FC = () => {
           variant="outline"
           onPress={handleSignOut}
           style={styles.signOutButton}
-          textStyle={{ color: theme.colors.error }}
+          textStyle={{ color: defaultTheme.colors.status.error }}
         />
       </View>
 
@@ -101,66 +101,66 @@ const ProfileScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundLight,
+    backgroundColor: defaultTheme.colors.background.main,
   },
   header: {
-    backgroundColor: theme.colors.white,
-    paddingVertical: theme.spacing.xl,
+    backgroundColor: defaultTheme.colors.background.main,
+    paddingVertical: defaultTheme.spacing.xl,
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.gray200,
+    borderBottomColor: defaultTheme.colors.border.light,
   },
   profileIcon: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: theme.colors.backgroundLight,
+    backgroundColor: defaultTheme.colors.background.card,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: theme.spacing.md,
+    marginBottom: defaultTheme.spacing.m,
   },
   email: {
-    fontSize: theme.fontSize.lg,
-    color: theme.colors.textPrimary,
+    fontSize: defaultTheme.fontSizes.l,
+    color: defaultTheme.colors.text.primary,
   },
   section: {
-    marginTop: theme.spacing.md,
-    padding: theme.spacing.md,
+    marginTop: defaultTheme.spacing.m,
+    padding: defaultTheme.spacing.m,
   },
   sectionTitle: {
-    fontSize: theme.fontSize.md,
-    fontWeight: theme.fontWeight.semibold,
-    color: theme.colors.textSecondary,
-    marginBottom: theme.spacing.sm,
+    fontSize: defaultTheme.fontSizes.m,
+    fontWeight: defaultTheme.fontWeights.medium,
+    color: defaultTheme.colors.text.secondary,
+    marginBottom: defaultTheme.spacing.s,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: theme.spacing.md,
+    paddingVertical: defaultTheme.spacing.m,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.gray100,
+    borderBottomColor: defaultTheme.colors.border.light,
   },
   menuIcon: {
-    marginRight: theme.spacing.md,
+    marginRight: defaultTheme.spacing.m,
   },
   menuText: {
     flex: 1,
-    fontSize: theme.fontSize.md,
-    color: theme.colors.textPrimary,
+    fontSize: defaultTheme.fontSizes.m,
+    color: defaultTheme.colors.text.primary,
   },
   buttonContainer: {
-    marginVertical: theme.spacing.lg,
-    paddingHorizontal: theme.spacing.lg,
+    marginVertical: defaultTheme.spacing.l,
+    paddingHorizontal: defaultTheme.spacing.l,
   },
   signOutButton: {
-    borderColor: theme.colors.error,
+    borderColor: defaultTheme.colors.status.error,
   },
   versionText: {
     textAlign: 'center',
-    marginTop: theme.spacing.md,
-    marginBottom: theme.spacing.xxl,
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.textTertiary,
+    marginTop: defaultTheme.spacing.m,
+    marginBottom: defaultTheme.spacing.xxl,
+    fontSize: defaultTheme.fontSizes.s,
+    color: defaultTheme.colors.text.secondary,
   },
 });
 

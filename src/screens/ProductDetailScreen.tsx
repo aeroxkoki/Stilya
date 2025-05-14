@@ -170,7 +170,7 @@ const ProductDetailScreen: React.FC = () => {
     if (relatedProductId === productId) return;
     
     // 同じ画面を再利用して新しい商品IDで表示（パラメータを更新）
-    navigation.setParams({ productId: relatedProductId });
+    navigation.setParams({ productId: relatedProductId } as any);
   };
 
   // 価格をフォーマット
@@ -297,7 +297,7 @@ const ProductDetailScreen: React.FC = () => {
                 style={styles.imageActionButton}
                 onPress={handleToggleFavorite}
               >
-               <Feather name={isFavorited ? "heart" : "heart-o"} size={24} color={isFavorited ? "#F87171" : "white"} />
+               <Feather name={isFavorited ? "heart" : "heart"} size={24} color={isFavorited ? "#F87171" : "white"} />
               </TouchableOpacity>
               
               <TouchableOpacity

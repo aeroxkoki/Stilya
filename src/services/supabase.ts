@@ -1,9 +1,22 @@
 import 'react-native-url-polyfill/auto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
-import * as SecureStore from 'expo-secure-store';
+// import * as SecureStore from 'expo-secure-store';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../utils/env';
 import { User } from '../types';
+
+// SecureStore のモック
+const SecureStore = {
+  setItemAsync: async (key: string, value: string): Promise<void> => {
+    await AsyncStorage.setItem(`secure_${key}`, value);
+  },
+  getItemAsync: async (key: string): Promise<string | null> => {
+    return await AsyncStorage.getItem(`secure_${key}`);
+  },
+  deleteItemAsync: async (key: string): Promise<void> => {
+    await AsyncStorage.removeItem(`secure_${key}`);
+  }
+};
 
 // JSONデータの安全な保存・取得ヘルパー
 const saveToSecureStore = async (key: string, value: string): Promise<void> => {
@@ -43,10 +56,6 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
-  },
-  global: {
-    // 非認証データ用のストレージ
-    localStorage: normalStorageAdapter,
   },
 });
 

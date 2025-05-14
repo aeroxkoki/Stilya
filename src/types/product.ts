@@ -1,15 +1,18 @@
 export interface Product {
   id: string;
   title: string;
-  brand: string; // requiredに変更
+  brand: string;
   price: number;
-  imageUrl: string;
+  imageUrl?: string; // APIによって違う場合があるため、オプショナルに
+  image_url?: string; // Supabase DB 形式のフィールド名
   description?: string;
-  tags: string[]; // requiredに変更
+  tags: string[]; 
   category?: string;
-  affiliateUrl: string;
+  affiliateUrl?: string; // データソースによってはないことも
+  affiliate_url?: string; // Supabase DB 形式のフィールド名
   source?: string;
   createdAt?: string;
+  created_at?: string; // Supabase DB 形式のフィールド名
 }
 
 export interface SwipeResult {
