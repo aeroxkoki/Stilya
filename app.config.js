@@ -95,13 +95,12 @@ module.exports = {
     
     // eas
     eas: {
-      // プロジェクトIDは自動生成されるため削除
+      projectId: 'c2a98f3b-d8dc-4bc3-9b53-8ff63bc2cfd9'
     }
   },
   updates: {
     fallbackToCacheTimeout: 0,
-    // プロジェクトID確定後に実際のIDに置き換える
-    url: 'https://u.expo.dev/EXPO_PROJECT_ID'
+    url: 'https://u.expo.dev/c2a98f3b-d8dc-4bc3-9b53-8ff63bc2cfd9'
   },
   runtimeVersion: {
     policy: 'sdkVersion'
