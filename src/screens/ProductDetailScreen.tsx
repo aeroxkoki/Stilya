@@ -96,7 +96,7 @@ const ProductDetailScreen: React.FC = () => {
     };
 
     loadProduct();
-  }, [productId, user]);
+  }, [productId, user, fetchProductById, isFavorite, fetchProductsByTags]);
 
   // 外部リンク（購入ページ）を開く
   const handleBuyPress = async () => {
@@ -252,7 +252,7 @@ const ProductDetailScreen: React.FC = () => {
             showsHorizontalScrollIndicator={false}
             renderItem={({ item }) => (
               <RNImage
-                source={{ uri: item }}
+                source={{ uri: item || '' }}
                 style={styles.image}
                 resizeMode="cover"
               />

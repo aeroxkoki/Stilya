@@ -58,39 +58,54 @@ const ProductDetailScreen: React.FC = () => {
   // 商品データの取得
   useEffect(() => {
     const loadProduct = async () => {
-      const productData = await fetchProductById(productId);
-      if (productData) {
-        setProduct(productData);
+      try {
+        // 新しい変数を作成して関数を呼び出す
+        const fetchProduct = async (id: string) => {
+          if (products && products.length > 0) {
+            // 既存の商品データから検索
+            const existingProduct = products.find(p => p.id === id);
+            if (existingProduct) return existingProduct;
+          }
+          // 商品データを取得
+          return await useProductStore.getState().fetchProductById(id);
+        };
         
-        // 類似商品を取得
-        const similar = getSimilarProducts(productData, products, 5);
-        setSimilarProducts(similar);
-        
-        // 閲覧履歴に記録（ログインしている場合のみ）
-        if (user) {
-          recordProductView(user.id, productData.id)
-            .catch(err => console.error('Failed to record view:', err));
-            
-          // 商品閲覧イベントの記録（アナリティクス）
-          trackProductView(productData.id, {
-            title: productData.title,
-            brand: productData.brand,
-            price: productData.price,
-            category: productData.category,
-            source: productData.source,
-          }, user.id).catch(err => console.error('Failed to track view:', err));
+        const productData = await fetchProduct(productId);
+        if (productData) {
+          setProduct(productData);
           
-          // 画面表示イベントの記録
-          trackEvent(EventType.SCREEN_VIEW, {
-            screen_name: 'ProductDetail',
-            product_id: productData.id,
-          }, user.id).catch(err => console.error('Failed to track screen view:', err));
+          // 類似商品を取得
+          const similar = getSimilarProducts(productData, products, 5);
+          setSimilarProducts(similar);
+          
+          // 閲覧履歴に記録（ログインしている場合のみ）
+          if (user) {
+            recordProductView(user.id, productData.id)
+              .catch(err => console.error('Failed to record view:', err));
+              
+            // 商品閲覧イベントの記録（アナリティクス）
+            trackProductView(productData.id, {
+              title: productData.title,
+              brand: productData.brand,
+              price: productData.price,
+              category: productData.category,
+              source: productData.source,
+            }, user.id).catch(err => console.error('Failed to track view:', err));
+            
+            // 画面表示イベントの記録
+            trackEvent(EventType.SCREEN_VIEW, {
+              screen_name: 'ProductDetail',
+              product_id: productData.id,
+            }, user.id).catch(err => console.error('Failed to track screen view:', err));
+          }
         }
+      } catch (error) {
+        console.error('Error loading product:', error);
       }
     };
     
     loadProduct();
-  }, [productId, fetchProductById, products, user]);
+  }, [productId, products, user]);
   
   // 商品購入へのリンク
   const handleBuyPress = async () => {
@@ -198,7 +213,7 @@ const ProductDetailScreen: React.FC = () => {
         {/* 画像部分 */}
         <View className="relative">
           <Image 
-            source={{ uri: product.imageUrl }} 
+            source={{ uri: product.imageUrl || '' }} 
             style={styles.image} 
             resizeMode="cover"
           />

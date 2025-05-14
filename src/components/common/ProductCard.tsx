@@ -109,7 +109,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
           compact && styles.compactImageContainer
         ]}>
           <CachedImage
-            source={{ uri: product.imageUrl }}
+            source={{ uri: product.imageUrl || '' }}
             style={styles.image}
             resizeMode="cover"
           />

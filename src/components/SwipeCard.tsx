@@ -233,7 +233,7 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
         />
 
         <CachedImage
-          source={{ uri: product.imageUrl }}
+          source={{ uri: product.imageUrl || '' }}
           style={styles.image}
           resizeMode="cover"
           showLoadingIndicator={true}

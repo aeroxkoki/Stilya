@@ -43,16 +43,16 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       set({ loading: true, error: null });
       
       // セッションを取得
-      const { data } = await supabase.auth.getSession();
-      const { session } = data;
+      const { data: sessionData } = await supabase.auth.getSession();
+      const { session } = sessionData;
       
       if (session) {
         // セッションの有効期限をチェック
         if (isSessionExpired(session)) {
           // セッションの更新が必要な場合
-          const { data } = await refreshSession();
+          const { data: refreshData } = await refreshSession();
           
-          if (data.session) {
+          if (refreshData.session) {
             const { data: userData } = await supabase.auth.getUser();
             const user = userData.user;
             
@@ -101,9 +101,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       if (!session) return false;
       
       if (isSessionExpired(session)) {
-        const { data } = await refreshSession();
-        if (data.session) {
-          set({ session: data.session });
+        const { data: refreshData } = await refreshSession();
+        if (refreshData.session) {
+          set({ session: refreshData.session });
           return true;
         }
         return false;
