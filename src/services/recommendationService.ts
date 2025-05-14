@@ -6,6 +6,14 @@ import { getSwipeHistory } from './swipeService';
 import { mockProducts } from '@/mocks/mockProducts';
 import { getProductViewHistory } from './viewHistoryService';
 
+// 定数: タグスコア調整用
+const TAG_SCORE_YES = 1.0;      // YESスワイプされたアイテムのタグスコア
+const TAG_SCORE_NO = -0.5;      // NOスワイプされたアイテムのタグスコア
+const TAG_SCORE_VIEW = 0.3;     // 閲覧されたアイテムのタグスコア
+const TAG_SCORE_CLICK = 0.7;    // クリック（購入リンク）されたアイテムのタグスコア
+const TAG_BONUS_THRESHOLD = 3;  // ボーナススコアが適用される閾値
+const MIN_CONFIDENCE_SCORE = 0.5; // 信頼度スコアの最小値（これ以下のタグは無視）
+
 // モック使用フラグ (開発モードでAPI連携ができない場合に使用)
 const USE_MOCK = true; // 本番環境では必ず false にすること
 /**
@@ -411,11 +419,9 @@ export const getRecommendedProducts = async (
     if (validTags.length > 0) {
       console.log(`Searching with ${validTags.length} tags:`, validTags);
       
-      // 文字列のみを含む配列を新しく作成（型互換性のため）
-      const searchTags: string[] = [...validTags]; 
-      
+      // 明示的に型を指定してタグを検索に使用
       recommendedProducts = await fetchProductsByTags(
-        searchTags,
+        validTags, // 既に string[] 型のタグ配列を確保している
         limit * 2, // 多めに取得して後でフィルタリング
         excludeIds
       );
@@ -682,12 +688,10 @@ export const getRecommendationsByCategory = async (
           
           // 有効なタグがある場合は、それを使って商品を検索
           if (validTags.length > 0) {
-            // 文字列のみを含む配列を新しく作成（型互換性のため）
-            const searchTags: string[] = [...validTags];
-            
+            // カテゴリとタグを使用して商品検索
             products = await fetchProductsByCategoryAndTags(
               category,
-              searchTags,
+              validTags, // 既に string[] 型のタグ配列を確保済み
               limit,
               swipedProductIds
             );
