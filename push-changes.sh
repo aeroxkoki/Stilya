@@ -8,18 +8,17 @@ cd /Users/koki_air/Documents/GitHub/Stilya
 
 # Add all changes
 echo "📦 Adding changes to git..."
-git add .
+git add package.json app.json eas.json
 
 # Commit changes with descriptive message
 echo "💬 Committing changes..."
-git commit -m "fix: Resolve yarn dependency issues and improve animation functionality
+git commit -m "fix: Resolve Android build issues in CI environment
 
-- Fixed yarn install --frozen-lockfile error
-- Replaced Reanimated mocks with actual implementation
-- Added AnimationTest screen for verifying setup
-- Created fix-dependencies.sh script for easier setup
-- Updated README.md with installation instructions
-- Added ENVIRONMENT_SETUP.md for detailed setup guide"
+- Added missing expo-notifications, expo-linking, and expo-localization dependencies
+- Updated App entry point to App.tsx
+- Fixed app.json configuration to be consistent with app.config.js
+- Enhanced eas.json with proper Gradle build settings for CI
+- Updated Android versionCode to 3"
 
 # Push changes to GitHub
 echo "☁️ Pushing changes to GitHub..."
