@@ -6,21 +6,11 @@ export interface User {
   gender?: 'male' | 'female' | 'other';
   stylePreference?: string[];
   ageGroup?: string;
+  nickname?: string; // SettingsScreenのエラー修正用に追加
 }
 
-// 商品情報
-export interface Product {
-  id: string;
-  title: string;
-  imageUrl: string;
-  brand?: string;
-  price: number;
-  tags?: string[];
-  category?: string;
-  affiliateUrl: string;
-  source?: string;
-  createdAt?: string;
-}
+// 商品情報 - product.tsを参照
+export * from './product';
 
 // スワイプ情報
 export interface Swipe {
@@ -63,11 +53,23 @@ export interface AuthState {
   error: string | null;
 }
 
+// 認証フック戻り値
+export interface UseAuthReturn {
+  user: User | null;
+  session: any | null;
+  loading: boolean;
+  error: string | null;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
+}
+
 // ナビゲーション定義
 export type RootStackParamList = {
   Auth: undefined;
   Main: undefined;
   Onboarding: undefined;
+  ProductDetail: { productId: string };
 };
 
 export type AuthStackParamList = {

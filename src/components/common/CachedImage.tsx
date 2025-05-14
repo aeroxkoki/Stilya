@@ -28,8 +28,6 @@ interface CachedImageProps extends Omit<ImageProps, 'source'> {
   containerStyle?: StyleProp<ViewStyle>;
   onLoad?: () => void;
   testID?: string;
-  // テスト関連の props
-  showLoader?: boolean; // テストとの互換性のため
 }
 
 /**

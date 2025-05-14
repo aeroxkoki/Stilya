@@ -4,9 +4,9 @@ import { useAuthStore } from './authStore';
 
 interface OnboardingState {
   // ユーザープロファイル情報
-  gender: 'male' | 'female' | 'other' | null;
+  gender?: 'male' | 'female' | 'other';
   stylePreference: string[];
-  ageGroup: string | null;
+  ageGroup?: string;
   
   // ステップ管理
   currentStep: number;
@@ -27,9 +27,9 @@ interface OnboardingState {
 
 export const useOnboardingStore = create<OnboardingState>((set, get) => ({
   // ユーザープロファイル初期状態
-  gender: null,
+  gender: undefined,
   stylePreference: [],
-  ageGroup: null,
+  ageGroup: undefined,
   
   // ステップ管理
   currentStep: 1,

@@ -16,7 +16,6 @@ interface CardProps {
   onPress?: () => void;
   disabled?: boolean;
   variant?: 'filled' | 'outlined';
-  className?: string; // NativeWindとの互換性用
   padding?: number | string; // カスタムパディングのサポート
   testID?: string;
 }
@@ -28,7 +27,6 @@ const Card: React.FC<CardProps> = ({
   onPress,
   disabled = false,
   variant = 'filled',
-  className,
   padding,
   testID,
 }) => {
@@ -82,6 +80,11 @@ const Card: React.FC<CardProps> = ({
       }
     : {};
 
+  // pxやremなどの単位を使った場合に対応するため、数値に変換
+  const paddingValue = typeof padding === 'string' 
+    ? parseInt(padding, 10) || 16 // 数値に変換できない場合はデフォルト値
+    : padding;
+
   const cardStyle = [
     styles.card,
     {
@@ -90,7 +93,7 @@ const Card: React.FC<CardProps> = ({
         : theme.colors.background.card,
       borderRadius: theme.radius.m,
       shadowColor: isDarkMode ? '#000' : '#222',
-      ...(padding !== undefined && { padding }),
+      ...(paddingValue !== undefined && { padding: paddingValue }),
       ...Platform.select({
         ios: {
           ...getElevationStyle(),
@@ -102,7 +105,6 @@ const Card: React.FC<CardProps> = ({
     },
     variantStyle,
     style,
-    className && { className },
   ];
 
   if (onPress) {

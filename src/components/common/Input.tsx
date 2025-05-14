@@ -103,8 +103,8 @@ const Input: React.FC<InputProps> = ({
           style={[
             styles.input,
             { color: theme.colors.text.primary },
-            leftIcon && styles.inputWithLeftIcon,
-            (rightIcon || showClearButton || isPassword) && styles.inputWithRightIcon,
+            leftIcon ? { paddingLeft: 8 } : undefined,
+            (rightIcon || showClearButton || isPassword) ? { paddingRight: 8 } : undefined,
             inputStyle,
           ]}
           value={value}
@@ -175,12 +175,6 @@ const styles = StyleSheet.create({
     height: '100%',
     paddingHorizontal: 16,
     fontSize: 16,
-  },
-  inputWithLeftIcon: {
-    paddingLeft: 8,
-  },
-  inputWithRightIcon: {
-    paddingRight: 8,
   },
   leftIcon: {
     paddingLeft: 16,

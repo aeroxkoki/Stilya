@@ -195,6 +195,58 @@ export const fetchNextPage = async (limit = 20): Promise<{
 };
 
 /**
+ * レコメンド商品を取得する
+ */
+export const fetchRecommendedProducts = async (userId: string, limit = 10): Promise<Product[]> => {
+  try {
+    if (USE_MOCK || __DEV__) {
+      // モックデータから先頭のlimit件を返す
+      return mockProducts.slice(0, limit);
+    }
+
+    // userIdをもとにユーザーの好みに合う商品をSupabaseから取得
+    // 実際の環境では推薦エンジンと連携
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .limit(limit)
+      .order('created_at', { ascending: false }); // 仮実装: 最新順
+
+    if (error) {
+      console.error('Error fetching recommended products:', error);
+      throw new Error(error.message);
+    }
+
+    if (!data || data.length === 0) {
+      return [];
+    }
+
+    // データ変換
+    const products = data.map((item: any) => ({
+      id: item.id,
+      title: item.title,
+      brand: item.brand,
+      price: item.price,
+      imageUrl: item.image_url,
+      description: item.description,
+      tags: item.tags || [],
+      category: item.category,
+      affiliateUrl: item.affiliate_url,
+      source: item.source,
+      createdAt: item.created_at,
+    }));
+
+    return products;
+  } catch (error) {
+    console.error('Error in fetchRecommendedProducts:', error);
+    if (__DEV__) {
+      return mockProducts.slice(0, limit);
+    }
+    throw error;
+  }
+};
+
+/**
  * 画像をプリフェッチしてキャッシュする
  */
 export const prefetchImages = async (products: Product[]) => {
@@ -295,6 +347,74 @@ export const clearProductsCache = () => {
 };
 
 /**
+ * スワイプ結果を保存する
+ */
+export const saveSwipeResult = async (productId: string, result: 'yes' | 'no'): Promise<boolean> => {
+  try {
+    if (USE_MOCK || __DEV__) {
+      // モック環境では成功したふりをする
+      console.log('Mock: Swipe result saved', { productId, result });
+      return true;
+    }
+
+    const userId = (await supabase.auth.getSession())?.data?.session?.user?.id;
+    if (!userId) {
+      throw new Error('User not authenticated');
+    }
+
+    const { error } = await supabase.from('swipes').insert({
+      user_id: userId,
+      product_id: productId,
+      result,
+    });
+
+    if (error) {
+      console.error('Error saving swipe result:', error);
+      throw new Error(error.message);
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Unexpected error in saveSwipeResult:', error);
+    return false;
+  }
+};
+
+/**
+ * 商品クリックを記録する
+ */
+export const recordProductClick = async (productId: string, product?: Product): Promise<boolean> => {
+  try {
+    if (USE_MOCK || __DEV__) {
+      // モック環境では成功したふりをする
+      console.log('Mock: Product click recorded', { productId });
+      return true;
+    }
+
+    const userId = (await supabase.auth.getSession())?.data?.session?.user?.id;
+    if (!userId) {
+      console.warn('User not authenticated, click not recorded');
+      return false;
+    }
+
+    const { error } = await supabase.from('click_logs').insert({
+      user_id: userId,
+      product_id: productId,
+    });
+
+    if (error) {
+      console.error('Error recording product click:', error);
+      throw new Error(error.message);
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Unexpected error in recordProductClick:', error);
+    return false;
+  }
+};
+
+/**
  * 特定のタグを持つ商品を取得する
  */
 export const fetchProductsByTags = async (
@@ -324,7 +444,7 @@ export const fetchProductsByTags = async (
     let query = supabase
       .from('products')
       .select('*')
-      .containsAny('tags', tags)
+      .contains('tags', tags)
       .limit(limit);
 
     // 除外IDがある場合

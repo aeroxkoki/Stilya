@@ -353,7 +353,7 @@ export const useImagePrefetch = () => {
       // 高プライオリティ画像を即時プリフェッチ
       if (highPriorityUrls.length > 0) {
         const prefetchPromises = highPriorityUrls.map(url => 
-          Image.prefetch(url, { priority: 'high' })
+          Image.prefetch(url)
             .catch(e => {
               prefetchErrorCount.current += 1;
               console.warn(`Failed to prefetch high priority image: ${url}`, e);
@@ -366,19 +366,20 @@ export const useImagePrefetch = () => {
         // エラーが多すぎる場合はユーザーに通知（オプション）
         if (prefetchErrorCount.current > 5 && prefetchErrorCount.current > highPriorityUrls.length / 2) {
           // ネットワーク接続の問題の可能性を示唆
-          Toast?.show?.({
+          Toast?.show?.(({
             type: 'info',
             text1: '画像の読み込みに問題が発生しています',
             text2: 'ネットワーク接続を確認してください',
             position: 'bottom',
             visibilityTime: 3000,
-          });
+          }) as any);
           prefetchErrorCount.current = 0; // カウンターリセット
         }
       }
       
       // 低プライオリティ画像を遅延プリフェッチ（UIスレッドをブロックしない）
       if (lowPriorityUrls.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         prefetchTimeoutRef.current = setTimeout(() => {
           InteractionManager.runAfterInteractions(() => {
             if (!isMounted.current) return;
@@ -395,7 +396,7 @@ export const useImagePrefetch = () => {
               const batch = lowPriorityUrls.slice(start, end);
               
               batch.forEach(url => {
-                Image.prefetch(url, { priority: 'low' }).catch(e => {
+                Image.prefetch(url).catch(e => {
                   if (__DEV__) {
                     console.log(`Failed to prefetch low priority image: ${url}`, e);
                   }

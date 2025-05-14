@@ -30,7 +30,6 @@ export interface ButtonProps {
   textStyle?: StyleProp<TextStyle>;
   fullWidth?: boolean;
   isFullWidth?: boolean; // 互換性のため
-  className?: string; // NativeWindとの互換性
   testID?: string;
 }
 
@@ -49,7 +48,6 @@ const Button: React.FC<ButtonProps> = ({
   textStyle,
   fullWidth = false,
   isFullWidth,
-  className,
   testID,
 }) => {
   // isFullWidthをfullWidthに統合（互換性のため）
@@ -193,8 +191,7 @@ const Button: React.FC<ButtonProps> = ({
         {
           transform: [{ scale: scaleAnimation }],
           width: useFullWidth ? '100%' : 'auto',
-        },
-        className && { className } // NativeWindとの互換性
+        }
       ]}
       testID={testID}
     >
@@ -222,8 +219,8 @@ const Button: React.FC<ButtonProps> = ({
             <Text 
               style={[
                 getTextStyle(), 
-                iconPosition === 'left' && icon && styles.textWithLeftIcon, 
-                iconPosition === 'right' && icon && styles.textWithRightIcon, 
+                icon && iconPosition === 'left' ? { marginLeft: 8 } : null, 
+                icon && iconPosition === 'right' ? { marginRight: 8 } : null, 
                 textStyle
               ]}
             >
