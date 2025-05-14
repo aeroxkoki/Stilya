@@ -10,12 +10,11 @@ import {
   ViewProps, 
   TextProps, 
   TouchableOpacityProps,
-  SafeAreaViewProps,
   ScrollViewProps,
   ImageProps,
   KeyboardAvoidingViewProps
 } from 'react-native';
-import { styled } from 'nativewind';
+import { styled } from 'nativewind/styled';
 
 // スタイル付きコンポーネントを作成
 export const View = styled(RNView);

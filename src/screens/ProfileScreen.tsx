@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: defaultTheme.fontSizes.m,
-    fontWeight: defaultTheme.fontWeights.medium,
+    fontWeight: defaultTheme.fontWeights.medium as any,
     color: defaultTheme.colors.text.secondary,
     marginBottom: defaultTheme.spacing.s,
   },

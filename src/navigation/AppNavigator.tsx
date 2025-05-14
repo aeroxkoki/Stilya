@@ -199,7 +199,6 @@ const AppNavigator = () => {
                 options={{
                   headerShown: true,
                   title: '商品詳細',
-                  headerBackTitleVisible: false,
                 }}
               />
             </>

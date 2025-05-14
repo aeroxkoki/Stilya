@@ -12,10 +12,10 @@ import {
   FlatList,
   Dimensions,
   Animated,
+  Image as RNImage,
 } from 'react-native';
 import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
 // import { BlurView } from 'expo-blur';
 // import * as Haptics from 'expo-haptics';
@@ -105,7 +105,7 @@ const ProductDetailScreen: React.FC = () => {
 
     try {
       // 触覚フィードバック
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       
       // クリックログを記録
       if (user) {
@@ -132,7 +132,7 @@ const ProductDetailScreen: React.FC = () => {
     
     try {
       // 触覚フィードバック
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       
       // まずUIを先に更新（楽観的更新）
       setIsFavorited(prev => !prev);
@@ -153,7 +153,7 @@ const ProductDetailScreen: React.FC = () => {
     
     try {
       // 触覚フィードバック
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       
       await Share.share({
         title: product.title,
@@ -252,11 +252,10 @@ const ProductDetailScreen: React.FC = () => {
             pagingEnabled
             showsHorizontalScrollIndicator={false}
             renderItem={({ item }) => (
-              <Image
+              <RNImage
                 source={{ uri: item }}
                 style={styles.image}
-                contentFit="cover"
-                transition={300}
+                resizeMode="cover"
               />
             )}
             keyExtractor={(_, index) => `image-${index}`}
@@ -342,7 +341,7 @@ const ProductDetailScreen: React.FC = () => {
                 renderItem={({ item }) => (
                   <ProductCard
                     product={item}
-                    onPress={() => handleRelatedProductPress(item.id)}
+                    onPress={handleRelatedProductPress}
                     style={styles.relatedProductCard}
                     compact
                   />

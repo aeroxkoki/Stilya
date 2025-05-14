@@ -4,7 +4,7 @@ import { Product } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import { getSwipeHistory } from '@/services/swipeService';
 
-interface ProductsData {
+interface ProductsState {
   products: Product[];
   hasMore: boolean;
   totalFetched: number;
@@ -29,7 +29,7 @@ interface UseProductsReturn {
  */
 export const useProducts = (): UseProductsReturn => {
   const { user } = useAuth();
-  const [productsData, setProductsData] = useState<ProductsData>({
+  const [productsData, setProductsData] = useState<ProductsState>({
     products: [],
     hasMore: true,
     totalFetched: 0

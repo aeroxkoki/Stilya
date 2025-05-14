@@ -7,12 +7,15 @@ import SwipeContainer from '@/components/swipe/SwipeContainer';
 import EmptyState from '@/components/common/EmptyState';
 import { useProducts } from '@/hooks/useProducts';
 import { useRecordClick } from '@/hooks/useRecordClick';
+import { useAuth } from '@/hooks/useAuth';
+import { Product } from '@/types';
 
 type SwipeScreenNavigationProp = StackNavigationProp<SwipeStackParamList, 'SwipeHome'>;
 
 const SwipeScreen: React.FC = () => {
   const navigation = useNavigation<SwipeScreenNavigationProp>();
-  const recordClick = useRecordClick();
+  const { user } = useAuth();
+  const { recordProductClick } = useRecordClick(user?.id);
   
   const {
     products,
@@ -25,18 +28,18 @@ const SwipeScreen: React.FC = () => {
   } = useProducts();
 
   // 商品詳細画面に遷移
-  const handleCardPress = useCallback((product) => {
+  const handleCardPress = useCallback((product: Product) => {
     if (product) {
       // クリックログを記録
-      recordClick(product.id);
+      recordProductClick(product.id, product);
       
       // 詳細画面に遷移
       navigation.navigate('ProductDetail', { productId: product.id });
     }
-  }, [navigation, recordClick]);
+  }, [navigation, recordProductClick]);
 
   // スワイプ処理
-  const handleSwipeEvent = useCallback((product, direction) => {
+  const handleSwipeEvent = useCallback((product: Product, direction: 'left' | 'right') => {
     handleSwipe(product, direction);
   }, [handleSwipe]);
 

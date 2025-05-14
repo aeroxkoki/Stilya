@@ -1,5 +1,4 @@
 import { Platform, NativeModules, InteractionManager } from 'react-native';
-import { Image } from 'expo-image';
 import { clearMemoryCache } from '../imageUtils';
 
 // メモリ使用量しきい値（MB）
@@ -124,13 +123,14 @@ export const autoCleanupMemoryIfNeeded = async (): Promise<void> => {
     console.log('[MEMORY] High memory usage detected');
     
     // 警告レベルでは非表示の画像のみキャッシュをクリア
-    if (Image.clearDiskCache) {
-      try {
-        await Image.clearDiskCache();
-      } catch (e) {
-        console.error('Failed to clear disk cache:', e);
-      }
-    }
+    // この機能はReact Native Image APIには存在しないため、一旦コメントアウト
+    // if (Image.clearDiskCache) {
+    //   try {
+    //     await Image.clearDiskCache();
+    //   } catch (e) {
+    //     console.error('Failed to clear disk cache:', e);
+    //   }
+    // }
   }
 };
 
@@ -143,11 +143,12 @@ export const forceCleanupMemory = (): void => {
     clearMemoryCache();
     
     // ディスクキャッシュのクリア
-    if (Image.clearDiskCache) {
-      Image.clearDiskCache().catch(e => 
-        console.error('Failed to clear disk cache:', e)
-      );
-    }
+    // この機能はReact Native Image APIには存在しないため、一旦コメントアウト
+    // if (Image.clearDiskCache) {
+    //   Image.clearDiskCache().catch(e => 
+    //     console.error('Failed to clear disk cache:', e)
+    //   );
+    // }
     
     // タイムアウト後に追加クリーンアップ
     setTimeout(() => {

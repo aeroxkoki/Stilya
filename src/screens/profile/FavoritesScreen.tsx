@@ -12,18 +12,21 @@ import {
   Alert
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { ProductCard, Button } from '@/components/common';
 import { useProductStore } from '@/store/productStore';
 import { useAuthStore } from '@/store/authStore';
-import { Product } from '@/types';
+import { Product, RootStackParamList } from '@/types';
 
 const { width } = Dimensions.get('window');
 const COLUMN_NUM = 2;
 const CARD_WIDTH = (width - 32 - 8 * (COLUMN_NUM - 1)) / COLUMN_NUM; // Padding + Gap
 
+type NavigationProp = StackNavigationProp<RootStackParamList>;
+
 const FavoritesScreen: React.FC = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp>();
   const { user } = useAuthStore();
   const { 
     favorites, 
@@ -87,7 +90,7 @@ const FavoritesScreen: React.FC = () => {
   
   // 商品タップハンドラー
   const handleProductPress = (product: Product) => {
-    navigation.navigate('ProductDetail' as never, { productId: product.id } as never);
+    navigation.navigate('ProductDetail', { productId: product.id });
   };
   
   // お気に入り削除ハンドラー

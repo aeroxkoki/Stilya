@@ -1,6 +1,5 @@
 import React from 'react';
-import { StyleSheet, TouchableOpacity, Text, View, ViewStyle } from 'react-native';
-import { Image } from 'expo-image';
+import { StyleSheet, TouchableOpacity, Text, View, ViewStyle, Image as RNImage } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Product } from '@/types/product';
 
@@ -47,11 +46,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
         activeOpacity={0.8}
       >
         <View style={styles.compactImageWrapper}>
-          <Image
+          <RNImage
             source={{ uri: product.imageUrl }}
             style={styles.compactImage}
-            contentFit="cover"
-            transition={200}
+            resizeMode="cover"
           />
         </View>
         
@@ -78,11 +76,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
       activeOpacity={0.9}
     >
       <View style={styles.imageContainer}>
-        <Image
+        <RNImage
           source={{ uri: product.imageUrl }}
           style={styles.image}
-          contentFit="cover"
-          transition={300}
+          resizeMode="cover"
         />
         
         {onFavoriteToggle && (

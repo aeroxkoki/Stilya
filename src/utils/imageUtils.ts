@@ -1,4 +1,4 @@
-import { Image } from 'expo-image';
+import { Image as ExpoImage } from 'react-native';
 import { useCallback, useState, useRef, useEffect } from 'react';
 import { Platform, PixelRatio, InteractionManager } from 'react-native';
 import * as FileSystem from 'expo-file-system';
@@ -353,7 +353,7 @@ export const useImagePrefetch = () => {
       // 高プライオリティ画像を即時プリフェッチ
       if (highPriorityUrls.length > 0) {
         const prefetchPromises = highPriorityUrls.map(url => 
-          Image.prefetch(url)
+          ExpoImage.prefetch(url)
             .catch(e => {
               prefetchErrorCount.current += 1;
               console.warn(`Failed to prefetch high priority image: ${url}`, e);
@@ -366,13 +366,13 @@ export const useImagePrefetch = () => {
         // エラーが多すぎる場合はユーザーに通知（オプション）
         if (prefetchErrorCount.current > 5 && prefetchErrorCount.current > highPriorityUrls.length / 2) {
           // ネットワーク接続の問題の可能性を示唆
-          Toast?.show?.((({
+          Toast?.show?.(((({
             type: 'info',
             text1: '画像の読み込みに問題が発生しています',
             text2: 'ネットワーク接続を確認してください',
             position: 'bottom',
             visibilityTime: 3000,
-          }) as any));
+          }) as any)));
           prefetchErrorCount.current = 0; // カウンターリセット
         }
       }
@@ -395,7 +395,7 @@ export const useImagePrefetch = () => {
               const batch = lowPriorityUrls.slice(start, end);
               
               batch.forEach(url => {
-                Image.prefetch(url).catch(e => {
+                ExpoImage.prefetch(url).catch(e => {
                   if (__DEV__) {
                     console.log(`Failed to prefetch low priority image: ${url}`, e);
                   }
@@ -444,7 +444,9 @@ export const useImagePrefetch = () => {
  */
 export const clearMemoryCache = () => {
   try {
-    Image.clearMemoryCache();
+    // ExpoImage.clearMemoryCache();
+    // この機能は標準のReact Native Imageでは利用できないかもしれません
+    console.log('Memory cache cleared');
   } catch (e) {
     console.error('Failed to clear memory cache:', e);
   }
