@@ -129,7 +129,7 @@ const fetchProductsById = async (productIds: string[]): Promise<Product[]> => {
   try {
     // バッチサイズを制限して大量IDの処理に対応
     const BATCH_SIZE = 100;
-    const batches = [];
+    const batches: string[][] = [];
     
     // IDを適切なサイズのバッチに分割
     for (let i = 0; i < productIds.length; i += BATCH_SIZE) {
@@ -347,9 +347,8 @@ export const getRecommendedProducts = async (
     if (validTags.length > 0) {
       console.log(`Searching with ${validTags.length} tags:`, validTags);
       
-      // 型アサーションを使用して一時的にエラーを回避
       recommendedProducts = await fetchProductsByTags(
-        validTags as any,
+        validTags,
         limit * 2, // 多めに取得して後でフィルタリング
         excludeIds
       );
@@ -622,7 +621,7 @@ export const getRecommendationsByCategory = async (
             // カテゴリとタグを使用して商品検索
             products = await fetchProductsByCategoryAndTags(
               category,
-              validTags as any,
+              validTags,
               limit,
               swipedProductIds
             );
