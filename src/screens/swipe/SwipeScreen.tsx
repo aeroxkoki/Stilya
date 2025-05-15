@@ -2,7 +2,8 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList } from '../../navigation/types';
+import { RootStackParamList, MainStackParamList } from '../../navigation/types';
+import { Product } from '../../types/product';
 import { useTheme } from '../../contexts/ThemeContext';
 import { EmptyState } from '../../components/common';
 import { useProducts } from '../../hooks/useProducts';
@@ -11,24 +12,30 @@ import SwipeContainer from '../../components/swipe/SwipeContainer';
 import ActionButtons from '../../components/ActionButtons';
 
 // ナビゲーションの型定義
-type SwipeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Swipe'>;
+type SwipeScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 
 // スワイプ画面コンポーネント
 const SwipeScreen: React.FC = () => {
   const navigation = useNavigation<SwipeScreenNavigationProp>();
-  const { colors } = useTheme();
+  const theme = useTheme();
   
   // 商品データの取得
-  const { products, loading, error, fetchMoreProducts } = useProducts();
-  
-  // スワイプ機能の利用
-  const { swipeYes, swipeNo } = useSwipe();
+  const { products, isLoading: loading, error, fetchMore: fetchMoreProducts } = useProducts();
   
   // 現在表示中のカードインデックス
   const [currentIndex, setCurrentIndex] = useState(0);
   
-  // スワイプが少なくなったらデータをもっと取得
-  const handleSwipe = useCallback(async (direction: 'left' | 'right') => {
+  // スワイプ機能の利用
+  const swipeUtils = useSwipe({ 
+    userId: 'user123', // ここで適切なユーザーIDを渡す
+    onSwipeComplete: (direction, product) => {
+      // スワイプ完了時の処理
+      console.log(`Swiped ${direction} on product ${product.id}`);
+    }
+  });
+  
+  // スワイプ関数を定義
+  const handleSwipe = useCallback(async (product: Product, direction: 'left' | 'right') => {
     // 現在の商品
     const currentProduct = products[currentIndex];
     
@@ -36,9 +43,9 @@ const SwipeScreen: React.FC = () => {
     
     // スワイプ方向に応じた処理
     if (direction === 'right') {
-      await swipeYes(currentProduct.id);
+      await swipeUtils.handleSwipeRight(currentProduct);
     } else {
-      await swipeNo(currentProduct.id);
+      await swipeUtils.handleSwipeLeft(currentProduct);
     }
     
     // 次のカードへ
@@ -48,7 +55,7 @@ const SwipeScreen: React.FC = () => {
     if (currentIndex >= products.length - 3) {
       fetchMoreProducts();
     }
-  }, [currentIndex, products, swipeYes, swipeNo, fetchMoreProducts]);
+  }, [currentIndex, products, swipeUtils, fetchMoreProducts]);
   
   // 商品カードをタップした時の処理
   const handleCardPress = (productId: string) => {
@@ -67,8 +74,8 @@ const SwipeScreen: React.FC = () => {
     if (loading && products.length === 0) {
       return (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+          <ActivityIndicator size="large" color={theme.theme.primary} />
+          <Text style={[styles.loadingText, { color: theme.theme.text.secondary }]}>
             ファッションアイテムを読み込み中...
           </Text>
         </View>
@@ -106,11 +113,12 @@ const SwipeScreen: React.FC = () => {
           products={products.slice(currentIndex)}
           onSwipe={handleSwipe}
           onCardPress={handleCardPress}
+          isLoading={loading}
         />
         <View style={styles.actionButtonsContainer}>
           <ActionButtons
-            onPressNo={() => handleSwipe('left')}
-            onPressYes={() => handleSwipe('right')}
+            onPressNo={() => handleSwipe(products[currentIndex], 'left')}
+            onPressYes={() => handleSwipe(products[currentIndex], 'right')}
           />
         </View>
       </>
@@ -119,7 +127,7 @@ const SwipeScreen: React.FC = () => {
   
   return (
     <SafeAreaView 
-      style={[styles.container, { backgroundColor: colors.background }]}
+      style={[styles.container, { backgroundColor: theme.theme.background.main }]}
       testID="swipe-screen"
     >
       {renderContent()}

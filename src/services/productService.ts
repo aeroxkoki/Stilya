@@ -135,10 +135,10 @@ export const fetchProductById = async (productId: string): Promise<Product | nul
  */
 export const recordProductClick = async (productId: string): Promise<boolean> => {
   try {
-    const { user } = supabase.auth;
-    if (!user || !productId) return false;
+    const { session } = supabase.auth;
+    if (!session || !productId) return false;
 
-    const userId = user.id;
+    const userId = session.user.id;
 
     const { error } = await supabase
       .from('click_logs')

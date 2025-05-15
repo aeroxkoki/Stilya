@@ -80,10 +80,13 @@ const ProductDetailScreen: React.FC = () => {
         
         // 関連商品を取得
         if (productData && productData.tags && productData.tags.length > 0) {
+          // 自分自身のIDを除外するためにフィルタリングする
           const related = await fetchProductsByTags(
             productData.tags,
             6,
-            [productData.id] // 自分自身は除外
+            0  // offset parameter
+          ).then(products => 
+            products.filter(p => p.id !== productData.id)
           );
           setRelatedProducts(related);
         }

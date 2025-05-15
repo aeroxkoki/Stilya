@@ -5,6 +5,7 @@ import { StackScreenProps } from '@react-navigation/stack';
 export type AuthStackParamList = {
   Login: undefined;
   Register: undefined;
+  ForgotPassword: undefined;
 };
 
 // Main Stack

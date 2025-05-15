@@ -350,7 +350,8 @@ export const useProductStore = create<ProductState>((set, get) => ({
       let recommendedProducts: Product[] = [];
       
       if (popularTags.length > 0) {
-        recommendedProducts = await fetchProductsByTags(popularTags, 20, yesProductIds);
+        recommendedProducts = await fetchProductsByTags(popularTags, 20, 0)
+          .then(products => products.filter(p => !yesProductIds.includes(p.id)));
       } else {
         // タグがない場合はランダムに20件取得
         const result = await fetchProducts(20);

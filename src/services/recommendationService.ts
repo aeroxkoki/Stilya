@@ -345,13 +345,13 @@ export const getRecommendedProducts = async (
     
     // 有効なタグがある場合は、それを使って商品を検索
     if (validTags.length > 0) {
-      console.log(`Searching with ${validTags.length} tags:`, validTags);
+      const validTagsCount = validTags.length; // 修正: 数値を渡す
       
       recommendedProducts = await fetchProductsByTags(
         validTags,
         limit * 2, // 多めに取得して後でフィルタリング
-        excludeIds
-      );
+        0 // オフセットパラメータを追加
+      ).then(products => products.filter(p => !excludeIds.includes(p.id)));
     } else {
       console.log('No valid tags found for search, using popular products instead');
       // 有効なタグが見つからない場合は人気商品を返す

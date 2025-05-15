@@ -107,7 +107,7 @@ const OnboardingScreen: React.FC = () => {
     if (user) {
       const updatedUser = {
         ...user,
-        gender: gender as 'male' | 'female' | 'other' | undefined,
+        gender,
         stylePreference,
         ageGroup,
         onboardingCompleted: true,
@@ -118,7 +118,7 @@ const OnboardingScreen: React.FC = () => {
     }
     
     // Swipe画面へ遷移
-    navigation.navigate('Swipe');
+    navigation.navigate('Main', { screen: 'Swipe' } as any);
   };
 
   // スクロール時にインデックスを更新
@@ -144,7 +144,7 @@ const OnboardingScreen: React.FC = () => {
       case 'gender':
         return (
           <View style={styles.selectionContainer} testID="gender-selection-screen">
-            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+            <Text style={[styles.sectionTitle, { color: theme.theme.text.primary }]}>
               性別を選択してください
             </Text>
             <View style={styles.optionsContainer}>
@@ -171,10 +171,10 @@ const OnboardingScreen: React.FC = () => {
         ];
         return (
           <View style={styles.selectionContainer} testID="style-preference-screen">
-            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+            <Text style={[styles.sectionTitle, { color: theme.theme.text.primary }]}>
               好みのスタイルを選択してください
             </Text>
-            <Text style={[styles.sectionSubtitle, { color: theme.colors.textSecondary }]}>
+            <Text style={[styles.sectionSubtitle, { color: theme.theme.text.secondary }]}>
               複数選択可能です
             </Text>
             <View style={styles.optionsGrid}>
@@ -195,7 +195,7 @@ const OnboardingScreen: React.FC = () => {
         const ageOptions = ['10代', '20代', '30代', '40代', '50代以上'];
         return (
           <View style={styles.selectionContainer} testID="age-group-screen">
-            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+            <Text style={[styles.sectionTitle, { color: theme.theme.text.primary }]}>
               年代を選択してください
             </Text>
             <View style={styles.optionsContainer}>
@@ -227,7 +227,7 @@ const OnboardingScreen: React.FC = () => {
 
   return (
     <SafeAreaView 
-      style={[styles.container, { backgroundColor: theme.theme.colors.background.main }]}
+      style={[styles.container, { backgroundColor: theme.theme.background.main }]}
       testID="onboarding-screen"
     >
       <FlatList
@@ -254,7 +254,7 @@ const OnboardingScreen: React.FC = () => {
               key={index}
               style={[
                 styles.paginationDot,
-                { backgroundColor: index === currentIndex ? theme.theme.colors.primary : theme.theme.colors.border.light }
+                { backgroundColor: index === currentIndex ? theme.theme.primary : theme.theme.border.light }
               ]}
             />
           ))}

@@ -7,7 +7,7 @@ export type SwipeResult = 'yes' | 'no';
 
 // スワイプデータの型定義
 export interface SwipeData {
-  id?: string;
+  id: string;
   userId: string;
   productId: string;
   result: SwipeResult;
@@ -35,6 +35,7 @@ export const saveSwipeResult = async (
       productId,
       result,
       createdAt: new Date().toISOString(),
+      id: `offline_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
     };
 
     // オフラインの場合はローカルに保存
@@ -63,12 +64,14 @@ export const saveSwipeResult = async (
   } catch (error) {
     console.error('Error saving swipe result:', error);
     // エラー時はオフラインに保存
-    return await saveSwipeOffline({
+    const errorSwipeData = {
       userId,
       productId,
       result,
       createdAt: new Date().toISOString(),
-    });
+      id: `offline_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
+    };
+    return await saveSwipeOffline(errorSwipeData);
   }
 };
 
@@ -83,6 +86,12 @@ const saveSwipeOffline = async (swipeData: SwipeData): Promise<boolean> => {
     const storedData = await AsyncStorage.getItem(OFFLINE_SWIPE_STORAGE_KEY);
     let offlineSwipes: SwipeData[] = storedData ? JSON.parse(storedData) : [];
 
+    // IDを生成して新しいデータを追加
+    const newSwipeData = {
+      ...swipeData,
+      id: `offline_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
+    };
+
     // 既存のスワイプをチェック（同じ商品に対して）
     const existingIndex = offlineSwipes.findIndex(
       (item) => item.userId === swipeData.userId && item.productId === swipeData.productId
@@ -90,10 +99,10 @@ const saveSwipeOffline = async (swipeData: SwipeData): Promise<boolean> => {
 
     if (existingIndex >= 0) {
       // 既存のデータを更新
-      offlineSwipes[existingIndex] = swipeData;
+      offlineSwipes[existingIndex] = newSwipeData;
     } else {
       // 新しいデータを追加
-      offlineSwipes.push(swipeData);
+      offlineSwipes.push(newSwipeData);
     }
 
     // 更新されたデータを保存

@@ -3,13 +3,13 @@ import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-nat
 import { Input, Button, Card } from '../../components/common';
 import { useAuthStore } from '../../store/authStore';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList } from '../../navigation/types';
+import { RootStackParamList, AuthStackParamList } from '../../navigation/types';
 import { StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../contexts/ThemeContext';
 
 // ナビゲーションプロパティの型定義
-type AuthScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Auth'>;
+type AuthScreenNavigationProp = StackNavigationProp<AuthStackParamList>;
 
 interface AuthScreenProps {
   navigation: AuthScreenNavigationProp;
