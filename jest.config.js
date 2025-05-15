@@ -27,7 +27,7 @@ module.exports = {
   transform: {
     '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { configFile: './babel.config.js' }]
   },
-  testEnvironment: 'node',
+  testEnvironment: 'jsdom',
   testTimeout: 30000,
   globals: {
     'ts-jest': {

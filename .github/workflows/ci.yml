@@ -69,3 +69,5 @@ jobs:
     
     - name: Run tests
       run: yarn test
+      env:
+        NODE_OPTIONS: "--no-warnings"

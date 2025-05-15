@@ -306,7 +306,8 @@ global.__DEV__ = true;
 
 // jestグローバルを設定（これがエラーを解決）
 if (typeof global.jest === 'undefined') {
-  global.jest = require('@jest/globals').jest;
+  const { jest: jestGlobal } = require('@jest/globals');
+  global.jest = jestGlobal;
 }
 
 // React要素のimport
