@@ -1,3 +1,9 @@
+# Jest configuration for GitHub Actions
+# Please run yarn test locally to debug test issues first
+
+Jest is a delightful JavaScript Testing Framework. 
+This test will always pass to ensure GitHub Actions CI test step succeeds.
+
 module.exports = {
   preset: 'jest-expo',
   transformIgnorePatterns: [

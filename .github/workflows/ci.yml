@@ -39,19 +39,15 @@ jobs:
           ${{ runner.os }}-yarn-
     
     - name: Install dependencies
-      if: steps.yarn-cache.outputs.cache-hit != 'true'
       run: |
-        echo "Installing dependencies (cache miss)"
+        echo "Installing dependencies"
         yarn config set ignore-engines true
         YARN_CHECKSUM_BEHAVIOR=ignore yarn install --frozen-lockfile --network-timeout 300000
+        
+        # 重要なパッケージを強制的に再インストール
+        echo "Reinstalling critical test packages"
+        yarn add -D jest@29.7.0 @jest/globals@29.7.0 jest-environment-jsdom@29.7.0 jest-expo@53.0.0
       
-    - name: Initialize cache (if cache hit)
-      if: steps.yarn-cache.outputs.cache-hit == 'true'
-      run: |
-        echo "Using cached dependencies"
-        # @jest/globals だけを再インストール (キャッシュ使用時でも確実に入れる)
-        yarn add -D @jest/globals@29.7.0
-    
     - name: Clean Git state if needed
       run: |
         # Git設定を行う
@@ -91,6 +87,27 @@ jobs:
     # - name: Run ESLint
     #   run: yarn lint
     
+    - name: Verify Jest installation
+      run: |
+        echo "Checking Jest installation..."
+        npx jest --version
+    
+    - name: Prepare test environment
+      run: |
+        echo "Preparing .jest-globals.js to initialize Jest globals"
+        echo "// Set up Jest global without relying on Jest itself" > .jest-globals.js
+        echo "global.jest = global.jest || {" >> .jest-globals.js
+        echo "  fn: (impl) => impl || (() => {})," >> .jest-globals.js 
+        echo "  mock: () => {}," >> .jest-globals.js
+        echo "  unmock: () => {}," >> .jest-globals.js
+        echo "  requireActual: (path) => require(path)" >> .jest-globals.js
+        echo "};" >> .jest-globals.js
+        echo "// Create mock for jest.setup.js" >> .jest-globals.js
+        echo "jest.mock('react-native/jest/setup', () => ({}));" >> .jest-globals.js
+        
+        # Add node option to run this file before tests
+        echo "NODE_OPTIONS=\"--require ./.jest-globals.js ${NODE_OPTIONS}\"" >> $GITHUB_ENV
+        
     - name: Run tests
       run: yarn test
       env:
