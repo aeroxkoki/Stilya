@@ -42,9 +42,9 @@
     "plugins": [
       "expo-secure-store",
       "expo-notifications",
-      "expo-linking",
       "expo-localization"
     ],
+    "scheme": "stilya",
     "jsEngine": "hermes"
   }
 }

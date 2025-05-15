@@ -1,1 +1,11 @@
-const { withPlugins } = require('@expo/config-plugins');\nconst appJson = require('./app.json');\n\n// app.jsonの内容を使用する統合設定\nmodule.exports = () => {\n  const config = withPlugins(appJson.expo, [\n    // expo-linkingプラグインを明示的に設定\n    ['expo-linking', {\n      prefixes: ['stilya://', 'https://stilya.app']\n    }]\n  ]);\n\n  return config;\n};\n
+// TypeScript definition for app.config.js
+// Export type definitions only - no actual code
+type ExpoConfig = {
+  name: string;
+  slug: string;
+  version: string;
+  // Add other properties as needed
+};
+
+// This file is not being used for actual configuration
+// Configuration is in app.config.js
