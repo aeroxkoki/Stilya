@@ -27,7 +27,7 @@
     "eas:build:prod": "eas build --profile production",
     "eas:update": "eas update",
     "eas:check": "eas --version && echo 'EAS CLI is installed correctly'",
-    "postinstall": "yarn add -D @jest/globals@29.7.0 && echo 'Resolved jest globals'"
+    "postinstall": "echo 'Postinstall executed, dependencies configured'"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.0",

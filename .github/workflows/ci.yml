@@ -19,14 +19,38 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: '18.x'
+        cache: 'yarn'
+    
+    # 依存関係のハッシュを計算するステップ
+    - name: Get yarn cache directory path
+      id: yarn-cache-dir-path
+      run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
+    
+    # キャッシュを復元するステップ
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      id: yarn-cache
+      with:
+        path: |
+          ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          node_modules
+        key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-yarn-
     
     - name: Install dependencies
+      if: steps.yarn-cache.outputs.cache-hit != 'true'
       run: |
-        echo "Skipping lock file check"
+        echo "Installing dependencies (cache miss)"
         yarn config set ignore-engines true
-        yarn config set checksumBehavior ignore
-        # インテグリティチェックを回避して依存関係をインストール
-        YARN_CHECKSUM_BEHAVIOR=ignore yarn install --legacy-peer-deps --network-timeout 300000
+        YARN_CHECKSUM_BEHAVIOR=ignore yarn install --frozen-lockfile --network-timeout 300000
+      
+    - name: Initialize cache (if cache hit)
+      if: steps.yarn-cache.outputs.cache-hit == 'true'
+      run: |
+        echo "Using cached dependencies"
+        # @jest/globals だけを再インストール (キャッシュ使用時でも確実に入れる)
+        yarn add -D @jest/globals@29.7.0
     
     - name: Clean Git state if needed
       run: |
