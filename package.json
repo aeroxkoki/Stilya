@@ -69,6 +69,7 @@
     "@babel/core": "^7.24.0",
     "@babel/plugin-transform-runtime": "^7.24.0",
     "@babel/plugin-transform-template-literals": "^7.24.1",
+    "babel-plugin-module-resolver": "^5.0.0",
     "@expo/config": "~8.2.0",
     "@expo/config-plugins": "~10.0.0",
     "@expo/metro-config": "~0.10.0",

@@ -33,8 +33,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.stilya.app",
-      "versionCode": 3
+      "package": "com.stilya.app"
     },
     "web": {
       "favicon": "./assets/favicon.png"

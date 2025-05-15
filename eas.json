@@ -35,7 +35,7 @@
         "env": {
           "EXPO_ANDROID_KEYSTORE_PASSWORD": "android",
           "EXPO_ANDROID_KEY_PASSWORD": "android",
-          "JAVA_TOOL_OPTIONS": "-XX:MaxHeapSize=6g -Dfile.encoding=UTF-8"
+          "JAVA_TOOL_OPTIONS": "-XX:MaxHeapSize=8g -Xmx8g -Dfile.encoding=UTF-8"
         }
       },
       "ios": {

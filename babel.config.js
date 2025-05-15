@@ -5,6 +5,14 @@ module.exports = function(api) {
   return {
     presets: ['babel-preset-expo'],
     plugins: [
+      // モジュール解決の設定を追加
+      ['module-resolver', {
+        root: ['.'],
+        alias: {
+          '@': './src',
+        },
+        extensions: ['.ios.js', '.android.js', '.js', '.ts', '.tsx', '.json'],
+      }],
       // Conditional plugins - in test env we need to use different settings
       ...(isTest ? [] : ['nativewind/babel']),
       // Always included plugins

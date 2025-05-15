@@ -1,8 +1,8 @@
 import React, { createContext, useState, useEffect, useCallback, useContext } from 'react';
-import { supabase, signIn, signUp, signOut, getSession, refreshSession, isSessionExpired, getUserProfile } from '@/services/supabase';
-import { User } from '@/types';
+import { supabase, signIn, signUp, signOut, getSession, refreshSession, isSessionExpired, getUserProfile } from '../services/supabase';
+import { User } from '../types';
 // import * as SecureStore from 'expo-secure-store';
-import { syncOfflineSwipes } from '@/services/swipeService';
+import { syncOfflineSwipes } from '../services/swipeService';
 import NetInfo from '@react-native-community/netinfo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
