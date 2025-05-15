@@ -1,1 +1,66 @@
-{\n  \"cli\": {\n    \"version\": \"^16.6.0\",\n    \"requireCommit\": false,\n    \"appVersionSource\": \"remote\"\n  },\n  \"build\": {\n    \"development\": {\n      \"developmentClient\": true,\n      \"distribution\": \"internal\",\n      \"ios\": {\n        \"simulator\": true\n      },\n      \"android\": {\n        \"buildType\": \"apk\"\n      }\n    },\n    \"preview\": {\n      \"distribution\": \"internal\",\n      \"ios\": {\n        \"simulator\": true\n      },\n      \"android\": {\n        \"buildType\": \"apk\"\n      }\n    },\n    \"production\": {\n      \"autoIncrement\": true\n    },\n    \"ci\": {\n      \"android\": {\n        \"buildType\": \"apk\",\n        \"withoutCredentials\": true,\n        \"cache\": {\n          \"key\": \"gradle-v1\",\n          \"paths\": [\n            \"~/.gradle/caches\",\n            \"~/.gradle/wrapper\"\n          ]\n        },\n        \"env\": {\n          \"JAVA_TOOL_OPTIONS\": \"-XX:MaxHeapSize=6g -Dfile.encoding=UTF-8\"\n        }\n      },\n      \"ios\": {\n        \"simulator\": true\n      },\n      \"autoIncrement\": true,\n      \"distribution\": \"internal\",\n      \"extends\": \"production\"\n    }\n  },\n  \"submit\": {\n    \"production\": {\n      \"ios\": {\n        \"appleId\": \"YOUR_APPLE_ID\",\n        \"ascAppId\": \"YOUR_APP_STORE_CONNECT_APP_ID\",\n        \"appleTeamId\": \"YOUR_APPLE_TEAM_ID\"\n      },\n      \"android\": {\n        \"serviceAccountKeyPath\": \"./path-to-google-service-account.json\",\n        \"track\": \"production\"\n      }\n    }\n  }\n}
+{
+  "cli": {
+    "version": "^16.6.0",
+    "requireCommit": false,
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "simulator": true
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "ios": {
+        "simulator": true
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "production": {
+      "autoIncrement": true
+    },
+    "ci": {
+      "android": {
+        "buildType": "apk",
+        "withoutCredentials": true,
+        "cache": {
+          "key": "gradle-v1",
+          "paths": [
+            "~/.gradle/caches",
+            "~/.gradle/wrapper"
+          ]
+        },
+        "env": {
+          "JAVA_TOOL_OPTIONS": "-XX:MaxHeapSize=6g -Dfile.encoding=UTF-8"
+        }
+      },
+      "ios": {
+        "simulator": true
+      },
+      "autoIncrement": true,
+      "distribution": "internal",
+      "extends": "production"
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "YOUR_APPLE_ID",
+        "ascAppId": "YOUR_APP_STORE_CONNECT_APP_ID",
+        "appleTeamId": "YOUR_APPLE_TEAM_ID"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./path-to-google-service-account.json",
+        "track": "production"
+      }
+    }
+  }
+}

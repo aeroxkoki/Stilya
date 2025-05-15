@@ -1,49 +1,50 @@
-{"expo": {
-  "name": "Stilya",
-  "slug": "stilya",
-  "version": "1.0.0",
-  "orientation": "portrait",
-  "icon": "./assets/icon.png",
-  "userInterfaceStyle": "automatic",
-  "owner": "aeroxkoki",
-  "runtimeVersion": {
-    "policy": "sdkVersion"
-  },
-  "updates": {
-    "url": "https://u.expo.dev/beb25e0f-344b-4f2f-8b64-20614b9744a3",
-    "fallbackToCacheTimeout": 0
-  },
-  "projectId": "beb25e0f-344b-4f2f-8b64-20614b9744a3",
-  "splash": {
-    "image": "./assets/splash-icon.png",
-    "resizeMode": "contain",
-    "backgroundColor": "#ffffff"
-  },
-  "assetBundlePatterns": [
-    "**/*"
-  ],
-  "ios": {
-    "supportsTablet": false,
-    "bundleIdentifier": "com.stilya.app",
-    "buildNumber": "1"
-  },
-  "android": {
-    "adaptiveIcon": {
-      "foregroundImage": "./assets/adaptive-icon.png",
+{
+  "expo": {
+    "name": "Stilya",
+    "slug": "stilya",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "owner": "aeroxkoki",
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/beb25e0f-344b-4f2f-8b64-20614b9744a3",
+      "fallbackToCacheTimeout": 0
+    },
+    "projectId": "beb25e0f-344b-4f2f-8b64-20614b9744a3",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "package": "com.stilya.app",
-    "versionCode": 3
-  },
-  "web": {
-    "favicon": "./assets/favicon.png"
-  },
-  "plugins": [
-    "expo-secure-store",
-    "expo-notifications",
-    "expo-linking",
-    "expo-localization"
-  ],
-  "jsEngine": "hermes"
-}
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.stilya.app",
+      "buildNumber": "1"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.stilya.app",
+      "versionCode": 3
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-notifications",
+      "expo-linking",
+      "expo-localization"
+    ],
+    "jsEngine": "hermes"
+  }
 }

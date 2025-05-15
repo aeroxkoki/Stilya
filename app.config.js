@@ -1,1 +1,14 @@
-const { withPlugins } = require('@expo/config-plugins');\nconst appJson = require('./app.json');\n\n// app.jsonの内容を使用する統合設定\nmodule.exports = () => {\n  const config = withPlugins(appJson.expo, [\n    // expo-linkingプラグインを明示的に設定\n    ['expo-linking', {\n      prefixes: ['stilya://', 'https://stilya.app']\n    }]\n  ]);\n\n  return config;\n};\n
+const { withPlugins } = require('@expo/config-plugins');
+const appJson = require('./app.json');
+
+// app.jsonの内容を使用する統合設定
+module.exports = () => {
+  const config = withPlugins(appJson.expo, [
+    // expo-linkingプラグインを明示的に設定
+    ['expo-linking', {
+      prefixes: ['stilya://', 'https://stilya.app']
+    }]
+  ]);
+
+  return config;
+};
