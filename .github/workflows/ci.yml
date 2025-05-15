@@ -22,6 +22,12 @@ jobs:
           rm -rf .yarn/cache || true
           rm -rf node_modules/.yarn-integrity || true
       
+      # 緊急修正スクリプトを作成
+      - name: Create emergency fix script
+        run: |
+          chmod +x ./create-emergency-fix.sh
+          ./create-emergency-fix.sh
+      
       # 修正したMetro依存関係で直接インストール
       - name: Install dependencies
         run: |
@@ -33,6 +39,13 @@ jobs:
         run: |
           chmod +x ./fix-metro-dependencies.sh
           ./fix-metro-dependencies.sh
+      
+      # エラー発生時に緊急修正を試行
+      - name: Emergency fix if needed
+        if: ${{ failure() }}
+        run: |
+          chmod +x ./fix-ci-build.sh
+          ./fix-ci-build.sh
       
       # テスト実行
       - name: Run simple test
@@ -54,6 +67,12 @@ jobs:
           rm -rf .yarn/cache || true
           rm -rf node_modules/.yarn-integrity || true
       
+      # 緊急修正スクリプトを作成
+      - name: Create emergency fix script
+        run: |
+          chmod +x ./create-emergency-fix.sh
+          ./create-emergency-fix.sh
+      
       # 依存関係のインストール
       - name: Install dependencies
         run: |
@@ -64,7 +83,14 @@ jobs:
       - name: Fix Metro dependencies
         run: |
           chmod +x ./fix-metro-dependencies.sh
-          CI=true ./fix-metro-dependencies.sh
+          ./fix-metro-dependencies.sh
+      
+      # エラー発生時に緊急修正を試行
+      - name: Emergency fix if needed
+        if: ${{ failure() }}
+        run: |
+          chmod +x ./fix-ci-build.sh
+          ./fix-ci-build.sh
       
       # パッケージ状態確認
       - name: Verify package state

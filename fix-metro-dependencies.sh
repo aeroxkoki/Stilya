@@ -18,31 +18,40 @@ yarn add --dev metro-transform-worker@0.76.7
 # Install the correct Expo Metro config
 yarn add --dev @expo/metro-config@~0.20.0
 
-# Safer method to update package.json - using node instead of sed
-node -e '
+# Safer method - create temporary Node script and execute it
+cat > update-resolutions.js << 'EOL'
 const fs = require("fs");
-const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
+try {
+  const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
 
-// Add resolutions field if it doesn't exist
-if (!packageJson.resolutions) {
-  packageJson.resolutions = {};
+  // Add resolutions field if it doesn't exist
+  if (!packageJson.resolutions) {
+    packageJson.resolutions = {};
+  }
+
+  // Update resolutions with Metro versions
+  packageJson.resolutions = {
+    ...packageJson.resolutions,
+    "metro": "^0.76.7",
+    "metro-config": "^0.76.7",
+    "metro-core": "^0.76.7",
+    "metro-react-native-babel-transformer": "^0.76.7",
+    "metro-resolver": "^0.76.7",
+    "metro-runtime": "^0.76.7"
+  };
+
+  // Write the updated package.json
+  fs.writeFileSync("package.json", JSON.stringify(packageJson, null, 2));
+  console.log("Updated package.json with Metro resolutions");
+} catch (error) {
+  console.error("Error updating package.json:", error);
+  process.exit(1);
 }
+EOL
 
-// Update resolutions with Metro versions
-packageJson.resolutions = {
-  ...packageJson.resolutions,
-  "metro": "^0.76.7",
-  "metro-config": "^0.76.7",
-  "metro-core": "^0.76.7",
-  "metro-react-native-babel-transformer": "^0.76.7",
-  "metro-resolver": "^0.76.7",
-  "metro-runtime": "^0.76.7"
-};
-
-// Write the updated package.json
-fs.writeFileSync("package.json", JSON.stringify(packageJson, null, 2));
-console.log("Updated package.json with Metro resolutions");
-'
+# Execute the Node.js script
+node update-resolutions.js
+rm update-resolutions.js
 
 # Clean yarn cache again and force a node_modules clean-up if needed
 if [ "$CI" = "true" ]; then
