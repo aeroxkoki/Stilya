@@ -306,8 +306,23 @@ global.__DEV__ = true;
 
 // jestグローバルを設定（これがエラーを解決）
 if (typeof global.jest === 'undefined') {
-  const { jest: jestGlobal } = require('@jest/globals');
-  global.jest = jestGlobal;
+  try {
+    const { jest: jestGlobal } = require('@jest/globals');
+    global.jest = jestGlobal;
+  } catch (error) {
+    console.error('Error setting up jest globals:', error);
+    // フォールバックとしてグローバルモックオブジェクトを提供
+    global.jest = {
+      fn: (impl) => impl || (() => {}),
+      mock: (path) => {},
+      requireActual: (path) => require(path),
+      requireMock: (path) => require(path),
+      clearAllMocks: () => {},
+      resetAllMocks: () => {},
+      restoreAllMocks: () => {},
+      spyOn: () => ({ mockImplementation: () => ({}) })
+    };
+  }
 }
 
 // React要素のimport
