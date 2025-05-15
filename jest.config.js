@@ -4,7 +4,7 @@ module.exports = {
     'node_modules/(?!(jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|nativewind|react-native-reanimated)',
   ],
   setupFiles: ['./jest.setup.js'],
-  setupFilesAfterEnv: [],
+  setupFilesAfterEnv: ['@testing-library/jest-native/extend-expect'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
   collectCoverage: true,
   collectCoverageFrom: [
@@ -27,16 +27,12 @@ module.exports = {
   transform: {
     '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { configFile: './babel.config.js' }]
   },
-  testEnvironment: 'jest-environment-jsdom',
+  testEnvironment: 'node',
   testTimeout: 30000,
   globals: {
     'ts-jest': {
       babelConfig: true
     }
-  },
-  fakeTimers: {
-    enableGlobally: true,
-    legacyFakeTimers: true
   },
   // Reanimated関連の問題を修正
   injectGlobals: false
