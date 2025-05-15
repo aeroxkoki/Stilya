@@ -48,36 +48,13 @@ jobs:
         echo "Reinstalling critical test packages"
         yarn add -D jest@29.7.0 @jest/globals@29.7.0 jest-environment-jsdom@29.7.0 jest-expo@53.0.0
       
-    - name: Fix Jest Config
-      run: |
-        echo "/**" > jest.config.js
-        echo " * Jest configuration for Stilya" >> jest.config.js
-        echo " */" >> jest.config.js
-        echo "" >> jest.config.js
-        echo "module.exports = {" >> jest.config.js
-        echo "  preset: 'jest-expo'," >> jest.config.js
-        echo "  testMatch: ['<rootDir>/src/__tests__/simple.test.js']," >> jest.config.js
-        echo "  setupFiles: ['./setup-jest.js']," >> jest.config.js
-        echo "  transform: {" >> jest.config.js
-        echo "    '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest']" >> jest.config.js
-        echo "  }," >> jest.config.js
-        echo "  testEnvironment: 'jsdom'" >> jest.config.js
-        echo "};" >> jest.config.js
+    # Jest設定ファイルはリポジトリにコミットされたものを使用します
     
-    - name: Clean Git state if needed
+    - name: Fetch latest changes if needed
       run: |
-        # Git設定を行う
+        # Git設定を行う（情報表示用）
         git config --global user.name "GitHub Action"
         git config --global user.email "action@github.com"
-        
-        # 変更がある場合はまずコミットする
-        if [[ -n $(git status --porcelain) ]]; then
-          echo "Changes detected, committing them first..."
-          git add -A
-          git commit -m "Auto-commit by GitHub Actions [skip ci]"
-        else
-          echo "Git working directory is clean."
-        fi
         
         # リモートの変更を取得
         git fetch origin
@@ -85,33 +62,18 @@ jobs:
         # 現在のブランチ名を取得
         CURRENT_BRANCH=${GITHUB_REF#refs/heads/}
         
-        # リモートの変更を取り込む
-        git pull --rebase origin $CURRENT_BRANCH || echo "No changes to pull or rebase failed"
-        
-        # Pull Requestではなく、直接pushの場合のみpushを実行
-        if [[ "${{ github.event_name }}" != "pull_request" && -n $(git log origin/$CURRENT_BRANCH..$CURRENT_BRANCH) ]]; then
-          echo "Pushing changes to origin..."
-          git push origin $CURRENT_BRANCH
+        # 変更がある場合は表示のみ
+        if [[ -n $(git status --porcelain) ]]; then
+          echo "Changes detected in working directory during CI. These will not be committed."
         else
-          echo "No changes to push or Pull Request中のため変更はpushせず"
+          echo "Git working directory is clean."
         fi
     
     - name: Run TypeScript check
       run: yarn tsc
       continue-on-error: true
     
-    - name: Create simple test file
-      run: |
-        mkdir -p src/__tests__
-        echo "/**" > src/__tests__/simple.test.js
-        echo " * Basic test that always passes" >> src/__tests__/simple.test.js
-        echo " */" >> src/__tests__/simple.test.js
-        echo "" >> src/__tests__/simple.test.js
-        echo "describe('Simple Test', () => {" >> src/__tests__/simple.test.js
-        echo "  test('always passes', () => {" >> src/__tests__/simple.test.js
-        echo "    expect(true).toBe(true);" >> src/__tests__/simple.test.js
-        echo "  });" >> src/__tests__/simple.test.js
-        echo "});" >> src/__tests__/simple.test.js
+    # テストファイルはリポジトリにコミット済みのものを使用します
     
     - name: Run tests
       run: yarn test:ci
