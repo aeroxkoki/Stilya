@@ -157,18 +157,27 @@ export const syncOfflineSwipes = async (): Promise<boolean> => {
 /**
  * ユーザーのスワイプ履歴を取得する
  * @param userId ユーザーID
+ * @param result オプションの結果フィルタ ('yes' or 'no')
  * @returns スワイプデータの配列
  */
-export const getSwipeHistory = async (userId: string): Promise<SwipeData[]> => {
+export const getSwipeHistory = async (userId: string, result?: SwipeResult): Promise<SwipeData[]> => {
   try {
     // オンラインデータ取得
     const networkOffline = await isOffline();
     if (!networkOffline) {
-      const { data, error } = await supabase
+      // APIクエリを構築
+      let query = supabase
         .from('swipes')
         .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+        .eq('user_id', userId);
+      
+      // 結果でフィルタリング（オプション）
+      if (result) {
+        query = query.eq('result', result);
+      }
+      
+      // 順序付けして取得
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) throw error;
 
@@ -181,7 +190,7 @@ export const getSwipeHistory = async (userId: string): Promise<SwipeData[]> => {
       }));
 
       // オフラインデータとマージ
-      const offlineSwipes = await getOfflineSwipes(userId);
+      const offlineSwipes = await getOfflineSwipes(userId, result);
       
       // 重複を排除してマージ
       const allSwipes = [...onlineSwipes];
@@ -194,27 +203,35 @@ export const getSwipeHistory = async (userId: string): Promise<SwipeData[]> => {
       return allSwipes;
     } else {
       // オフラインならローカルデータのみ
-      return await getOfflineSwipes(userId);
+      return await getOfflineSwipes(userId, result);
     }
   } catch (error) {
     console.error('Error getting swipe history:', error);
     // エラー時はローカルデータから取得
-    return await getOfflineSwipes(userId);
+    return await getOfflineSwipes(userId, result);
   }
 };
 
 /**
  * ローカルに保存されたスワイプデータを取得する
  * @param userId ユーザーID
+ * @param result オプションの結果フィルタ ('yes' or 'no')
  * @returns スワイプデータの配列
  */
-const getOfflineSwipes = async (userId: string): Promise<SwipeData[]> => {
+const getOfflineSwipes = async (userId: string, result?: SwipeResult): Promise<SwipeData[]> => {
   try {
     const storedData = await AsyncStorage.getItem(OFFLINE_SWIPE_STORAGE_KEY);
     if (!storedData) return [];
 
     const offlineSwipes: SwipeData[] = JSON.parse(storedData);
-    return offlineSwipes.filter((swipe) => swipe.userId === userId);
+    let filteredSwipes = offlineSwipes.filter((swipe) => swipe.userId === userId);
+    
+    // 結果でフィルタリング（オプション）
+    if (result) {
+      filteredSwipes = filteredSwipes.filter((swipe) => swipe.result === result);
+    }
+    
+    return filteredSwipes;
   } catch (error) {
     console.error('Error getting offline swipes:', error);
     return [];
@@ -232,13 +249,11 @@ export const getSwipedProductIds = async (
   result?: SwipeResult
 ): Promise<string[]> => {
   try {
-    const swipeHistory = await getSwipeHistory(userId);
+    const swipeHistory = await getSwipeHistory(userId, result);
     
     if (result) {
-      // 特定のスワイプ結果だけ取得
-      return swipeHistory
-        .filter((swipe) => swipe.result === result)
-        .map((swipe) => swipe.productId);
+      // 既にフィルタリング済みの結果から抽出
+      return swipeHistory.map((swipe) => swipe.productId);
     } else {
       // すべてのスワイプを含む
       return swipeHistory.map((swipe) => swipe.productId);

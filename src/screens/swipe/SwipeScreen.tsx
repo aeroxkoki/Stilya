@@ -12,7 +12,7 @@ import SwipeContainer from '../../components/swipe/SwipeContainer';
 import ActionButtons from '../../components/ActionButtons';
 
 // ナビゲーションの型定義
-type SwipeScreenNavigationProp = StackNavigationProp<RootStackParamList>;
+type SwipeScreenNavigationProp = StackNavigationProp<MainStackParamList>;
 
 // スワイプ画面コンポーネント
 const SwipeScreen: React.FC = () => {

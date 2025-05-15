@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { lightTheme, darkTheme, Theme, getThemeByUserPreferences } from '../styles/theme';
+import { lightTheme, darkTheme, Theme, ThemeColors, getThemeByUserPreferences } from '../styles/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StatusBar, useColorScheme } from 'react-native';
 
@@ -17,6 +17,7 @@ interface ThemeContextType {
   toggleDarkMode: () => Promise<void>;
   setSystemTheme: () => Promise<void>;
   isSystemTheme: boolean;
+  colors: ThemeColors; // colorsプロパティを追加
 }
 
 // ThemeContextの作成
@@ -27,6 +28,7 @@ export const ThemeContext = createContext<ThemeContextType>({
   toggleDarkMode: async () => {},
   setSystemTheme: async () => {},
   isSystemTheme: false,
+  colors: lightTheme.colors, // colorsプロパティを追加
 });
 
 // ThemeProviderのprops型
@@ -184,6 +186,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     toggleDarkMode,
     setSystemTheme,
     isSystemTheme,
+    colors: theme.colors, // themeからcolorsを提供
   };
 
   return (

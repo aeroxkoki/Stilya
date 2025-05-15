@@ -16,7 +16,7 @@ interface UseProductsReturn {
   currentProduct: Product | undefined;
   isLoading: boolean;
   error: string | null;
-  loadMore: () => Promise<void>;
+  loadMore: (reset?: boolean) => Promise<void>;
   resetProducts: () => void;
   refreshProducts: () => Promise<void>;
   handleSwipe: (product: Product, direction: 'left' | 'right') => void;
@@ -127,8 +127,13 @@ export const useProducts = (): UseProductsReturn => {
   }, [loadProducts]);
 
   // 追加データ読み込み
-  const loadMore = useCallback(async () => {
-    if (isLoading || !productsData.hasMore) return;
+  const loadMore = useCallback(async (reset = false) => {
+    if (isLoading && !reset) return;
+    if (reset) {
+      await loadProducts(true);
+      return;
+    }
+    if (!productsData.hasMore) return;
     setPage(prevPage => prevPage + 1);
     await loadProducts(false);
   }, [isLoading, productsData.hasMore, loadProducts]);

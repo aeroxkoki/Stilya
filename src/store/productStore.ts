@@ -324,8 +324,8 @@ export const useProductStore = create<ProductState>((set, get) => ({
       // 実際の実装では、スワイプ履歴からユーザーの好みを分析
       
       // スワイプ履歴から「Yes」のみを取得
-      const yesHistory = await getSwipeHistory(userId, 'yes');
-      const yesProductIds = yesHistory.map(swipe => swipe.productId);
+      const yesSwipes = await getSwipeHistory(userId, 'yes');
+      const yesProductIds = yesSwipes.map(swipe => swipe.productId);
       
       // タグの集計
       const tagCounts: Record<string, number> = {};

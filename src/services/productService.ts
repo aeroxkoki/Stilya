@@ -135,10 +135,10 @@ export const fetchProductById = async (productId: string): Promise<Product | nul
  */
 export const recordProductClick = async (productId: string): Promise<boolean> => {
   try {
-    const session = supabase.auth.getSession();
-    if (!session || !productId) return false;
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session || !productId) return false;
 
-    const userId = session.data?.session?.user.id; // セッションのユーザーIDを取得
+    const userId = sessionData.session.user.id; // セッションのユーザーIDを取得
     if (!userId) return false;
 
     const { error } = await supabase
