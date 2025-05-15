@@ -23,6 +23,7 @@
     "fix-deps": "sh ./fix-dependencies.sh",
     "fix-metro": "sh ./fix-metro-dependencies.sh",
     "fix-packages": "expo install --check && npx expo-doctor",
+    "clean-install": "rm -rf node_modules/.yarn-integrity && yarn install --force",
     "eas:whoami": "eas whoami",
     "eas:build": "eas build",
     "eas:build:dev": "eas build --profile development",
@@ -95,13 +96,13 @@
     "jest-environment-jsdom": "29.7.0",
     "jest-expo": "~53.0.0",
     "jsdoc": "^4.0.2",
-    "metro": "^0.82.0",
-    "metro-config": "^0.82.0",
-    "metro-react-native-babel-transformer": "^0.82.0",
-    "metro-resolver": "^0.82.0",
-    "metro-runtime": "^0.82.0",
-    "metro-source-map": "^0.82.0",
-    "metro-transform-worker": "^0.82.0",
+    "metro": "^0.76.7",
+    "metro-config": "^0.76.7",
+    "metro-react-native-babel-transformer": "^0.76.7",
+    "metro-resolver": "^0.76.7",
+    "metro-runtime": "^0.76.7",
+    "metro-source-map": "^0.76.7",
+    "metro-transform-worker": "^0.76.7",
     "prettier": "^3.2.5",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.3.0"
@@ -109,5 +110,13 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "private": true
+  "private": true,
+  "resolutions": {
+    "metro": "^0.76.7",
+    "metro-config": "^0.76.7",
+    "metro-core": "^0.76.7",
+    "metro-react-native-babel-transformer": "^0.76.7",
+    "metro-resolver": "^0.76.7",
+    "metro-runtime": "^0.76.7"
+  }
 }

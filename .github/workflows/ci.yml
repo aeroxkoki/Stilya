@@ -15,8 +15,26 @@ jobs:
         with:
           node-version: 18.x
           cache: 'yarn'
+      
+      # 依存関係のインストール前にキャッシュをクリア
+      - name: Clear cache
+        run: |
+          rm -rf .yarn/cache || true
+          rm -rf node_modules/.yarn-integrity || true
+      
+      # 修正したMetro依存関係で直接インストール
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: |
+          yarn config set network-timeout 300000
+          yarn install --network-timeout 300000 --no-frozen-lockfile
+      
+      # Metro依存関係を修正
+      - name: Fix Metro dependencies
+        run: |
+          chmod +x ./fix-metro-dependencies.sh
+          ./fix-metro-dependencies.sh
+      
+      # テスト実行
       - name: Run simple test
         run: yarn test:simple
 
@@ -29,20 +47,36 @@ jobs:
         with:
           node-version: 18.x
           cache: 'yarn'
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
       
-      # Fix Metro dependencies before building
+      # 依存関係のインストール前にキャッシュをクリア
+      - name: Clear cache
+        run: |
+          rm -rf .yarn/cache || true
+          rm -rf node_modules/.yarn-integrity || true
+      
+      # 依存関係のインストール
+      - name: Install dependencies
+        run: |
+          yarn config set network-timeout 300000
+          yarn install --network-timeout 300000 --no-frozen-lockfile
+      
+      # Metro依存関係を修正
       - name: Fix Metro dependencies
         run: |
           chmod +x ./fix-metro-dependencies.sh
-          ./fix-metro-dependencies.sh
+          CI=true ./fix-metro-dependencies.sh
       
-      # Validate EAS configuration
+      # パッケージ状態確認
+      - name: Verify package state
+        run: |
+          node -e "console.log('Metro version:', require('metro/package.json').version)"
+          node -e "console.log('Metro-config version:', require('metro-config/package.json').version)"
+      
+      # EAS設定の検証
       - name: Validate EAS configuration
         run: yarn eas:validate
       
-      # Build Android APK
+      # AndroidビルドのセットアップとAPKビルド
       - name: Build APK
         run: yarn eas:build:ci
         env:
