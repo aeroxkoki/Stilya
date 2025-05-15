@@ -24,41 +24,60 @@ jobs:
           cache: yarn
 
       - name: 📦 Install dependencies
-        run: yarn install --frozen-lockfile
+        run: |
+          # 依存関係のインストール、バージョン固定
+          yarn config set network-timeout 300000
+          yarn install --frozen-lockfile
+          # JSONLintをインストール
+          yarn add -D jsonlint-cli
 
       - name: 🗑️ Remove app.config.ts
         run: rm -f app.config.ts
 
-      - name: 🧹 Clean Git state if needed
+      - name: 🔧 Fix configuration files format
         run: |
-          # Git設定を行う
-          git config --global user.name "GitHub Action"
-          git config --global user.email "action@github.com"
+          # 設定ファイルのフォーマットを確認・修正
+          echo "Ensuring configuration files are properly formatted..."
           
-          # 変更がある場合はまずコミットする
+          # app.config.js
+          cat > app.config.js << 'EOL'
+          const { withPlugins } = require('@expo/config-plugins');
+          const appJson = require('./app.json');
+
+          // app.jsonの内容を使用する統合設定
+          module.exports = () => {
+            const config = withPlugins(appJson.expo, [
+              // expo-linkingプラグインを明示的に設定
+              ['expo-linking', {
+                prefixes: ['stilya://', 'https://stilya.app']
+              }]
+            ]);
+
+            return config;
+          };
+          EOL
+          
+          # app.json の検証
+          npx jsonlint-cli app.json || {
+            echo "Fixing app.json format issues..."
+            node -e "const fs=require('fs');const content=fs.readFileSync('app.json','utf8');fs.writeFileSync('app.json',JSON.stringify(JSON.parse(content),null,2));"
+          }
+          
+          # eas.json の検証
+          npx jsonlint-cli eas.json || {
+            echo "Fixing eas.json format issues..."
+            node -e "const fs=require('fs');const content=fs.readFileSync('eas.json','utf8');fs.writeFileSync('eas.json',JSON.stringify(JSON.parse(content),null,2));"
+          }
+
+      # 自動コミットとプッシュを行わない（環境によるビルド問題防止のため）
+      - name: 🧹 Verify Clean Git state
+        run: |
+          # 変更ファイルの確認のみ
           if [[ -n $(git status --porcelain) ]]; then
-            echo "Changes detected, committing them first..."
-            git add -A
-            git commit -m "Auto-commit by GitHub Actions [skip ci]"
+            echo "Changes detected in working directory. These are expected during CI."
+            git status
           else
             echo "Git working directory is clean."
-          fi
-          
-          # リモートの変更を取得
-          git fetch origin
-          
-          # 現在のブランチ名を取得
-          CURRENT_BRANCH=${GITHUB_REF#refs/heads/}
-          
-          # リモートの変更を取り込む
-          git pull --rebase origin $CURRENT_BRANCH || echo "No changes to pull or rebase failed"
-          
-          # Pull Requestではなく、直接pushの場合のみpushを実行
-          if [[ "${{ github.event_name }}" != "pull_request" && -n $(git log origin/$CURRENT_BRANCH..$CURRENT_BRANCH) ]]; then
-            echo "Pushing changes to origin..."
-            git push origin $CURRENT_BRANCH
-          else
-            echo "No changes to push or Pull Request中のため変更はpushせず"
           fi
 
       - name: 🏗 Setup EAS
