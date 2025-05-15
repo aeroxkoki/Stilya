@@ -3,8 +3,8 @@ module.exports = {
   transformIgnorePatterns: [
     'node_modules/(?!(jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|nativewind|react-native-reanimated)',
   ],
-  setupFiles: ['./setup-jest.js', './jest.setup.js'], // setup-jest.jsが最初に実行されることを確認
-  setupFilesAfterEnv: ['@testing-library/jest-native/extend-expect'],
+  setupFiles: ['./setup-jest.js'],
+  setupFilesAfterEnv: ['@testing-library/jest-native/extend-expect', './jest.setup.js'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
   collectCoverage: true,
   collectCoverageFrom: [
@@ -22,7 +22,8 @@ module.exports = {
     '@react-native/virtualized-lists': '<rootDir>/src/__mocks__/@react-native/virtualized-lists',
     '@react-native/virtualized-lists/Lists/VirtualizedList': '<rootDir>/src/__mocks__/@react-native/virtualized-lists/Lists/VirtualizedList.js',
     'react-native/Libraries/Lists/FlatList': '<rootDir>/src/__mocks__/react-native/Libraries/Lists/FlatList.js',
-    'react-native/Libraries/Lists/SectionList': '<rootDir>/src/__mocks__/react-native/Libraries/Lists/SectionList.js'
+    'react-native/Libraries/Lists/SectionList': '<rootDir>/src/__mocks__/react-native/Libraries/Lists/SectionList.js',
+    'react-native/jest/setup': '<rootDir>/src/__mocks__/react-native-setup-mock.js'
   },
   transform: {
     '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { configFile: './babel.config.js' }]

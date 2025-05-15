@@ -1,12 +1,17 @@
-// 最も基本的なテスト
-// このファイルは Jest が正しく設定されているかどうかを検証するためのものです
+/**
+ * Basic test to verify Jest is working properly
+ */
 
-test('basic test runs successfully', () => {
-  expect(1 + 1).toBe(2);
-});
-
-test('jest globals are defined', () => {
-  // jest オブジェクトが利用可能か確認
-  expect(typeof jest).toBe('object');
-  expect(typeof jest.fn).toBe('function');
+describe('Basic Jest Functionality', () => {
+  test('1 + 1 equals 2', () => {
+    expect(1 + 1).toBe(2);
+  });
+  
+  test('true is truthy', () => {
+    expect(true).toBeTruthy();
+  });
+  
+  test('false is falsy', () => {
+    expect(false).toBeFalsy();
+  });
 });

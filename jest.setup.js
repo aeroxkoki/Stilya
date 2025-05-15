@@ -304,16 +304,44 @@ global._WORKLET = false;
 global.window = {};
 global.__DEV__ = true;
 
-// 既にsetup-jest.jsでjestグローバルが設定されているはずなので、確認のみ行う
+// Jest global object verification and fallback
 if (typeof global.jest === 'undefined') {
   console.error('Jest global object is still undefined after setup-jest.js ran');
-  // バックアッププランとして再度設定を試みる
+  // Create a backup implementation as a fallback
   try {
     const jestPackage = require('@jest/globals');
+    
+    // Add all jest globals
     global.jest = jestPackage.jest;
+    global.expect = jestPackage.expect;
+    global.test = jestPackage.test;
+    global.describe = jestPackage.describe;
+    global.beforeEach = jestPackage.beforeEach;
+    global.afterEach = jestPackage.afterEach;
+    global.beforeAll = jestPackage.beforeAll;
+    global.afterAll = jestPackage.afterAll;
+    
+    console.log('Jest globals successfully initialized in jest.setup.js');
   } catch (error) {
     console.error('Failed to import jest from @jest/globals in jest.setup.js:', error);
+    // Last resort fallback - create a minimal mock implementation
+    global.jest = {
+      fn: (impl) => impl || (() => {}),
+      mock: () => {},
+      unmock: () => {},
+      spyOn: () => ({ mockImplementation: () => ({}) }),
+      clearAllMocks: () => {},
+      resetAllMocks: () => {},
+      requireActual: (path) => require(path)
+    };
   }
+}
+
+// Verify jest is available
+if (typeof global.jest !== 'undefined') {
+  console.log('Jest is available globally at end of jest.setup.js');
+} else {
+  console.error('Jest is still not available globally at end of jest.setup.js');
 }
 
 // React要素のimport

@@ -18,6 +18,8 @@ if (typeof global.jest === 'undefined') {
     global.afterEach = jestPackage.afterEach;
     global.beforeAll = jestPackage.beforeAll;
     global.afterAll = jestPackage.afterAll;
+    
+    console.log('Jest globals successfully initialized in setup-jest.js');
   } catch (error) {
     console.error('Failed to import jest from @jest/globals', error);
     
@@ -53,4 +55,11 @@ global.__DEV__ = true;
 // Add window object (for jsdom environment)
 if (typeof global.window === 'undefined') {
   global.window = {};
+}
+
+// Verify jest is available
+if (typeof global.jest !== 'undefined') {
+  console.log('Jest is available globally');
+} else {
+  console.error('Jest is still not available globally after setup');
 }
