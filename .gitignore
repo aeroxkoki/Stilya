@@ -20,6 +20,8 @@ expo-env.d.ts
 
 # Metro
 .metro-health-check*
+tmp/
+.tmp/
 
 # debug
 npm-debug.*
@@ -43,6 +45,18 @@ coverage/
 
 # backup files
 *.bak
+
+# yarn
+.yarn/cache
+.yarn-integrity
+
+# EAS
+.eas-cache/
+.eas/
+
+# Temporary files
+.metro-cache/
+.babel-cache/
 
 # utility scripts (開発補助用スクリプト)
 fix-dependencies-legacy.sh

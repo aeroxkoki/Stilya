@@ -30,7 +30,7 @@
     "eas:update": "eas update",
     "eas:check": "eas --version && echo 'EAS CLI is installed correctly'",
     "eas:validate": "npx jsonlint-cli eas.json && npx jsonlint-cli app.json && node eas-validate.js",
-    "eas:build:ci": "npm run fix-metro && npm run eas:validate && npx eas-cli build --platform android --profile ci --non-interactive", 
+    "eas:build:ci": "npm run fix-metro && rm -rf node_modules/.yarn-integrity && yarn install --force && npm run eas:validate && npx eas-cli build --platform android --profile ci --non-interactive", 
     "postinstall": "echo 'Postinstall executed, dependencies configured'"
   },
   "dependencies": {
@@ -101,6 +101,8 @@
     "metro-resolver": "0.76.0",
     "metro-runtime": "0.76.0",
     "metro-source-map": "0.76.0",
+    "metro-transform-worker": "0.76.0",
+    "metro-transform-plugins": "0.76.0",
     "prettier": "^3.2.5",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.3.0"
