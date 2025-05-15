@@ -1,10 +1,15 @@
 /**
+<<<<<<< HEAD
  * Jest configuration for Stilya GitHub Actions tests
  * Simplified setup to ensure tests run reliably in CI environment
+=======
+ * Jest configuration for Stilya
+>>>>>>> 59698aab13f46514ba5407315ff303272eb5d71d
  */
 
 module.exports = {
   preset: 'jest-expo',
+<<<<<<< HEAD
   // テストをsimple.test.jsのみに限定
   testMatch: ['<rootDir>/src/__tests__/simple.test.js'],
   // 変換するファイル
@@ -21,4 +26,12 @@ module.exports = {
   testEnvironment: 'jsdom',
   // グローバル設定の注入を無効化
   injectGlobals: false
+=======
+  testMatch: ['<rootDir>/src/__tests__/simple.test.js'],
+  setupFiles: ['./setup-jest.js'],
+  transform: {
+    '^.+\.(js|jsx|ts|tsx)$': ['babel-jest']
+  },
+  testEnvironment: 'jsdom'
+>>>>>>> 59698aab13f46514ba5407315ff303272eb5d71d
 };
