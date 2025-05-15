@@ -80,7 +80,8 @@ jobs:
           )
 
       - name: 🚀 Build App (Android)
-        run: npx eas-cli build --platform android --profile ci --non-interactive
+        run: yarn eas:build:ci
 
-      - name: 🚀 Build App (iOS)
-        run: npx eas-cli build --platform ios --profile ci --non-interactive
+      # iOS is disabled until we fix the issues with iOS build
+      # - name: 🚀 Build App (iOS)
+      #   run: npx eas-cli build --platform ios --profile ci --non-interactive

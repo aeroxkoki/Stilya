@@ -28,6 +28,8 @@
     "eas:build:prod": "eas build --profile production",
     "eas:update": "eas update",
     "eas:check": "eas --version && echo 'EAS CLI is installed correctly'",
+    "eas:validate": "npx jsonlint-cli eas.json && npx jsonlint-cli app.json && node -c app.config.js",
+    "eas:build:ci": "npm run eas:validate && npx eas-cli build --platform android --profile ci --non-interactive", 
     "postinstall": "echo 'Postinstall executed, dependencies configured'"
   },
   "dependencies": {
