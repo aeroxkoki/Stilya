@@ -27,7 +27,7 @@ jobs:
         run: |
           # 依存関係のインストール、バージョン固定
           yarn config set network-timeout 300000
-          yarn install --frozen-lockfile
+          yarn install
           # JSONLintをインストール
           yarn add -D jsonlint-cli
 

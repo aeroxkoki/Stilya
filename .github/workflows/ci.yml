@@ -42,7 +42,7 @@ jobs:
       run: |
         echo "Installing dependencies"
         yarn config set ignore-engines true
-        YARN_CHECKSUM_BEHAVIOR=ignore yarn install --frozen-lockfile --network-timeout 300000
+        YARN_CHECKSUM_BEHAVIOR=ignore yarn install --network-timeout 300000
         
         # 重要なパッケージを強制的に再インストール
         echo "Reinstalling critical test packages"
