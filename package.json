@@ -21,6 +21,7 @@
     "docs:serve": "npx http-server ./docs/generated -o",
     "simple": "node start-app.js",
     "fix-deps": "sh ./fix-dependencies.sh",
+    "fix-metro": "sh ./fix-metro-dependencies.sh",
     "eas:whoami": "eas whoami",
     "eas:build": "eas build",
     "eas:build:dev": "eas build --profile development",
@@ -29,7 +30,7 @@
     "eas:update": "eas update",
     "eas:check": "eas --version && echo 'EAS CLI is installed correctly'",
     "eas:validate": "npx jsonlint-cli eas.json && npx jsonlint-cli app.json && node eas-validate.js",
-    "eas:build:ci": "npm run eas:validate && npx eas-cli build --platform android --profile ci --non-interactive", 
+    "eas:build:ci": "npm run fix-metro && npm run eas:validate && npx eas-cli build --platform android --profile ci --non-interactive", 
     "postinstall": "echo 'Postinstall executed, dependencies configured'"
   },
   "dependencies": {
@@ -94,6 +95,11 @@
     "jest-environment-jsdom": "29.7.0",
     "jest-expo": "53.0.0",
     "jsdoc": "^4.0.2",
+    "metro": "0.80.2",
+    "metro-config": "0.80.2",
+    "metro-react-native-babel-transformer": "0.80.2",
+    "metro-resolver": "0.80.2",
+    "metro-source-map": "0.80.2",
     "prettier": "^3.2.5",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.3.0"

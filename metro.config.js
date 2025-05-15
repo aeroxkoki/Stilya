@@ -1,14 +1,12 @@
-// metro.config.js
-const { getDefaultConfig } = require('@expo/metro-config');
+// metro.config.js - simplified for CI compatibility
+const { getDefaultConfig } = require('expo/metro-config');
 
-const defaultConfig = getDefaultConfig(__dirname);
+const config = getDefaultConfig(__dirname);
 
-// TypeScriptのトランスパイル設定をカスタマイズ
-defaultConfig.resolver.sourceExts = [
-  'js', 'jsx', 'json', 'ts', 'tsx', 'cjs', 'mjs'
-];
+// Add any custom configuration here if needed
+// For now keeping it simple to avoid Metro bundler issues
 
-// キャッシュ設定の最適化
-defaultConfig.cacheStores = [];
+// Add TypeScript and other extensions support
+config.resolver.sourceExts = ['js', 'jsx', 'json', 'ts', 'tsx'];
 
-module.exports = defaultConfig;
+module.exports = config;
