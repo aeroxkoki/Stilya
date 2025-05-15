@@ -7,7 +7,7 @@ import NetInfo from '@react-native-community/netinfo';
 export const isOffline = async (): Promise<boolean> => {
   try {
     const netInfo = await NetInfo.fetch();
-    return \!netInfo.isConnected;
+    return !netInfo.isConnected;
   } catch (error) {
     console.error('Error checking network status:', error);
     return false; // エラーの場合はオンラインとして扱う

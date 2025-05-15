@@ -119,7 +119,7 @@ export const syncOfflineSwipes = async (): Promise<boolean> => {
 
     // オフラインデータを取得
     const storedData = await AsyncStorage.getItem(OFFLINE_SWIPE_STORAGE_KEY);
-    if (\!storedData) return true; // 同期するデータなし
+    if (!storedData) return true; // 同期するデータなし
 
     const offlineSwipes: SwipeData[] = JSON.parse(storedData);
     if (offlineSwipes.length === 0) return true; // 同期するデータなし
@@ -154,7 +154,7 @@ export const getSwipeHistory = async (userId: string): Promise<SwipeData[]> => {
   try {
     // オンラインデータ取得
     const networkOffline = await isOffline();
-    if (\!networkOffline) {
+    if (!networkOffline) {
       const { data, error } = await supabase
         .from('swipes')
         .select('*')
@@ -177,7 +177,7 @@ export const getSwipeHistory = async (userId: string): Promise<SwipeData[]> => {
       // 重複を排除してマージ
       const allSwipes = [...onlineSwipes];
       offlineSwipes.forEach(offlineSwipe => {
-        if (\!allSwipes.some(s => s.productId === offlineSwipe.productId)) {
+        if (!allSwipes.some(s => s.productId === offlineSwipe.productId)) {
           allSwipes.push(offlineSwipe);
         }
       });
@@ -202,7 +202,7 @@ export const getSwipeHistory = async (userId: string): Promise<SwipeData[]> => {
 const getOfflineSwipes = async (userId: string): Promise<SwipeData[]> => {
   try {
     const storedData = await AsyncStorage.getItem(OFFLINE_SWIPE_STORAGE_KEY);
-    if (\!storedData) return [];
+    if (!storedData) return [];
 
     const offlineSwipes: SwipeData[] = JSON.parse(storedData);
     return offlineSwipes.filter((swipe) => swipe.userId === userId);

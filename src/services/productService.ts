@@ -62,7 +62,7 @@ export const fetchProductsByTags = async (
   offset = 0
 ): Promise<Product[]> => {
   try {
-    if (\!tags || tags.length === 0) {
+    if (!tags || tags.length === 0) {
       return [];
     }
 

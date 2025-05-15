@@ -13,7 +13,7 @@ const CACHE_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24時間
  */
 export const cacheProducts = async (products: Product[], appendToExisting = true): Promise<void> => {
   try {
-    if (\!products || products.length === 0) return;
+    if (!products || products.length === 0) return;
 
     let cachedProducts: Product[] = [];
     
@@ -23,7 +23,7 @@ export const cacheProducts = async (products: Product[], appendToExisting = true
       
       // 新しい商品を追加（ID重複を避けるため、既存のものを除外）
       const existingIds = new Set(cachedProducts.map(p => p.id));
-      const newProducts = products.filter(p => \!existingIds.has(p.id));
+      const newProducts = products.filter(p => !existingIds.has(p.id));
       
       cachedProducts = [...cachedProducts, ...newProducts];
     } else {
@@ -49,13 +49,13 @@ export const getCachedProducts = async (): Promise<Product[]> => {
   try {
     // キャッシュの有効期限をチェック
     const isCacheValid = await isProductCacheValid();
-    if (\!isCacheValid) {
+    if (!isCacheValid) {
       return [];
     }
 
     // キャッシュからデータを取得
     const cachedData = await AsyncStorage.getItem(PRODUCT_CACHE_KEY);
-    if (\!cachedData) return [];
+    if (!cachedData) return [];
 
     return JSON.parse(cachedData);
   } catch (error) {
@@ -71,7 +71,7 @@ export const getCachedProducts = async (): Promise<Product[]> => {
 export const isProductCacheValid = async (): Promise<boolean> => {
   try {
     const timestamp = await AsyncStorage.getItem(CACHE_TIMESTAMP_KEY);
-    if (\!timestamp) return false;
+    if (!timestamp) return false;
 
     const cacheTime = parseInt(timestamp);
     const now = Date.now();
