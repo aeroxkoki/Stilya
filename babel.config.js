@@ -1,11 +1,10 @@
 module.exports = function(api) {
-  const isTest = api.env('test');
   api.cache(true);
   
   return {
     presets: ['babel-preset-expo'],
     plugins: [
-      // モジュール解決の設定を追加
+      // モジュール解決の設定
       ['module-resolver', {
         root: ['.'],
         alias: {
@@ -13,16 +12,21 @@ module.exports = function(api) {
         },
         extensions: ['.ios.js', '.android.js', '.js', '.ts', '.tsx', '.json'],
       }],
-      // Conditional plugins - in test env we need to use different settings
-      ...(isTest ? [] : ['nativewind/babel']),
-      // Always included plugins
+      // NativeWind - 本番環境のみ
+      ...(api.env('test') ? [] : ['nativewind/babel']),
+      // Reanimated - 常に含める
       'react-native-reanimated/plugin',
     ],
     env: {
+      production: {
+        plugins: [
+          'transform-remove-console',
+          'transform-remove-debugger',
+        ],
+      },
       test: {
         plugins: [
-          // Plugins for test environment only
-          ['@babel/plugin-transform-runtime', { regenerator: true }],
+          '@babel/plugin-transform-runtime',
           '@babel/plugin-transform-template-literals',
         ],
       },
