@@ -28,7 +28,7 @@
     "eas:build:prod": "eas build --profile production",
     "eas:update": "eas update",
     "eas:check": "eas --version && echo 'EAS CLI is installed correctly'",
-    "eas:validate": "npx jsonlint-cli eas.json && npx jsonlint-cli app.json && node -c app.config.js",
+    "eas:validate": "npx jsonlint-cli eas.json && npx jsonlint-cli app.json && node -e \"try { require('./app.config.js')({config: {}}); console.log('app.config.js is valid'); } catch(e) { console.error(e); process.exit(1); }\"",
     "eas:build:ci": "npm run eas:validate && npx eas-cli build --platform android --profile ci --non-interactive", 
     "postinstall": "echo 'Postinstall executed, dependencies configured'"
   },
@@ -68,6 +68,7 @@
     "@babel/core": "^7.24.0",
     "@babel/plugin-transform-runtime": "^7.24.0",
     "@babel/plugin-transform-template-literals": "^7.24.1",
+    "@expo/config": "~8.2.0",
     "@expo/config-plugins": "~10.0.0",
     "@expo/metro-config": "~0.20.0",
     "@expo/prebuild-config": "~9.0.0",
