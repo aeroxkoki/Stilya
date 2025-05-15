@@ -107,7 +107,7 @@ const OnboardingScreen: React.FC = () => {
     if (user) {
       const updatedUser = {
         ...user,
-        gender,
+        gender: gender as 'male' | 'female' | 'other' | undefined,
         stylePreference,
         ageGroup,
         onboardingCompleted: true,
@@ -151,14 +151,14 @@ const OnboardingScreen: React.FC = () => {
               <Button
                 title="男性"
                 onPress={() => handleGenderSelect('male')}
-                type={gender === 'male' ? 'filled' : 'outlined'}
+                variant={gender === 'male' ? 'primary' : 'outline'}
                 style={styles.optionButton}
                 testID="gender-male"
               />
               <Button
                 title="女性"
                 onPress={() => handleGenderSelect('female')}
-                type={gender === 'female' ? 'filled' : 'outlined'}
+                variant={gender === 'female' ? 'primary' : 'outline'}
                 style={styles.optionButton}
                 testID="gender-female"
               />
@@ -183,7 +183,7 @@ const OnboardingScreen: React.FC = () => {
                   key={style}
                   title={style}
                   onPress={() => handleStyleSelect(style)}
-                  type={stylePreference.includes(style) ? 'filled' : 'outlined'}
+                  variant={stylePreference.includes(style) ? 'primary' : 'outline'}
                   style={styles.optionButton}
                   testID={`style-${style.toLowerCase()}`}
                 />
@@ -204,7 +204,7 @@ const OnboardingScreen: React.FC = () => {
                   key={age}
                   title={age}
                   onPress={() => handleAgeSelect(age)}
-                  type={ageGroup === age ? 'filled' : 'outlined'}
+                  variant={ageGroup === age ? 'primary' : 'outline'}
                   style={styles.optionButton}
                   testID={`age-${age.replace('代', 's').replace('以上', 'plus')}`}
                 />
@@ -227,7 +227,7 @@ const OnboardingScreen: React.FC = () => {
 
   return (
     <SafeAreaView 
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
+      style={[styles.container, { backgroundColor: theme.theme.colors.background.main }]}
       testID="onboarding-screen"
     >
       <FlatList
@@ -254,7 +254,7 @@ const OnboardingScreen: React.FC = () => {
               key={index}
               style={[
                 styles.paginationDot,
-                { backgroundColor: index === currentIndex ? theme.colors.primary : theme.colors.border }
+                { backgroundColor: index === currentIndex ? theme.theme.colors.primary : theme.theme.colors.border.light }
               ]}
             />
           ))}
@@ -265,7 +265,7 @@ const OnboardingScreen: React.FC = () => {
             <Button
               title="戻る"
               onPress={goToPrevStep}
-              type="outlined"
+              variant="outline"
               style={styles.navigationButton}
             />
           )}

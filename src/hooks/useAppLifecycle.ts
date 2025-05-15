@@ -19,7 +19,8 @@ export const useAppLifecycle = () => {
   const appState = useRef(AppState.currentState);
   const [isActive, setIsActive] = useState(true);
   const wasActiveRef = useRef(true);
-  const sessionTimeoutRef = useRef<number | null>(null);
+  // React Native's setTimeout returns NodeJS.Timeout in TypeScript but is used as number in runtime
+  const sessionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const userId = user?.id;
 
   // ライフサイクルイベントのリスナー設定

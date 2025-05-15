@@ -3,8 +3,7 @@ import { supabase } from '@/services/supabase';
 import { 
   fetchProducts,
   fetchProductById,
-  fetchProductsByTags,
-  fetchNextPage
+  fetchProductsByTags
 } from '@/services/productService';
 import { saveSwipeResult, getSwipeHistory } from '@/services/swipeService';
 import { Product } from '@/types';
@@ -56,12 +55,12 @@ export const useProductStore = create<ProductState>((set, get) => ({
       set({ loading: true, error: null });
       
       // 商品データを取得
-      const result = await fetchProducts(20, 0, true);
+      const products = await fetchProducts(20, 0);
       
       set({
-        products: result.products,
-        hasMoreProducts: result.hasMore,
-        totalFetched: result.totalFetched,
+        products,
+        hasMoreProducts: true,
+        totalFetched: products.length,
         loading: false
       });
       
@@ -74,7 +73,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
   
   loadMoreProducts: async () => {
     try {
-      const { hasMoreProducts, loading } = get();
+      const { hasMoreProducts, loading, products, totalFetched } = get();
       
       // ロード中または次のページがない場合は処理しない
       if (!hasMoreProducts || loading) return;
@@ -82,13 +81,13 @@ export const useProductStore = create<ProductState>((set, get) => ({
       set({ loading: true });
       
       // 次のページを取得
-      const result = await fetchNextPage();
+      const moreProducts = await fetchProducts(10, totalFetched);
       
-      if (result.products.length > 0) {
+      if (moreProducts.length > 0) {
         set(state => ({
-          products: [...state.products, ...result.products],
-          hasMoreProducts: result.hasMore,
-          totalFetched: result.totalFetched,
+          products: [...state.products, ...moreProducts],
+          hasMoreProducts: moreProducts.length === 10, // 10件取得できた場合はまだページがある
+          totalFetched: state.totalFetched + moreProducts.length,
           loading: false
         }));
       } else {

@@ -321,7 +321,7 @@ const isLowMemoryDevice = async (): Promise<boolean> => {
 export const useImagePrefetch = () => {
   const [isPrefetching, setIsPrefetching] = useState(false);
   const isMounted = useRef(true);
-  const prefetchTimeoutRef = useRef<number | null>(null);
+  const prefetchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prefetchErrorCount = useRef(0);
   
   // コンポーネントのアンマウント時にクリーンアップ

@@ -129,6 +129,77 @@ export const fetchProductById = async (productId: string): Promise<Product | nul
 };
 
 /**
+ * 商品のクリックを記録する（アナリティクス用）
+ * @param productId 商品ID
+ * @returns 成功したかどうか
+ */
+export const recordProductClick = async (productId: string): Promise<boolean> => {
+  try {
+    const { user } = supabase.auth;
+    if (!user || !productId) return false;
+
+    const userId = user.id;
+
+    const { error } = await supabase
+      .from('click_logs')
+      .insert([
+        { user_id: userId, product_id: productId }
+      ]);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error recording product click:', error);
+    return false;
+  }
+};
+
+/**
+ * おすすめ商品を取得する
+ * @param userId ユーザーID
+ * @param limit 取得する商品数
+ * @returns 商品の配列
+ */
+export const fetchRecommendedProducts = async (
+  userId: string,
+  limit = 10
+): Promise<Product[]> => {
+  try {
+    // バックエンドAPIでおすすめ商品を取得
+    const { data, error } = await supabase
+      .from('recommended_products')
+      .select('product_id')
+      .eq('user_id', userId)
+      .limit(limit);
+
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
+      // おすすめがない場合は一般商品を返す
+      return fetchProducts(limit, 0);
+    }
+
+    // 商品IDを抽出
+    const productIds = data.map(item => item.product_id);
+
+    // 商品詳細を取得
+    const { data: products, error: productsError } = await supabase
+      .from('products')
+      .select('*')
+      .in('id', productIds);
+
+    if (productsError) throw productsError;
+
+    // 結果をマッピング
+    return products.map(mapProductFromDB);
+  } catch (error) {
+    console.error('Error fetching recommended products:', error);
+    // エラー時は一般商品を返す
+    return fetchProducts(limit, 0);
+  }
+};
+
+/**
  * データベースの商品データをアプリで使用する形式に変換する
  * @param dbProduct データベースから取得した商品データ
  * @returns アプリ用に整形された商品オブジェクト
@@ -146,6 +217,5 @@ const mapProductFromDB = (dbProduct: any): Product => {
     affiliateUrl: dbProduct.affiliate_url || '',
     source: dbProduct.source || 'internal',
     createdAt: dbProduct.created_at || new Date().toISOString(),
-    updatedAt: dbProduct.updated_at || new Date().toISOString(),
   };
 };

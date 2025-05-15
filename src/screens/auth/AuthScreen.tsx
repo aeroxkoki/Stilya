@@ -4,7 +4,7 @@ import { Input, Button, Card } from '../../components/common';
 import { useAuthStore } from '../../store/authStore';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../navigation/types';
-import { getStatusBarHeight } from 'react-native-status-bar-height';
+import { StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../contexts/ThemeContext';
 
@@ -49,16 +49,16 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ navigation }) => {
 
   return (
     <ScrollView 
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
+      style={[styles.container, { backgroundColor: theme.theme.colors.background.main }]}
       contentContainerStyle={styles.contentContainer}
       keyboardShouldPersistTaps="handled"
       testID="auth-screen"
     >
       <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
-        <Text style={[styles.title, { color: theme.colors.text }]}>
+        <Text style={[styles.title, { color: theme.theme.colors.text.primary }]}>
           {isLogin ? 'ログイン' : 'アカウント登録'}
         </Text>
-        <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
+        <Text style={[styles.subtitle, { color: theme.theme.colors.text.secondary }]}>
           {isLogin 
             ? 'スタイル提案アプリ「Stilya」へようこそ' 
             : '新規アカウントを作成して、あなた好みのスタイルを見つけましょう'}
@@ -88,7 +88,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ navigation }) => {
         />
 
         {error && (
-          <Text style={[styles.errorText, { color: theme.colors.error }]}>
+          <Text style={[styles.errorText, { color: theme.theme.colors.status.error }]}>
             {error}
           </Text>
         )}
@@ -104,7 +104,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ navigation }) => {
         {isLogin && (
           <Button
             title="パスワードをお忘れですか？"
-            type="text"
+            variant="text"
             onPress={handleForgotPassword}
             style={styles.forgotPasswordButton}
           />
@@ -112,7 +112,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ navigation }) => {
 
         <Button
           title={isLogin ? 'アカウントを作成する' : 'すでにアカウントをお持ちの方'}
-          type="text"
+          variant="text"
           onPress={toggleMode}
           style={styles.toggleModeButton}
         />
