@@ -11,7 +11,7 @@ export interface SwipeData {
   userId: string;
   productId: string;
   result: SwipeResult;
-  createdAt?: string;
+  createdAt: string; // 必須に変更
 }
 
 // オフライン用のスワイプデータストレージキー
@@ -139,7 +139,7 @@ export const syncOfflineSwipes = async (): Promise<boolean> => {
         user_id: swipe.userId,
         product_id: swipe.productId,
         result: swipe.result,
-        created_at: swipe.createdAt,
+        created_at: swipe.createdAt || new Date().toISOString(), // createdAtがない場合に備えて
       }))
     );
 

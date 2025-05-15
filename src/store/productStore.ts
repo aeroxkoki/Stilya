@@ -355,7 +355,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
       } else {
         // タグがない場合はランダムに20件取得
         const result = await fetchProducts(20);
-        recommendedProducts = result.products.filter(p => !yesProductIds.includes(p.id));
+        recommendedProducts = result.filter(p => !yesProductIds.includes(p.id));
       }
       
       set({ recommendedProducts, loading: false });

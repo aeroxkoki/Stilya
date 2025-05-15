@@ -20,7 +20,7 @@ const SwipeScreen: React.FC = () => {
   const theme = useTheme();
   
   // 商品データの取得
-  const { products, isLoading: loading, error, fetchMore: fetchMoreProducts } = useProducts();
+  const { products, isLoading: loading, error, loadMore, resetProducts } = useProducts();
   
   // 現在表示中のカードインデックス
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -53,19 +53,24 @@ const SwipeScreen: React.FC = () => {
     
     // 残りが少なくなったら追加で取得
     if (currentIndex >= products.length - 3) {
-      fetchMoreProducts();
+      loadMore();
     }
-  }, [currentIndex, products, swipeUtils, fetchMoreProducts]);
+  }, [currentIndex, products, swipeUtils, loadMore]);
   
   // 商品カードをタップした時の処理
-  const handleCardPress = (productId: string) => {
-    navigation.navigate('ProductDetail', { productId });
+  const handleCardPress = (product: Product) => {
+    navigation.navigate('ProductDetail', { productId: product.id });
   };
   
   // 残りのアイテムがなくなった場合のリロード
   const handleReload = () => {
     setCurrentIndex(0);
-    fetchMoreProducts(true); // forceRefresh=true
+    // resetProductsを使用するか、refreshProductsがあればそれを使用
+    if (resetProducts) {
+      resetProducts();
+    } else {
+      loadMore(true); // loadMoreにtrueを渡して強制リフレッシュ
+    }
   };
   
   // スワイプ画面の表示内容
@@ -74,8 +79,8 @@ const SwipeScreen: React.FC = () => {
     if (loading && products.length === 0) {
       return (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={theme.theme.primary} />
-          <Text style={[styles.loadingText, { color: theme.theme.text.secondary }]}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={[styles.loadingText, { color: theme.colors.text.secondary }]}>
             ファッションアイテムを読み込み中...
           </Text>
         </View>
@@ -127,7 +132,7 @@ const SwipeScreen: React.FC = () => {
   
   return (
     <SafeAreaView 
-      style={[styles.container, { backgroundColor: theme.theme.background.main }]}
+      style={[styles.container, { backgroundColor: theme.colors.background.main }]}
       testID="swipe-screen"
     >
       {renderContent()}

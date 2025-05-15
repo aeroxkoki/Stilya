@@ -7,6 +7,7 @@ export interface User {
   stylePreference?: string[];
   ageGroup?: string;
   nickname?: string; // SettingsScreenのエラー修正用に追加
+  onboardingCompleted?: boolean; // オンボーディング完了フラグ
 }
 
 // 商品情報 - product.tsを参照

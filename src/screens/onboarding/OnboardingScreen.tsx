@@ -55,9 +55,9 @@ const OnboardingScreen: React.FC = () => {
   const { user, setUser } = useAuthStore();
   
   // ユーザープロファイルの初期値
-  const [gender, setGender] = useState<'male' | 'female' | null>(null);
+  const [gender, setGender] = useState<'male' | 'female' | 'other' | undefined>(undefined);
   const [stylePreference, setStylePreference] = useState<string[]>([]);
-  const [ageGroup, setAgeGroup] = useState<string | null>(null);
+  const [ageGroup, setAgeGroup] = useState<string | undefined>(undefined);
   
   const flatListRef = React.useRef<FlatList>(null);
 
@@ -81,7 +81,7 @@ const OnboardingScreen: React.FC = () => {
   };
 
   // 性別の選択
-  const handleGenderSelect = (selected: 'male' | 'female') => {
+  const handleGenderSelect = (selected: 'male' | 'female' | 'other') => {
     setGender(selected);
   };
 
@@ -144,7 +144,7 @@ const OnboardingScreen: React.FC = () => {
       case 'gender':
         return (
           <View style={styles.selectionContainer} testID="gender-selection-screen">
-            <Text style={[styles.sectionTitle, { color: theme.theme.text.primary }]}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>
               性別を選択してください
             </Text>
             <View style={styles.optionsContainer}>
@@ -171,10 +171,10 @@ const OnboardingScreen: React.FC = () => {
         ];
         return (
           <View style={styles.selectionContainer} testID="style-preference-screen">
-            <Text style={[styles.sectionTitle, { color: theme.theme.text.primary }]}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>
               好みのスタイルを選択してください
             </Text>
-            <Text style={[styles.sectionSubtitle, { color: theme.theme.text.secondary }]}>
+            <Text style={[styles.sectionSubtitle, { color: theme.colors.text.secondary }]}>
               複数選択可能です
             </Text>
             <View style={styles.optionsGrid}>
@@ -195,7 +195,7 @@ const OnboardingScreen: React.FC = () => {
         const ageOptions = ['10代', '20代', '30代', '40代', '50代以上'];
         return (
           <View style={styles.selectionContainer} testID="age-group-screen">
-            <Text style={[styles.sectionTitle, { color: theme.theme.text.primary }]}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>
               年代を選択してください
             </Text>
             <View style={styles.optionsContainer}>
@@ -227,7 +227,7 @@ const OnboardingScreen: React.FC = () => {
 
   return (
     <SafeAreaView 
-      style={[styles.container, { backgroundColor: theme.theme.background.main }]}
+      style={[styles.container, { backgroundColor: theme.colors.background.main }]}
       testID="onboarding-screen"
     >
       <FlatList
@@ -254,7 +254,7 @@ const OnboardingScreen: React.FC = () => {
               key={index}
               style={[
                 styles.paginationDot,
-                { backgroundColor: index === currentIndex ? theme.theme.primary : theme.theme.border.light }
+                { backgroundColor: index === currentIndex ? theme.colors.primary : theme.colors.border.light }
               ]}
             />
           ))}
