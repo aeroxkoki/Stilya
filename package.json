@@ -27,7 +27,7 @@
     "eas:build:prod": "eas build --profile production",
     "eas:update": "eas update",
     "eas:check": "eas --version && echo 'EAS CLI is installed correctly'",
-    "postinstall": "echo 'Resolving peer dependencies with legacy compatibility'"
+    "postinstall": "yarn add -D @jest/globals@29.7.0 && echo 'Resolved jest globals'"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.0",
@@ -68,6 +68,7 @@
     "@expo/config-plugins": "~10.0.0",
     "@expo/metro-config": "~0.20.0",
     "@expo/prebuild-config": "~9.0.0",
+    "@jest/globals": "^29.7.0",
     "@testing-library/jest-native": "^5.4.2",
     "@testing-library/react-native": "^12.3.0",
     "@types/jest": "^29.5.12",

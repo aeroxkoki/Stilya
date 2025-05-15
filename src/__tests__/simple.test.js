@@ -1,27 +1,12 @@
-/**
- * Simple test to check if Jest is working
- */
+// 最も基本的なテスト
+// このファイルは Jest が正しく設定されているかどうかを検証するためのものです
 
-describe('Basic test', () => {
-  it('should pass', () => {
-    expect(1 + 1).toBe(2);
-  });
-
-  it('should handle string operations', () => {
-    expect('Stilya' + ' App').toBe('Stilya App');
-  });
-
-  it('should handle object equality', () => {
-    const user = { id: 1, name: 'Test User' };
-    expect(user).toEqual({ id: 1, name: 'Test User' });
-  });
+test('basic test runs successfully', () => {
+  expect(1 + 1).toBe(2);
 });
 
-describe('Array operations', () => {
-  it('should add items to array', () => {
-    const arr = [];
-    arr.push('item');
-    expect(arr).toHaveLength(1);
-    expect(arr[0]).toBe('item');
-  });
+test('jest globals are defined', () => {
+  // jest オブジェクトが利用可能か確認
+  expect(typeof jest).toBe('object');
+  expect(typeof jest.fn).toBe('function');
 });

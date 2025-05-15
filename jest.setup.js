@@ -304,24 +304,15 @@ global._WORKLET = false;
 global.window = {};
 global.__DEV__ = true;
 
-// jestグローバルを設定（これがエラーを解決）
+// 既にsetup-jest.jsでjestグローバルが設定されているはずなので、確認のみ行う
 if (typeof global.jest === 'undefined') {
+  console.error('Jest global object is still undefined after setup-jest.js ran');
+  // バックアッププランとして再度設定を試みる
   try {
-    const { jest: jestGlobal } = require('@jest/globals');
-    global.jest = jestGlobal;
+    const jestPackage = require('@jest/globals');
+    global.jest = jestPackage.jest;
   } catch (error) {
-    console.error('Error setting up jest globals:', error);
-    // フォールバックとしてグローバルモックオブジェクトを提供
-    global.jest = {
-      fn: (impl) => impl || (() => {}),
-      mock: (path) => {},
-      requireActual: (path) => require(path),
-      requireMock: (path) => require(path),
-      clearAllMocks: () => {},
-      resetAllMocks: () => {},
-      restoreAllMocks: () => {},
-      spyOn: () => ({ mockImplementation: () => ({}) })
-    };
+    console.error('Failed to import jest from @jest/globals in jest.setup.js:', error);
   }
 }
 

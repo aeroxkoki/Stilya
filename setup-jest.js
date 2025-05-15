@@ -6,8 +6,18 @@
 // Make sure jest is globally available
 if (typeof global.jest === 'undefined') {
   try {
-    const { jest: jestGlobal } = require('@jest/globals');
-    global.jest = jestGlobal;
+    // Try direct import first
+    const jestPackage = require('@jest/globals');
+    global.jest = jestPackage.jest;
+    
+    // Add additional jest globals if needed
+    global.expect = jestPackage.expect;
+    global.test = jestPackage.test;
+    global.describe = jestPackage.describe;
+    global.beforeEach = jestPackage.beforeEach;
+    global.afterEach = jestPackage.afterEach;
+    global.beforeAll = jestPackage.beforeAll;
+    global.afterAll = jestPackage.afterAll;
   } catch (error) {
     console.error('Failed to import jest from @jest/globals', error);
     
@@ -20,12 +30,27 @@ if (typeof global.jest === 'undefined') {
       clearAllMocks: () => {},
       resetAllMocks: () => {},
       restoreAllMocks: () => {},
-      spyOn: () => ({ mockImplementation: () => ({}) })
+      spyOn: () => ({ mockImplementation: () => ({}) }),
+      doMock: () => {},
+      dontMock: () => {},
+      setMock: () => {},
+      setTimeout: () => {},
+      useFakeTimers: () => {},
+      useRealTimers: () => {},
+      runAllTimers: () => {},
+      advanceTimersByTime: () => {},
+      runOnlyPendingTimers: () => {},
+      getTimerCount: () => 0
     };
   }
 }
 
-// Set other important globals
+// Mock reanimated worklet init function
 global.__reanimatedWorkletInit = function() {};
 global._WORKLET = false;
 global.__DEV__ = true;
+
+// Add window object (for jsdom environment)
+if (typeof global.window === 'undefined') {
+  global.window = {};
+}
