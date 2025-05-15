@@ -42,14 +42,9 @@ jobs:
           # app.config.js
           cat > app.config.js << 'EOL'
           /**
-           * Simple Expo app configuration
+           * Ultra simple Expo app configuration
            */
-          module.exports = ({ config }) => {
-            // Just use the app.json config as is
-            return {
-              ...config
-            };
-          };
+          module.exports = ({ config }) => { return config; };
           EOL
           
           # app.json の検証
