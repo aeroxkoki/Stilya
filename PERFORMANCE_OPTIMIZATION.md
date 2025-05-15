@@ -31,6 +31,6 @@ expo upgrade
 
 ## 注意事項
 
-- 本番ビルド前に `expo build:ios` または `expo build:android` コマンドで動作確認を行ってください
+- 本番ビルド前に `eas build --platform ios` または `eas build --platform android` コマンドで動作確認を行ってください
 - プロダクションビルドとデベロップメントビルドでパフォーマンスに大きな差があります
 - Hermes有効時は、デバッグが若干異なる動作をする場合があります
