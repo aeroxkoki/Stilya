@@ -1,43 +1,39 @@
 /**
  * React Nativeのjest/setup.jsをモックするファイル
- * ReferenceError: jest is not defined の問題を解決します
+ * Object.defineProperty called on non-objectエラーを解決
  */
 
-// jestがグローバルで利用可能かどうかチェック
-if (typeof jest === 'undefined' && typeof global.jest !== 'undefined') {
-  // globalからjestを取得
-  const jest = global.jest;
-}
-
-// グローバルオブジェクトにjestがない場合は実装を作成
-if (typeof jest === 'undefined') {
-  const mockJest = {
-    fn: (impl) => impl || (() => {}),
-    mock: () => {},
-    unmock: () => {},
-    requireActual: (path) => require(path),
-    requireMock: (path) => require(path),
-    clearAllMocks: () => {},
-    resetAllMocks: () => {},
-    restoreAllMocks: () => {},
-    spyOn: () => ({ mockImplementation: () => ({}) }),
-    setMock: () => {},
-    isMockFunction: () => false
-  };
-  
-  global.jest = mockJest;
-}
-
+// safe mockオブジェクトを作成
 const mockSetup = {
-  mockComponent: global.jest.fn ? global.jest.fn() : () => {},
-  mockFunction: global.jest.fn ? global.jest.fn() : () => {},
-  mockImplementation: global.jest.fn ? global.jest.fn() : () => {},
-  mockReturnValue: global.jest.fn ? global.jest.fn() : () => {},
-  mockResolvedValue: global.jest.fn ? global.jest.fn() : () => {},
-  mockRejectedValue: global.jest.fn ? global.jest.fn() : () => {},
-  setupFiles: global.jest.fn ? global.jest.fn() : () => {},
-  unmock: global.jest.fn ? global.jest.fn() : () => {},
-  mock: global.jest.fn ? global.jest.fn() : () => {},
+  // 基本メソッド
+  mockComponent: function() { return {}; },
+  mockFunction: function() { return function() {}; },
+  
+  // テスト用メソッド
+  unmock: function() {},
+  mock: function() {},
+  
+  // プロパティアクセスに安全な対応
+  get AccessibilityInfo() { return {}; },
+  get Alert() { return {}; },
+  get Animated() { return {}; },
+  get AppRegistry() { return {}; },
+  get AppState() { return {}; },
+  get AsyncStorage() { return {}; },
+  get BackHandler() { return {}; },
+  get Dimensions() { return {}; },
+  get Image() { return {}; },
+  get Linking() { return {}; },
+  get NativeModules() { return {}; },
+  get Platform() { return { OS: 'ios', select: () => {} }; },
+  get StyleSheet() { return { create: () => ({}) }; },
+  get Text() { return {}; },
+  get TouchableOpacity() { return {}; },
+  get View() { return {}; },
+  
+  // その他必要なプロパティやメソッド
+  createMockComponent: function() { return function() { return null; }; }
 };
 
+// デフォルトエクスポート
 module.exports = mockSetup;
