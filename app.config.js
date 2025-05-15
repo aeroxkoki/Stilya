@@ -1,18 +1,10 @@
-// app.config.js
-const { getDefaultConfig } = require('@expo/config');
-const path = require('path');
-
-// Expoの設定を取得し、プロジェクトルートを明示的に設定
+/**
+ * Expo app configuration
+ * This file extends the static configuration from app.json with dynamic settings
+ */
 module.exports = ({ config }) => {
-  // プロジェクトルートを明示的に設定
-  const projectRoot = __dirname;
-  
-  // app.jsonから基本設定を取得（app.jsonが存在する場合）
-  const defaultConfig = getDefaultConfig(projectRoot);
-  
-  // 設定をマージ
+  // Extend the configuration from app.json
   return {
-    ...defaultConfig,
     ...config,
     name: "Stilya",
     slug: "stilya",
