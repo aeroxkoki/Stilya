@@ -28,7 +28,7 @@
     "eas:build:prod": "eas build --profile production",
     "eas:update": "eas update",
     "eas:check": "eas --version && echo 'EAS CLI is installed correctly'",
-    "eas:validate": "npx jsonlint-cli eas.json && npx jsonlint-cli app.json && node -e \"try { require('./app.config.js')({config: {}}); console.log('app.config.js is valid'); } catch(e) { console.error(e); process.exit(1); }\"",
+    "eas:validate": "npx jsonlint-cli eas.json && npx jsonlint-cli app.json && node eas-validate.js",
     "eas:build:ci": "npm run eas:validate && npx eas-cli build --platform android --profile ci --non-interactive", 
     "postinstall": "echo 'Postinstall executed, dependencies configured'"
   },
