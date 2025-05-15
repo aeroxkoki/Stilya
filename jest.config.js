@@ -33,6 +33,6 @@ module.exports = {
   // テスト環境
   testEnvironment: 'node',
   
-  // グローバル設定の注入を無効化
-  injectGlobals: false
+  // グローバル設定の注入を有効化
+  injectGlobals: true
 };

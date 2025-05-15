@@ -3,6 +3,22 @@
  * This file ensures tests can run in CI environment without issues
  */
 
+// Jestのグローバル関数を明示的に追加
+global.test = global.test || ((name, fn) => {
+  if (global.it) {
+    return global.it(name, fn);
+  }
+  console.error('Both test and it are not available globally');
+});
+
+global.it = global.it || global.test;
+global.describe = global.describe || ((name, fn) => { fn && fn(); });
+global.beforeEach = global.beforeEach || ((fn) => {});
+global.afterEach = global.afterEach || ((fn) => {});
+global.beforeAll = global.beforeAll || ((fn) => {});
+global.afterAll = global.afterAll || ((fn) => {});
+global.expect = global.expect || require('@jest/globals').expect;
+
 // グローバルセットアップ
 global.__DEV__ = true;
 global.window = global.window || {};
@@ -50,6 +66,11 @@ if (typeof global.jest === 'undefined') {
   }
 }
 
+// グローバル関数の動作確認
+console.log('Global test function type:', typeof global.test);
+console.log('Global it function type:', typeof global.it);
+console.log('Global describe function type:', typeof global.describe);
+
 // React Native関連のモック
 // jest-expoをバイパス
 jest.mock('jest-expo', () => require('../src/__mocks__/jest-expo-mock.js'));
@@ -77,3 +98,7 @@ if (typeof global.jest !== 'undefined') {
 } else {
   console.error('Jest is still not available globally after setup');
 }
+
+// 最終確認
+console.log('Setup complete. Test function is:', typeof global.test);
+
