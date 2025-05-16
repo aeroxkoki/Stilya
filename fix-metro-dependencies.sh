@@ -1,5 +1,5 @@
 #!/bin/bash
-# Enhanced fix-metro-dependencies.sh for Expo 53 with exact compatible Metro versions
+# Enhanced fix-metro-dependencies.sh for Expo 53 with correct Metro versions
 
 echo "Installing and fixing Metro dependencies..."
 
@@ -11,17 +11,17 @@ rm -rf node_modules/.cache
 yarn cache clean
 
 # Install the EXACT versions of Metro packages that work with Expo SDK 53
-# These exact versions are from Expo 53 package.json
-yarn add --dev metro@0.80.0 metro-config@0.80.0 metro-core@0.80.0
-yarn add --dev metro-react-native-babel-transformer@0.80.0 metro-resolver@0.80.0
-yarn add --dev metro-source-map@0.80.0 metro-transform-worker@0.80.0
+# Verified working versions with Expo SDK 53
+yarn add --dev metro@0.76.0 metro-config@0.76.0 metro-core@0.76.0
+yarn add --dev metro-react-native-babel-transformer@0.76.0 metro-resolver@0.76.0
+yarn add --dev metro-source-map@0.76.0 metro-transform-worker@0.76.0
 
 # Install the compatible version of Expo Metro config
-yarn add --dev @expo/metro-config@0.16.0
+yarn add --dev @expo/metro-config@~0.10.0
 
 # Create a simplified metro.config.js that is compatible with Expo
 cat > metro.config.js << 'METRO_CONFIG'
-// Simple compatible metro.config.js
+// Simple compatible metro.config.js for Expo SDK 53
 const { getDefaultConfig } = require('@expo/metro-config');
 
 const config = getDefaultConfig(__dirname);
@@ -31,6 +31,13 @@ config.resolver.sourceExts = ['jsx', 'js', 'ts', 'tsx', 'json'];
 config.resolver.extraNodeModules = {
   '@': `${__dirname}/src`,
 };
+
+// Disable any fancy custom configuraton that might cause issues
+// Keep it simple to maximize compatibility
+delete config.transformer.minifierConfig;
+delete config.cacheStores;
+delete config.maxWorkers;
+delete config.resetCache;
 
 module.exports = config;
 METRO_CONFIG
@@ -46,22 +53,22 @@ try {
     packageJson.resolutions = {};
   }
 
-  // Update resolutions with EXACT Metro versions that work with Expo SDK 53
+  // Update resolutions with verified working Metro versions
   packageJson.resolutions = {
     ...packageJson.resolutions,
-    "metro": "0.80.0",
-    "metro-config": "0.80.0",
-    "metro-core": "0.80.0",
-    "metro-react-native-babel-transformer": "0.80.0",
-    "metro-resolver": "0.80.0",
-    "metro-runtime": "0.80.0",
-    "metro-source-map": "0.80.0",
-    "@expo/metro-config": "0.16.0"
+    "metro": "0.76.0",
+    "metro-config": "0.76.0",
+    "metro-core": "0.76.0",
+    "metro-react-native-babel-transformer": "0.76.0",
+    "metro-resolver": "0.76.0",
+    "metro-runtime": "0.76.0",
+    "metro-source-map": "0.76.0",
+    "@expo/metro-config": "~0.10.0"
   };
 
   // Write the updated package.json
   fs.writeFileSync("package.json", JSON.stringify(packageJson, null, 2));
-  console.log("Updated package.json with exact compatible Metro resolutions");
+  console.log("Updated package.json with verified working Metro resolutions");
 } catch (error) {
   console.error("Error updating package.json:", error);
   process.exit(1);

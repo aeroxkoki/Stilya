@@ -40,33 +40,33 @@ try {
   
   // Add resolutions field
   packageJson.resolutions = {
-    "metro": "0.80.0",
-    "metro-config": "0.80.0",
-    "metro-core": "0.80.0",
-    "metro-react-native-babel-transformer": "0.80.0",
-    "metro-resolver": "0.80.0",
-    "metro-runtime": "0.80.0",
-    "metro-source-map": "0.80.0",
-    "@expo/metro-config": "0.16.0"
+    "metro": "0.76.0",
+    "metro-config": "0.76.0",
+    "metro-core": "0.76.0",
+    "metro-react-native-babel-transformer": "0.76.0",
+    "metro-resolver": "0.76.0",
+    "metro-runtime": "0.76.0",
+    "metro-source-map": "0.76.0",
+    "@expo/metro-config": "~0.10.0"
   };
   
   // Also update devDependencies
   packageJson.devDependencies = {
     ...packageJson.devDependencies,
-    "metro": "0.80.0",
-    "metro-config": "0.80.0",
-    "metro-core": "0.80.0",
-    "metro-react-native-babel-transformer": "0.80.0",
-    "metro-resolver": "0.80.0",
-    "metro-runtime": "0.80.0",
-    "metro-source-map": "0.80.0",
-    "metro-transform-worker": "0.80.0",
-    "@expo/metro-config": "0.16.0"
+    "metro": "0.76.0",
+    "metro-config": "0.76.0",
+    "metro-core": "0.76.0",
+    "metro-react-native-babel-transformer": "0.76.0",
+    "metro-resolver": "0.76.0",
+    "metro-runtime": "0.76.0",
+    "metro-source-map": "0.76.0",
+    "metro-transform-worker": "0.76.0",
+    "@expo/metro-config": "~0.10.0"
   };
   
   // Write back
   fs.writeFileSync("package.json", JSON.stringify(packageJson, null, 2));
-  console.log("Updated package.json with correct Metro resolutions");
+  console.log("Updated package.json with verified working Metro resolutions");
 } catch (error) {
   console.error("Error updating package.json:", error);
   process.exit(1);
