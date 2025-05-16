@@ -10,6 +10,10 @@ yarn remove metro metro-config metro-runtime metro-react-native-babel-transforme
 rm -rf node_modules/.cache
 yarn cache clean
 
+# More aggressive cleanup to prevent module conflicts
+rm -rf node_modules/metro* || true
+rm -rf node_modules/@expo/metro* || true
+
 # Check environment and use appropriate Metro versions
 if [ "$CI" = "true" ]; then
   echo "Detected CI environment, using CI-compatible Metro dependencies..."
@@ -19,18 +23,18 @@ if [ "$CI" = "true" ]; then
   yarn add --dev @expo/metro-config@~0.10.0
 else
   echo "Using recommended Expo SDK 53 Metro versions for local development..."
-  yarn add --dev metro@^0.82.0 metro-config@^0.82.0 metro-core@^0.82.0
-  yarn add --dev metro-react-native-babel-transformer@^0.82.0 metro-resolver@^0.82.0
-  yarn add --dev metro-runtime@^0.82.0 metro-source-map@^0.82.0 metro-transform-worker@^0.82.0
-  yarn add --dev @expo/metro-config@~0.20.0
+  yarn add --dev metro@0.76.8 metro-config@0.76.8 metro-core@0.76.8
+  yarn add --dev metro-react-native-babel-transformer@0.76.8 metro-resolver@0.76.8
+  yarn add --dev metro-runtime@0.76.8 metro-source-map@0.76.8 metro-transform-worker@0.76.8
+  yarn add --dev @expo/metro-config@~0.10.0
 fi
 
 # Create a proper Expo-compatible metro.config.js
 cat > metro.config.js << 'METRO_CONFIG'
 // Learn more https://docs.expo.dev/guides/customizing-metro
-const { getDefaultConfig } = require('expo/metro-config');
+const { getDefaultConfig } = require('@expo/metro-config');
 
-/** @type {import('expo/metro-config').MetroConfig} */
+/** @type {import('@expo/metro-config').MetroConfig} */
 const config = getDefaultConfig(__dirname);
 
 // Add the additional `cjs` extension to the resolver
