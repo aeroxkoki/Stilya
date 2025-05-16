@@ -11,13 +11,13 @@ rm -rf node_modules/.cache
 yarn cache clean
 
 # Install the EXACT versions of Metro packages that work with Expo SDK 53
-# Verified working versions with Expo SDK 53
-yarn add --dev metro@0.76.0 metro-config@0.76.0 metro-core@0.76.0
-yarn add --dev metro-react-native-babel-transformer@0.76.0 metro-resolver@0.76.0
-yarn add --dev metro-source-map@0.76.0 metro-transform-worker@0.76.0
+# Updated versions compatible with Expo SDK 53
+yarn add --dev metro@^0.82.0 metro-config@^0.82.0 metro-core@^0.82.0
+yarn add --dev metro-react-native-babel-transformer@^0.82.0 metro-resolver@^0.82.0
+yarn add --dev metro-source-map@^0.82.0 metro-transform-worker@^0.82.0
 
 # Install the compatible version of Expo Metro config
-yarn add --dev @expo/metro-config@~0.10.0
+yarn add --dev @expo/metro-config@~0.20.0
 
 # Create a simplified metro.config.js that is compatible with Expo
 cat > metro.config.js << 'METRO_CONFIG'
@@ -32,52 +32,8 @@ config.resolver.extraNodeModules = {
   '@': `${__dirname}/src`,
 };
 
-// Disable any fancy custom configuraton that might cause issues
-// Keep it simple to maximize compatibility
-delete config.transformer.minifierConfig;
-delete config.cacheStores;
-delete config.maxWorkers;
-delete config.resetCache;
-
 module.exports = config;
 METRO_CONFIG
-
-# Safer method - create temporary Node script and execute it
-cat > update-resolutions.js << 'EOL'
-const fs = require("fs");
-try {
-  const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
-
-  // Add resolutions field if it doesn't exist
-  if (!packageJson.resolutions) {
-    packageJson.resolutions = {};
-  }
-
-  // Update resolutions with verified working Metro versions
-  packageJson.resolutions = {
-    ...packageJson.resolutions,
-    "metro": "0.76.0",
-    "metro-config": "0.76.0",
-    "metro-core": "0.76.0",
-    "metro-react-native-babel-transformer": "0.76.0",
-    "metro-resolver": "0.76.0",
-    "metro-runtime": "0.76.0",
-    "metro-source-map": "0.76.0",
-    "@expo/metro-config": "~0.10.0"
-  };
-
-  // Write the updated package.json
-  fs.writeFileSync("package.json", JSON.stringify(packageJson, null, 2));
-  console.log("Updated package.json with verified working Metro resolutions");
-} catch (error) {
-  console.error("Error updating package.json:", error);
-  process.exit(1);
-}
-EOL
-
-# Execute the Node.js script
-node update-resolutions.js
-rm update-resolutions.js
 
 # Clean yarn cache again and force a node_modules clean-up if needed
 if [ "$CI" = "true" ]; then

@@ -9,11 +9,4 @@ config.resolver.extraNodeModules = {
   '@': `${__dirname}/src`,
 };
 
-// Disable any fancy custom configuraton that might cause issues
-// Keep it simple to maximize compatibility
-delete config.transformer.minifierConfig;
-delete config.cacheStores;
-delete config.maxWorkers;
-delete config.resetCache;
-
 module.exports = config;
