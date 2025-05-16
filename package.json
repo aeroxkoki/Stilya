@@ -22,6 +22,7 @@
     "simple": "node start-app.js",
     "fix-deps": "sh ./fix-dependencies.sh",
     "fix-metro": "sh ./fix-metro-dependencies.sh",
+    "fix-serializer": "sh ./fix-metro-serializer.sh",
     "fix-packages": "expo install --check && npx expo-doctor",
     "clean-install": "rm -rf node_modules/.yarn-integrity && yarn install --force",
     "setup-github-actions": "node github-actions-helper.js",
@@ -33,7 +34,7 @@
     "eas:update": "eas update",
     "eas:check": "eas --version && echo 'EAS CLI is installed correctly'",
     "eas:validate": "npx jsonlint-cli eas.json && npx jsonlint-cli app.json && node eas-validate.js",
-    "eas:build:ci": "npm run setup-github-actions && npm run fix-metro && rm -rf node_modules/.yarn-integrity && yarn install --force && npm run eas:validate && npx eas-cli@7.8.5 build --platform android --profile ci --non-interactive",
+    "eas:build:ci": "npm run setup-github-actions && npm run fix-metro && npm run fix-serializer && rm -rf node_modules/.yarn-integrity && yarn install --force && npm run eas:validate && npx eas-cli@7.8.5 build --platform android --profile ci --non-interactive",
     "postinstall": "echo 'Postinstall executed, dependencies configured'"
   },
   "dependencies": {
