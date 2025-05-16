@@ -32,7 +32,7 @@
     "eas:update": "eas update",
     "eas:check": "eas --version && echo 'EAS CLI is installed correctly'",
     "eas:validate": "npx jsonlint-cli eas.json && npx jsonlint-cli app.json && node eas-validate.js",
-    "eas:build:ci": "npm run fix-metro && rm -rf node_modules/.yarn-integrity && yarn install --force && npm run eas:validate && npx eas-cli build --platform android --profile ci --non-interactive", 
+    "eas:build:ci": "npm run fix-metro && rm -rf node_modules/.yarn-integrity && yarn install --force && npm run eas:validate && npx eas-cli@7.8.5 build --platform android --profile ci --non-interactive", 
     "postinstall": "echo 'Postinstall executed, dependencies configured'"
   },
   "dependencies": {
@@ -85,7 +85,7 @@
     "babel-plugin-transform-remove-console": "^6.9.4",
     "babel-plugin-transform-remove-debugger": "^6.9.4",
     "better-docs": "^2.7.3",
-    "eas-cli": "^7.0.0",
+    "eas-cli": "^7.8.5",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.1.3",

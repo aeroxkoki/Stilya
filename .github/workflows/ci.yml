@@ -85,6 +85,12 @@ jobs:
           chmod +x ./fix-metro-dependencies.sh
           ./fix-metro-dependencies.sh
       
+      # EAS CLI をグローバルインストール
+      - name: Install EAS CLI globally
+        run: |
+          npm install -g eas-cli@7.8.5
+          eas --version
+      
       # エラー発生時に緊急修正を試行
       - name: Emergency fix if needed
         if: ${{ failure() }}
@@ -100,11 +106,16 @@ jobs:
       
       # EAS設定の検証
       - name: Validate EAS configuration
-        run: yarn eas:validate
+        run: |
+          npx jsonlint-cli eas.json
+          npx jsonlint-cli app.json
       
-      # AndroidビルドのセットアップとAPKビルド
+      # AndroidビルドのセットアップとAPKビルド - 直接npxを使用
       - name: Build APK
-        run: yarn eas:build:ci
+        run: |
+          # CI環境用のnpm configを設定
+          npm config set unsafe-perm true
+          npx eas-cli@7.8.5 build --platform android --profile ci --non-interactive
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           EXPO_ANDROID_KEYSTORE_PASSWORD: "android"
