@@ -12,7 +12,14 @@ module.exports = {
   
   // 変換設定
   transform: {
-    '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest']
+    '^.+\\\\.(js|jsx|ts|tsx)$': ['babel-jest', {
+      presets: ['babel-preset-expo'],
+      plugins: [
+        'module-resolver',
+        'nativewind/babel',
+        'react-native-reanimated/plugin'
+      ]
+    }]
   },
   
   // 無視するパターン

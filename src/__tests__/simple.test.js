@@ -3,12 +3,12 @@
  * This test should always pass with minimal dependencies
  */
 
-// グローバル関数を直接使わず、require経由でJestの関数を取得
+// Jest globals are explicitly required
 const { describe, test, expect } = require('@jest/globals');
 
-// テストスイート
+// サンプルのシンプルなテストケース
 describe('Basic Test Suite', () => {
-  // シンプルなテスト
+  // 数値計算テスト
   test('simple addition works', () => {
     expect(1 + 1).toBe(2);
   });
@@ -21,5 +21,11 @@ describe('Basic Test Suite', () => {
   // ブーリアンテスト
   test('boolean check works', () => {
     expect(true).toBeTruthy();
+  });
+  
+  // オブジェクト比較テスト
+  test('object equality works', () => {
+    const obj = { name: 'Stilya', type: 'app' };
+    expect(obj).toEqual({ name: 'Stilya', type: 'app' });
   });
 });
