@@ -11,13 +11,13 @@ rm -rf node_modules/.cache
 yarn cache clean
 
 # Install the EXACT versions of Metro packages that work with Expo SDK 53
-# Updated versions compatible with Expo SDK 53
-yarn add --dev metro@^0.82.0 metro-config@^0.82.0 metro-core@^0.82.0
-yarn add --dev metro-react-native-babel-transformer@^0.82.0 metro-resolver@^0.82.0
-yarn add --dev metro-source-map@^0.82.0 metro-transform-worker@^0.82.0
+# Ensure compatibility with Expo SDK 53
+yarn add --dev metro@0.76.8 metro-config@0.76.8 metro-core@0.76.8
+yarn add --dev metro-react-native-babel-transformer@0.76.8 metro-resolver@0.76.8
+yarn add --dev metro-runtime@0.76.8 metro-source-map@0.76.8 metro-transform-worker@0.76.8
 
 # Install the compatible version of Expo Metro config
-yarn add --dev @expo/metro-config@~0.20.0
+yarn add --dev @expo/metro-config@~0.10.0
 
 # Create a simplified metro.config.js that is compatible with Expo
 cat > metro.config.js << 'METRO_CONFIG'
