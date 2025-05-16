@@ -10,4 +10,8 @@ config.resolver.extraNodeModules = {
   '@': `${__dirname}/src`,
 };
 
+// For GitHub Actions compatibility
+config.transformer.minifierPath = require.resolve('metro-minify-terser');
+config.transformer.minifierConfig = {};
+
 module.exports = config;

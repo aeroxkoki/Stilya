@@ -1,63 +1,97 @@
+#!/usr/bin/env node
 /**
  * Enhanced validation script for Expo and EAS configuration
- * This script validates both app.json and app.config.js
+ * This script validates both app.json and eas.json as well as package dependencies
  */
 
 // Import required modules
 const fs = require('fs');
 const path = require('path');
 
-// Define validation functions
-function validateAppJson() {
-  try {
-    const appJsonPath = path.resolve(__dirname, 'app.json');
-    if (!fs.existsSync(appJsonPath)) {
-      console.error('app.json not found');
-      return false;
-    }
-    
-    const content = fs.readFileSync(appJsonPath, 'utf8');
-    const appJson = JSON.parse(content);
-    
-    // Basic validation checks
-    if (!appJson.expo) {
-      console.error('Missing expo section in app.json');
-      return false;
-    }
+console.log('Validating EAS and Expo configuration...');
 
-    // Validate scheme exists for deep linking
-    if (!appJson.expo.scheme) {
-      console.warn('Warning: No scheme defined in app.json. Deep linking may not work properly.');
-      // Not failing for this, just warning
-    }
-    
-    console.log('app.json validated successfully');
+// Function to check if file exists
+function checkFileExists(filePath, fileName) {
+  if (!fs.existsSync(filePath)) {
+    console.error(`Error: ${fileName} file is missing!`);
+    process.exit(1);
+  }
+}
+
+// Check if essential files exist
+const easJsonPath = path.resolve(__dirname, 'eas.json');
+const appJsonPath = path.resolve(__dirname, 'app.json');
+const packageJsonPath = path.resolve(__dirname, 'package.json');
+
+checkFileExists(easJsonPath, 'eas.json');
+checkFileExists(appJsonPath, 'app.json');
+checkFileExists(packageJsonPath, 'package.json');
+
+// Function to validate JSON
+function validateJson(filePath, fileName) {
+  try {
+    const content = fs.readFileSync(filePath, 'utf8');
+    JSON.parse(content);
     return true;
   } catch (error) {
-    console.error('Error validating app.json:', error.message);
+    console.error(`Error: ${fileName} is not valid JSON:`, error.message);
     return false;
   }
 }
 
-function validateAppConfig() {
-  try {
-    // App config validation
-    const appConfig = require('./app.config.js');
-    console.log('app.config.js loaded successfully');
-    return true;
-  } catch (error) {
-    console.error('Error validating app.config.js:', error.message);
-    return false;
-  }
-}
+// Validate JSON files
+const easJsonValid = validateJson(easJsonPath, 'eas.json');
+const appJsonValid = validateJson(appJsonPath, 'app.json');
+const packageJsonValid = validateJson(packageJsonPath, 'package.json');
 
-// Run validations
-const appJsonValid = validateAppJson();
-const appConfigValid = validateAppConfig();
-
-// Exit with appropriate code
-if (appJsonValid && appConfigValid) {
-  process.exit(0);
-} else {
+if (!easJsonValid || !appJsonValid || !packageJsonValid) {
   process.exit(1);
 }
+
+// Check if CI profile exists in eas.json
+const easConfig = JSON.parse(fs.readFileSync(easJsonPath, 'utf8'));
+if (!easConfig.build || !easConfig.build.ci) {
+  console.error("Error: 'ci' profile is missing in eas.json under 'build'");
+  process.exit(1);
+}
+
+// Check app configuration
+const appConfig = JSON.parse(fs.readFileSync(appJsonPath, 'utf8'));
+if (!appConfig.expo) {
+  console.error("Error: 'expo' section is missing in app.json");
+  process.exit(1);
+}
+
+console.log('EAS and app configuration appear valid.');
+console.log('Checking Expo SDK compatibility...');
+
+// Get the package.json content
+const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+const expoVersion = packageJson.dependencies.expo.replace(/[\^~]/g, '');
+const reactNativeVersion = packageJson.dependencies['react-native'].replace(/[\^~]/g, '');
+const reactVersion = packageJson.dependencies.react.replace(/[\^~]/g, '');
+
+console.log(`Found expo:${expoVersion}, react:${reactVersion}, react-native:${reactNativeVersion}`);
+
+// Check compatibility based on Expo SDK 53 requirements
+if (expoVersion.startsWith('53.')) {
+  if (reactNativeVersion !== '0.79.2') {
+    console.warn("Warning: Using Expo SDK 53 with incompatible react-native version. Should be 0.79.2.");
+  }
+  
+  if (reactVersion !== '19.0.0') {
+    console.warn("Warning: Using Expo SDK 53 with incompatible react version. Should be 19.0.0.");
+  }
+}
+
+// Check Metro dependencies
+const metroVersion = (packageJson.devDependencies && packageJson.devDependencies.metro) || 'not found';
+const metroConfigVersion = (packageJson.devDependencies && packageJson.devDependencies['metro-config']) || 'not found';
+
+if (metroVersion !== '0.76.8' || metroConfigVersion !== '0.76.8') {
+  console.warn(`Warning: Metro dependencies may not be compatible with Expo SDK 53. Found metro:${metroVersion}, metro-config:${metroConfigVersion}`);
+  console.warn("Consider running the fix-metro-dependencies.sh script.");
+}
+
+console.log('Validation complete, configuration appears functional for builds.');
+process.exit(0);
