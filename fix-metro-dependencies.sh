@@ -1,5 +1,5 @@
 #!/bin/bash
-# Enhanced fix-metro-dependencies.sh for Expo 53 with correct Metro versions
+# Enhanced fix-metro-dependencies.sh for Expo 53 with correct Metro versions for both local and CI environments
 
 echo "Installing and fixing Metro dependencies..."
 
@@ -10,32 +10,42 @@ yarn remove metro metro-config metro-runtime metro-react-native-babel-transforme
 rm -rf node_modules/.cache
 yarn cache clean
 
-# Install the EXACT versions of Metro packages that work with Expo SDK 53
-# Using 0.76.8 which is compatible with Expo SDK 53
-yarn add --dev metro@0.76.8 metro-config@0.76.8 metro-core@0.76.8
-yarn add --dev metro-react-native-babel-transformer@0.76.8 metro-resolver@0.76.8
-yarn add --dev metro-runtime@0.76.8 metro-source-map@0.76.8 metro-transform-worker@0.76.8
+# Check if running in CI environment
+if [ "$CI" = "true" ]; then
+  echo "Running in CI environment, using compatible Metro versions..."
+  # Use Metro 0.76.8 for CI environments (GitHub Actions compatibility)
+  yarn add --dev metro@0.76.8 metro-config@0.76.8 metro-core@0.76.8
+  yarn add --dev metro-react-native-babel-transformer@0.76.8 metro-resolver@0.76.8
+  yarn add --dev metro-runtime@0.76.8 metro-source-map@0.76.8 metro-transform-worker@0.76.8
+  yarn add --dev @expo/metro-config@~0.10.0
+else
+  echo "Installing recommended Expo SDK 53 Metro versions..."
+  # Use Metro 0.82.0 for local development (Expo SDK 53 recommendation)
+  yarn add --dev metro@^0.82.0 metro-config@^0.82.0 metro-core@^0.82.0
+  yarn add --dev metro-react-native-babel-transformer@^0.82.0 metro-resolver@^0.82.0
+  yarn add --dev metro-runtime@^0.82.0 metro-source-map@^0.82.0 metro-transform-worker@^0.82.0
+  yarn add --dev @expo/metro-config@~0.20.0
+fi
 
-# Install the compatible version of Expo Metro config
-yarn add --dev @expo/metro-config@~0.10.0
-
-# Create a simplified metro.config.js that is compatible with Expo
+# Create a proper metro.config.js that is compatible with Expo
 cat > metro.config.js << 'METRO_CONFIG'
-// Simple compatible metro.config.js for Expo SDK 53
+// Enhanced metro.config.js for Expo SDK 53
 const { getDefaultConfig } = require('@expo/metro-config');
 
-const config = getDefaultConfig(__dirname);
+// Get the default config for the project directory
+const defaultConfig = getDefaultConfig(__dirname);
 
-// Basic resolver configuration
-config.resolver.sourceExts = ['jsx', 'js', 'ts', 'tsx', 'json'];
-config.resolver.extraNodeModules = {
+// Add custom configuration
+defaultConfig.resolver.sourceExts = ['jsx', 'js', 'ts', 'tsx', 'json'];
+defaultConfig.resolver.extraNodeModules = {
   '@': `${__dirname}/src`,
 };
 
-module.exports = config;
+// Make sure to export the config properly
+module.exports = defaultConfig;
 METRO_CONFIG
 
-# Clean yarn cache again and force a node_modules clean-up if needed
+# Clean up and force reinstall if needed
 if [ "$CI" = "true" ]; then
   rm -rf node_modules/.yarn-integrity
   rm -rf node_modules/.cache
