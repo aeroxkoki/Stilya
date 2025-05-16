@@ -1,28 +1,19 @@
-// metro.config.js - 最適化済み設定
+// Simple compatible metro.config.js for Expo SDK 53
 const { getDefaultConfig } = require('@expo/metro-config');
 
-// Create the default Expo metro config
 const config = getDefaultConfig(__dirname);
 
-// Add TypeScript extensions
+// Basic resolver configuration
 config.resolver.sourceExts = ['jsx', 'js', 'ts', 'tsx', 'json'];
-
-// Basic transformer configuration
-config.transformer = {
-  ...config.transformer,
-  babelTransformerPath: require.resolve('metro-react-native-babel-transformer'),
-  assetPlugins: ['expo-asset/tools/hashAssetFiles'],
-};
-
-// Avoid the Metro issue with location imports
-config.transformer.allowOptionalDependencies = true;
-
-// Add additional resolver options
-config.resolver.resolverMainFields = ['react-native', 'browser', 'main'];
-
-// Add path alias support
 config.resolver.extraNodeModules = {
   '@': `${__dirname}/src`,
 };
+
+// Disable any fancy custom configuraton that might cause issues
+// Keep it simple to maximize compatibility
+delete config.transformer.minifierConfig;
+delete config.cacheStores;
+delete config.maxWorkers;
+delete config.resetCache;
 
 module.exports = config;

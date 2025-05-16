@@ -12,34 +12,27 @@ rm yarn.lock
 
 # Create a fresh metro config
 cat > metro.config.js << 'METRO_CONFIG'
-// Simple metro.config.js
+// Simple compatible metro.config.js for Expo SDK 53
 const { getDefaultConfig } = require('@expo/metro-config');
 
-// Create the default Expo metro config
 const config = getDefaultConfig(__dirname);
 
-// Add TypeScript extensions
+// Basic resolver configuration
 config.resolver.sourceExts = ['jsx', 'js', 'ts', 'tsx', 'json'];
-
-// Basic transformer configuration
-config.transformer = {
-  ...config.transformer,
-  babelTransformerPath: require.resolve('metro-react-native-babel-transformer'),
-  assetPlugins: ['expo-asset/tools/hashAssetFiles'],
-};
-
-// Avoid the Metro issue with location imports
-config.transformer.allowOptionalDependencies = true;
-
-// Add path alias support
 config.resolver.extraNodeModules = {
   '@': `${__dirname}/src`,
 };
 
+// Disable any fancy custom configuraton that might cause issues
+delete config.transformer.minifierConfig;
+delete config.cacheStores;
+delete config.maxWorkers;
+delete config.resetCache;
+
 module.exports = config;
 METRO_CONFIG
 
-# Fix package.json to ensure it has correct resolutions
+# Fix package.json to ensure it has correct Metro versions
 node -e '
 try {
   const fs = require("fs");
@@ -47,12 +40,28 @@ try {
   
   // Add resolutions field
   packageJson.resolutions = {
-    "metro": "^0.76.7",
-    "metro-config": "^0.76.7",
-    "metro-core": "^0.76.7",
-    "metro-react-native-babel-transformer": "^0.76.7",
-    "metro-resolver": "^0.76.7",
-    "metro-runtime": "^0.76.7"
+    "metro": "0.80.0",
+    "metro-config": "0.80.0",
+    "metro-core": "0.80.0",
+    "metro-react-native-babel-transformer": "0.80.0",
+    "metro-resolver": "0.80.0",
+    "metro-runtime": "0.80.0",
+    "metro-source-map": "0.80.0",
+    "@expo/metro-config": "0.16.0"
+  };
+  
+  // Also update devDependencies
+  packageJson.devDependencies = {
+    ...packageJson.devDependencies,
+    "metro": "0.80.0",
+    "metro-config": "0.80.0",
+    "metro-core": "0.80.0",
+    "metro-react-native-babel-transformer": "0.80.0",
+    "metro-resolver": "0.80.0",
+    "metro-runtime": "0.80.0",
+    "metro-source-map": "0.80.0",
+    "metro-transform-worker": "0.80.0",
+    "@expo/metro-config": "0.16.0"
   };
   
   // Write back
@@ -64,12 +73,10 @@ try {
 }
 '
 
-# Install dependencies
-echo "Installing dependencies..."
-yarn install
-
-echo "Running Metro fixes..."
-yarn fix-metro
+# Install dependencies from scratch
+echo "Installing dependencies from scratch..."
+yarn config set network-timeout 300000
+yarn install --network-timeout 300000 --force
 
 echo "Emergency fixes applied. Try building again."
 EOL
