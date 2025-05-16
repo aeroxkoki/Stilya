@@ -11,7 +11,7 @@ rm -rf node_modules/.cache
 yarn cache clean
 
 # Install the EXACT versions of Metro packages that work with Expo SDK 53
-# Ensure compatibility with Expo SDK 53
+# Using 0.76.8 which is compatible with Expo SDK 53
 yarn add --dev metro@0.76.8 metro-config@0.76.8 metro-core@0.76.8
 yarn add --dev metro-react-native-babel-transformer@0.76.8 metro-resolver@0.76.8
 yarn add --dev metro-runtime@0.76.8 metro-source-map@0.76.8 metro-transform-worker@0.76.8
