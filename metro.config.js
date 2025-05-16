@@ -1,10 +1,11 @@
-// Simple compatible metro.config.js for Expo SDK 53
-const { getDefaultConfig } = require('@expo/metro-config');
+// Learn more https://docs.expo.dev/guides/customizing-metro
+const { getDefaultConfig } = require('expo/metro-config');
 
+/** @type {import('expo/metro-config').MetroConfig} */
 const config = getDefaultConfig(__dirname);
 
-// Basic resolver configuration
-config.resolver.sourceExts = ['jsx', 'js', 'ts', 'tsx', 'json'];
+// Add the additional `cjs` extension to the resolver
+config.resolver.sourceExts.push('cjs');
 config.resolver.extraNodeModules = {
   '@': `${__dirname}/src`,
 };

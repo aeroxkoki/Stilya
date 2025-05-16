@@ -1,7 +1,7 @@
 #!/bin/bash
 # Enhanced fix-metro-dependencies.sh for Expo 53 with Metro versions compatible with GitHub Actions
 
-echo "Installing and fixing Metro dependencies..."
+echo "Installing and fixing Metro dependencies for Expo SDK 53..."
 
 # Remove previous Metro related dependencies to prevent conflicts
 yarn remove metro metro-config metro-runtime metro-react-native-babel-transformer metro-source-map metro-resolver metro-transform-worker @expo/metro-config 2>/dev/null || true 
@@ -10,29 +10,36 @@ yarn remove metro metro-config metro-runtime metro-react-native-babel-transforme
 rm -rf node_modules/.cache
 yarn cache clean
 
-# For both CI and local environments - using Metro 0.76.8 for consistent behavior
-echo "Installing Metro 0.76.8 packages (compatible with GitHub Actions)..."
-yarn add --dev metro@0.76.8 metro-config@0.76.8 metro-core@0.76.8
-yarn add --dev metro-react-native-babel-transformer@0.76.8 metro-resolver@0.76.8
-yarn add --dev metro-runtime@0.76.8 metro-source-map@0.76.8 metro-transform-worker@0.76.8
-yarn add --dev @expo/metro-config@~0.10.0
+# Check environment and use appropriate Metro versions
+if [ "$CI" = "true" ]; then
+  echo "Detected CI environment, using CI-compatible Metro dependencies..."
+  yarn add --dev metro@0.76.8 metro-config@0.76.8 metro-core@0.76.8
+  yarn add --dev metro-react-native-babel-transformer@0.76.8 metro-resolver@0.76.8
+  yarn add --dev metro-runtime@0.76.8 metro-source-map@0.76.8 metro-transform-worker@0.76.8
+  yarn add --dev @expo/metro-config@~0.10.0
+else
+  echo "Using recommended Expo SDK 53 Metro versions for local development..."
+  yarn add --dev metro@^0.82.0 metro-config@^0.82.0 metro-core@^0.82.0
+  yarn add --dev metro-react-native-babel-transformer@^0.82.0 metro-resolver@^0.82.0
+  yarn add --dev metro-runtime@^0.82.0 metro-source-map@^0.82.0 metro-transform-worker@^0.82.0
+  yarn add --dev @expo/metro-config@~0.20.0
+fi
 
-# Create a proper metro.config.js that is compatible with Expo
+# Create a proper Expo-compatible metro.config.js
 cat > metro.config.js << 'METRO_CONFIG'
-// Enhanced metro.config.js for Expo SDK 53
-const { getDefaultConfig } = require('@expo/metro-config');
+// Learn more https://docs.expo.dev/guides/customizing-metro
+const { getDefaultConfig } = require('expo/metro-config');
 
-// Get the default config for the project directory
-const defaultConfig = getDefaultConfig(__dirname);
+/** @type {import('expo/metro-config').MetroConfig} */
+const config = getDefaultConfig(__dirname);
 
-// Add custom configuration
-defaultConfig.resolver.sourceExts = ['jsx', 'js', 'ts', 'tsx', 'json'];
-defaultConfig.resolver.extraNodeModules = {
+// Add the additional `cjs` extension to the resolver
+config.resolver.sourceExts.push('cjs');
+config.resolver.extraNodeModules = {
   '@': `${__dirname}/src`,
 };
 
-// Make sure to export the config properly
-module.exports = defaultConfig;
+module.exports = config;
 METRO_CONFIG
 
 # Clean up and force reinstall if needed
