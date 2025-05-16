@@ -23,8 +23,10 @@ jobs:
           
       - name: Setup CI npm configuration
         run: |
-          npm run fix-ci-npm
-          node ci-npm-config.js
+          chmod +x ./ci-direct-npmrc.sh ./init-ci-npm.sh
+          ./init-ci-npm.sh
+          # 直接npmrcを適用
+          npm config delete unsafe-perm || true
           
       - name: Install dependencies
         run: npm ci || (npm run clean-install && npm install)
@@ -62,8 +64,10 @@ jobs:
           
       - name: Setup CI npm configuration
         run: |
-          npm run fix-ci-npm
-          npm run prepare-ci
+          chmod +x ./ci-direct-npmrc.sh ./init-ci-npm.sh
+          ./init-ci-npm.sh
+          # 直接npmrcを適用
+          npm config delete unsafe-perm || true
           
       - name: Install dependencies
         run: npm ci || (npm run clean-install && npm install)
