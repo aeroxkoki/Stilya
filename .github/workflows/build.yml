@@ -71,11 +71,12 @@ jobs:
       - name: Fix Metro dependencies and Serializer for CI
         run: |
           export CI=true
+          npm run clean-caches
           npm run fix-metro
           npm run fix-serializer
-          # Test serializer configuration
-          chmod +x ./test-metro-serializer.sh
-          ./test-metro-serializer.sh
+          npm run fix-expo-embed
+          # Verify patched serializer
+          node -e "try { const s = require('./patches/patched-serializer')(); console.log('Serializer verified:', Object.keys(s)); } catch(e) { console.error(e); process.exit(1); }"
           
       - name: Setup GitHub Actions helper
         run: npm run setup-github-actions
