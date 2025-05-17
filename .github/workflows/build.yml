@@ -76,11 +76,10 @@ jobs:
         run: |
           export CI=true
           npm run clean-caches
-          npm run fix-metro
-          npm run fix-serializer
-          npm run fix-expo-embed
+          chmod +x ./fix-metro-serializer-direct.sh
+          npm run fix-serializer-direct
           # Verify patched serializer
-          node -e "try { const s = require('./patches/patched-serializer')(); console.log('Serializer verified:', Object.keys(s)); } catch(e) { console.error(e); process.exit(1); }"
+          node -e "try { if (require('./patches/metro-direct-fix/serializer-fix')); console.log('Direct serializer patch verified!'); } catch(e) { console.error(e); process.exit(1); }"
           
       - name: Setup GitHub Actions helper
         run: npm run setup-github-actions

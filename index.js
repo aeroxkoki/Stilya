@@ -1,9 +1,11 @@
+// 修正されたExpoエントリポイント
 import { registerRootComponent } from 'expo';
 import App from './App';
-import './src/utils/metro-serializer-fix';
 
-// Import serializer fix to ensure compatibility with export:embed
-import './src/utils/metro-serializer-fix';
+// シリアライザー問題のワークアラウンド
+if (global.__BUNDLE_START_TIME__ === undefined) {
+  global.__BUNDLE_START_TIME__ = Date.now();
+}
 
-// Register the main component
+// メインコンポーネントを登録
 registerRootComponent(App);
