@@ -76,10 +76,12 @@ jobs:
         run: |
           export CI=true
           npm run clean-caches
-          chmod +x ./fix-metro-serializer-direct.sh
-          npm run fix-serializer-direct
-          # Verify patched serializer
-          node -e "try { if (require('./patches/metro-direct-fix/serializer-fix')); console.log('Direct serializer patch verified!'); } catch(e) { console.error(e); process.exit(1); }"
+          chmod +x ./monkey-patch-expo.sh
+          npm run monkey-patch-expo
+          # パッチされたファイルを確認
+          ls -la patches/expo-monkey-patch
+          # テスト実行
+          node -e "try { require('./patches/expo-monkey-patch/json-serializer-patch'); console.log('JSON.parse monkey patch verified!'); } catch(e) { console.error(e); process.exit(1); }"
           
       - name: Setup GitHub Actions helper
         run: npm run setup-github-actions

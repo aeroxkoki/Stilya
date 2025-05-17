@@ -1,14 +1,14 @@
-// Expo export:embed用に修正したMetro設定
+// Expoのシリアライズ問題用に修正されたメトロ設定
 const { getDefaultConfig } = require('@expo/metro-config');
 const path = require('path');
+
+// JSONパーサーパッチを読み込む（グローバルに適用される）
+require('./patches/expo-monkey-patch/json-serializer-patch');
 
 // デフォルト設定を取得
 const config = getDefaultConfig(__dirname);
 
-// 直接修正したシリアライザーを使用
-const createFixedSerializer = require('./patches/metro-direct-fix/serializer-fix');
-
-// シリアライザー設定を修正
+// シリアライザーのカスタマイズ
 config.serializer = {
   ...config.serializer,
   getModulesRunBeforeMainModule: () => [],
@@ -21,9 +21,7 @@ config.serializer = {
       return `node_modules/${moduleName}`;
     }
     return path.replace(projectRootPath, '');
-  },
-  // 修正したシリアライザーを使用
-  getSerializers: () => createFixedSerializer()
+  }
 };
 
 // その他の設定
@@ -32,7 +30,7 @@ config.resolver.extraNodeModules = {
   '@': `${__dirname}/src`,
 };
 
-// GitHub Actions互換性のため
+// GitHub Actions互換性
 config.transformer.minifierPath = require.resolve('metro-minify-terser');
 config.transformer.minifierConfig = {};
 

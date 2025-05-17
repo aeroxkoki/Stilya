@@ -1,11 +1,14 @@
-// 修正されたExpoエントリポイント
+// ExpoのJSON解析エラーに対処するための修正版エントリーポイント
 import { registerRootComponent } from 'expo';
 import App from './App';
 
-// シリアライザー問題のワークアラウンド
+// JSONパーサーパッチをロード（できるだけ早く）
+import './patches/expo-monkey-patch/json-serializer-patch';
+
+// バンドル時間の初期化（一部の環境で必要）
 if (global.__BUNDLE_START_TIME__ === undefined) {
   global.__BUNDLE_START_TIME__ = Date.now();
 }
 
-// メインコンポーネントを登録
+// アプリを登録
 registerRootComponent(App);

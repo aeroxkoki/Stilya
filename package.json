@@ -29,6 +29,8 @@
     "fix-expo-embed": "sh ./fix-expo-embed-issue.sh",
     "fix-serializer-direct": "sh ./fix-metro-serializer-direct.sh",
     "patch-serializer": "node patch-expo-serializer.js",
+    "monkey-patch-expo": "sh ./monkey-patch-expo.sh",
+    "start-patched": "node start-patched-expo.js",
     "clean-caches": "sh ./clean-expo-caches.sh",
     "fix-packages": "expo install --check && npx expo-doctor",
     "clean-install": "rm -rf node_modules/.yarn-integrity && yarn install --force",
@@ -41,7 +43,7 @@
     "eas:update": "eas update",
     "eas:check": "eas --version && echo 'EAS CLI is installed correctly'",
     "eas:validate": "npx jsonlint-cli eas.json && npx jsonlint-cli app.json && node eas-validate.js",
-    "eas:build:ci": "npm run setup-github-actions && npm run init-ci-npm && npm run clean-caches && npm run fix-metro && npm run fix-serializer-direct && rm -rf node_modules/.yarn-integrity && yarn install --force && npm run eas:validate && npx eas-cli@7.8.5 build --platform android --profile ci --non-interactive",
+    "eas:build:ci": "npm run setup-github-actions && npm run init-ci-npm && npm run clean-caches && npm run fix-metro && npm run monkey-patch-expo && rm -rf node_modules/.yarn-integrity && yarn install --force && npm run eas:validate && npx eas-cli@7.8.5 build --platform android --profile ci --non-interactive",
     "postinstall": "echo 'Postinstall executed, dependencies configured'"
   },
   "dependencies": {
