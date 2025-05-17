@@ -46,9 +46,11 @@
     "eas:build:ci": "npm run setup-github-actions && npm run init-ci-npm && npm run clean-caches && npm run fix-metro && npm run monkey-patch-expo && rm -rf node_modules/.yarn-integrity && yarn install --force && npm run eas:validate && npx eas-cli@7.8.5 build --platform android --profile ci --non-interactive",
     "postinstall": "echo 'Postinstall executed, dependencies configured'",
     "fix-all": "sh ./fix-metro-serializer-direct.sh && sh ./clean-expo-caches.sh",
+    "fix-expo-deep": "sh ./fix-expo-deep.sh",
     "export:patched": "node run-expo-export.js",
     "export:android": "node run-expo-export.js --platform android --dev false",
     "export:ios": "node run-expo-export.js --platform ios --dev false",
+    "export:direct": "node run-patched-expo-direct.js",
     "github:setup": "sh ./github-actions-setup.sh"
   },
   "dependencies": {
