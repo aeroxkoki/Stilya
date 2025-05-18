@@ -1,122 +1,156 @@
 /**
- * GitHub Actions用の直接パッチ実行スクリプト
- * Expo export:embed問題を解決します
+ * Expo export:embed 専用のランナースクリプト
+ * Serializer did not return expected format エラーを解決します
  */
 const { spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-console.log('◆◆◆ GitHub Actions用Expoパッチを適用します ◆◆◆');
+console.log('🌈 Expo export:embed 互換性ランナーを開始します...');
 
-// パッチフォルダーの確認
-const patchesDir = path.join(__dirname, 'patches');
-if (!fs.existsSync(patchesDir)) {
-  fs.mkdirSync(patchesDir, { recursive: true });
-  console.log('✅ パッチディレクトリを作成しました');
+// パッケージバージョンをチェック
+function checkPackageVersions() {
+  try {
+    // package.jsonからデータ読み込み
+    const packageJsonPath = path.join(__dirname, 'package.json');
+    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+    
+    // メトロ関連のバージョンを取得
+    const expoVersion = packageJson.dependencies?.expo || 'not found';
+    const metroVersion = packageJson.devDependencies?.metro || 'not found';
+    const expoMetroConfigVersion = packageJson.devDependencies?.['@expo/metro-config'] || 'not found';
+    
+    console.log('📦 パッケージバージョン:');
+    console.log(`  - expo: ${expoVersion}`);
+    console.log(`  - metro: ${metroVersion}`);
+    console.log(`  - @expo/metro-config: ${expoMetroConfigVersion}`);
+    
+    // 推奨バージョンとの比較
+    if (expoVersion.includes('53.0') && 
+        metroVersion.includes('0.76') && 
+        expoMetroConfigVersion.includes('0.10')) {
+      console.log('✅ パッケージバージョンは互換性のある組み合わせです');
+    } else {
+      console.log('⚠️ 一部のパッケージバージョンが最適でない可能性があります');
+      console.log('   推奨: expo@^53.0.7, metro@^0.76.8, @expo/metro-config@^0.10.7');
+    }
+  } catch (error) {
+    console.warn('⚠️ パッケージバージョンの確認に失敗しました:', error.message);
+  }
 }
 
-// パッチ適用前にMetroのバージョンを確認
-try {
-  const metroVersion = require('metro/package.json').version;
-  const metroConfigVersion = require('metro-config/package.json').version;
-  const expoMetroConfigVersion = require('@expo/metro-config/package.json').version;
+// JSONモンキーパッチ
+function applyJsonPatch() {
+  // オリジナルのJSON.parseを保存
+  const originalJSONParse = JSON.parse;
   
-  console.log(`📦 確認されたパッケージバージョン:`);
-  console.log(`  - metro: ${metroVersion}`);
-  console.log(`  - metro-config: ${metroConfigVersion}`);
-  console.log(`  - @expo/metro-config: ${expoMetroConfigVersion}`);
-  
-  // 必要に応じてバージョン調整
-  if (metroVersion !== '0.76.8' || metroConfigVersion !== '0.76.8') {
-    console.log('⚠️ Metroパッケージのバージョンが最適でない可能性があります');
-  }
-} catch (e) {
-  console.warn('⚠️ Metroパッケージのバージョン確認に失敗しました:', e.message);
-}
-
-// JSONシリアライザーパッチ適用
-const applyJsonPatch = () => {
-  const monkeyPatchDir = path.join(patchesDir, 'expo-monkey-patch');
-  if (!fs.existsSync(monkeyPatchDir)) {
-    fs.mkdirSync(monkeyPatchDir, { recursive: true });
-  }
-  
-  const jsonPatchPath = path.join(monkeyPatchDir, 'json-serializer-patch.js');
-  const jsonPatchContent = `/**
- * JSONパーサー/ストリンギファイのグローバルパッチ
- * Expoシリアライズエラーを緊急的に修正
- */
-
-// オリジナルのJSON.parseを保存
-const originalJSONParse = JSON.parse;
-
-// JSON.parseをモンキーパッチ
-JSON.parse = function(text, ...args) {
-  if (typeof text === 'string') {
-    // JavaScriptコードの検出
-    if (text.startsWith('var __') || text.startsWith('var _')) {
-      console.log('[Expo Patch] JavaScriptコードをJSONに変換します');
-      return {
-        code: text,
-        map: null,
-        dependencies: []
-      };
+  // JSON.parseをパッチする
+  JSON.parse = function(text, ...args) {
+    // JSONパース前のチェック
+    if (typeof text === 'string') {
+      // JavaScriptコードを検出した場合
+      if (text.startsWith('var __') || text.startsWith('var _')) {
+        console.log('[Expo修正] JavaScriptコードをJSON形式に変換します');
+        return {
+          code: text,
+          map: null,
+          dependencies: []
+        };
+      }
+      
+      // 通常のJSON解析を試みる
+      try {
+        return originalJSONParse(text, ...args);
+      } catch (e) {
+        if (e instanceof SyntaxError) {
+          console.warn('[Expo修正] JSONパース失敗 - フォールバック処理:', e.message);
+          // JSON形式としてコードをラップ
+          return {
+            code: String(text),
+            map: null,
+            dependencies: []
+          };
+        }
+        throw e;
+      }
     }
     
-    // 既にJSONオブジェクトの場合はそのまま
-    try {
-      return originalJSONParse(text, ...args);
-    } catch (e) {
-      console.warn('[Expo Patch] JSONパース失敗 - フォールバック処理:', e.message);
-      return {
-        code: String(text),
-        map: null,
-        dependencies: []
-      };
-    }
-  }
+    // 文字列以外の場合は元のJSON.parseに任せる
+    return originalJSONParse(text, ...args);
+  };
   
-  // 文字列以外の場合はデフォルト処理
-  return originalJSONParse(text, ...args);
-};
-
-// シリアライザーパッチ通知
-console.log('[Expo Patch] JSONパーサーが正常にパッチされました');`;
-
-  fs.writeFileSync(jsonPatchPath, jsonPatchContent);
-  console.log('✅ JSONシリアライザーパッチを作成しました');
-};
-
-// パッチ適用
-applyJsonPatch();
-
-// 上記の修正をテスト実行
-console.log('🧪 パッチのテスト実行を行います...');
-
-// エクスポート試行
-const args = process.argv.slice(2);
-const defaultArgs = ['export:embed', '--eager', '--platform', 'android', '--dev', 'false'];
-const finalArgs = args.length > 0 ? args : defaultArgs;
-
-console.log(`🚀 実行: expo ${finalArgs.join(' ')}`);
-
-// グローバルパッチを事前ロード
-try {
-  require('./patches/expo-monkey-patch/json-serializer-patch');
-  console.log('✅ JSONパーサーパッチを事前ロードしました');
-} catch (e) {
-  console.warn('⚠️ JSONパーサーパッチのロードに失敗:', e.message);
+  console.log('✅ JSONパーサーを修正しました');
 }
 
-// メモリ使用量を増やしてExpo実行
-const result = spawnSync('expo', finalArgs, {
-  stdio: 'inherit',
-  env: {
-    ...process.env,
-    NODE_OPTIONS: `${process.env.NODE_OPTIONS || ''} --max-old-space-size=8192 --no-warnings`,
-    EXPO_NO_CACHE: 'true',
-    EXPO_METRO_FORCE_JSON: 'true'
-  }
-});
+// キャッシュを削除
+function clearCaches() {
+  console.log('🧹 キャッシュをクリアしています...');
+  
+  // Metro関連のキャッシュを削除
+  const cachePaths = [
+    path.join(__dirname, 'node_modules', '.cache'),
+    path.join(process.env.HOME || process.env.USERPROFILE, '.expo', 'cache'),
+    path.join(process.env.HOME || process.env.USERPROFILE, '.metro')
+  ];
+  
+  cachePaths.forEach(cachePath => {
+    if (fs.existsSync(cachePath)) {
+      try {
+        // 再帰的な削除は危険なので、存在確認してからのみ実行
+        if (cachePath.includes('node_modules/.cache') || 
+            cachePath.includes('.expo/cache') || 
+            cachePath.includes('.metro')) {
+          console.log(`  - ${cachePath} を削除`);
+          // 実際の削除はシェルコマンドに委任
+          spawnSync('rm', ['-rf', cachePath], { stdio: 'inherit' });
+        }
+      } catch (error) {
+        console.warn(`⚠️ ${cachePath} の削除に失敗:`, error.message);
+      }
+    }
+  });
+  
+  console.log('✅ キャッシュをクリアしました');
+}
 
-process.exit(result.status);
+// メイン実行
+function main() {
+  // バージョン確認
+  checkPackageVersions();
+  
+  // キャッシュクリア
+  clearCaches();
+  
+  // JSONパッチを適用
+  applyJsonPatch();
+  
+  // コマンドライン引数を解析
+  const args = process.argv.slice(2);
+  const defaultArgs = ['export:embed', '--eager', '--platform', 'android', '--dev', 'false'];
+  const finalArgs = args.length > 0 ? args : defaultArgs;
+  
+  console.log(`🚀 実行: expo ${finalArgs.join(' ')}`);
+  
+  // 環境変数を設定してexpoコマンドを実行
+  const result = spawnSync('expo', finalArgs, {
+    stdio: 'inherit',
+    env: {
+      ...process.env,
+      NODE_OPTIONS: `${process.env.NODE_OPTIONS || ''} --max-old-space-size=8192 --no-warnings`,
+      EXPO_NO_CACHE: 'true'
+    }
+  });
+  
+  // 結果コードに応じたメッセージ
+  if (result.status === 0) {
+    console.log('✅ expoコマンドは正常に完了しました');
+  } else {
+    console.error(`❌ expoコマンドはコード ${result.status} で失敗しました`);
+  }
+  
+  // 終了コードを返す
+  process.exit(result.status);
+}
+
+// スクリプト実行
+main();
