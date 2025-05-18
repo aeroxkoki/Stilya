@@ -106,7 +106,16 @@ jobs:
           )
 
       - name: 🚀 Build App (Android)
-        run: npx eas-cli build --platform android --profile ci --non-interactive
+        run: |
+          # キャッシュをクリア
+          rm -rf node_modules/.cache
+          rm -rf $HOME/.expo/cache
+          
+          # 直接パッチ適用版のエクスポートを実行
+          node export-direct-patch.js --platform android --dev false
+          
+          # EASビルド実行
+          npx eas-cli build --platform android --profile ci --non-interactive
 
       # iOS is disabled until we fix the issues with iOS build
       # - name: 🚀 Build App (iOS)

@@ -47,10 +47,15 @@
     "postinstall": "echo 'Postinstall executed, dependencies configured'",
     "fix-all": "sh ./fix-metro-serializer-direct.sh && sh ./clean-expo-caches.sh",
     "fix-expo-deep": "sh ./fix-expo-deep.sh",
+    "fix-expo-github": "node direct-patch-expo-cli.js",
     "export:patched": "node run-expo-export.js",
     "export:android": "node run-expo-export.js --platform android --dev false",
     "export:ios": "node run-expo-export.js --platform ios --dev false",
     "export:direct": "node run-patched-expo-direct.js",
+    "export:github": "./run-github-actions.sh",
+    "export:emergency": "node github-actions-emergency.js",
+    "export:direct-patch": "node export-direct-patch.js",
+    "export:ci": "EXPO_NO_CACHE=true node export-direct-patch.js",
     "github:setup": "sh ./github-actions-setup.sh"
   },
   "dependencies": {

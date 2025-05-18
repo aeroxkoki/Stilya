@@ -42,7 +42,7 @@ function createFixedSerializer() {
     stringify: (data) => {
       // Force JSON formatting
       try {
-        if (typeof data === 'string' && data.startsWith('var __')) {
+        if (typeof data === 'string' && (data.startsWith('var __') || data.startsWith('var _'))) {
           console.log('[Metro Patch] Converting JS to JSON format');
           // If it's already JavaScript code, convert it to JSON
           return JSON.stringify({ 

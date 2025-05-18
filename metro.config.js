@@ -1,14 +1,19 @@
-// Expoのシリアライズ問題用に修正されたメトロ設定
+/**
+ * Modified Metro Config for Expo export:embed compatibility
+ * 
+ * This configuration fixes the "Serializer did not return expected format" error
+ * in GitHub Actions environments.
+ */
 const { getDefaultConfig } = require('@expo/metro-config');
 const path = require('path');
 
-// 修正されたシリアライザーを取得
+// Get patched serializer
 const createFixedSerializer = require('./patches/patched-serializer');
 
-// デフォルト設定を取得
+// Get default Expo config
 const config = getDefaultConfig(__dirname);
 
-// シリアライザーのカスタマイズ
+// Enhanced serializer configuration
 config.serializer = {
   ...config.serializer,
   getModulesRunBeforeMainModule: () => [],
@@ -22,26 +27,28 @@ config.serializer = {
     }
     return path.replace(projectRootPath, '');
   },
-  // 修正されたシリアライザーを使用
+  // Use our patched serializer
   getSerializers: () => createFixedSerializer()
 };
 
-// その他の設定
+// Additional configurations for better compatibility
 config.resolver.sourceExts.push('cjs');
 config.resolver.extraNodeModules = {
   '@': `${__dirname}/src`,
 };
 
-// GitHub Actions互換性
+// Use terser minifier for better GitHub Actions compatibility
 config.transformer.minifierPath = require.resolve('metro-minify-terser');
 config.transformer.minifierConfig = {};
 
-// キャッシュを無効化（ビルド時のみ）
+// Disable cache for export:embed to prevent serialization issues
 const args = process.argv || [];
-if (args.includes('export:embed') || args.includes('--non-interactive')) {
-  console.log('[Metro Config] Building with cache disabled for export:embed');
+if (args.includes('export:embed') || args.includes('--non-interactive') || 
+    process.env.EXPO_NO_CACHE === 'true' || process.env.GITHUB_ACTIONS === 'true') {
+  console.log('[Metro Config] Building with cache disabled for export:embed or CI');
   config.cacheStores = [];
   config.resetCache = true;
-} 
+}
 
+// Export for other configuration files to use
 module.exports = config;
