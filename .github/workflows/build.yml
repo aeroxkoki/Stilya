@@ -8,8 +8,30 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  test:
+    name: Run Tests
     runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run tests
+        run: npm run test:ci
+  
+  build:
+    name: EAS Build
+    runs-on: ubuntu-latest
+    needs: test
     
     steps:
       - name: Checkout repository
@@ -28,99 +50,25 @@ jobs:
         run: npm install -g eas-cli@latest
       
       - name: Verify Metro dependencies
-        run: |
-          # 必要なMetro依存関係を確認・インストール
-          if ! npm list metro-config >/dev/null 2>&1; then
-            echo "metro-config not found, installing..."
-            npm install --save-dev metro-config@0.76.8
-          fi
-          
-          if ! npm list metro-minify-terser >/dev/null 2>&1; then
-            echo "metro-minify-terser not found, installing..."
-            npm install --save-dev metro-minify-terser@0.76.8
-          fi
-          
-          # metro.config.jsが存在するか確認
-          if [ ! -f "metro.config.js" ]; then
-            echo "metro.config.js not found, creating..."
-            cat > metro.config.js << 'EOF'
-/**
- * Expo Metro Config - Simple and Stable Configuration
- */
-const { getDefaultConfig } = require('@expo/metro-config');
-
-/** @type {import('@expo/metro-config').MetroConfig} */
-const config = getDefaultConfig(__dirname);
-
-// Disable cache for CI environment
-if (process.env.CI === 'true') {
-  console.log('[Metro Config] Running in CI, disabling cache');
-  config.cacheStores = [];
-  config.resetCache = true;
-}
-
-// For GitHub Actions compatibility
-config.transformer.minifierPath = require.resolve('metro-minify-terser');
-config.transformer.minifierConfig = {};
-
-module.exports = config;
-EOF
-          fi
+        run: npm run fix-metro
       
-      - name: Verify eas.json configuration
-        run: |
-          # eas.jsonが存在するか確認
-          if [ ! -f "eas.json" ]; then
-            echo "Error: eas.json not found!"
-            exit 1
-          fi
-          
-          # ci プロファイルが存在するか確認
-          if ! grep -q '"ci"' eas.json; then
-            echo "Warning: 'ci' profile not found in eas.json"
-          fi
-          
-          # 必要な設定があるか確認
-          if ! grep -q '"buildType"' eas.json; then
-            echo "Warning: 'buildType' may be missing in eas.json"
-          fi
-          
-          if ! grep -q '"distribution"' eas.json; then
-            echo "Warning: 'distribution' may be missing in eas.json"
-          fi
+      - name: Verify configuration
+        run: npm run eas:validate
       
       - name: Login to Expo
         run: eas login --token ${{ secrets.EXPO_TOKEN }}
       
       - name: Run EAS Build
-        run: |
-          # EAS Build を実行（メモ: expo-cliは一切使いません!）
-          # eas buildのみを直接実行し、エラー処理を強化
-          
-          # ビルド時の環境変数を設定
-          export EAS_NO_VCS=1
-          export EAS_SKIP_JAVASCRIPT_BUNDLING=1
-          
-          # EAS Build を直接実行
-          npx eas-cli@latest build \
-            --platform android \
-            --non-interactive \
-            --profile ci \
-            --local \
-            --skip-workflow-check || {
-            
-            echo "EAS build failed. Detailed error information:"
-            echo "Node version: $(node -v)"
-            echo "NPM version: $(npm -v)"
-            echo "EAS CLI version: $(npx eas-cli --version)"
-            echo "Package versions:"
-            npm list expo react react-native metro metro-config
-            exit 1
-          }
+        env:
+          CI: true
+          EAS_NO_VCS: 1
+          EAS_BUILD: true
+          EAS_SKIP_JAVASCRIPT_BUNDLING: 1
+        run: npx eas-cli build --platform android --non-interactive --profile ci --local --skip-workflow-check
       
-      - name: Report build information
+      - name: Build information
         if: always()
         run: |
-          echo "Build completed with status: $?"
-          echo "Expo SDK version: $(node -e 'console.log(require(\"./package.json\").dependencies.expo)')"
-          echo "React Native version: $(node -e 'console.log(require(\"./package.json\").dependencies[\"react-native\"])')"
+          echo "Build completed"
+          echo "Expo SDK: $(node -e 'console.log(require(\"./package.json\").dependencies.expo)')"
+          echo "React Native: $(node -e 'console.log(require(\"./package.json\").dependencies[\"react-native\"])')"

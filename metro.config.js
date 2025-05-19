@@ -23,8 +23,8 @@ config.transformer.minifierConfig = {};
 config.transformer.assetPlugins = ['expo-asset/tools/hashAssetFiles'];
 
 // Disable cache for CI environment to avoid serialization issues
-if (process.env.CI === 'true' || process.env.EXPO_NO_CACHE === 'true') {
-  console.log('[Metro Config] Running in CI or with EXPO_NO_CACHE, disabling cache');
+if (process.env.CI === 'true' || process.env.EXPO_NO_CACHE === 'true' || process.env.EAS_BUILD === 'true') {
+  console.log('[Metro Config] Running in CI environment, disabling cache');
   config.cacheStores = [];
   config.resetCache = true;
 }

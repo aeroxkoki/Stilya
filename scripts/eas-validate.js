@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 /**
- * Enhanced validation script for Expo and EAS configuration
- * This script validates both app.json and eas.json as well as package dependencies
+ * 最適化されたEAS設定バリデーションスクリプト
  */
 
 // Import required modules
@@ -19,9 +18,9 @@ function checkFileExists(filePath, fileName) {
 }
 
 // Check if essential files exist
-const easJsonPath = path.resolve(__dirname, 'eas.json');
-const appJsonPath = path.resolve(__dirname, 'app.json');
-const packageJsonPath = path.resolve(__dirname, 'package.json');
+const easJsonPath = path.resolve(__dirname, '../eas.json');
+const appJsonPath = path.resolve(__dirname, '../app.json');
+const packageJsonPath = path.resolve(__dirname, '../package.json');
 
 checkFileExists(easJsonPath, 'eas.json');
 checkFileExists(appJsonPath, 'app.json');
@@ -90,7 +89,7 @@ const metroConfigVersion = (packageJson.devDependencies && packageJson.devDepend
 
 if (metroVersion !== '0.76.8' || metroConfigVersion !== '0.76.8') {
   console.warn(`Warning: Metro dependencies may not be compatible with Expo SDK 53. Found metro:${metroVersion}, metro-config:${metroConfigVersion}`);
-  console.warn("Consider running the fix-metro-dependencies.sh script.");
+  console.warn("Consider running: npm run fix-metro");
 }
 
 console.log('Validation complete, configuration appears functional for builds.');

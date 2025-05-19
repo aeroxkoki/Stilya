@@ -20,74 +20,70 @@ npm install
 npm start
 ```
 
-## GitHub Actions / CI環境での注意点
+## プロジェクト構成
 
-このプロジェクトではGitHub Actions環境でEASビルドを実行するための特別な設定が必要です。
-
-### 1. Metro Bundlerへの依存を避ける
-
-**重要: GitHub Actions上では、`expo start`や`expo export:embed`などMetro Bundlerに依存するコマンドは実行しないでください**
-
-### 2. 正しい設定
-
-```yaml
-# 正しい設定例
-- name: Install EAS CLI
-  run: npm install -g eas-cli@latest
-
-- name: Login to Expo
-  run: eas login --token ${{ secrets.EXPO_TOKEN }}
-
-- name: Run EAS Build
-  run: |
-    # ビルド時の環境変数を設定
-    export EAS_NO_VCS=1
-    export EAS_SKIP_JAVASCRIPT_BUNDLING=1
-    
-    # EAS Build を直接実行
-    npx eas-cli@latest build \
-      --platform android \
-      --non-interactive \
-      --profile ci \
-      --local \
-      --skip-workflow-check
+```
+stilya/
+├── src/              # ソースコード
+├── assets/           # 画像・フォントなどのアセット
+├── scripts/          # 開発・ビルド補助スクリプト
+├── .github/          # GitHub Actions設定
+├── app.json          # Expoアプリ設定
+├── eas.json          # EASビルド設定
+├── metro.config.js   # Metro Bundler設定
+└── package.json      # 依存関係とスクリプト
 ```
 
-### 3. 必要な設定ファイル
+## GitHub Actions CI/CD設定
 
-- `eas.json`: ビルドプロファイルの設定
-- `metro.config.js`: Metro設定（CIではキャッシュを無効化）
-- `.github/workflows/build.yml`: GitHub Actionsのワークフロー設定
+このプロジェクトではGitHub Actionsを使用してCI/CDを自動化しています。
+
+### ビルドワークフロー
+
+`.github/workflows/build.yml`で定義されたワークフローは以下を実行します：
+
+1. **テスト**: 単体テストの実行
+2. **ビルド**: EASを使用したAndroidアプリのビルド
+
+### CI環境での注意点
+
+**重要: GitHub Actions環境ではMetro Bundlerへの依存を避けています**
+
+```yaml
+- name: Run EAS Build
+  env:
+    CI: true
+    EAS_NO_VCS: 1
+    EAS_BUILD: true
+    EAS_SKIP_JAVASCRIPT_BUNDLING: 1
+  run: npx eas-cli build --platform android --non-interactive --profile ci --local --skip-workflow-check
+```
 
 ## EAS Build設定
 
-EASビルドを実行する前に、`EXPO_TOKEN`を設定してください。
+ビルドを実行するには、GitHubリポジトリの「Settings > Secrets and Variables > Actions」にEXPO_TOKENを設定する必要があります：
 
 ```bash
 # トークンの取得
 eas login
 eas token:create --name github-actions --non-interactive
-
-# GitHubリポジトリにシークレットとして設定
-# Settings > Secrets and Variables > Actions
-# EXPO_TOKENという名前で追加
 ```
 
 ## トラブルシューティング
 
 ### よくあるエラー
 
-1. **`EADDRINUSE: address already in use 127.0.0.1:8081`**
-   - 原因: CI環境で`expo start`が実行されている
-   - 解決: `expo start`をCI上で実行しない
+1. **Metro Bundlerの問題**
+   - 原因: CI環境でMetro Bundlerが使用されている
+   - 解決: `EAS_SKIP_JAVASCRIPT_BUNDLING=1`環境変数を設定
 
-2. **`Error: Cannot find module 'metro-config'`**
-   - 原因: 依存関係に`metro-config`が含まれていない
-   - 解決: `npm install metro-config --save-dev`
+2. **依存関係の問題**
+   - 原因: Metroのバージョン不整合
+   - 解決: `npm run fix-metro`を実行
 
-3. **`Error: Serializer did not return expected format`**
-   - 原因: Metro Bundlerでシリアライズエラーが発生
-   - 解決: EASビルドを直接使用し、ExpoのMetroへの依存を避ける
+3. **シリアライズエラー**
+   - 原因: `expo export:embed`のようなコマンドがCI環境で実行されている
+   - 解決: 直接`eas build`コマンドを使用し、余計なスクリプトを経由しない
 
 ## ライセンス
 
