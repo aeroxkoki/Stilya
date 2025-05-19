@@ -42,6 +42,12 @@ yarn-error.*
 
 # test coverage
 coverage/
+test-results/
+*.json.snap
+basic-test-results.json
+auth-test-results.json
+other-test-results.json
+junit.xml
 
 # backup files
 *.bak

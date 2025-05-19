@@ -38,16 +38,183 @@ jobs:
           chmod +x ./scripts/fix-metro-dependencies.sh
           ./scripts/fix-metro-dependencies.sh
       
+      - name: Jest 設定の拡張
+        run: |
+          echo "Jestの設定を拡張します..."
+          # jest.config.jsに結果レポーターを追加
+          grep -q "reporters:" jest.config.js || node -e "
+            const fs = require('fs');
+            const config = require('./jest.config.js');
+            
+            config.reporters = [
+              'default',
+              ['jest-junit', {
+                outputDirectory: 'test-results',
+                outputName: 'junit.xml',
+              }]
+            ];
+            
+            fs.writeFileSync('jest.config.js', 'module.exports = ' + JSON.stringify(config, null, 2));
+          "
+          # jest-junit がインストールされていることを確認
+          npm list jest-junit || npm install --save-dev jest-junit
+      
       - name: 基本テスト（必須）
-        run: npm run test src/__tests__/basic.test.js src/__tests__/simple.test.js
+        id: basic_tests
+        run: npm run test src/__tests__/basic.test.js src/__tests__/simple.test.js -- --json --outputFile=basic-test-results.json
+        continue-on-error: true
       
       - name: 重要な機能テスト（必須）
-        run: npm run test src/__tests__/auth/authStore.test.ts
+        id: auth_tests
+        run: npm run test src/__tests__/auth/authStore.test.ts -- --json --outputFile=auth-test-results.json
+        continue-on-error: true
         
       - name: その他のテスト（オプション）
+        id: other_tests
         run: |
           echo "その他のテストを実行します（失敗しても続行します）"
-          NODE_OPTIONS="--max-old-space-size=4096" npm run test -- --testPathIgnorePatterns="basic.test.js|simple.test.js|authStore.test.ts" || echo "一部のテストが失敗しましたが、開発を継続します"
+          NODE_OPTIONS="--max-old-space-size=4096" npm run test -- --testPathIgnorePatterns="basic.test.js|simple.test.js|authStore.test.ts" --json --outputFile=other-test-results.json || echo "一部のテストが失敗しましたが、開発を継続します"
+        continue-on-error: true
+      
+      - name: テスト結果サマリーの生成
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let summary = '## テスト結果サマリー 📊\n\n';
+            
+            // ヘルパー関数
+            const readTestResults = (fileName, testType) => {
+              try {
+                if (fs.existsSync(fileName)) {
+                  const data = JSON.parse(fs.readFileSync(fileName, 'utf8'));
+                  const totalTests = data.numTotalTests || 0;
+                  const passedTests = data.numPassedTests || 0;
+                  const failedTests = data.numFailedTests || 0;
+                  const pendingTests = data.numPendingTests || 0;
+                  
+                  // 結果表示用テーブル行
+                  summary += `### ${testType} (${passedTests}/${totalTests})\n\n`;
+                  
+                  if (failedTests > 0) {
+                    summary += `❌ **失敗したテスト: ${failedTests}件**\n\n`;
+                    summary += '| テスト名 | エラーメッセージ |\n';
+                    summary += '| ------- | --------------- |\n';
+                    
+                    const failedTestDetails = data.testResults
+                      .flatMap(suite => suite.assertionResults)
+                      .filter(test => test.status === 'failed')
+                      .map(test => {
+                        const testName = test.fullName || test.title;
+                        const errorMsg = test.failureMessages[0]
+                          ?.split('\n')[0]
+                          ?.replace(/\|/g, '\\|')
+                          ?.substring(0, 100) + (test.failureMessages[0]?.length > 100 ? '...' : '') || 'エラー詳細なし';
+                        
+                        return `| ${testName} | ${errorMsg} |`;
+                      });
+                    
+                    summary += failedTestDetails.join('\n');
+                    summary += '\n\n';
+                  } else {
+                    summary += `✅ **すべてのテストが成功しました**\n\n`;
+                  }
+                  
+                  return { totalTests, passedTests, failedTests, pendingTests };
+                }
+              } catch (error) {
+                summary += `### ${testType} - 結果解析エラー\n\n`;
+                summary += `⚠️ **テスト結果の解析中にエラーが発生しました: ${error.message}**\n\n`;
+              }
+              
+              return { totalTests: 0, passedTests: 0, failedTests: 0, pendingTests: 0 };
+            };
+            
+            // 各テスト結果を読み取り
+            const basicResults = readTestResults('basic-test-results.json', 'Basic Tests');
+            const authResults = readTestResults('auth-test-results.json', 'Auth Tests');
+            const otherResults = readTestResults('other-test-results.json', 'Other Tests');
+            
+            // 総合スタッツ
+            const totalResults = {
+              totalTests: basicResults.totalTests + authResults.totalTests + otherResults.totalTests,
+              passedTests: basicResults.passedTests + authResults.passedTests + otherResults.passedTests,
+              failedTests: basicResults.failedTests + authResults.failedTests + otherResults.failedTests,
+              pendingTests: basicResults.pendingTests + authResults.pendingTests + otherResults.pendingTests
+            };
+            
+            // 合格率の計算
+            const passRate = totalResults.totalTests > 0 
+              ? Math.round((totalResults.passedTests / totalResults.totalTests) * 100) 
+              : 0;
+            
+            // 総合サマリーを追加
+            summary += `### 総合結果\n\n`;
+            summary += `- 全テスト: ${totalResults.totalTests}\n`;
+            summary += `- 成功: ${totalResults.passedTests} ✅\n`;
+            summary += `- 失敗: ${totalResults.failedTests} ❌\n`;
+            summary += `- 保留: ${totalResults.pendingTests} ⏳\n`;
+            summary += `- 合格率: ${passRate}%\n\n`;
+            
+            // テスト結果のステータス判定
+            const testStatus = totalResults.failedTests === 0 ? '✅ PASS' : '❌ FAIL';
+            summary += `## 最終判定: ${testStatus}\n\n`;
+            
+            if (totalResults.failedTests > 0) {
+              summary += `> **注意**: 失敗したテストがあります。エラーメッセージを確認して修正してください。\n`;
+            }
+            
+            // サマリー作成
+            await core.summary
+              .addHeading('Stilya テスト結果')
+              .addRaw(summary)
+              .write();
+            
+            // コンソールにも出力
+            console.log(summary);
+            
+            // 次のステップに情報を渡す
+            core.setOutput('testsPassed', totalResults.failedTests === 0);
+            core.setOutput('passRate', passRate);
+      
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: |
+            basic-test-results.json
+            auth-test-results.json
+            other-test-results.json
+            test-results/*.xml
+          if-no-files-found: ignore
+      
+      - name: テスト結果確認
+        if: always()
+        run: |
+          echo "テスト結果は GitHub Actions のサマリーで確認できます。"
+          FAIL_COUNT=$(cat basic-test-results.json auth-test-results.json other-test-results.json 2>/dev/null | grep -o '"numFailedTests":[0-9]*' | awk -F: '{sum+=$2} END {print sum}')
+          
+          if [ "$FAIL_COUNT" -gt "0" ]; then
+            echo "::warning::テストに失敗があります。サマリータブで詳細を確認してください。"
+            echo "以下の必須テストはすべて成功する必要があります："
+            echo "- Basic Tests (basic.test.js, simple.test.js)"
+            echo "- Auth Tests (authStore.test.ts)"
+            
+            # 必須テストが失敗した場合はワークフローを失敗させる
+            BASIC_FAIL=$(cat basic-test-results.json 2>/dev/null | grep -o '"numFailedTests":[0-9]*' | awk -F: '{print $2}')
+            AUTH_FAIL=$(cat auth-test-results.json 2>/dev/null | grep -o '"numFailedTests":[0-9]*' | awk -F: '{print $2}')
+            
+            if [ "$BASIC_FAIL" -gt "0" ] || [ "$AUTH_FAIL" -gt "0" ]; then
+              echo "::error::必須テストに失敗があります。"
+              exit 1
+            else
+              echo "::notice::必須テストは成功しています。オプションテストのエラーは開発を続行できます。"
+            fi
+          else
+            echo "::notice::すべてのテストが成功しました！"
+          fi
   
   build:
     name: アプリビルド

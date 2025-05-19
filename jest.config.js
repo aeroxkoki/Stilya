@@ -55,6 +55,20 @@ module.exports = {
     'jest-serializer-path'
   ],
   
+  // テスト結果レポーター
+  reporters: [
+    'default',
+    ['jest-junit', {
+      outputDirectory: 'test-results',
+      outputName: 'junit.xml',
+      classNameTemplate: '{classname}',
+      titleTemplate: '{title}',
+      ancestorSeparator: ' › ',
+      suiteNameTemplate: '{filename}',
+      includeConsoleOutput: true
+    }]
+  ],
+  
   // その他の設定
   globals: {
     __DEV__: true,
