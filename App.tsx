@@ -29,7 +29,7 @@ export default function App() {
   useEffect(() => {
     const check = checkRuntimeDependencies();
     if (!check.success) {
-      setDependencyError(check.error);
+      setDependencyError(check.error || 'Unknown error');
       console.error('Runtime dependency check failed:', check.error);
     }
   }, []);

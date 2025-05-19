@@ -20,13 +20,21 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'yarn'
+          cache: 'npm'
+      
+      - name: Cache node modules
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
       
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: npm ci
       
       - name: Run tests
-        run: yarn test:ci
+        run: npm run test:ci
   
   build:
     name: EAS Build
@@ -47,14 +55,23 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'yarn'
+          cache: 'npm'
+      
+      - name: Cache node modules
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
       
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: npm ci
       
       - name: Clean caches
         run: |
           rm -rf node_modules/.cache
+          rm -rf ~/.expo/cache
           rm -rf .expo
           rm -rf .expo-shared
       
@@ -65,6 +82,11 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: echo "$EXPO_TOKEN" | npx eas-cli login --non-interactive
+      
+      - name: Fix Metro dependencies
+        run: |
+          chmod +x ./scripts/fix-metro-dependencies.sh
+          ./scripts/fix-metro-dependencies.sh
       
       - name: Run EAS Build
         run: eas build --platform android --profile ci --non-interactive
