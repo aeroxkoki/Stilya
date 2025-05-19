@@ -127,26 +127,18 @@ eas login
 eas token:create --name github-actions --non-interactive
 ```
 
-新しくセットアップする場合は、以下のステップに従ってください：
+EASビルドに必要な設定はすでに構成されています：
 
-1. `setup-eas.sh` スクリプトを実行してEASプロジェクトを初期化します：
-   ```bash
-   ./setup-eas.sh
-   ```
+1. **GitHub Actionsワークフロー**: `.github/workflows/build.yml`が設定されており、テスト、ビルド、OTAアップデートが自動的に実行されます。
 
-2. GitHub リポジトリにトークンを登録します：
+2. **EXPO_TOKEN**: GitHubリポジトリのSecretsにEXPO_TOKENが設定されていることを確認してください。
    - GitHub リポジトリページにアクセス
    - Settings > Secrets and Variables > Actions
-   - 「New repository secret」をクリック
-   - 名前に「EXPO_TOKEN」を入力
-   - 値にEASトークンを入力（`eas token:create` で生成）
-   - 「Add secret」をクリック
+   - 「EXPO_TOKEN」が存在することを確認（なければ追加）
 
-3. GitHub Actions ワークフローが設定されていることを確認します：
-   - `.github/workflows/eas-build.yml` が存在すること
-   - プッシュ時またはワークフロー手動実行で自動的にビルドが実行されます
+3. **ビルドの手動実行**: GitHub Actionsタブから「Stilya CI/CD」ワークフローを手動で実行することも可能です。
 
-この設定により、GitHub Actions を使って自動的に CI ビルドが実行されます。
+4. **バージョン管理**: eas.jsonでEAS CLIのバージョン要件が設定されています。
 
 ## EASビルドの問題解決策
 
