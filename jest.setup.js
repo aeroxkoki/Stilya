@@ -280,15 +280,12 @@ process.env.LINKSHARE_MERCHANT_ID = 'test-merchant-id';
 process.env.RAKUTEN_APP_ID = 'test-rakuten-app-id';
 process.env.RAKUTEN_AFFILIATE_ID = 'test-rakuten-affiliate-id';
 
-// @testing-library/jest-native のセットアップを修正
-jest.mock('@testing-library/jest-native', () => {
-  const actual = jest.requireActual('@testing-library/jest-native');
-  return {
-    ...actual,
-    // 必要に応じて特定のテスト関数をオーバーライド
-    toBeVisible: jest.fn().mockReturnValue(true),
-  };
-});
+// Mock for Onboarding screen images
+jest.mock('../../assets/images/onboarding/welcome.png', () => 'welcome-image-mock', { virtual: true });
+jest.mock('../../assets/images/onboarding/gender.png', () => 'gender-image-mock', { virtual: true });
+jest.mock('../../assets/images/onboarding/style.png', () => 'style-image-mock', { virtual: true });
+jest.mock('../../assets/images/onboarding/age.png', () => 'age-image-mock', { virtual: true });
+jest.mock('../../assets/images/onboarding/complete.png', () => 'complete-image-mock', { virtual: true });
 
 // グローバル関数のセットアップ
 // analyzeUserPreferences関数のモック

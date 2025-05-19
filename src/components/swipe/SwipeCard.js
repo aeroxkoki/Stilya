@@ -47,11 +47,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var react_1 = __importStar(require("react"));
 var react_native_1 = require("react-native");
 var vector_icons_1 = require("@expo/vector-icons");
-// import Animated from 'react-native-reanimated';
-// 一時的にAnimatedをモックして型エラーを解消
-var Animated = {
-    View: StyledComponents_1.View
-};
+// Fix for the Animated.View reference in tests
+var Animated;
+try {
+  // Try to import the real Animated from react-native-reanimated
+  Animated = require('react-native-reanimated');
+} catch (error) {
+  // Fallback for tests - use regular Views
+  Animated = {
+    View: react_native_1.View || StyledComponents_1.View
+  };
+}
 var utils_1 = require("@/utils");
 var common_1 = require("@/components/common");
 var imageUtils_1 = require("@/utils/imageUtils");

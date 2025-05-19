@@ -47,7 +47,7 @@ jobs:
       - name: その他のテスト（オプション）
         run: |
           echo "その他のテストを実行します（失敗しても続行します）"
-          npm run test -- --testPathIgnorePatterns="basic.test.js|simple.test.js|authStore.test.ts" || echo "一部のテストが失敗しましたが、開発を継続します"
+          NODE_OPTIONS="--max-old-space-size=4096" npm run test -- --testPathIgnorePatterns="basic.test.js|simple.test.js|authStore.test.ts" || echo "一部のテストが失敗しましたが、開発を継続します"
   
   build:
     name: アプリビルド
