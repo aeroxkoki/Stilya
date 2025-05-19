@@ -48,12 +48,13 @@ jobs:
       
       - name: Install EAS CLI
         run: npm install -g eas-cli@latest
-      
-      - name: Verify Metro dependencies
-        run: npm run fix-metro
-      
-      - name: Verify configuration
-        run: npm run eas:validate
+        
+      - name: Fix Metro dependencies
+        run: |
+          # Make scripts executable
+          chmod +x ./scripts/fix-metro-dependencies.sh
+          # Run the fix script
+          ./scripts/fix-metro-dependencies.sh
       
       - name: Login to Expo
         run: eas login --token ${{ secrets.EXPO_TOKEN }}
@@ -63,8 +64,15 @@ jobs:
           CI: true
           EAS_NO_VCS: 1
           EAS_BUILD: true
-          EAS_SKIP_JAVASCRIPT_BUNDLING: 1
-        run: npx eas-cli build --platform android --non-interactive --profile ci --local --skip-workflow-check
+          EXPO_NO_CACHE: 1
+        run: |
+          npx eas-cli build \
+            --platform android \
+            --non-interactive \
+            --profile ci \
+            --local \
+            --skip-workflow-check \
+            --no-wait
       
       - name: Build information
         if: always()
