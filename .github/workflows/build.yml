@@ -23,7 +23,12 @@ jobs:
           cache: 'yarn'
       
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: |
+          # Use yarn to install all dependencies
+          yarn install --force --frozen-lockfile
+          
+          # Explicitly install critical packages with npm to ensure they're available
+          npm install --save @babel/runtime @babel/core
       
       - name: Run tests
         run: yarn test:ci
@@ -44,7 +49,12 @@ jobs:
           cache: 'yarn'
       
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: |
+          # Use yarn to install all dependencies
+          yarn install --force --frozen-lockfile
+          
+          # Explicitly install critical packages with npm to ensure they're available
+          npm install --save @babel/runtime @babel/core
       
       - name: Install EAS CLI
         run: npm install -g eas-cli@latest
@@ -71,11 +81,12 @@ jobs:
           CI: "true"
           EAS_NO_METRO: "true"
           EXPO_NO_CACHE: "true"
+          EXPO_NO_BUNDLER: "1"
           # Explicitly skip JavaScript bundling to avoid metro issues
           EAS_SKIP_JAVASCRIPT_BUNDLING: "1"
         run: |
           # Bypass the export:embed command by using direct build command
-          npx eas-cli build --platform android --non-interactive --profile production
+          npx eas-cli build --platform android --non-interactive --profile production --no-wait
       
       - name: Build information
         if: always()

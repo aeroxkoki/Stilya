@@ -43,6 +43,7 @@
           "EXPO_NO_CACHE": "true",
           "EAS_NO_METRO": "true",
           "EAS_SKIP_JAVASCRIPT_BUNDLING": "1",
+          "EXPO_NO_BUNDLER": "1",
           "JAVA_TOOL_OPTIONS": "-Xmx6g"
         }
       },
