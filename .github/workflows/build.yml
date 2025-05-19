@@ -49,11 +49,7 @@ jobs:
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     
     env:
-      EXPO_NO_CACHE: "true"
-      EAS_NO_METRO: "true"
       EAS_SKIP_JAVASCRIPT_BUNDLING: "1"
-      EXPO_NO_BUNDLER: "1"
-      
     steps:
       - name: リポジトリをチェックアウト
         uses: actions/checkout@v4
@@ -101,3 +97,43 @@ jobs:
       - name: ビルド完了通知
         if: success()
         run: echo "✅ ビルドが正常に完了しました。"
+        
+  update:
+    name: OTAアップデート配信
+    runs-on: ubuntu-latest
+    needs: test
+    # mainブランチへのプッシュまたはワークフロー手動実行時のみ実行
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: リポジトリをチェックアウト
+        uses: actions/checkout@v4
+      
+      - name: Node.js セットアップ
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: 依存関係のインストール
+        run: npm ci
+      
+      - name: EAS CLI インストール
+        run: npm install -g eas-cli@latest
+      
+      - name: Expo ログイン
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: echo "$EXPO_TOKEN" | npx eas-cli login --non-interactive
+      
+      - name: EAS Update 実行
+        run: |
+          # Android向けアップデート
+          eas update --platform android --message "$(git log -1 --pretty=%B)" --non-interactive
+          
+          # iOS向けアップデート（将来的に必要な場合）
+          # eas update --platform ios --message "$(git log -1 --pretty=%B)" --non-interactive
+      
+      - name: 更新完了通知
+        if: success()
+        run: echo "✅ OTAアップデートが正常に配信されました。"

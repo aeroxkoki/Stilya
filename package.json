@@ -27,9 +27,9 @@
     "eas:build:prod": "eas build --profile production --no-wait",
     "eas:update": "eas update",
     "eas:validate": "npx jsonlint-cli eas.json && npx jsonlint-cli app.json",
-    "eas:build:ci": "EAS_NO_METRO=true EXPO_NO_CACHE=true EAS_SKIP_JAVASCRIPT_BUNDLING=1 EXPO_NO_BUNDLER=1 eas build --platform android --profile ci --non-interactive --no-wait",
-    "github:build": "EAS_NO_METRO=true EXPO_NO_CACHE=true EAS_SKIP_JAVASCRIPT_BUNDLING=1 EXPO_NO_BUNDLER=1 eas build --platform android --profile production --non-interactive",
-    "postinstall": "npm install --no-save @babel/runtime && npm dedupe @babel/runtime && echo 'Dependencies configured'"
+    "eas:build:ci": "EAS_SKIP_JAVASCRIPT_BUNDLING=1 eas build --platform android --profile ci --non-interactive --no-wait",
+    "github:build": "EAS_SKIP_JAVASCRIPT_BUNDLING=1 eas build --platform android --profile production --non-interactive",
+    "postinstall": "npm install --no-save @babel/runtime@7.27.1 && npm dedupe && echo 'Dependencies configured'"
   },
   "dependencies": {
     "@babel/runtime": "7.27.1",
@@ -80,7 +80,7 @@
     "@typescript-eslint/parser": "^6.19.0",
     "babel-plugin-module-resolver": "5.0.2",
     "babel-plugin-transform-remove-console": "6.9.4",
-    "babel-preset-expo": "~13.0.0",
+    "babel-preset-expo": "13.0.0",
     "eas-cli": "^7.8.5",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
@@ -106,7 +106,8 @@
     "@babel/runtime": "7.27.1",
     "metro": "0.76.8",
     "metro-config": "0.76.8",
-    "@expo/metro-config": "0.20.14"
+    "@expo/metro-config": "0.20.14",
+    "babel-preset-expo": "13.0.0"
   },
   "private": true
 }
