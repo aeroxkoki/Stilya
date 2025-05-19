@@ -94,13 +94,25 @@ EOF
       
       - name: Run EAS Build
         run: |
-          # EAS Build を実行（メモ: Metro Bundlerは使いません）
-          # エラー処理を強化
-          eas build --platform android --non-interactive --profile ci || {
+          # EAS Build を実行（メモ: expo-cliは一切使いません!）
+          # eas buildのみを直接実行し、エラー処理を強化
+          
+          # ビルド時の環境変数を設定
+          export EAS_NO_VCS=1
+          export EAS_SKIP_JAVASCRIPT_BUNDLING=1
+          
+          # EAS Build を直接実行
+          npx eas-cli@latest build \
+            --platform android \
+            --non-interactive \
+            --profile ci \
+            --local \
+            --skip-workflow-check || {
+            
             echo "EAS build failed. Detailed error information:"
             echo "Node version: $(node -v)"
             echo "NPM version: $(npm -v)"
-            echo "EAS CLI version: $(eas --version)"
+            echo "EAS CLI version: $(npx eas-cli --version)"
             echo "Package versions:"
             npm list expo react react-native metro metro-config
             exit 1
