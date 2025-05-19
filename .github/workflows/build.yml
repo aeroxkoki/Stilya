@@ -89,7 +89,7 @@ jobs:
       - name: Expo ログイン
         uses: expo/expo-github-action@v8
         with:
-          eas-version: latest
+          eas-version: '7.8.5'
           token: ${{ secrets.EXPO_TOKEN }}
       
       - name: Metro依存関係の修正
@@ -132,7 +132,7 @@ jobs:
       - name: Expo ログイン
         uses: expo/expo-github-action@v8
         with:
-          eas-version: latest
+          eas-version: '7.8.5'
           token: ${{ secrets.EXPO_TOKEN }}
       
       - name: EAS Update 実行
