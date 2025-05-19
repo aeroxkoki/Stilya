@@ -79,15 +79,30 @@ fi
 
 # 権限確認
 echo "📋 Expo ログイン情報:"
-npx eas-cli whoami || echo "❌ EAS CLI でログインできません！Expo CLI で再ログインしてください！"
+if [ -n "$EXPO_TOKEN" ]; then
+  echo "EXPO_TOKEN 環境変数が設定されているため、自動ログインを試みます。"
+  # CI環境ではEXPO_TOKENを使って自動ログイン
+  npx eas-cli login --non-interactive --token=$EXPO_TOKEN || echo "⚠️ 自動ログインに失敗しました。"
+fi
+
+npx eas-cli whoami || echo "❌ EAS CLI でログインできません！"
 
 # プロジェクト設定の確認
-if npx eas-cli project:info &>/dev/null; then
-  echo "✅ EAS プロジェクト設定が正常に取得できました。"
+# PROJECT_IDを先に取得
+PROJECT_ID=$(node -e 'try { console.log(require("./app.json").expo.extra.eas.projectId || "") } catch(e) { console.log("") }')
+if [ -n "$PROJECT_ID" ]; then
+  echo "📋 Project ID: $PROJECT_ID"
+  
+  if npx eas-cli project:info --id=$PROJECT_ID --non-interactive &>/dev/null; then
+    echo "✅ EAS プロジェクト設定が正常に取得できました。"
+  else
+    echo "❌ EAS プロジェクト設定の取得に失敗しました。"
+    echo "以下のコマンドでプロジェクト設定を初期化できます:"
+    echo "npx eas-cli project:init --id=\"$PROJECT_ID\" --non-interactive"
+  fi
 else
-  echo "❌ EAS プロジェクト設定の取得に失敗しました。"
-  echo "以下のコマンドでプロジェクト設定を初期化できます:"
-  echo "npx eas-cli project:init --id=\"$(node -e 'console.log(require(\"./app.json\").expo.extra.eas.projectId || \"\")')\" --non-interactive"
+  echo "❌ app.json から projectId を取得できませんでした。"
+  echo "app.json の expo.extra.eas.projectId フィールドが設定されているか確認してください。"
 fi
 
 # 前回のビルド結果の確認

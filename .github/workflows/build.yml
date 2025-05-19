@@ -286,6 +286,9 @@ jobs:
       
       - name: EASプロジェクト初期化
         run: |
+          # 明示的にEXPO_TOKENを使ってログイン
+          npx eas-cli login --non-interactive --token=${{ secrets.EXPO_TOKEN }}
+          
           # app.jsonからプロジェクトIDを取得
           PROJECT_ID=$(node -e "console.log(require('./app.json').expo.extra.eas.projectId || '')")
           echo "📋 ProjectID: $PROJECT_ID"
@@ -328,6 +331,9 @@ jobs:
           rm -rf .expo
           rm -rf .expo-shared
           rm -rf .metro-cache
+          
+          # 明示的に再ログイン
+          npx eas-cli login --non-interactive --token=${{ secrets.EXPO_TOKEN }}
           
           echo "🚀 EAS ビルド実行中..."
           npx eas-cli build --platform android --profile ci --non-interactive --verbose
@@ -374,6 +380,9 @@ jobs:
       
       - name: EAS Update 実行
         run: |
+          # 明示的にEXPO_TOKENを使ってログイン（念のため）
+          npx eas-cli login --non-interactive --token=${{ secrets.EXPO_TOKEN }}
+          
           # Android向けアップデート
           npx eas-cli update --platform android --message "$(git log -1 --pretty=%B)" --non-interactive
           
