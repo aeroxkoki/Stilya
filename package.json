@@ -18,6 +18,7 @@
     "fix-metro": "sh ./scripts/fix-metro-dependencies.sh",
     "fix-babel": "npm install --no-save @babel/runtime && npm dedupe @babel/runtime",
     "build:local": "sh ./scripts/local-android-build.sh",
+    "build:direct": "chmod +x ./scripts/direct-eas-build.sh && ./scripts/direct-eas-build.sh",
     "prebuild": "expo prebuild --clean",
     "eas:whoami": "eas whoami",
     "eas:build": "eas build --no-wait",

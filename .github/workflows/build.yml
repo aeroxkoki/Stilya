@@ -89,8 +89,8 @@ jobs:
           EXPO_NO_BUNDLER: "1"
           EAS_SKIP_JAVASCRIPT_BUNDLING: "1"
         run: |
-          # Bypass the export:embed command by using direct build command  
-          npx eas-cli build --platform android --non-interactive --profile production --no-wait
+          # Use our special direct build script that bypasses the problematic expo export:embed
+          yarn build:direct
       
       - name: Build information
         if: always()
