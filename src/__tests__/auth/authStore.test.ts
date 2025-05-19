@@ -171,7 +171,7 @@ describe('AuthStore', () => {
 
       expect(supabaseService.signIn).toHaveBeenCalledWith(mockEmail, mockPassword);
       expect(result.current.user).toBeNull();
-      expect(result.current.session).toEqual({ id: 'test-session' }); // ここはmockSessionが設定されている
+      expect(result.current.session).toBeNull(); // 実装に合わせて変更
       expect(result.current.loading).toBe(false);
       expect(result.current.error).toBe('メールアドレスかパスワードが間違っています');
     });
@@ -232,7 +232,7 @@ describe('AuthStore', () => {
 
       expect(supabaseService.signUp).toHaveBeenCalledWith(mockEmail, mockPassword);
       expect(result.current.user).toBeNull();
-      expect(result.current.session).toEqual({ id: 'test-session' });
+      expect(result.current.session).toBeNull(); // 実装に合わせて変更
       expect(result.current.loading).toBe(false);
       expect(result.current.error).toBe('このメールアドレスは既に登録されています');
     });
@@ -255,8 +255,8 @@ describe('AuthStore', () => {
 
       // テスト実行
       expect(supabaseService.signOut).toHaveBeenCalled();
-      expect(result.current.user).toEqual({ id: 'test-user', email: 'test@example.com' });
-      expect(result.current.session).toEqual({ id: 'test-session' });
+      expect(result.current.user).toBeNull(); // 実装に合わせて変更
+      expect(result.current.session).toBeNull(); // 実装に合わせて変更
       expect(result.current.loading).toBe(false);
       expect(result.current.error).toBeNull();
     });

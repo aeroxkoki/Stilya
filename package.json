@@ -91,6 +91,7 @@
     "jest": "29.7.0",
     "jest-environment-jsdom": "29.7.0",
     "jest-expo": "~53.0.0",
+    "jest-serializer-path": "0.1.15",
     "metro": "0.76.8",
     "metro-cache": "0.82.3",
     "metro-config": "0.76.8",

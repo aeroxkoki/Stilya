@@ -1,7 +1,43 @@
 /**
  * Jest setup file - loaded before all tests
- * This file ensures tests can run in CI environment without issues
+ * CI環境でのテスト実行を確実に成功させるための設定
  */
+
+// 優先順位の高いモック設定 - モジュールの読み込み前に実行
+jest.mock('react-native/Libraries/TurboModule/TurboModuleRegistry', () => ({
+  get: jest.fn(() => null),
+  getEnforcing: jest.fn((name) => {
+    if (name === 'DevMenu') {
+      return {
+        show: jest.fn(),
+        hide: jest.fn(),
+        reload: jest.fn(),
+      };
+    }
+    return {
+      show: jest.fn(),
+      hide: jest.fn(),
+      reload: jest.fn(),
+    };
+  }),
+}), { virtual: true });
+
+// DevMenuモック (優先度高)
+jest.mock('react-native/src/private/devmenu/DevMenu', () => ({
+  show: jest.fn(),
+  hide: jest.fn(),
+  reload: jest.fn(),
+  addItem: jest.fn(),
+}), { virtual: true });
+
+// NativeDevMenuモック (優先度高)
+jest.mock('react-native/src/private/specs_DEPRECATED/modules/NativeDevMenu', () => ({
+  default: {
+    show: jest.fn(),
+    hide: jest.fn(),
+    reload: jest.fn(),
+  }
+}), { virtual: true });
 
 // Jestのグローバル関数を明示的に追加
 global.test = global.test || ((name, fn) => {
@@ -13,10 +49,10 @@ global.test = global.test || ((name, fn) => {
 
 global.it = global.it || global.test;
 global.describe = global.describe || ((name, fn) => { fn && fn(); });
-global.beforeEach = global.beforeEach || ((fn) => {});
-global.afterEach = global.afterEach || ((fn) => {});
-global.beforeAll = global.beforeAll || ((fn) => {});
-global.afterAll = global.afterAll || ((fn) => {});
+global.beforeEach = global.beforeEach || ((fn) => { fn && fn(); });
+global.afterEach = global.afterEach || ((fn) => { fn && fn(); });
+global.beforeAll = global.beforeAll || ((fn) => { fn && fn(); });
+global.afterAll = global.afterAll || ((fn) => { fn && fn(); });
 global.expect = global.expect || require('@jest/globals').expect;
 
 // グローバルセットアップ
@@ -71,23 +107,59 @@ console.log('Global test function type:', typeof global.test);
 console.log('Global it function type:', typeof global.it);
 console.log('Global describe function type:', typeof global.describe);
 
-// React Native関連のモック
-// 優先順位の高いモック
-jest.mock('react-native/Libraries/TurboModule/TurboModuleRegistry', () => require('./src/__mocks__/react-native/Libraries/TurboModule/TurboModuleRegistry.js'));
-jest.mock('react-native/src/private/specs_DEPRECATED/modules/NativeDevMenu', () => require('./src/__mocks__/react-native/src/private/specs_DEPRECATED/modules/NativeDevMenu.js'));
+// React Native関連のその他のモック
+// react-native-gesture-handlerのモック
+jest.mock('react-native-gesture-handler', () => {
+  const RNGH = jest.requireActual('react-native-gesture-handler/jestSetup');
+  return {
+    ...RNGH,
+    PanGestureHandler: jest.fn().mockImplementation(props => props.children),
+    TapGestureHandler: jest.fn().mockImplementation(props => props.children),
+    Swipeable: jest.fn().mockImplementation(() => null),
+    DrawerLayout: jest.fn().mockImplementation(() => null),
+  };
+});
 
-// その他のモック
-require('./src/__mocks__/test-setup-mock.js');
+// Expoモジュールのモック
+jest.mock('expo-file-system', () => ({
+  documentDirectory: '/mock-documents/',
+  cacheDirectory: '/mock-cache/',
+  readAsStringAsync: jest.fn(() => Promise.resolve('mockedContent')),
+  writeAsStringAsync: jest.fn(() => Promise.resolve()),
+  getInfoAsync: jest.fn(() => Promise.resolve({ exists: true, isDirectory: false })),
+  makeDirectoryAsync: jest.fn(() => Promise.resolve()),
+  downloadAsync: jest.fn(() => Promise.resolve({ uri: '/mock-cache/downloaded-file' })),
+}));
 
-// jest-expoをバイパス
-jest.mock('jest-expo', () => require('./src/__mocks__/jest-expo-mock.js'));
-
-// 必要なモジュールをモック
+// AsyncStorageのモック
 jest.mock('@react-native-async-storage/async-storage', () => ({
   getItem: jest.fn(() => Promise.resolve(null)),
   setItem: jest.fn(() => Promise.resolve(null)),
-  removeItem: jest.fn(() => Promise.resolve(null))
+  removeItem: jest.fn(() => Promise.resolve(null)),
+  multiGet: jest.fn(() => Promise.resolve([])),
+  getAllKeys: jest.fn(() => Promise.resolve([])),
 }));
+
+// Expo-Imageのモック
+jest.mock('expo-image', () => ({
+  Image: 'Image',
+  ImageBackground: 'ImageBackground',
+}));
+
+// Reanimatedのモック
+jest.mock('react-native-reanimated', () => {
+  const Reanimated = require('react-native-reanimated/mock');
+  
+  // Reanimatedのフック関数のモック
+  Reanimated.useSharedValue = (initial) => ({ value: initial });
+  Reanimated.useAnimatedStyle = (style) => style();
+  Reanimated.withTiming = (value, config, callback) => {
+    callback && callback(true);
+    return value;
+  };
+  
+  return Reanimated;
+});
 
 // 必要なグローバル関数
 // Reanimated関連のモック
@@ -106,6 +178,11 @@ if (typeof global.jest !== 'undefined') {
   console.error('Jest is still not available globally after setup');
 }
 
+// テスト環境用のダミーデータ
+global.testData = {
+  user: { id: 'test-user-id', email: 'test@example.com' },
+  token: 'test-auth-token',
+};
+
 // 最終確認
 console.log('Setup complete. Test function is:', typeof global.test);
-
