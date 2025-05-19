@@ -127,6 +127,27 @@ eas login
 eas token:create --name github-actions --non-interactive
 ```
 
+新しくセットアップする場合は、以下のステップに従ってください：
+
+1. `setup-eas.sh` スクリプトを実行してEASプロジェクトを初期化します：
+   ```bash
+   ./setup-eas.sh
+   ```
+
+2. GitHub リポジトリにトークンを登録します：
+   - GitHub リポジトリページにアクセス
+   - Settings > Secrets and Variables > Actions
+   - 「New repository secret」をクリック
+   - 名前に「EXPO_TOKEN」を入力
+   - 値にEASトークンを入力（`eas token:create` で生成）
+   - 「Add secret」をクリック
+
+3. GitHub Actions ワークフローが設定されていることを確認します：
+   - `.github/workflows/eas-build.yml` が存在すること
+   - プッシュ時またはワークフロー手動実行で自動的にビルドが実行されます
+
+この設定により、GitHub Actions を使って自動的に CI ビルドが実行されます。
+
 ## EASビルドの問題解決策
 
 EASビルドで「Serializer did not return expected format」エラーが発生する場合は、以下の解決策を試してください：
