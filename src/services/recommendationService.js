@@ -97,9 +97,22 @@ var fetchProductsByTags = function (tags_1) {
                     }
                     query = supabase_1.supabase
                         .from('products')
-                        .select('*')
-                        .or(tags.map(function (tag) { return "tags.cs.{".concat(tag, "}"); }).join(','))
-                        .limit(limit);
+                        .select('*');
+
+                    // タグの条件を構築（複数タグのいずれかに一致）
+                    if (tags.length === 1) {
+                        query = query.contains('tags', [tags[0]]);
+                    } else {
+                        // 複数タグの場合は、最初のタグをcontainsで検索し、他のタグはorConditionで追加
+                        query = query.contains('tags', [tags[0]]);
+                        
+                        // 残りのタグをorで追加
+                        for (let i = 1; i < tags.length; i++) {
+                            query = query.or('tags.cs.{' + tags[i] + '}');
+                        }
+                    }
+                    
+                    query = query.limit(limit);
                     // 除外IDがある場合
                     if (excludeIds.length > 0) {
                         query = query.not('id', 'in', excludeIds);
@@ -768,9 +781,22 @@ var fetchProductsByCategoryAndTags = function (category_1, tags_1, limit_1) {
                     query = supabase_1.supabase
                         .from('products')
                         .select('*')
-                        .eq('category', category)
-                        .or(usedTags.map(function (tag) { return "tags.cs.{".concat(tag, "}"); }).join(','))
-                        .limit(limit);
+                        .eq('category', category);
+                        
+                    // タグの条件を構築（複数タグのいずれかに一致）
+                    if (usedTags.length === 1) {
+                        query = query.contains('tags', [usedTags[0]]);
+                    } else {
+                        // 複数タグの場合は、最初のタグをcontainsで検索し、他のタグはorで追加
+                        query = query.contains('tags', [usedTags[0]]);
+                        
+                        // 残りのタグをorで追加
+                        for (let i = 1; i < usedTags.length; i++) {
+                            query = query.or('tags.cs.{' + usedTags[i] + '}');
+                        }
+                    }
+                    
+                    query = query.limit(limit);
                     if (!(excludeIds.length > 0)) return [3 /*break*/, 3];
                     if (!(excludeIds.length > 100)) return [3 /*break*/, 2];
                     return [4 /*yield*/, query];

@@ -12,7 +12,7 @@ export const TestWrapper = ({ children }: { children: ReactElement }) => {
     <SafeAreaProvider
       initialMetrics={{
         frame: { x: 0, y: 0, width: 390, height: 844 },
-        insets: { top: 47, left: 0, right: 0, bottom: 34 },
+        insets: { top: 47, left: 0, right: 0, bottom: 34 }
       }}
     >
       <ThemeProvider>
@@ -43,6 +43,7 @@ export const mockSupabase = {
     eq: jest.fn().mockReturnThis(),
     in: jest.fn().mockReturnThis(),
     or: jest.fn().mockReturnThis(),  // .or() メソッドを追加
+    contains: jest.fn().mockReturnThis(),  // .contains() メソッドを追加
     order: jest.fn().mockReturnThis(),
     limit: jest.fn().mockReturnThis(),
     single: jest.fn().mockReturnThis(),
