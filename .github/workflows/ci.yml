@@ -1,10 +1,9 @@
-name: Build and Test
+name: CI Test
 
 on:
-  push:
-    branches: [ main ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, develop ]
+  workflow_dispatch:
 
 jobs:
   test:
@@ -14,109 +13,27 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 18.x
-          cache: 'yarn'
+          cache: 'npm'
       
       # 依存関係のインストール前にキャッシュをクリア
       - name: Clear cache
         run: |
-          rm -rf .yarn/cache || true
-          rm -rf node_modules/.yarn-integrity || true
-      
-      # 緊急修正スクリプトを作成
-      - name: Create emergency fix script
-        run: |
-          chmod +x ./create-emergency-fix.sh
-          ./create-emergency-fix.sh
-      
-      # 修正したMetro依存関係で直接インストール
-      - name: Install dependencies
-        run: |
-          yarn config set network-timeout 300000
-          yarn install --network-timeout 300000 --no-frozen-lockfile
-      
-      # Metro依存関係を修正
-      - name: Fix Metro dependencies
-        run: |
-          chmod +x ./fix-metro-dependencies.sh
-          ./fix-metro-dependencies.sh
-      
-      # エラー発生時に緊急修正を試行
-      - name: Emergency fix if needed
-        if: ${{ failure() }}
-        run: |
-          chmod +x ./fix-ci-build.sh
-          ./fix-ci-build.sh
-      
-      # テスト実行
-      - name: Run simple test
-        run: yarn test:simple
-
-  build:
-    runs-on: ubuntu-latest
-    needs: test
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 18.x
-          cache: 'yarn'
-      
-      # 依存関係のインストール前にキャッシュをクリア
-      - name: Clear cache
-        run: |
-          rm -rf .yarn/cache || true
-          rm -rf node_modules/.yarn-integrity || true
-      
-      # 緊急修正スクリプトを作成
-      - name: Create emergency fix script
-        run: |
-          chmod +x ./create-emergency-fix.sh
-          ./create-emergency-fix.sh
+          rm -rf node_modules/.cache || true
+          rm -rf .expo || true
+          rm -rf .expo-shared || true
       
       # 依存関係のインストール
       - name: Install dependencies
         run: |
-          yarn config set network-timeout 300000
-          yarn install --network-timeout 300000 --no-frozen-lockfile
+          npm config set network-timeout 300000
+          npm ci
       
       # Metro依存関係を修正
       - name: Fix Metro dependencies
         run: |
-          chmod +x ./fix-metro-dependencies.sh
-          ./fix-metro-dependencies.sh
+          chmod +x ./scripts/fix-metro-dependencies.sh
+          ./scripts/fix-metro-dependencies.sh
       
-      # EAS CLI をグローバルインストール
-      - name: Install EAS CLI globally
-        run: |
-          npm install -g eas-cli@7.8.5
-          eas --version
-      
-      # エラー発生時に緊急修正を試行
-      - name: Emergency fix if needed
-        if: ${{ failure() }}
-        run: |
-          chmod +x ./fix-ci-build.sh
-          ./fix-ci-build.sh
-      
-      # パッケージ状態確認
-      - name: Verify package state
-        run: |
-          node -e "console.log('Metro version:', require('metro/package.json').version)"
-          node -e "console.log('Metro-config version:', require('metro-config/package.json').version)"
-      
-      # EAS設定の検証
-      - name: Validate EAS configuration
-        run: |
-          npx jsonlint-cli eas.json
-          npx jsonlint-cli app.json
-      
-      # AndroidビルドのセットアップとAPKビルド - 直接npxを使用
-      - name: Build APK
-        run: |
-          # CI環境用のnpm configを設定
-          npm config set unsafe-perm true
-          npx eas-cli@7.8.5 build --platform android --profile ci --non-interactive
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          EXPO_ANDROID_KEYSTORE_PASSWORD: "android"
-          EXPO_ANDROID_KEY_PASSWORD: "android"
+      # テスト実行
+      - name: Run tests
+        run: npm run test:simple

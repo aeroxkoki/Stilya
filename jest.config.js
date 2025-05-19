@@ -1,18 +1,19 @@
 /**
- * Jest configuration for Stilya CI
- * Custom configuration without jest-expo preset to avoid defineProperty error
+ * Jest configuration for Stilya
  */
 
 module.exports = {
-  // jest-expoプリセットを使用しない
-  // preset: 'jest-expo',
+  // jest-expo プリセットを使用
+  preset: 'jest-expo',
   
-  // テスト対象を限定
-  testMatch: ['<rootDir>/src/__tests__/simple.test.js'],
+  // テスト対象を拡張
+  testMatch: [
+    '<rootDir>/src/__tests__/**/*.test.{js,jsx,ts,tsx}'
+  ],
   
   // 変換設定
   transform: {
-    '^.+\\\\.(js|jsx|ts|tsx)$': ['babel-jest', {
+    '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', {
       presets: ['babel-preset-expo'],
       plugins: [
         'module-resolver',
@@ -27,13 +28,6 @@ module.exports = {
     'node_modules/(?!(jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base)'
   ],
   
-  // モック設定
-  moduleNameMapper: {
-    '^react-native$': '<rootDir>/src/__mocks__/react-native-mock.js',
-    'react-native/Libraries/Animated/NativeAnimatedHelper': '<rootDir>/src/__mocks__/react-native/Libraries/Animated/NativeAnimatedHelper.js',
-    'jest-expo': '<rootDir>/src/__mocks__/jest-expo-mock.js'
-  },
-  
   // セットアップファイル
   setupFiles: ['./setup-jest.js'],
   
@@ -41,5 +35,13 @@ module.exports = {
   testEnvironment: 'node',
   
   // グローバル設定の注入を有効化
-  injectGlobals: true
+  injectGlobals: true,
+  
+  // カバレッジ設定
+  collectCoverageFrom: [
+    'src/**/*.{js,jsx,ts,tsx}',
+    '!src/**/*.d.ts',
+    '!src/__mocks__/**',
+    '!src/__tests__/**'
+  ]
 };

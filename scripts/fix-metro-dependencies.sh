@@ -6,16 +6,27 @@ echo "🔧 Metro/Babel 依存関係の修正を開始します..."
 
 # パッケージの固定バージョンをインストール
 echo "📦 Metro 関連パッケージのインストール..."
-yarn add --dev metro@0.76.8 metro-config@0.76.8 metro-minify-terser@0.76.8 @expo/metro-config@0.20.14
+npm install --save-dev metro@0.76.8 metro-config@0.76.8 metro-minify-terser@0.76.8 @expo/metro-config@0.20.14
+
+# Reactネイティブ環境のMetroパッケージをパッチ
+echo "🩹 React Native環境のMetroパッチ適用..."
+if [ -d "node_modules/@react-native" ]; then
+  mkdir -p node_modules/@react-native/community-cli-plugin/node_modules
+  cp -r node_modules/metro node_modules/@react-native/community-cli-plugin/node_modules/
+  cp -r node_modules/metro-config node_modules/@react-native/community-cli-plugin/node_modules/
+  echo "✅ React Native環境にMetroパッチを適用しました"
+else
+  echo "⚠️ @react-native ディレクトリが存在しないため、パッチをスキップします"
+fi
 
 # Babel ランタイムの設定
 echo "📦 Babel ランタイムの設定..."
-yarn add @babel/runtime@7.27.1
-yarn add --dev @babel/core@^7.24.0 babel-preset-expo@~13.0.0
+npm install --save @babel/runtime@7.27.1
+npm install --save-dev @babel/core@^7.24.0 babel-preset-expo@~13.0.0
 
 # 依存関係の重複を解消
 echo "🧹 依存関係の重複を解消..."
-yarn dedupe
+npm dedupe
 
 # キャッシュクリア
 echo "🧹 キャッシュを削除..."

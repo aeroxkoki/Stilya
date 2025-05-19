@@ -1,7 +1,7 @@
 /**
  * export-direct-patch.js
  * 
- * Expo/GitHub Actions互換性のためのパッチスクリプト
+ * Expo/GitHub Actions互換性を改善するためのスクリプト
  * GitHub Actions環境でのExpoビルドプロセスをサポートします
  * 
  * 使用方法: node export-direct-patch.js --platform [android|ios] --dev [true|false]
@@ -9,7 +9,6 @@
 
 const fs = require('fs');
 const path = require('path');
-const os = require('os');
 const { execSync } = require('child_process');
 
 // コマンドライン引数の解析
@@ -30,128 +29,51 @@ for (let i = 0; i < args.length; i++) {
   }
 }
 
-console.log(`Applying Expo build patches for CI/CD environment...`);
-console.log(`Platform: ${options.platform}, Development mode: ${options.dev}`);
+console.log(`Preparing Expo environment for ${options.platform} build...`);
 
-// 環境変数チェック
-const isCI = process.env.CI === 'true';
-console.log(`Running in CI environment: ${isCI}`);
+// 環境変数設定
+process.env.EAS_NO_METRO = 'true';
+process.env.EXPO_NO_CACHE = 'true';
+process.env.EAS_SKIP_JAVASCRIPT_BUNDLING = '1';
+process.env.EXPO_NO_BUNDLER = '1';
 
-// プロジェクトのルートディレクトリパス
-const projectRoot = __dirname;
-console.log(`Project root: ${projectRoot}`);
-
-// app.jsonが存在するか確認
-const appJsonPath = path.join(projectRoot, 'app.json');
-let appConfig = {};
-
+// キャッシュクリア
 try {
-  if (fs.existsSync(appJsonPath)) {
-    const appJsonContent = fs.readFileSync(appJsonPath, 'utf8');
-    appConfig = JSON.parse(appJsonContent);
-    console.log('Successfully loaded app.json');
-  } else {
-    console.warn('Warning: app.json not found at', appJsonPath);
-  }
+  console.log('Cleaning caches...');
+  fs.rmSync(path.join(__dirname, 'node_modules', '.cache'), { recursive: true, force: true });
+  fs.rmSync(path.join(process.env.HOME || process.env.USERPROFILE || '.', '.expo', 'cache'), { recursive: true, force: true });
+  fs.rmSync(path.join(__dirname, '.expo'), { recursive: true, force: true });
+  fs.rmSync(path.join(__dirname, '.expo-shared'), { recursive: true, force: true });
+  console.log('✅ Caches cleaned');
 } catch (error) {
-  console.error('Error reading or parsing app.json:', error);
+  console.log('⚠️ Error cleaning caches:', error.message);
 }
 
-// expo-cliがインストールされているか確認
+// Metro依存関係の修正
 try {
-  const expoCliPath = require.resolve('expo-cli/bin/expo.js', { paths: [projectRoot, path.join(projectRoot, 'node_modules')] });
-  console.log('Found expo-cli at:', expoCliPath);
+  console.log('Fixing Metro dependencies...');
+  execSync('node ./scripts/fix-metro-dependencies.sh', { stdio: 'inherit' });
+  console.log('✅ Metro dependencies fixed');
 } catch (error) {
-  console.warn('Warning: expo-cli not found in node_modules. It might be installed globally or not installed.');
+  console.log('⚠️ Error fixing Metro dependencies:', error.message);
 }
 
-// package.jsonの確認
-const packageJsonPath = path.join(projectRoot, 'package.json');
+// 実際のExpoエクスポートコマンドを実行
 try {
-  if (fs.existsSync(packageJsonPath)) {
-    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-    console.log('Package name:', packageJson.name);
-    console.log('Dependencies:', Object.keys(packageJson.dependencies || {}).length);
-    console.log('Dev dependencies:', Object.keys(packageJson.devDependencies || {}).length);
-  } else {
-    console.warn('Warning: package.json not found');
-  }
+  console.log(`Running Expo export for ${options.platform}...`);
+  let exportCmd = `npx expo export`;
+  exportCmd += ` --platform ${options.platform}`;
+  exportCmd += ` --dev ${options.dev}`;
+  exportCmd += ` --dump-sourcemap`;
+  exportCmd += ` --dump-assetmap`;
+  exportCmd += ` --output-dir dist`;
+  
+  console.log(`Executing: ${exportCmd}`);
+  execSync(exportCmd, { stdio: 'inherit' });
+  console.log('✅ Expo export completed successfully');
 } catch (error) {
-  console.error('Error reading package.json:', error);
+  console.error('❌ Error in Expo export:', error.message);
+  process.exit(1);
 }
 
-// 必要なディレクトリが存在するか確認
-const directories = ['src', 'assets'];
-directories.forEach(dir => {
-  const dirPath = path.join(projectRoot, dir);
-  if (fs.existsSync(dirPath)) {
-    console.log(`Directory ${dir} exists`);
-  } else {
-    console.warn(`Warning: Directory ${dir} not found`);
-  }
-});
-
-// Expoビルドシミュレーション実行
-if (isCI) {
-  try {
-    console.log(`Running simulated Expo export for ${options.platform} (${options.dev ? 'development' : 'production'})...`);
-    
-    // Expo CLIのバージョン確認
-    try {
-      const expoVersion = execSync('npx expo --version', { encoding: 'utf8' }).trim();
-      console.log(`Expo CLI version: ${expoVersion}`);
-    } catch (error) {
-      console.warn('Warning: Could not determine Expo CLI version');
-    }
-    
-    // Expoの環境準備
-    console.log('Setting up Expo environment...');
-    
-    // Metro設定を確認
-    const metroConfigPath = path.join(projectRoot, 'metro.config.js');
-    if (fs.existsSync(metroConfigPath)) {
-      console.log('Metro config found');
-    } else {
-      console.warn('Metro config not found, creating basic config...');
-      const basicMetroConfig = `
-const { getDefaultConfig } = require('expo/metro-config');
-module.exports = getDefaultConfig(__dirname);
-      `;
-      fs.writeFileSync(metroConfigPath, basicMetroConfig, 'utf8');
-    }
-
-    // package.jsonにMetro修正スクリプトがあるか確認
-    const packageJsonPath = path.join(projectRoot, 'package.json');
-    let packageJson = {};
-    if (fs.existsSync(packageJsonPath)) {
-      packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-      if (!packageJson.scripts?.['fix-metro']) {
-        console.log('Adding fix-metro script to package.json...');
-        packageJson.scripts = packageJson.scripts || {};
-        packageJson.scripts['fix-metro'] = 'node ./scripts/fix-metro-dependencies.sh';
-        fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2), 'utf8');
-      }
-    }
-
-    // CI環境での一般的な問題に対する対策
-    console.log('Applying CI-specific patches...');
-    
-    // GitHub Actions環境でのExpo EASビルド対応パッチ
-    if (options.platform === 'android') {
-      console.log('Preparing Android environment...');
-      // Androidビルド特有の設定があれば追加
-    } else if (options.platform === 'ios') {
-      console.log('Preparing iOS environment...');
-      // iOSビルド特有の設定があれば追加
-    }
-    
-    console.log('CI patches applied successfully');
-  } catch (error) {
-    console.error('Error in Expo export simulation:', error);
-    process.exit(1); // エラーで終了
-  }
-}
-
-console.log('✅ Patch process completed successfully');
-// 正常終了
-process.exit(0);
+console.log('✅ Build preparation completed');
