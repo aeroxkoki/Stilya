@@ -72,8 +72,10 @@ console.log('Global it function type:', typeof global.it);
 console.log('Global describe function type:', typeof global.describe);
 
 // React Native関連のモック
+// シンプルなモック実装を使用
+require('./src/__mocks__/test-setup-mock.js');
+
 // jest-expoをバイパス
-// パスの解決方法を修正 - 相対パスではなく絶対パスを使用
 jest.mock('jest-expo', () => require('./src/__mocks__/jest-expo-mock.js'));
 
 // 必要なモジュールをモック
