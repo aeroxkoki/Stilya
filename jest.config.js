@@ -24,10 +24,8 @@ module.exports = {
   
   // モック設定
   moduleNameMapper: {
-    '^react-native$': '<rootDir>/src/__mocks__/react-native.js',
-    '^react-native/Libraries/TurboModule/TurboModuleRegistry$': '<rootDir>/src/__mocks__/react-native/Libraries/TurboModule/TurboModuleRegistry.js',
-    '^react-native/src/private/specs_DEPRECATED/modules/NativeDevMenu$': '<rootDir>/src/__mocks__/react-native/src/private/specs_DEPRECATED/modules/NativeDevMenu.js',
-    '^react-native/src/private/devmenu/DevMenu$': '<rootDir>/src/__mocks__/react-native/src/private/devmenu/DevMenu.js'
+    '^@/(.*)$': '<rootDir>/src/$1',
+    '\\.svg': '<rootDir>/src/__mocks__/svgMock.js'
   },
   
   // セットアップファイル
@@ -36,7 +34,7 @@ module.exports = {
   ],
   
   // テスト環境
-  testEnvironment: 'jsdom',
+  testEnvironment: 'node',
   
   // グローバル設定の注入を有効化
   injectGlobals: true,

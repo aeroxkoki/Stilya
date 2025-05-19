@@ -108,6 +108,113 @@ console.log('Global it function type:', typeof global.it);
 console.log('Global describe function type:', typeof global.describe);
 
 // React Native関連のその他のモック
+// StyleSheetのモック - 多くのコンポーネントテストの失敗を修正
+jest.mock('react-native', () => {
+  const rn = jest.requireActual('react-native');
+  rn.StyleSheet = {
+    create: jest.fn(styles => styles),
+    flatten: jest.fn(styles => styles),
+    compose: jest.fn((style1, style2) => ({ ...style1, ...style2 })),
+  };
+  
+  // AnimatedコンポーネントのモックアップデートZ
+  rn.Animated = {
+    View: 'Animated.View',
+    Text: 'Animated.Text',
+    Image: 'Animated.Image',
+    createAnimatedComponent: jest.fn(component => component),
+    timing: jest.fn(() => ({
+      start: jest.fn(callback => callback && callback({ finished: true })),
+    })),
+    spring: jest.fn(() => ({
+      start: jest.fn(callback => callback && callback({ finished: true })),
+    })),
+    Value: jest.fn(() => ({
+      setValue: jest.fn(),
+      interpolate: jest.fn(() => ({
+        interpolate: jest.fn(),
+      })),
+      addListener: jest.fn(() => ({ remove: jest.fn() })),
+    })),
+    event: jest.fn(() => jest.fn()),
+  };
+  
+  return rn;
+});
+
+// NetInfoモック - 不足していたネットワーク関連のモック
+jest.mock('@react-native-community/netinfo', () => {
+  return {
+    addEventListener: jest.fn(() => ({ remove: jest.fn() })),
+    fetch: jest.fn(() => Promise.resolve({
+      isConnected: true,
+      isInternetReachable: true,
+      type: 'wifi',
+    })),
+    useNetInfo: jest.fn(() => ({
+      isConnected: true,
+      isInternetReachable: true,
+      type: 'wifi',
+    })),
+  };
+});
+
+// React Navigationモック
+jest.mock('@react-navigation/native', () => {
+  return {
+    useNavigation: jest.fn().mockReturnValue({
+      navigate: jest.fn(),
+      goBack: jest.fn(),
+      addListener: jest.fn(() => ({ remove: jest.fn() })),
+    }),
+    useRoute: jest.fn().mockReturnValue({
+      params: {},
+    }),
+    useIsFocused: jest.fn().mockReturnValue(true),
+    NavigationContainer: jest.fn(({ children }) => children),
+  };
+});
+
+jest.mock('@react-navigation/stack', () => {
+  return {
+    createStackNavigator: jest.fn().mockReturnValue({
+      Navigator: jest.fn(({ children }) => children),
+      Screen: jest.fn(),
+    }),
+    TransitionPresets: {
+      SlideFromRightIOS: {},
+    },
+    CardStyleInterpolators: {
+      forHorizontalIOS: jest.fn(),
+    },
+    TransitionSpecs: {
+      TransitionIOSSpec: {},
+    },
+    HeaderStyleInterpolators: {
+      forUIKit: jest.fn(),
+    },
+  };
+});
+
+// Expoアイコンのモック - ベクターアイコン対応
+jest.mock('@expo/vector-icons', () => {
+  const iconsMock = {
+    AntDesign: jest.fn().mockImplementation(props => 'AntDesign Icon'),
+    Feather: jest.fn().mockImplementation(props => 'Feather Icon'),
+    MaterialIcons: jest.fn().mockImplementation(props => 'MaterialIcons Icon'),
+    MaterialCommunityIcons: jest.fn().mockImplementation(props => 'MaterialCommunityIcons Icon'),
+    Ionicons: jest.fn().mockImplementation(props => 'Ionicons Icon'),
+  };
+  return iconsMock;
+});
+
+// expo-fontモック
+jest.mock('expo-font', () => ({
+  loadAsync: jest.fn().mockResolvedValue(true),
+  isLoaded: jest.fn(() => true),
+  useFonts: jest.fn().mockReturnValue([true, null]),
+}));
+
 // react-native-gesture-handlerのモック
 jest.mock('react-native-gesture-handler', () => {
   const RNGH = jest.requireActual('react-native-gesture-handler/jestSetup');
