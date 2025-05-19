@@ -22,6 +22,12 @@ jobs:
           node-version: '20'
           cache: 'npm'
       
+      - name: NODE_OPTIONS の環境変数設定
+        run: echo "NODE_OPTIONS=--max-old-space-size=8192" >> $GITHUB_ENV
+      
+      - name: Expo CLI インストール
+        run: npm install -g expo-cli@latest eas-cli@latest
+      
       - name: npm キャッシュ
         uses: actions/cache@v3
         with:
@@ -73,7 +79,7 @@ jobs:
         id: other_tests
         run: |
           echo "その他のテストを実行します（失敗しても続行します）"
-          NODE_OPTIONS="--max-old-space-size=4096" npm run test -- --testPathIgnorePatterns="basic.test.js|simple.test.js|authStore.test.ts" --json --outputFile=other-test-results.json || echo "一部のテストが失敗しましたが、開発を継続します"
+          npm run test -- --testPathIgnorePatterns="basic.test.js|simple.test.js|authStore.test.ts" --json --outputFile=other-test-results.json || echo "一部のテストが失敗しましたが、開発を継続します"
         continue-on-error: true
       
       - name: テスト結果サマリーの生成
@@ -235,6 +241,12 @@ jobs:
           node-version: '20'
           cache: 'npm'
       
+      - name: NODE_OPTIONS の環境変数設定
+        run: echo "NODE_OPTIONS=--max-old-space-size=8192" >> $GITHUB_ENV
+      
+      - name: Expo CLI インストール
+        run: npm install -g expo-cli@latest eas-cli@latest
+      
       - name: npm キャッシュ
         uses: actions/cache@v3
         with:
@@ -301,7 +313,15 @@ jobs:
           
       - name: EAS ビルド実行 (詳細モード)
         run: |
-          export NODE_OPTIONS="--max-old-space-size=4096"
+          echo "🚀 EAS ビルド開始前にキャッシュを完全にクリア..."
+          npm cache clean --force
+          rm -rf node_modules/.cache
+          rm -rf ~/.expo/cache
+          rm -rf .expo
+          rm -rf .expo-shared
+          rm -rf .metro-cache
+          
+          echo "🚀 EAS ビルド実行中..."
           npx eas-cli build --platform android --profile ci --non-interactive --verbose
         
       - name: ビルド完了通知
@@ -324,6 +344,12 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
+      
+      - name: NODE_OPTIONS の環境変数設定
+        run: echo "NODE_OPTIONS=--max-old-space-size=8192" >> $GITHUB_ENV
+      
+      - name: Expo CLI インストール
+        run: npm install -g expo-cli@latest eas-cli@latest
       
       - name: 依存関係のインストール
         run: npm ci

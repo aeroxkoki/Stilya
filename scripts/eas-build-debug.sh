@@ -36,6 +36,15 @@ echo "📋 Node.js バージョン: $(node -v)"
 echo "📋 app.json の設定内容:"
 grep -A 5 '"owner":' app.json || echo "❌ owner フィールドが見つかりません！"
 grep -A 5 '"projectId":' app.json || echo "❌ projectId フィールドが見つかりません！"
+grep -A 2 '"jsEngine":' app.json || echo "❌ jsEngine フィールドが見つかりません！"
+
+# New Architectureの確認
+echo "📋 New Architecture の設定:"
+if grep -q "unstable_enablePackageExports" metro.config.js; then
+  echo "✅ Metro config に packageExports 設定があります。"
+else
+  echo "❌ Metro config に packageExports 設定がありません！"
+fi
 
 # eas.json 設定の確認
 echo "📋 eas.json の設定内容:"
@@ -52,12 +61,21 @@ echo "NODE_VERSION=$(node -v)"
 echo "EAS_SKIP_JAVASCRIPT_BUNDLING=$EAS_SKIP_JAVASCRIPT_BUNDLING"
 echo "CI=$CI"
 echo "EAS_BUILD=$EAS_BUILD"
+echo "NODE_OPTIONS=$NODE_OPTIONS"
 
 # パッケージバージョンのチェック
 echo "📋 主要パッケージのバージョン:"
 npm list expo react react-native | grep -E 'expo|react'
 echo "-----"
 npm list metro metro-config @expo/metro-config | grep -E 'metro'
+
+# dependencies と devDependencies の矛盾チェック
+echo "📋 依存関係の矛盾チェック:"
+if grep -q "\"resolutions\":" package.json; then
+  echo "✅ resolutions フィールドがあります。依存関係の矛盾を防ぐために使用されています。"
+else
+  echo "⚠️ resolutions フィールドがありません。依存関係の矛盾が発生する可能性があります。"
+fi
 
 # 権限確認
 echo "📋 Expo ログイン情報:"
@@ -69,7 +87,17 @@ if npx eas-cli project:info &>/dev/null; then
 else
   echo "❌ EAS プロジェクト設定の取得に失敗しました。"
   echo "以下のコマンドでプロジェクト設定を初期化できます:"
-  echo "npx eas-cli project:init"
+  echo "npx eas-cli project:init --id=\"$(node -e 'console.log(require(\"./app.json\").expo.extra.eas.projectId || \"\")')\" --non-interactive"
+fi
+
+# 前回のビルド結果の確認
+echo "📋 前回のビルド結果:"
+npx eas-cli build:list --limit 1 --non-interactive --json 2>/dev/null | grep -E '"status"|"platform"|"profile"' || echo "❌ 過去のビルド履歴が見つかりません。"
+
+# デバイス登録の確認（開発用ビルドの場合）
+if [[ -n "$CI" ]] && grep -q '"developmentClient": true' eas.json; then
+  echo "⚠️ developmentClient が有効になっていますが、CI環境ではデバイス登録が必要です。"
+  npx eas-cli device:list --non-interactive || echo "❌ 登録されたデバイスが見つかりません。"
 fi
 
 # まとめ
@@ -80,4 +108,5 @@ echo "1. eas.json の ci プロファイルが正しく設定されているか�
 echo "2. app.json に owner と projectId が設定されているか確認"
 echo "3. GitHub Secrets に EXPO_TOKEN が設定されているか確認"
 echo "4. 依存関係を再インストール: rm -rf node_modules && npm install"
-echo "5. Expo のキャッシュをクリア: expo-cli start --clear"
+echo "5. Expo のキャッシュをクリア: expo start --clear"
+echo "6. metro.config.js で unstable_enablePackageExports = false に設定されているか確認"
