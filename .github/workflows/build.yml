@@ -24,11 +24,11 @@ jobs:
       
       - name: Install dependencies
         run: |
-          # Use yarn to install all dependencies
-          yarn install --force --frozen-lockfile
+          # Use yarn to install all dependencies  
+          yarn install --force
           
-          # Explicitly install critical packages with npm to ensure they're available
-          npm install --save @babel/runtime @babel/core
+          # Explicitly install critical packages
+          npm install --save @babel/runtime@^7.24.0
       
       - name: Run tests
         run: yarn test:ci
@@ -51,20 +51,25 @@ jobs:
       - name: Install dependencies
         run: |
           # Use yarn to install all dependencies
-          yarn install --force --frozen-lockfile
+          yarn install --force
           
-          # Explicitly install critical packages with npm to ensure they're available
-          npm install --save @babel/runtime @babel/core
+          # Explicitly install critical packages as runtime dependencies
+          npm install --save @babel/runtime@^7.24.0
+          
+          # Check all babel packages
+          ls -la node_modules/@babel
+          
+          # Validate runtime dependencies
+          node -e "try { require('@babel/runtime/helpers/interopRequireDefault'); console.log('✅ @babel/runtime is properly installed'); } catch (e) { console.error('❌ Error:', e.message); process.exit(1); }"
       
       - name: Install EAS CLI
         run: npm install -g eas-cli@latest
         
-      - name: Clean Metro cache and fix dependencies
+      - name: Fix dependencies for EAS build
         run: |
-          # Make scripts executable
-          chmod +x ./scripts/fix-metro-dependencies.sh
-          # Run the metro fix script
-          ./scripts/fix-metro-dependencies.sh
+          # Run fix-babel script
+          yarn fix-babel
+          
           # Clean caches
           yarn clean
       
@@ -80,12 +85,11 @@ jobs:
         env:
           CI: "true"
           EAS_NO_METRO: "true"
-          EXPO_NO_CACHE: "true"
+          EXPO_NO_CACHE: "true" 
           EXPO_NO_BUNDLER: "1"
-          # Explicitly skip JavaScript bundling to avoid metro issues
           EAS_SKIP_JAVASCRIPT_BUNDLING: "1"
         run: |
-          # Bypass the export:embed command by using direct build command
+          # Bypass the export:embed command by using direct build command  
           npx eas-cli build --platform android --non-interactive --profile production --no-wait
       
       - name: Build information

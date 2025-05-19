@@ -30,7 +30,14 @@
       "android": {
         "buildType": "apk",
         "withoutCredentials": true,
-        "gradleCommand": ":app:bundleRelease"
+        "gradleCommand": ":app:bundleRelease",
+        "env": {
+          "EAS_BUILD_PROFILE": "production",
+          "EXPO_NO_BUNDLER": "1",
+          "EAS_NO_METRO": "true",
+          "EXPO_NO_CACHE": "true",
+          "EAS_SKIP_JAVASCRIPT_BUNDLING": "1"
+        }
       },
       "distribution": "store"
     },
