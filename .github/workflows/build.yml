@@ -37,7 +37,11 @@ jobs:
             ${{ runner.os }}-node-
       
       - name: 依存関係のインストール
-        run: npm ci
+        run: |
+          # package-lock.jsonとpackage.jsonの同期を確保
+          npm install
+          # 同期後にclean-installを実行
+          npm ci
       
       - name: Metro依存関係の修正
         run: |
@@ -256,7 +260,11 @@ jobs:
             ${{ runner.os }}-node-
       
       - name: 依存関係のインストール
-        run: npm ci
+        run: |
+          # package-lock.jsonとpackage.jsonの同期を確保
+          npm install
+          # 同期後にclean-installを実行
+          npm ci
       
       - name: キャッシュクリア
         run: |
@@ -352,7 +360,11 @@ jobs:
         run: npm install -g expo-cli@latest eas-cli@latest
       
       - name: 依存関係のインストール
-        run: npm ci
+        run: |
+          # package-lock.jsonとpackage.jsonの同期を確保
+          npm install
+          # 同期後にclean-installを実行
+          npm ci
       
       - name: Expo ログイン
         uses: expo/expo-github-action@v8
