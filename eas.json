@@ -26,24 +26,30 @@
       }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "android": {
+        "buildType": "apk",
+        "withoutCredentials": true,
+        "gradleCommand": ":app:bundleRelease"
+      },
+      "distribution": "store"
     },
     "ci": {
       "android": {
         "buildType": "apk",
         "withoutCredentials": true,
+        "distribution": "internal",
         "env": {
-          "EXPO_ANDROID_KEYSTORE_PASSWORD": "android",
-          "EXPO_ANDROID_KEY_PASSWORD": "android",
-          "JAVA_TOOL_OPTIONS": "-XX:MaxHeapSize=8g -Xmx8g -Dfile.encoding=UTF-8"
+          "EXPO_NO_CACHE": "true",
+          "EAS_NO_METRO": "true"
         }
       },
       "ios": {
         "simulator": true
       },
+      "developmentClient": false,
       "autoIncrement": true,
-      "distribution": "internal",
-      "extends": "production"
+      "distribution": "internal"
     }
   },
   "submit": {

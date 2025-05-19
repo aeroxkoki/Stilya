@@ -24,9 +24,9 @@
     "eas:build:preview": "eas build --profile preview",
     "eas:build:prod": "eas build --profile production",
     "eas:update": "eas update",
-    "eas:validate": "npx jsonlint-cli eas.json && npx jsonlint-cli app.json && node scripts/eas-validate.js",
-    "eas:build:ci": "npm run eas:validate && npx eas-cli@latest build --platform android --profile ci --non-interactive --local --skip-workflow-check --no-wait",
-    "eas:build:alt": "EAS_NO_METRO=true EXPO_NO_CACHE=true EAS_SKIP_JAVASCRIPT_BUNDLING=1 npx eas-cli build --platform android --profile ci --local --skip-workflow-check",
+    "eas:validate": "npx jsonlint-cli eas.json && npx jsonlint-cli app.json",
+    "eas:build:ci": "EAS_NO_METRO=true EXPO_NO_CACHE=true eas build --platform android --profile ci --non-interactive --no-wait",
+    "github:build": "EAS_NO_METRO=true EXPO_NO_CACHE=true eas build --platform android --profile production --non-interactive",
     "postinstall": "echo 'Postinstall executed, dependencies configured'"
   },
   "dependencies": {

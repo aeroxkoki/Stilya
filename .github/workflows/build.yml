@@ -20,13 +20,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'npm'
+          cache: 'yarn'
       
       - name: Install dependencies
-        run: npm ci
+        run: yarn install --frozen-lockfile
       
       - name: Run tests
-        run: npm run test:ci
+        run: yarn test:ci
   
   build:
     name: EAS Build
@@ -41,42 +41,38 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'npm'
+          cache: 'yarn'
       
       - name: Install dependencies
-        run: npm ci
+        run: yarn install --frozen-lockfile
       
       - name: Install EAS CLI
         run: npm install -g eas-cli@latest
         
-      - name: Fix Metro dependencies
+      - name: Clean Metro cache
         run: |
-          # Make scripts executable
-          chmod +x ./scripts/fix-metro-dependencies.sh
-          # Run the fix script
-          ./scripts/fix-metro-dependencies.sh
+          yarn clean
       
       - name: Login to Expo
-        run: eas login -t ${{ secrets.EXPO_TOKEN }}
+        run: |
+          echo "${{ secrets.EXPO_TOKEN }}" | npx eas-cli login --non-interactive
+      
+      - name: Validate configuration files
+        run: |
+          yarn eas:validate
       
       - name: Run EAS Build
         env:
-          CI: true
-          EAS_NO_VCS: 1
-          EAS_BUILD: true
-          EXPO_NO_CACHE: 1
+          CI: "true"
+          EAS_NO_METRO: "true"
+          EXPO_NO_CACHE: "true"
         run: |
-          npx eas-cli build \
-            --platform android \
-            --non-interactive \
-            --profile ci \
-            --local \
-            --skip-workflow-check \
-            --no-wait
+          yarn github:build
       
       - name: Build information
         if: always()
         run: |
           echo "Build completed"
-          echo "Expo SDK: $(node -e 'console.log(require(\"./package.json\").dependencies.expo)')"
-          echo "React Native: $(node -e 'console.log(require(\"./package.json\").dependencies[\"react-native\"])')"
+          echo "Expo version: $(npx expo --version)"
+          echo "EAS CLI version: $(npx eas-cli --version)"
+          echo "Node version: $(node --version)"
