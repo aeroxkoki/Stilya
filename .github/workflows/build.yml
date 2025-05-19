@@ -92,7 +92,7 @@ jobs:
       - name: Expo ログイン
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: echo "$EXPO_TOKEN" | npx eas-cli login --non-interactive
+        run: echo "EXPO_TOKEN=$EXPO_TOKEN" >> $GITHUB_ENV
       
       - name: Metro依存関係の修正
         run: |
@@ -100,7 +100,7 @@ jobs:
           ./scripts/fix-metro-dependencies.sh
       
       - name: EAS ビルド実行
-        run: eas build --platform android --profile ci --non-interactive
+        run: npx eas-cli build --platform android --profile ci --non-interactive
         
       - name: ビルド完了通知
         if: success()
@@ -132,15 +132,15 @@ jobs:
       - name: Expo ログイン
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: echo "$EXPO_TOKEN" | npx eas-cli login --non-interactive
+        run: echo "EXPO_TOKEN=$EXPO_TOKEN" >> $GITHUB_ENV
       
       - name: EAS Update 実行
         run: |
           # Android向けアップデート
-          eas update --platform android --message "$(git log -1 --pretty=%B)" --non-interactive
+          npx eas-cli update --platform android --message "$(git log -1 --pretty=%B)" --non-interactive
           
           # iOS向けアップデート（将来的に必要な場合）
-          # eas update --platform ios --message "$(git log -1 --pretty=%B)" --non-interactive
+          # npx eas-cli update --platform ios --message "$(git log -1 --pretty=%B)" --non-interactive
       
       - name: 更新完了通知
         if: success()

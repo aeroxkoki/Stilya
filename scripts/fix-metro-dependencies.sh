@@ -17,10 +17,16 @@ npm install --save-dev babel-preset-expo@13.0.0
 echo "🧹 依存関係の重複を解消..."
 npm dedupe
 
-# キャッシュクリア
+# 既存のMetroキャッシュをクリア
 echo "🧹 キャッシュを削除..."
 rm -rf node_modules/.cache
 rm -rf .expo/cache
 rm -rf .metro-cache
+
+# CI環境のヒープメモリ増加 (GitHub Actionsで役立つ)
+if [ -n "$CI" ]; then
+  echo "🔄 CI環境用の設定を適用..."
+  export NODE_OPTIONS="--max-old-space-size=4096"
+fi
 
 echo "✅ 修正完了！expo start で動作確認してください。"
