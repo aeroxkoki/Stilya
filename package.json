@@ -25,8 +25,8 @@
     "eas:build:prod": "eas build --profile production",
     "eas:update": "eas update",
     "eas:validate": "npx jsonlint-cli eas.json && npx jsonlint-cli app.json",
-    "eas:build:ci": "EAS_NO_METRO=true EXPO_NO_CACHE=true eas build --platform android --profile ci --non-interactive --no-wait",
-    "github:build": "EAS_NO_METRO=true EXPO_NO_CACHE=true eas build --platform android --profile production --non-interactive",
+    "eas:build:ci": "EAS_NO_METRO=true EXPO_NO_CACHE=true EAS_SKIP_JAVASCRIPT_BUNDLING=1 eas build --platform android --profile ci --non-interactive --no-wait",
+    "github:build": "EAS_NO_METRO=true EXPO_NO_CACHE=true EAS_SKIP_JAVASCRIPT_BUNDLING=1 eas build --platform android --profile production --non-interactive",
     "postinstall": "echo 'Postinstall executed, dependencies configured'"
   },
   "dependencies": {

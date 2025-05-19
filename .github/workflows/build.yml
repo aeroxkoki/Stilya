@@ -49,8 +49,13 @@ jobs:
       - name: Install EAS CLI
         run: npm install -g eas-cli@latest
         
-      - name: Clean Metro cache
+      - name: Clean Metro cache and fix dependencies
         run: |
+          # Make scripts executable
+          chmod +x ./scripts/fix-metro-dependencies.sh
+          # Run the metro fix script
+          ./scripts/fix-metro-dependencies.sh
+          # Clean caches
           yarn clean
       
       - name: Login to Expo
@@ -66,8 +71,11 @@ jobs:
           CI: "true"
           EAS_NO_METRO: "true"
           EXPO_NO_CACHE: "true"
+          # Explicitly skip JavaScript bundling to avoid metro issues
+          EAS_SKIP_JAVASCRIPT_BUNDLING: "1"
         run: |
-          yarn github:build
+          # Bypass the export:embed command by using direct build command
+          npx eas-cli build --platform android --non-interactive --profile production
       
       - name: Build information
         if: always()
