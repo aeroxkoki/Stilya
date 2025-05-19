@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Dimensions, Platform, ActivityIndicator, View as RNView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import Animated from 'react-native-reanimated';
+import { View as AnimatedView } from 'react-native-reanimated';
+const Animated = { View: AnimatedView };
 import { Product } from '@/types';
 import { formatPrice } from '@/utils';
 import { Tags } from '@/components/common';

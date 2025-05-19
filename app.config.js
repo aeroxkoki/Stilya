@@ -30,6 +30,11 @@ module.exports = ({ config }) => {
       checkAutomatically: 'ON_ERROR_RECOVERY',
       fallbackToCacheTimeout: 0,
     };
+    
+    // GitHub Actionsでは必ずownerが設定されていることを確認
+    if (!config.owner) {
+      config.owner = 'aeroxkoki';
+    }
   }
   
   return config;

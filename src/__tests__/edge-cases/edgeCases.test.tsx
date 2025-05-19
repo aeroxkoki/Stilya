@@ -1,12 +1,11 @@
 import React from 'react';
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
-import { NetworkProvider, useNetwork } from '../../contexts/NetworkContext';
-import { ThemeProvider } from '../../contexts/ThemeContext';
-import { ErrorProvider } from '../../contexts/ErrorContext';
+import { useNetwork } from '../../contexts/NetworkContext';
 import AuthScreen from '../../screens/auth/AuthScreen.tsx';
 import SwipeScreen from '../../screens/swipe/SwipeScreen.tsx';
 import RecommendationsScreen from '../../screens/recommend/RecommendScreen.tsx';
 import Toast from 'react-native-toast-message';
+import { TestWrapper } from '../utils/testUtils';
 
 // モックの作成
 jest.mock('../../services/supabase', () => ({
@@ -77,13 +76,9 @@ describe('Edge Case Tests', () => {
       mockUseNetwork(false); // ネットワーク切断状態をモック
       
       const { getByTestId } = render(
-        <NetworkProvider>
-          <ErrorProvider>
-            <ThemeProvider>
-              <SwipeScreen />
-            </ThemeProvider>
-          </ErrorProvider>
-        </NetworkProvider>
+        <TestWrapper>
+          <SwipeScreen />
+        </TestWrapper>
       );
       
       // オフライン通知が表示されることを確認
@@ -111,13 +106,9 @@ describe('Edge Case Tests', () => {
       ]);
       
       const { getByTestId } = render(
-        <NetworkProvider>
-          <ErrorProvider>
-            <ThemeProvider>
-              <SwipeScreen />
-            </ThemeProvider>
-          </ErrorProvider>
-        </NetworkProvider>
+        <TestWrapper>
+          <SwipeScreen />
+        </TestWrapper>
       );
       
       // スワイプカードは表示されるが、スワイプボタンが無効になっていることを確認
@@ -130,13 +121,9 @@ describe('Edge Case Tests', () => {
       mockUseNetwork(false); // ネットワーク切断状態をモック
       
       render(
-        <NetworkProvider>
-          <ErrorProvider>
-            <ThemeProvider>
-              <RecommendationsScreen />
-            </ThemeProvider>
-          </ErrorProvider>
-        </NetworkProvider>
+        <TestWrapper>
+          <RecommendationsScreen />
+        </TestWrapper>
       );
       
       // トーストが表示されることを確認
@@ -154,13 +141,9 @@ describe('Edge Case Tests', () => {
   describe('Input Validation Tests', () => {
     it('shows error for invalid email format', async () => {
       const { getByTestId, getByText, getByPlaceholderText } = render(
-        <NetworkProvider>
-          <ErrorProvider>
-            <ThemeProvider>
-              <AuthScreen />
-            </ThemeProvider>
-          </ErrorProvider>
-        </NetworkProvider>
+        <TestWrapper>
+          <AuthScreen />
+        </TestWrapper>
       );
       
       // 不正なメールアドレスを入力
@@ -178,13 +161,9 @@ describe('Edge Case Tests', () => {
     
     it('shows error for too short password', async () => {
       const { getByTestId, getByText, getByPlaceholderText } = render(
-        <NetworkProvider>
-          <ErrorProvider>
-            <ThemeProvider>
-              <AuthScreen />
-            </ThemeProvider>
-          </ErrorProvider>
-        </NetworkProvider>
+        <TestWrapper>
+          <AuthScreen />
+        </TestWrapper>
       );
       
       // 有効なメールアドレスと短すぎるパスワードを入力

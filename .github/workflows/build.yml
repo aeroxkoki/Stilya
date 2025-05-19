@@ -86,18 +86,21 @@ jobs:
           rm -rf .expo
           rm -rf .expo-shared
       
-      - name: EAS CLI インストール
-        run: npm install -g eas-cli@latest
-      
       - name: Expo ログイン
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: echo "EXPO_TOKEN=$EXPO_TOKEN" >> $GITHUB_ENV
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
       
       - name: Metro依存関係の修正
         run: |
           chmod +x ./scripts/fix-metro-dependencies.sh
           ./scripts/fix-metro-dependencies.sh
+      
+      - name: EASビルド環境確認
+        run: |
+          chmod +x ./scripts/eas-build-debug.sh
+          ./scripts/eas-build-debug.sh
       
       - name: EAS ビルド実行
         run: npx eas-cli build --platform android --profile ci --non-interactive
@@ -126,13 +129,11 @@ jobs:
       - name: 依存関係のインストール
         run: npm ci
       
-      - name: EAS CLI インストール
-        run: npm install -g eas-cli@latest
-      
       - name: Expo ログイン
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: echo "EXPO_TOKEN=$EXPO_TOKEN" >> $GITHUB_ENV
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
       
       - name: EAS Update 実行
         run: |
