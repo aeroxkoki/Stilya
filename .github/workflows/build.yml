@@ -178,9 +178,9 @@ jobs:
             core.setOutput('testsPassed', totalResults.failedTests === 0);
             core.setOutput('passRate', passRate);
       
-      - name: Upload test results
+      - name: テスト結果のアップロード
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: test-results
           path: |
