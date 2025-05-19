@@ -57,7 +57,7 @@ jobs:
           ./scripts/fix-metro-dependencies.sh
       
       - name: Login to Expo
-        run: eas login --token ${{ secrets.EXPO_TOKEN }}
+        run: eas login -t ${{ secrets.EXPO_TOKEN }}
       
       - name: Run EAS Build
         env:
