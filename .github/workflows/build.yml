@@ -23,12 +23,7 @@ jobs:
           cache: 'yarn'
       
       - name: Install dependencies
-        run: |
-          # Use yarn to install all dependencies  
-          yarn install --force
-          
-          # Explicitly install critical packages
-          npm install --save @babel/runtime@^7.24.0
+        run: yarn install --frozen-lockfile
       
       - name: Run tests
         run: yarn test:ci
@@ -38,6 +33,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: test
     
+    env:
+      EXPO_NO_CACHE: "true"
+      EAS_NO_METRO: "true"
+      EAS_SKIP_JAVASCRIPT_BUNDLING: "1"
+      EXPO_NO_BUNDLER: "1"
+      
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -49,53 +50,21 @@ jobs:
           cache: 'yarn'
       
       - name: Install dependencies
+        run: yarn install --frozen-lockfile
+      
+      - name: Clean caches
         run: |
-          # Use yarn to install all dependencies
-          yarn install --force
-          
-          # Explicitly install critical packages as runtime dependencies
-          npm install --save @babel/runtime@^7.24.0
-          
-          # Check all babel packages
-          ls -la node_modules/@babel
-          
-          # Validate runtime dependencies
-          node -e "try { require('@babel/runtime/helpers/interopRequireDefault'); console.log('✅ @babel/runtime is properly installed'); } catch (e) { console.error('❌ Error:', e.message); process.exit(1); }"
+          rm -rf node_modules/.cache
+          rm -rf .expo
+          rm -rf .expo-shared
       
       - name: Install EAS CLI
         run: npm install -g eas-cli@latest
-        
-      - name: Fix dependencies for EAS build
-        run: |
-          # Run fix-babel script
-          yarn fix-babel
-          
-          # Clean caches
-          yarn clean
       
       - name: Login to Expo
-        run: |
-          echo "${{ secrets.EXPO_TOKEN }}" | npx eas-cli login --non-interactive
-      
-      - name: Validate configuration files
-        run: |
-          yarn eas:validate
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: echo "$EXPO_TOKEN" | npx eas-cli login --non-interactive
       
       - name: Run EAS Build
-        env:
-          CI: "true"
-          EAS_NO_METRO: "true"
-          EXPO_NO_CACHE: "true" 
-          EXPO_NO_BUNDLER: "1"
-          EAS_SKIP_JAVASCRIPT_BUNDLING: "1"
-        run: |
-          # Use our special direct build script that bypasses the problematic expo export:embed
-          yarn build:direct
-      
-      - name: Build information
-        if: always()
-        run: |
-          echo "Build completed"
-          echo "Expo version: $(npx expo --version)"
-          echo "EAS CLI version: $(npx eas-cli --version)"
-          echo "Node version: $(node --version)"
+        run: eas build --platform android --profile ci --non-interactive

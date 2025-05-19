@@ -1,21 +1,10 @@
-// @ts-check
-// Babel configuration for Expo with enhanced runtime support
 module.exports = function(api) {
-  // This caches the Babel config for better performance
-  api.cache.forever();
-  
+  api.cache(true);
   return {
     presets: ['babel-preset-expo'],
     plugins: [
-      // Explicitly enable reanimated plugin
+      // Reanimatedプラグインは必要なら残します
       'react-native-reanimated/plugin',
-      
-      // Add runtime transformer for proper interop helpers
-      ['@babel/plugin-transform-runtime', {
-        helpers: true,
-        regenerator: true,
-        corejs: false
-      }]
     ],
   };
 };
