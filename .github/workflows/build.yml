@@ -2,9 +2,9 @@ name: Expo Build
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, develop ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, develop ]
   workflow_dispatch:
 
 jobs:
@@ -12,16 +12,19 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
-          cache: 'yarn'
+          node-version: '18'
+          cache: 'npm'
       
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: npm ci
+      
+      - name: Install expo-cli globally
+        run: npm install -g expo-cli@latest eas-cli@latest
       
       - name: Clean cache
         run: |
@@ -29,56 +32,134 @@ jobs:
           rm -rf ~/.expo
           rm -rf ~/.metro
       
-      - name: Create emergency patch script
+      - name: Apply Metro dependencies fix
         run: |
-          # 緊急パッチスクリプトを作成
-          cat > emergency-fix.js << 'EOF'
-          /**
-           * GitHub Actions環境向けの緊急パッチスクリプト
-           */
-          
-          // オリジナルのJSONパースを保存
-          const originalJSONParse = JSON.parse;
-          
-          // JSON.parseをモンキーパッチ
-          JSON.parse = function(text, ...args) {
-            // JavaScriptコードかどうかをチェック
-            if (typeof text === 'string' && text.startsWith('var __BUNDLE')) {
-              console.log('[EMERGENCY] JavaScriptバンドルをJSONに変換します');
-              return {
-                code: text,
-                map: null,
-                dependencies: []
-              };
-            }
-            
-            // 通常のJSONパースを試す
-            try {
-              return originalJSONParse(text, ...args);
-            } catch (e) {
-              console.error('[EMERGENCY] JSONパースエラー:', e.message);
-              
-              // エラースタックがMetroBundlerDevServerを含む場合
-              if (e.stack && e.stack.includes('MetroBundlerDevServer')) {
-                console.log('[EMERGENCY] MetroBundlerDevServerのエラーを修正します');
-                return {
-                  code: typeof text === 'string' ? text : String(text),
-                  map: null,
-                  dependencies: []
-                };
-              }
-              
-              // その他のエラーは再スロー
-              throw e;
-            }
-          };
-          
-          console.log('[EMERGENCY] JSON.parseパッチが適用されました');
-          EOF
-          
+          chmod +x ./fix-metro-dependencies.sh
+          ./fix-metro-dependencies.sh
+      
+      - name: Verify emergency patch exists
+        run: |
+          if [ -f "emergency-fix.js" ]; then
+            echo "Emergency patch exists"
+          else
+            echo "Creating emergency patch file"
+            cat > emergency-fix.js << 'EOF'
+/**
+ * Emergency fix for Metro bundler JSON parsing issues in GitHub Actions
+ * This script patches the JSON.parse method to handle malformed JSON in Metro bundler.
+ */
+
+console.log('[EMERGENCY] Applying JSON.parse patch for Metro bundler...');
+
+// Store the original JSON.parse
+const originalJSONParse = JSON.parse;
+
+// Override JSON.parse with a more resilient version
+JSON.parse = function patchedJSONParse(text, reviver) {
+  try {
+    return originalJSONParse(text, reviver);
+  } catch (e) {
+    console.warn('[EMERGENCY PATCH] JSON parse error detected. Attempting recovery...');
+    console.warn(`Original error: ${e.message}`);
+    
+    // Handle common issues in Metro bundler JSON
+    let fixedText = text;
+    
+    // Fix unescaped newlines in strings
+    fixedText = fixedText.replace(/([":,[\]{}])([\r\n]+)([":,[\]{}])/g, '$1 $3');
+    
+    // Fix trailing commas in arrays/objects
+    fixedText = fixedText.replace(/,\s*([}\]])/g, '$1');
+    
+    try {
+      return originalJSONParse(fixedText, reviver);
+    } catch (recoveryError) {
+      console.error('[EMERGENCY PATCH] Recovery failed:', recoveryError.message);
+      // If we can't fix it, throw the original error
+      throw e;
+    }
+  }
+};
+
+// Check if we're in the Metro bundler context
+try {
+  const fs = require('fs');
+  const path = require('path');
+  
+  // Define paths to check for Metro bundler files
+  const possiblePaths = [
+    path.join(process.cwd(), 'node_modules/@expo/cli/build/src/start/server/metro/MetroBundlerDevServer.js'),
+    path.join(process.cwd(), 'node_modules/expo/node_modules/@expo/cli/build/src/start/server/metro/MetroBundlerDevServer.js'),
+    path.join(process.cwd(), 'node_modules/metro/src/Server.js'),
+  ];
+  
+  console.log('Searching for MetroBundlerDevServer files...');
+  possiblePaths.forEach(p => {
+    if (fs.existsSync(p)) {
+      console.log(`Found: ${p}`);
+    } else {
+      console.log(`Not found: ${p}`);
+    }
+  });
+  
+  console.log('Setting up JSON.parse patch...');
+  console.log('[EMERGENCY] JSON.parseパッチが適用されました');
+  console.log('Successfully loaded patch');
+} catch (e) {
+  console.error('Error in emergency patch setup:', e);
+}
+EOF
+          fi
           chmod +x emergency-fix.js
       
-      - name: Run with emergency patch
+      - name: Build standalone export script
+        run: |
+          cat > run-export-embed.js << 'EOF'
+const { spawnSync } = require('child_process');
+const path = require('path');
+const fs = require('fs');
+
+// パッチを適用
+require('./emergency-fix.js');
+
+console.log('Running expo export:embed in standalone mode...');
+
+// npx expo-cli を使用して実行
+const result = spawnSync('npx', ['expo', 'export:embed', '--eager', '--platform', 'android', '--dev', 'false'], {
+  stdio: 'inherit',
+  env: {
+    ...process.env,
+    EXPO_NO_CACHE: 'true',
+    FORCE_COLOR: '1'
+  }
+});
+
+// 失敗した場合、詳細情報を出力
+if (result.status !== 0) {
+  console.error('Export failed with status:', result.status);
+  
+  // Metro設定を確認
+  if (fs.existsSync('./metro.config.js')) {
+    console.log('metro.config.js content:');
+    console.log(fs.readFileSync('./metro.config.js', 'utf8'));
+  }
+  
+  // 依存関係を確認
+  console.log('Checking Metro dependencies:');
+  try {
+    const pkg = require('./package.json');
+    console.log('Metro version:', pkg.devDependencies.metro);
+    console.log('@expo/metro-config version:', pkg.devDependencies['@expo/metro-config']);
+  } catch (e) {
+    console.error('Error checking dependencies:', e);
+  }
+}
+
+process.exit(result.status);
+EOF
+          chmod +x run-export-embed.js
+      
+      - name: Run build with emergency patch
         run: |
           # Node.jsプロセスで緊急パッチを読み込む
           export NODE_OPTIONS="--require $(pwd)/emergency-fix.js --no-warnings --max-old-space-size=8192"
@@ -90,51 +171,17 @@ jobs:
           
           # メトロバンドラーのパス情報を出力
           echo "Searching for MetroBundlerDevServer files..."
-          find /home/expo/workingdir/build/node_modules -name "MetroBundlerDevServer.*" 2>/dev/null || echo "Not found in workingdir"
           find node_modules -name "MetroBundlerDevServer.*" -type f 2>/dev/null || echo "Not found in node_modules"
           
-          # マニュアルでJSON.parseパッチを適用
-          echo "Setting up JSON.parse patch..."
-          node -e "require('./emergency-fix.js'); console.log('Successfully loaded patch');"
-          
-          # expo export:embedを実行
-          echo "Running expo export:embed..."
-          expo export:embed --eager --platform android --dev false || {
-            echo "First attempt failed, trying alternative approach..."
-            
-            # 代替アプローチ: スタンドアロンモードでNodeを実行
-            cat > run-export-embed.js << 'EOF'
-            const { spawnSync } = require('child_process');
-            
-            // パッチを適用
-            require('./emergency-fix.js');
-            
-            console.log('Running expo export:embed in standalone mode...');
-            const result = spawnSync('expo', ['export:embed', '--eager', '--platform', 'android', '--dev', 'false'], {
-              stdio: 'inherit',
-              env: {
-                ...process.env,
-                EXPO_NO_CACHE: 'true',
-                FORCE_COLOR: '1'
-              }
-            });
-            
-            process.exit(result.status);
-            EOF
-            
-            node run-export-embed.js
-          }
+          # 独立したNode.jsスクリプトを実行
+          node run-export-embed.js
       
-      - name: Report failure details
-        if: failure()
+      - name: Report build information
+        if: always()
         run: |
-          echo "Collecting diagnostic information..."
+          echo "Build completed with status: $?"
+          echo "Installed packages:"
+          npm list --depth=0
           
-          # Expoバージョン情報
-          expo --version
-          
-          # パッケージ情報
-          yarn list --pattern "metro|expo" --depth=0
-          
-          # メトロ設定
-          cat metro.config.js || echo "metro.config.js not found"
+          echo "Metro dependencies:"
+          npm list metro metro-config @expo/metro-config
