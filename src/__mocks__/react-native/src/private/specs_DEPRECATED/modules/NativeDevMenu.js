@@ -1,9 +1,11 @@
 /**
- * NativeDevMenu Mock
+ * NativeDevMenu のモック
  */
 
-export default {
-  reload: jest.fn(),
-  debugRemotely: jest.fn(),
-  devMenu: jest.fn(),
+module.exports = {
+  default: {
+    show: jest.fn(),
+    hide: jest.fn(),
+    reload: jest.fn(),
+  }
 };

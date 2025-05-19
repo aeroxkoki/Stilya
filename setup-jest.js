@@ -72,7 +72,11 @@ console.log('Global it function type:', typeof global.it);
 console.log('Global describe function type:', typeof global.describe);
 
 // React Native関連のモック
-// シンプルなモック実装を使用
+// 優先順位の高いモック
+jest.mock('react-native/Libraries/TurboModule/TurboModuleRegistry', () => require('./src/__mocks__/react-native/Libraries/TurboModule/TurboModuleRegistry.js'));
+jest.mock('react-native/src/private/specs_DEPRECATED/modules/NativeDevMenu', () => require('./src/__mocks__/react-native/src/private/specs_DEPRECATED/modules/NativeDevMenu.js'));
+
+// その他のモック
 require('./src/__mocks__/test-setup-mock.js');
 
 // jest-expoをバイパス

@@ -2,7 +2,11 @@
  * TurboModule Mock
  */
 
-export default {
-  getTurboModule: jest.fn(),
-  getEnforcing: jest.fn(),
+module.exports = {
+  get: jest.fn(() => null),
+  getEnforcing: jest.fn(() => ({
+    show: jest.fn(),
+    hide: jest.fn(),
+    reload: jest.fn(),
+  })),
 };
