@@ -13,6 +13,16 @@ echo "📦 Babel ランタイムの設定..."
 npm install --save @babel/runtime@7.27.1
 npm install --save-dev babel-preset-expo@13.0.0
 
+# パッケージエクスポートフィールド対応
+echo "📦 Metro resolver 設定の追加..."
+if [ -f metro.config.js ]; then
+  # 既存のmetro.config.jsにpackageExportsの設定を追加
+  if ! grep -q "unstable_enablePackageExports" metro.config.js; then
+    echo "Metro config に packageExports 設定を追加します"
+    sed -i'' -e '/const config = getDefaultConfig/a\\n// パッケージエクスポートフィールド対応（問題が発生する場合のオプトアウト用）\nif (config.resolver) {\n  config.resolver.unstable_enablePackageExports = false;\n}' metro.config.js
+  fi
+fi
+
 # 依存関係の重複を解消
 echo "🧹 依存関係の重複を解消..."
 npm dedupe

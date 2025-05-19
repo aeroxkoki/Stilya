@@ -19,7 +19,7 @@
     "fix-babel": "npm install --no-save @babel/runtime && npm dedupe @babel/runtime",
     "build:local": "sh ./scripts/local-android-build.sh",
     "build:direct": "chmod +x ./scripts/direct-eas-build.sh && ./scripts/direct-eas-build.sh",
-    "test:ci-build": "chmod +x ./scripts/test-ci-build.sh && ./scripts/test-ci-build.sh",
+    "test:build-fixes": "chmod +x ./scripts/test-build-fixes.sh && ./scripts/test-build-fixes.sh",
     "prebuild": "expo prebuild --clean",
     "eas:whoami": "eas whoami",
     "eas:build": "eas build --no-wait",
@@ -104,7 +104,7 @@
     "typescript": "^5.3.0"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   },
   "resolutions": {
     "@babel/runtime": "7.27.1",
