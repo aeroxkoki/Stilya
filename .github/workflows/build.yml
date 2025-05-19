@@ -289,8 +289,20 @@ jobs:
           chmod +x ./scripts/eas-build-debug.sh
           ./scripts/eas-build-debug.sh
       
-      - name: EAS ビルド実行
-        run: npx eas-cli build --platform android --profile ci --non-interactive
+      - name: EAS プロジェクト情報を確認
+        run: |
+          npx eas-cli project:info || echo "プロジェクト情報の取得に失敗しました"
+          
+      - name: app.jsonの確認
+        run: |
+          echo "app.json の内容確認中..."
+          cat app.json | grep -A 3 "owner"
+          cat app.json | grep -A 3 "projectId"
+          
+      - name: EAS ビルド実行 (詳細モード)
+        run: |
+          export NODE_OPTIONS="--max-old-space-size=4096"
+          npx eas-cli build --platform android --profile ci --non-interactive --verbose
         
       - name: ビルド完了通知
         if: success()

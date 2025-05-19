@@ -117,28 +117,42 @@ import { useComputedValue, useMemoizedCallback } from 'src/utils/performance';
 - CI環境でのバンドル処理スキップ
 - 開発・本番環境で異なる最適化設定
 
-## EAS Build設定
+## EAS GitHub Actions のトラブルシューティング
 
-ビルドを実行するには、GitHubリポジトリの「Settings > Secrets and Variables > Actions」にEXPO_TOKENを設定する必要があります：
+GitHub Actions で EAS ビルドが失敗する場合は、以下の解決策を試してください：
 
-```bash
-# トークンの取得
-eas login
-eas token:create --name github-actions --non-interactive
-```
+### 解決策: owner プロパティの設定
 
-EASビルドに必要な設定はすでに構成されています：
+エラー `The "owner" manifest property is required when using robot users` が発生した場合：
 
-1. **GitHub Actionsワークフロー**: `.github/workflows/build.yml`が設定されており、テスト、ビルド、OTAアップデートが自動的に実行されます。
+1. app.json に owner フィールドを追加：
+   ```json
+   {
+     "expo": {
+       "owner": "あなたのExpoユーザー名",
+       // 他の設定...
+     }
+   }
+   ```
 
-2. **EXPO_TOKEN**: GitHubリポジトリのSecretsにEXPO_TOKENが設定されていることを確認してください。
-   - GitHub リポジトリページにアクセス
-   - Settings > Secrets and Variables > Actions
-   - 「EXPO_TOKEN」が存在することを確認（なければ追加）
+2. 提供されている修正スクリプトを実行：
+   ```bash
+   # 設定修正スクリプトを実行
+   chmod +x ./scripts/fix-eas-github-actions.sh
+   ./scripts/fix-eas-github-actions.sh
+   
+   # 変更をプッシュ
+   ./scripts/push-eas-fixes.sh
+   ```
 
-3. **ビルドの手動実行**: GitHub Actionsタブから「Stilya CI/CD」ワークフローを手動で実行することも可能です。
+### EAS 関連の環境変数
 
-4. **バージョン管理**: eas.jsonでEAS CLIのバージョン要件が設定されています。
+GitHubアクションでEASビルドを正しく実行するには以下の環境変数が必要です：
+
+- `EAS_SKIP_JAVASCRIPT_BUNDLING=1`: JavaScriptのバンドルをスキップ
+- `NODE_OPTIONS="--max-old-space-size=4096"`: Node.jsのメモリ制限を増やす
+
+これらの設定は最新の修正で自動的に適用されます。
 
 ## EASビルドの問題解決策
 
