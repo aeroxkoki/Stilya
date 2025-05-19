@@ -99,7 +99,23 @@ jobs:
       
       - name: EASプロジェクト初期化
         run: |
-          npx eas-cli project:init --non-interactive || echo "EASプロジェクトは既に初期化されています"
+          # app.jsonからプロジェクトIDを取得
+          PROJECT_ID=$(node -e "console.log(require('./app.json').expo.extra.eas.projectId || '')")
+          echo "📋 ProjectID: $PROJECT_ID"
+          
+          # app.jsonからownerを取得
+          OWNER=$(node -e "console.log(require('./app.json').expo.owner || '')")
+          echo "👤 Owner: $OWNER"
+          
+          # EASプロジェクトを初期化（プロジェクトIDを指定）
+          if [ -n "$PROJECT_ID" ]; then
+            npx eas-cli project:init --id="$PROJECT_ID" --non-interactive || echo "プロジェクトはすでに存在します"
+          else
+            npx eas-cli project:init --non-interactive || echo "新規プロジェクト作成に失敗しました"
+          fi
+          
+          # プロジェクト情報を表示
+          npx eas-cli project:info || echo "プロジェクト情報を取得できません"
       
       - name: EASビルド環境確認
         run: |
