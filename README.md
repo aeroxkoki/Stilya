@@ -74,30 +74,48 @@ EASビルドに問題がある場合は、ローカルビルドを使用でき�
 npm run build:local
 ```
 
-## GitHub Actions CI/CD設定
+## パフォーマンス最適化
 
-このプロジェクトではGitHub Actionsを使用してCI/CDを自動化しています。
+プロジェクトには以下のパフォーマンス最適化が組み込まれています：
 
-### ビルドワークフロー
+### 1. Metro Bundler最適化
 
-`.github/workflows/build.yml`で定義されたワークフローは以下を実行します：
+- キャッシング強化
+- バンドルサイズ縮小
+- トランスフォーム処理の効率化
 
-1. **テスト**: 単体テストの実行
-2. **ビルド**: EASを使用したAndroidアプリのビルド
+### 2. バベル設定最適化
 
-### CI環境での注意点
+- 環境に応じた条件付きプラグイン
+- 本番環境でのコンソールログ削除
+- モジュール解決のエイリアス設定
 
-**重要: GitHub Actions環境ではMetro Bundlerへの依存を避けるように設定しています**
+### 3. パフォーマンスユーティリティ
 
-```yaml
-env:
-  CI: true
-  EAS_NO_VCS: 1
-  EAS_BUILD: true
-  EAS_NO_METRO: true
-  EXPO_NO_CACHE: true
-  EAS_SKIP_JAVASCRIPT_BUNDLING: 1
+パフォーマンスを向上させるユーティリティが `src/utils/performance` に用意されています：
+
+```typescript
+// メトリクス計測
+import { startMeasure, endMeasure, measure, useRenderMeasure } from 'src/utils/performance';
+
+// 効率的なリスト描画
+import { optimizedListProps } from 'src/utils/performance';
+<FlatList {...optimizedListProps} data={items} />
+
+// メモリ管理
+import { checkMemoryWarningLevel, forceCleanupMemory } from 'src/utils/performance';
+
+// 画像最適化
+import { getOptimizedImageUrl, clearImageCacheIfNeeded } from 'src/utils/imageUtils';
+
+// メモ化ヘルパー
+import { useComputedValue, useMemoizedCallback } from 'src/utils/performance';
 ```
+
+### 4. ビルド環境に応じた最適化
+
+- CI環境でのバンドル処理スキップ
+- 開発・本番環境で異なる最適化設定
 
 ## EAS Build設定
 
