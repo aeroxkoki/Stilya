@@ -97,6 +97,10 @@ jobs:
           chmod +x ./scripts/fix-metro-dependencies.sh
           ./scripts/fix-metro-dependencies.sh
       
+      - name: EASプロジェクト初期化
+        run: |
+          npx eas-cli project:init --non-interactive || echo "EASプロジェクトは既に初期化されています"
+      
       - name: EASビルド環境確認
         run: |
           chmod +x ./scripts/eas-build-debug.sh

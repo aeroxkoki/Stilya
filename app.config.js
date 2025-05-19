@@ -19,6 +19,10 @@ module.exports = ({ config }) => {
     config.scheme = 'stilya';
   }
   
+  // 重要: GitHub Actions / CI / EAS Build向けに必ずownerを設定
+  // EASビルド時にロボットユーザーに必須
+  config.owner = 'aeroxkoki';
+  
   // CI環境特別設定
   if (process.env.CI === 'true' || process.env.EAS_BUILD === 'true') {
     // CI環境用の特別設定があれば追加
@@ -30,11 +34,6 @@ module.exports = ({ config }) => {
       checkAutomatically: 'ON_ERROR_RECOVERY',
       fallbackToCacheTimeout: 0,
     };
-    
-    // GitHub Actionsでは必ずownerが設定されていることを確認
-    if (!config.owner) {
-      config.owner = 'aeroxkoki';
-    }
   }
   
   return config;
