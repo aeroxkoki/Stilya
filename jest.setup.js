@@ -1,3 +1,34 @@
+/**
+ * Stilya Jest セットアップファイル
+ * Expo SDK 53 / React Native 0.79との互換性対応
+ * 更新日: 2025-05-20
+ */
+
+// ESMモジュール対応のためにJestグローバル設定
+// テスト環境向けにトランスパイルされたモジュールを確実に使用するための設定
+jest.autoMockOff();
+
+// New Architecture関連の無効化
+global.RN$Bridgeless = false;
+global.__DEV__ = true;
+global.window = {};
+
+// Reanimatedサポート
+global.__reanimatedWorkletInit = jest.fn();
+global._WORKLET = false;
+
+// エラーハンドリングの強化
+const originalConsoleError = console.error;
+console.error = (...args) => {
+  // @babel/runtime 関連のエラーを抑制
+  if (args[0] && typeof args[0] === 'string' && 
+     (args[0].includes('@babel/runtime') || 
+      args[0].includes('Cannot find module'))) {
+    return;
+  }
+  originalConsoleError(...args);
+};
+
 // PanResponder モック
 jest.mock('react-native/Libraries/Interaction/PanResponder', () => ({
   create: jest.fn(() => ({

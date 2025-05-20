@@ -68,25 +68,11 @@ jobs:
           chmod +x ./scripts/fix-test-dependencies.sh
           ./scripts/fix-test-dependencies.sh
           
-      - name: Jest 設定の拡張
+      - name: テスト環境修正
         run: |
-          echo "Jestの設定を拡張します..."
-          grep -q "reporters:" jest.config.js || node -e "
-            const fs = require('fs');
-            const config = require('./jest.config.js');
-            
-            config.reporters = [
-              'default',
-              ['jest-junit', {
-                outputDirectory: 'test-results',
-                outputName: 'junit.xml',
-              }]
-            ];
-            
-            fs.writeFileSync('jest.config.js', 'module.exports = ' + JSON.stringify(config, null, 2));
-          "
-          # jest-junit がインストールされていることを確認
-          npm list jest-junit || npm install --save-dev jest-junit
+          # テスト環境修正スクリプトを実行
+          chmod +x ./scripts/fix-jest-for-github.sh
+          ./scripts/fix-jest-for-github.sh
       
       - name: 基本テスト（必須）
         id: basic_tests

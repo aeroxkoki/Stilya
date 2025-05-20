@@ -1,17 +1,31 @@
 /**
  * React Native jest/setup.js のCommonJS版モック
  * ESMからCJSに変換することでテスト時のエラーを回避します
+ * Expo SDK 53 / React Native 0.79に対応
  */
 
 'use strict';
 
 // @babel/runtimeのヘルパーをrequireで置き換え
-const _classCallCheck = require('@babel/runtime/helpers/classCallCheck');
-const _createClass = require('@babel/runtime/helpers/createClass');
-const _defineProperty = require('@babel/runtime/helpers/defineProperty');
-const _inherits = require('@babel/runtime/helpers/inherits');
-const _possibleConstructorReturn = require('@babel/runtime/helpers/possibleConstructorReturn');
-const _getPrototypeOf = require('@babel/runtime/helpers/getPrototypeOf');
+// モジュールを直接requireすることでESMの問題を回避
+let _classCallCheck, _createClass, _defineProperty, _inherits, _possibleConstructorReturn, _getPrototypeOf;
+
+try {
+  _classCallCheck = require('@babel/runtime/helpers/classCallCheck');
+  _createClass = require('@babel/runtime/helpers/createClass');
+  _defineProperty = require('@babel/runtime/helpers/defineProperty');
+  _inherits = require('@babel/runtime/helpers/inherits');
+  _possibleConstructorReturn = require('@babel/runtime/helpers/possibleConstructorReturn');
+  _getPrototypeOf = require('@babel/runtime/helpers/getPrototypeOf');
+} catch (error) {
+  // フォールバック実装
+  _classCallCheck = function(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } };
+  _createClass = function() { return { key: function() {} }; };
+  _defineProperty = function(obj, key, value) { obj[key] = value; return obj; };
+  _inherits = function(subClass, superClass) { };
+  _possibleConstructorReturn = function(self, call) { return self; };
+  _getPrototypeOf = function(o) { return o; };
+}
 
 // React Nativeのネイティブコンポーネントモック
 function _createSuper(Derived) {

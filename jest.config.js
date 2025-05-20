@@ -2,6 +2,7 @@
  * Jest configuration for Stilya
  * CI環境で確実に動作するように最適化
  * Expo SDK 53 / React Native 0.79に対応
+ * 最終更新: 2025-05-20
  */
 
 module.exports = {
@@ -27,7 +28,7 @@ module.exports = {
   
   // 無視するパターン - CI環境でのエラーを防ぐために範囲を広げる
   transformIgnorePatterns: [
-    'node_modules/(?!(jest-)?@?react-native|expo-.*|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|react-native-reanimated|@babel/runtime/helpers/|@shopify/flash-list)'
+    'node_modules/(?!(jest-)?@?react-native|react-native|expo-.*|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|react-native-reanimated|@babel/runtime/helpers/|@shopify/flash-list)'
   ],
   
   // モック設定
@@ -41,7 +42,6 @@ module.exports = {
     'expo-image': '<rootDir>/src/__mocks__/expo-image.js',
     // 問題のある setup.js ファイルをモック
     'react-native/jest/setup': '<rootDir>/src/__mocks__/react-native-jest-setup.js',
-    '@babel/runtime/helpers/(.*)': '<rootDir>/node_modules/@babel/runtime/helpers/$1.js',
     // babel系のプラグインモック
     'babel-plugin-transform-react-jsx': '<rootDir>/node_modules/babel-plugin-transform-react-jsx'
   },
@@ -51,8 +51,8 @@ module.exports = {
     './jest.setup.js'
   ],
   
-  // テスト環境 - ESM対応のために'jest-environment-node'に変更
-  testEnvironment: 'jest-environment-node',
+  // テスト環境 - NODE環境を使用してESM問題を回避
+  testEnvironment: 'node',
   
   // グローバル設定の注入を有効化
   injectGlobals: true,
