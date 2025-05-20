@@ -4,7 +4,7 @@ module.exports = function(api) {
     presets: ['babel-preset-expo'],
     plugins: [
       // Bridgeless モードを無効化するプラグイン設定
-      ['@babel/plugin-transform-react-jsx', { runtime: 'automatic' }],
+      ['babel-plugin-transform-react-jsx', { runtime: 'automatic' }],
       ['module-resolver', {
         alias: {
           // 問題のモジュールをダミーに置き換え

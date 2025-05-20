@@ -19,7 +19,9 @@ module.exports = {
   // テスト実行前の前処理
   transform: {
     '^.+\\.(js|jsx|ts|tsx|mjs)$': ['babel-jest', {
-      configFile: './babel.config.test.js'
+      configFile: './babel.config.test.js',
+      // 古いBabel JSXプラグインを使用
+      plugins: ['babel-plugin-transform-react-jsx']
     }]
   },
   
