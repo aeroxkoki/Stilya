@@ -351,7 +351,7 @@ jobs:
       - name: Expo ログイン
         uses: expo/expo-github-action@v8
         with:
-          eas-version: '7.8.5'
+          eas-version: '16.6.1'
           token: ${{ secrets.EXPO_TOKEN }}
       
       - name: Metro依存関係の修正
@@ -361,9 +361,6 @@ jobs:
       
       - name: EASプロジェクト初期化
         run: |
-          # 明示的にEXPO_TOKENを使ってログイン (新しい構文)
-          npx eas-cli login --token "${{ secrets.EXPO_TOKEN }}"
-          
           # app.jsonからプロジェクトIDを取得
           PROJECT_ID=$(node -e "console.log(require('./app.json').expo.extra.eas.projectId || '')")
           echo "📋 ProjectID: $PROJECT_ID"
@@ -408,9 +405,6 @@ jobs:
           rm -rf .expo || true
           rm -rf .expo-shared || true
           rm -rf .metro-cache || true
-          
-          # 明示的に再ログイン (新しい構文)
-          npx eas-cli login --token "${{ secrets.EXPO_TOKEN }}"
           
           # ブランチに応じてビルドプロファイルを選択
           if [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
@@ -497,14 +491,11 @@ jobs:
       - name: Expo ログイン
         uses: expo/expo-github-action@v8
         with:
-          eas-version: '7.8.5'
+          eas-version: '16.6.1'
           token: ${{ secrets.EXPO_TOKEN }}
       
       - name: EAS Update 実行
         run: |
-          # 明示的にEXPO_TOKENを使ってログイン（念のため）(新しい構文)
-          npx eas-cli login --token "${{ secrets.EXPO_TOKEN }}"
-          
           # Android向けアップデート
           npx eas-cli update --platform android --message "$(git log -1 --pretty=%B)"
           

@@ -79,12 +79,6 @@ fi
 
 # 権限確認
 echo "📋 Expo ログイン情報:"
-if [ -n "$EXPO_TOKEN" ]; then
-  echo "EXPO_TOKEN 環境変数が設定されているため、自動ログインを試みます。"
-  # CI環境ではEXPO_TOKENを使って自動ログイン
-  npx eas-cli login --token "$EXPO_TOKEN" || echo "⚠️ 自動ログインに失敗しました。"
-fi
-
 npx eas-cli whoami || echo "❌ EAS CLI でログインできません！"
 
 # プロジェクト設定の確認
