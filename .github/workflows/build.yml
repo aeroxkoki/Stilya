@@ -26,7 +26,7 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: 🔧 Install EAS CLI
-        run: yarn global add eas-cli@7.2.0
+        run: yarn global add eas-cli@16.6.1
 
       - name: 🧹 Clear Expo/Metro cache (optional)
         run: |
