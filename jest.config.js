@@ -14,7 +14,7 @@ module.exports = {
   ],
   
   // ES Modules設定
-  extensionsToTreatAsEsm: ['.ts', '.tsx', '.mjs'],
+  extensionsToTreatAsEsm: ['.ts', '.tsx'],
   
   // テスト実行前の前処理
   transform: {
