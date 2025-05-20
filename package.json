@@ -11,7 +11,7 @@
     "test:ci": "NODE_ENV=test NODE_OPTIONS=\"--no-warnings --experimental-vm-modules\" jest --no-warnings --config jest.config.js",
     "test:basic": "NODE_ENV=test NODE_OPTIONS=\"--no-warnings --experimental-vm-modules\" jest --config jest.config.js src/__tests__/basic.test.js --json --outputFile=basic-test-results.json",
     "test:simple": "NODE_ENV=test NODE_OPTIONS=\"--no-warnings --experimental-vm-modules\" jest --config jest.config.js src/__tests__/simple.test.js --json --outputFile=simple-test-results.json",
-    "test:authstore": "NODE_ENV=test NODE_OPTIONS=\"--no-warnings --experimental-vm-modules\" jest --config jest.config.js src/__tests__/authStore.test.ts --json --outputFile=authstore-test-results.json",
+    "test:authstore": "NODE_ENV=test NODE_OPTIONS=\"--no-warnings --experimental-vm-modules\" jest --config jest.config.js src/__tests__/auth/authStore.test.ts --json --outputFile=authstore-test-results.json",
     "test:optional": "NODE_ENV=test NODE_OPTIONS=\"--no-warnings --experimental-vm-modules\" jest --config jest.config.js --testMatch \"<rootDir>/src/__tests__/optional/**/*.test.{js,jsx,ts,tsx}\" --json --outputFile=optional-test-results.json",
     "test:all": "npm run test:basic && npm run test:simple && npm run test:authstore && npm run test:optional",
     "test:summary": "bash ./scripts/summarize-test-results.sh",
