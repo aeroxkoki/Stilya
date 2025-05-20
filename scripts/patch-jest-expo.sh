@@ -30,6 +30,72 @@ if [ -f "$JEST_EXPO_SETUP" ]; then
   cp "$JEST_EXPO_SETUP" "${JEST_EXPO_SETUP}.bak"
   echo "✅ バックアップを作成しました: ${JEST_EXPO_SETUP}.bak"
   
+  # 初期化コードを確認
+  # ファイルの先頭にcodeを追加する方法（windowの初期化の後に追加）
+  if ! grep -q "if (!globalThis.expo)" "$JEST_EXPO_SETUP"; then
+    # 17行目に初期化コードを挿入
+    LINE_NUM=17
+    # 一時ファイルに書き出し
+    head -n $LINE_NUM "$JEST_EXPO_SETUP" > "${JEST_EXPO_SETUP}.insert.tmp"
+    echo -e "
+// Ensure globalThis.expo exists with proper interfaces for EventEmitter, NativeModule, SharedObject
+if (!globalThis.expo) {
+  globalThis.expo = {
+    EventEmitter: class {
+      constructor() {
+        this.listeners = {};
+      }
+      addListener(eventName, listener) {
+        if (!this.listeners[eventName]) {
+          this.listeners[eventName] = [];
+        }
+        this.listeners[eventName].push(listener);
+        return { remove: () => this.removeListener(eventName, listener) };
+      }
+      removeListener(eventName, listener) {
+        if (this.listeners[eventName]) {
+          this.listeners[eventName] = this.listeners[eventName].filter(l => l !== listener);
+        }
+      }
+      removeAllListeners(eventName) {
+        if (eventName) {
+          delete this.listeners[eventName];
+        } else {
+          this.listeners = {};
+        }
+      }
+      emit(eventName, ...args) {
+        if (this.listeners[eventName]) {
+          this.listeners[eventName].forEach(listener => {
+            listener(...args);
+          });
+        }
+      }
+    },
+    NativeModule: class {
+      constructor(name) {
+        this.name = name || 'MockNativeModule';
+      }
+    },
+    SharedObject: class {
+      constructor(id) {
+        this.id = id || 'MockSharedObject';
+      }
+    }
+  };
+}
+
+// Ensure ExpoModulesCore is defined to avoid undeclared reference errors
+if (!globalThis.ExpoModulesCore) {
+  globalThis.ExpoModulesCore = {
+    uuid: { v4: () => 'mock-uuid-v4', v5: () => 'mock-uuid-v5' }
+  };
+}" >> "${JEST_EXPO_SETUP}.insert.tmp"
+    tail -n +$(($LINE_NUM+1)) "$JEST_EXPO_SETUP" >> "${JEST_EXPO_SETUP}.insert.tmp"
+    mv "${JEST_EXPO_SETUP}.insert.tmp" "$JEST_EXPO_SETUP"
+    echo "✅ ファイル先頭付近にglobalThis.expoの初期化コードを追加しました"
+  fi
+  
   # UUID関連の問題を修正
   # 行番号223付近の「const uuid = jest.requireActual(...)」という行が問題
   if grep -q "const uuid = jest.requireActual" "$JEST_EXPO_SETUP"; then
