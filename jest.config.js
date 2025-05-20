@@ -30,7 +30,7 @@ module.exports = {
   
   // セットアップファイル
   setupFiles: [
-    './setup-jest.js'
+    './jest.setup.js'
   ],
   
   // テスト環境

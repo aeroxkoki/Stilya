@@ -14,7 +14,7 @@ export interface CardProps {
   elevation?: 'none' | 'small' | 'medium' | 'large';
   onPress?: () => void;
   disabled?: boolean;
-  variant?: 'filled' | 'outlined';
+  variant?: 'filled' | 'outlined' | 'flat' | 'elevated';
   padding?: number | string; // カスタムパディングのサポート
   testID?: string;
   className?: string; // NativeWindとの互換性のため
@@ -72,14 +72,32 @@ const Card: React.FC<CardProps> = ({
     }
   };
 
-  // アウトライン表示の場合のスタイル
-  const variantStyle: ViewStyle = variant === 'outlined' 
-    ? {
-        backgroundColor: 'transparent',
-        borderWidth: 1,
-        borderColor: theme.colors.border.light,
-      }
-    : {};
+  // バリアントに基づいたスタイルを取得
+  const getVariantStyle = (): ViewStyle => {
+    switch (variant) {
+      case 'outlined':
+        return {
+          backgroundColor: 'transparent',
+          borderWidth: 1,
+          borderColor: theme.colors.border.light,
+        };
+      case 'flat':
+        return {
+          backgroundColor: theme.colors.background.card,
+          borderWidth: 0,
+          shadowOpacity: 0,
+          elevation: 0,
+        };
+      case 'elevated':
+        return {
+          backgroundColor: theme.colors.background.card,
+          ...getElevationStyle(),
+        };
+      case 'filled':
+      default:
+        return {};
+    }
+  };
 
   // pxやremなどの単位を使った場合に対応するため、数値に変換
   const paddingValue = typeof padding === 'string' 
@@ -89,22 +107,20 @@ const Card: React.FC<CardProps> = ({
   const cardStyle = [
     styles.card,
     {
-      backgroundColor: variant === 'outlined' 
-        ? 'transparent'
-        : theme.colors.background.card,
+      backgroundColor: theme.colors.background.card,
       borderRadius: theme.radius.m,
       shadowColor: isDarkMode ? '#000' : '#222',
       ...(paddingValue !== undefined && { padding: paddingValue }),
       ...Platform.select({
         ios: {
-          ...getElevationStyle(),
+          ...(variant !== 'flat' ? getElevationStyle() : { shadowOpacity: 0 }),
         },
         android: {
-          elevation: variant === 'outlined' ? 0 : getElevationStyle().elevation,
+          elevation: variant === 'outlined' || variant === 'flat' ? 0 : getElevationStyle().elevation,
         },
       }),
     },
-    variantStyle,
+    getVariantStyle(),
     style,
   ];
 

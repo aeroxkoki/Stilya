@@ -298,8 +298,15 @@ export const getRecommendedProducts = async (
   skipCache: boolean = false
 ): Promise<Product[]> => {
   try {
+    // まずはスワイプ履歴を取得して除外IDに追加
+    const swipeHistory = await getSwipeHistory(userId);
+    const swipedProductIds = swipeHistory.map(swipe => swipe.productId);
+    
+    // 既存の除外IDとスワイプ済みIDをマージ
+    const allExcludeIds = [...new Set([...excludeIds, ...swipedProductIds])];
+    
     // キャッシュキーを生成
-    const cacheKey = `${userId}_${limit}_${excludeIds.join(',')}`; 
+    const cacheKey = `${userId}_${limit}_${allExcludeIds.join(',')}`; 
     
     // キャッシュチェック
     if (!skipCache) {
@@ -316,7 +323,7 @@ export const getRecommendedProducts = async (
     if (!userPreference || !userPreference.topTags || userPreference.topTags.length === 0) {
       console.log('No user preferences found, using popular products instead');
       // 好みが分析できなかった場合は人気商品を返す
-      const popularProducts = await getPopularProducts(limit, excludeIds);
+      const popularProducts = await getPopularProducts(limit, allExcludeIds);
       
       // キャッシュに保存
       recommendationCache.set(cacheKey, {
@@ -345,17 +352,15 @@ export const getRecommendedProducts = async (
     
     // 有効なタグがある場合は、それを使って商品を検索
     if (validTags.length > 0) {
-      const validTagsCount = validTags.length; // 修正: 数値を渡す
-      
       recommendedProducts = await fetchProductsByTags(
         validTags,
         limit * 2, // 多めに取得して後でフィルタリング
-        0 // オフセットパラメータを追加
-      ).then(products => products.filter(p => !excludeIds.includes(p.id)));
+        allExcludeIds
+      );
     } else {
       console.log('No valid tags found for search, using popular products instead');
       // 有効なタグが見つからない場合は人気商品を返す
-      const popularProducts = await getPopularProducts(limit, excludeIds);
+      const popularProducts = await getPopularProducts(limit, allExcludeIds);
       
       // キャッシュに保存
       recommendationCache.set(cacheKey, {
@@ -368,7 +373,7 @@ export const getRecommendedProducts = async (
     
     if (recommendedProducts.length === 0) {
       // タグで検索してもヒットしなければ人気商品を返す
-      const popularProducts = await getPopularProducts(limit, excludeIds);
+      const popularProducts = await getPopularProducts(limit, allExcludeIds);
       
       // キャッシュに保存
       recommendationCache.set(cacheKey, {

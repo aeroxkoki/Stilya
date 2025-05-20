@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
 import { PanResponder } from 'react-native';
-import SwipeCard from '../../components/SwipeCard';
+import SwipeCard from '../../components/swipe/SwipeCard';
 import { ThemeProvider } from '../../contexts/ThemeContext';
 
 // ThemeContextをモック
@@ -19,31 +19,49 @@ jest.mock('../../contexts/ThemeContext', () => {
             secondary: '#6B7280',
             inverse: '#FFFFFF',
           },
+          status: {
+            success: '#22C55E',
+            error: '#EF4444',
+          },
+          button: {
+            disabled: '#9CA3AF',
+          },
+          border: {
+            light: '#E5E7EB',
+          },
+          secondary: '#6B7280',
+          accent: '#F59E0B',
+          background: {
+            card: '#FFFFFF',
+          }
         },
+        spacing: {
+          xs: 4,
+          s: 8,
+          m: 16,
+          l: 24, 
+          xl: 32,
+        },
+        radius: {
+          s: 4,
+          m: 8,
+          l: 16,
+        },
+        fontSizes: {
+          s: 12,
+          m: 16,
+          l: 20,
+        },
+        fontWeights: {
+          medium: '500',
+        }
       },
       isDarkMode: false,
     }),
   };
 });
 
-// PanResponderをモック
-jest.mock('react-native/Libraries/Interaction/PanResponder', () => ({
-  create: jest.fn(() => ({
-    panHandlers: {
-      onStartShouldSetResponder: jest.fn(),
-      onMoveShouldSetResponder: jest.fn(),
-      onStartShouldSetResponderCapture: jest.fn(),
-      onMoveShouldSetResponderCapture: jest.fn(),
-      onResponderGrant: jest.fn(),
-      onResponderReject: jest.fn(),
-      onResponderMove: jest.fn(),
-      onResponderRelease: jest.fn(),
-      onResponderTerminationRequest: jest.fn(),
-      onResponderTerminate: jest.fn(),
-    },
-  })),
-}));
-
+// モックデータ
 const mockProduct = {
   id: '1',
   title: 'テスト商品',

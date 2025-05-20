@@ -1,17 +1,20 @@
-// AsyncStorage のモック設定
-jest.mock('@react-native-async-storage/async-storage', () => ({
-  __esModule: true,
-  default: {
-    getItem: jest.fn(() => Promise.resolve(null)),
-    setItem: jest.fn(() => Promise.resolve(null)),
-    removeItem: jest.fn(() => Promise.resolve(null)),
-    multiGet: jest.fn(() => Promise.resolve([])),
-    multiSet: jest.fn(() => Promise.resolve(null)),
-    multiRemove: jest.fn(() => Promise.resolve(null)),
-    getAllKeys: jest.fn(() => Promise.resolve([])),
-    clear: jest.fn(() => Promise.resolve(null)),
-  },
-}));
+// PanResponder モック
+jest.mock('react-native/Libraries/Interaction/PanResponder', () => ({
+  create: jest.fn(() => ({
+    panHandlers: {
+      onStartShouldSetResponder: jest.fn(),
+      onMoveShouldSetResponder: jest.fn(),
+      onStartShouldSetResponderCapture: jest.fn(),
+      onMoveShouldSetResponderCapture: jest.fn(),
+      onResponderGrant: jest.fn(),
+      onResponderReject: jest.fn(),
+      onResponderMove: jest.fn(),
+      onResponderRelease: jest.fn(),
+      onResponderTerminationRequest: jest.fn(),
+      onResponderTerminate: jest.fn(),
+    },
+  })),
+}), { virtual: true });
 
 // NativeAnimatedHelper モック
 jest.mock('react-native/Libraries/Animated/NativeAnimatedHelper', () => ({
@@ -29,317 +32,168 @@ jest.mock('react-native/Libraries/Animated/NativeAnimatedHelper', () => ({
   disableQueue: jest.fn(),
 }), { virtual: true });
 
-// Reanimated の設定
-jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'));
-
-// NetInfo モック
-jest.mock('@react-native-community/netinfo', () => ({
-  addEventListener: jest.fn(() => jest.fn()),
-  fetch: jest.fn(() => Promise.resolve({ isConnected: true, isInternetReachable: true })),
-}));
-
-// VirtualizedList のモックを明示的に設定
-jest.mock('@react-native/virtualized-lists/Lists/VirtualizedList', () => {
-  const React = require('react');
-  const VirtualizedList = jest.fn(props => {
-    return React.createElement('VirtualizedList', props, props.children);
-  });
-  
-  // VirtualizedListの必要なプロパティをモック
-  VirtualizedList.getItem = jest.fn();
-  VirtualizedList.getItemCount = jest.fn();
-  VirtualizedList.scrollToIndex = jest.fn();
-  VirtualizedList.scrollToItem = jest.fn();
-  VirtualizedList.scrollToOffset = jest.fn();
-  VirtualizedList.recordInteraction = jest.fn();
-  VirtualizedList.flashScrollIndicators = jest.fn();
-  
-  return VirtualizedList;
-}, { virtual: true });
-
-// FlatListのモック
-jest.mock('react-native/Libraries/Lists/FlatList', () => {
-  const React = require('react');
-  const FlatList = jest.fn(props => {
-    return React.createElement('FlatList', props, props.children);
-  });
-  
-  // FlatListの必要なメソッドをモック
-  FlatList.scrollToEnd = jest.fn();
-  FlatList.scrollToIndex = jest.fn();
-  FlatList.scrollToItem = jest.fn();
-  FlatList.scrollToOffset = jest.fn();
-  
-  return FlatList;
-}, { virtual: true });
-
-// React 関連のモック
+// React Native関連のモック
 jest.mock('react-native', () => {
   const RN = jest.requireActual('react-native');
-  const React = require('react');
-  
-  // VirtualizedListのモック
-  const VirtualizedListMock = function(props) {
-    return React.createElement('VirtualizedList', props, props.children);
-  };
-  
-  VirtualizedListMock.getItem = jest.fn();
-  VirtualizedListMock.getItemCount = jest.fn();
-  
-  // FlatListのモック
-  const FlatListMock = function(props) {
-    return React.createElement('FlatList', props, props.children);
-  };
-  
-  FlatListMock.scrollToEnd = jest.fn();
-  FlatListMock.scrollToIndex = jest.fn();
-  
   return {
     ...RN,
-    NativeModules: {
-      ...RN.NativeModules,
-      UIManager: {
-        RCTView: {},
-        createView: jest.fn(),
-        updateView: jest.fn(),
-        getViewManagerConfig: jest.fn(() => ({ Commands: {} })),
-      },
-      DevMenu: {
-        reload: jest.fn(),
-        debugRemotely: jest.fn(),
-        devMenu: jest.fn(),
-      },
-      StatusBarManager: {
-        getHeight: jest.fn(),
-        setStyle: jest.fn(),
-        setHidden: jest.fn(),
-      },
-      BlobModule: {
-        ...RN.NativeModules?.BlobModule,
-        addNetworkingHandler: jest.fn(),
-        createFromParts: jest.fn(),
-        release: jest.fn(),
-      },
-      ImageLoader: {
-        getSize: jest.fn((uri, success) => success(100, 100)),
-        prefetchImage: jest.fn(),
-      },
-      RNGestureHandlerModule: {
-        attachGestureHandler: jest.fn(),
-        createGestureHandler: jest.fn(),
-        dropGestureHandler: jest.fn(),
-        updateGestureHandler: jest.fn(),
-        State: {},
-        Directions: {},
-      },
-    },
-    PanResponder: {
-      create: jest.fn(() => ({
-        panHandlers: {},
-      })),
+    StyleSheet: {
+      create: jest.fn(styles => styles),
+      flatten: jest.fn(styles => styles),
     },
     Animated: {
       ...RN.Animated,
       Value: jest.fn(() => ({
-        interpolate: jest.fn(),
+        interpolate: jest.fn(() => ({
+          interpolate: jest.fn(),
+        })),
         setValue: jest.fn(),
         setOffset: jest.fn(),
+        flattenOffset: jest.fn(),
+        extractOffset: jest.fn(),
         addListener: jest.fn(),
         removeListener: jest.fn(),
-        extractOffset: jest.fn(),
-        flattenOffset: jest.fn(),
+        stopAnimation: jest.fn(),
+        resetAnimation: jest.fn(),
       })),
+      ValueXY: jest.fn(() => ({
+        x: new RN.Animated.Value(0),
+        y: new RN.Animated.Value(0),
+        setValue: jest.fn(),
+        setOffset: jest.fn(),
+        flattenOffset: jest.fn(),
+        extractOffset: jest.fn(),
+        addListener: jest.fn(() => 1),
+        removeListener: jest.fn(),
+        getLayout: jest.fn(() => ({ left: 0, top: 0 })),
+        getTranslateTransform: jest.fn(() => []),
+        stopAnimation: jest.fn(),
+        resetAnimation: jest.fn(),
+      })),
+      View: jest.fn(({children}) => children),
+      Text: jest.fn(({children}) => children),
+      Image: jest.fn(({children}) => children),
+      createAnimatedComponent: jest.fn(comp => comp),
       timing: jest.fn(() => ({
-        start: jest.fn(cb => cb && cb()),
+        start: jest.fn(cb => cb && cb({ finished: true })),
+        stop: jest.fn(),
+        reset: jest.fn(),
       })),
       spring: jest.fn(() => ({
-        start: jest.fn(cb => cb && cb()),
+        start: jest.fn(cb => cb && cb({ finished: true })),
+        stop: jest.fn(),
+        reset: jest.fn(),
       })),
       decay: jest.fn(() => ({
-        start: jest.fn(cb => cb && cb()),
+        start: jest.fn(),
+        stop: jest.fn(),
+        reset: jest.fn(),
       })),
       sequence: jest.fn(() => ({
-        start: jest.fn(cb => cb && cb()),
+        start: jest.fn(),
       })),
       parallel: jest.fn(() => ({
-        start: jest.fn(cb => cb && cb()),
+        start: jest.fn(),
       })),
+      stagger: jest.fn(() => ({
+        start: jest.fn(),
+      })),
+      loop: jest.fn(() => ({
+        start: jest.fn(),
+      })),
+      delay: jest.fn(() => ({
+        start: jest.fn(),
+      })),
+      add: jest.fn(() => new RN.Animated.Value(0)),
+      subtract: jest.fn(() => new RN.Animated.Value(0)),
+      divide: jest.fn(() => new RN.Animated.Value(0)),
+      multiply: jest.fn(() => new RN.Animated.Value(0)),
+      modulo: jest.fn(() => new RN.Animated.Value(0)),
+      diffClamp: jest.fn(() => new RN.Animated.Value(0)),
+      delay: jest.fn(() => new RN.Animated.Value(0)),
       event: jest.fn(() => jest.fn()),
-      add: jest.fn(),
-      multiply: jest.fn(),
-      divide: jest.fn(),
-      modulo: jest.fn(),
-      diffClamp: jest.fn(),
     },
-    // Image コンポーネントのモック
-    Image: jest.fn(({ testID, source, onLoad }) => {
-      if (onLoad) {
-        setTimeout(() => {
-          onLoad({ nativeEvent: { source: { width: 100, height: 100 } } });
-        }, 10);
-      }
-      return {
-        type: 'Image',
-        props: { testID, source }
-      };
-    }),
     Dimensions: {
-      get: jest.fn().mockImplementation((dim) => {
-        if (dim === 'window' || dim === 'screen') {
-          return { width: 390, height: 844, scale: 2, fontScale: 1 };
-        }
-        return { width: 390, height: 844 };
-      }),
-      addEventListener: jest.fn(),
+      get: jest.fn(() => ({ width: 390, height: 844 })),
+      addEventListener: jest.fn(() => ({ remove: jest.fn() })),
       removeEventListener: jest.fn(),
     },
-    // タイマー関連
+    // InteractionManagerのモック
     InteractionManager: {
-      runAfterInteractions: jest.fn(cb => cb && cb()),
-      createInteractionHandle: jest.fn(),
+      runAfterInteractions: jest.fn(callback => {
+        if (callback && typeof callback === 'function') {
+          callback();
+        }
+        return { cancel: jest.fn() };
+      }),
+      createInteractionHandle: jest.fn(() => 1),
       clearInteractionHandle: jest.fn(),
       setDeadline: jest.fn(),
     },
-    // FlatListとVirtualizedListを明示的に提供
-    FlatList: FlatListMock,
-    VirtualizedList: VirtualizedListMock,
-    SectionList: jest.fn(props => {
-      return React.createElement('SectionList', props, props.children);
-    }),
+    PanResponder: {
+      create: jest.fn(() => ({
+        panHandlers: {
+          onStartShouldSetResponder: jest.fn(),
+          onMoveShouldSetResponder: jest.fn(),
+          onStartShouldSetResponderCapture: jest.fn(),
+          onMoveShouldSetResponderCapture: jest.fn(),
+          onResponderGrant: jest.fn(),
+          onResponderReject: jest.fn(),
+          onResponderMove: jest.fn(),
+          onResponderRelease: jest.fn(),
+          onResponderTerminationRequest: jest.fn(),
+          onResponderTerminate: jest.fn(),
+        },
+      })),
+    },
+    LayoutAnimation: {
+      configureNext: jest.fn(),
+      create: jest.fn(),
+      Types: {},
+      Properties: {},
+      checkConfig: jest.fn(),
+      Presets: {
+        easeInEaseOut: {},
+        linear: {},
+        spring: {},
+      },
+    },
   };
 });
+
+// Asyncストレージのモック
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  getItem: jest.fn(() => Promise.resolve(null)),
+  setItem: jest.fn(() => Promise.resolve(null)),
+  removeItem: jest.fn(() => Promise.resolve(null)),
+  clear: jest.fn(() => Promise.resolve(null)),
+  getAllKeys: jest.fn(() => Promise.resolve([])),
+  multiGet: jest.fn(() => Promise.resolve([])),
+  multiSet: jest.fn(() => Promise.resolve(null)),
+  multiRemove: jest.fn(() => Promise.resolve(null)),
+}));
+
+// Reanimated のモック
+jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'));
+
+// NetInfo のモック
+jest.mock('@react-native-community/netinfo', () => ({
+  addEventListener: jest.fn(() => ({ remove: jest.fn() })),
+  fetch: jest.fn(() => Promise.resolve({ isConnected: true, isInternetReachable: true })),
+}));
 
 // Expoアイコンのモック
-jest.mock('@expo/vector-icons', () => {
-  const { View } = require('react-native');
-  return {
-    Feather: jest.fn(props => ({
-      type: 'Feather',
-      props: {
-        ...props,
-        testID: 'feather-icon'
-      }
-    })),
-    MaterialIcons: jest.fn(props => ({
-      type: 'MaterialIcons',
-      props: {
-        ...props,
-        testID: 'material-icon'
-      }
-    })),
-    Ionicons: jest.fn(props => ({
-      type: 'Ionicons',
-      props: {
-        ...props,
-        testID: 'ionicons-icon'
-      }
-    })),
-    FontAwesome: jest.fn(props => ({
-      type: 'FontAwesome',
-      props: {
-        ...props,
-        testID: 'fontawesome-icon'
-      }
-    })),
-    FontAwesome5: jest.fn(props => ({
-      type: 'FontAwesome5',
-      props: {
-        ...props,
-        testID: 'fontawesome5-icon'
-      }
-    })),
-    AntDesign: jest.fn(props => ({
-      type: 'AntDesign',
-      props: {
-        ...props,
-        testID: 'antdesign-icon'
-      }
-    })),
-  };
-});
+jest.mock('@expo/vector-icons', () => ({
+  Feather: 'Feather',
+  MaterialIcons: 'MaterialIcons',
+  Ionicons: 'Ionicons',
+  FontAwesome: 'FontAwesome',
+  FontAwesome5: 'FontAwesome5',
+  AntDesign: 'AntDesign',
+}));
 
-// Expo Image モック
-jest.mock('expo-image', () => {
-  const { View } = require('react-native');
-  return {
-    Image: jest.fn(props => ({
-      type: 'ExpoImage',
-      props: {
-        ...props,
-        testID: 'expo-image'
-      }
-    }))
-  };
-});
-
-// テスト環境用のSupabase設定
-process.env.SUPABASE_URL = 'https://ddypgpljprljqrblpuli.supabase.co';
-process.env.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkeXBncGxqcHJsanFyYmxwdWxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcxMDMwOTcsImV4cCI6MjA2MjY3OTA5N30.u4310NL9FYdxcMSrGxEzEXP0M5y5pDuG3_mz7IRAhMU';
-process.env.LINKSHARE_API_TOKEN = 'test-linkshare-token';
-process.env.LINKSHARE_MERCHANT_ID = 'test-merchant-id';
-process.env.RAKUTEN_APP_ID = 'test-rakuten-app-id';
-process.env.RAKUTEN_AFFILIATE_ID = 'test-rakuten-affiliate-id';
-
-// Mock for Onboarding screen images
-jest.mock('../../assets/images/onboarding/welcome.png', () => 'welcome-image-mock', { virtual: true });
-jest.mock('../../assets/images/onboarding/gender.png', () => 'gender-image-mock', { virtual: true });
-jest.mock('../../assets/images/onboarding/style.png', () => 'style-image-mock', { virtual: true });
-jest.mock('../../assets/images/onboarding/age.png', () => 'age-image-mock', { virtual: true });
-jest.mock('../../assets/images/onboarding/complete.png', () => 'complete-image-mock', { virtual: true });
-
-// グローバル関数のセットアップ
-// analyzeUserPreferences関数のモック
-global.analyzeUserPreferences = jest.fn().mockResolvedValue({
-  userId: 'test-user-123',
-  tagScores: { 'casual': 2.0, 'cotton': 1.5, 'formal': 1.0 },
-  topTags: ['casual', 'cotton', 'formal']
-});
-
-// グローバル設定
+// テスト環境の設定
+global.__DEV__ = true;
+global.window = {};
 global.__reanimatedWorkletInit = jest.fn();
 global._WORKLET = false;
-global.window = {};
-global.__DEV__ = true;
-
-// Jest global object verification and fallback
-if (typeof global.jest === 'undefined') {
-  console.error('Jest global object is still undefined after setup-jest.js ran');
-  // Create a backup implementation as a fallback
-  try {
-    const jestPackage = require('@jest/globals');
-    
-    // Add all jest globals
-    global.jest = jestPackage.jest;
-    global.expect = jestPackage.expect;
-    global.test = jestPackage.test;
-    global.describe = jestPackage.describe;
-    global.beforeEach = jestPackage.beforeEach;
-    global.afterEach = jestPackage.afterEach;
-    global.beforeAll = jestPackage.beforeAll;
-    global.afterAll = jestPackage.afterAll;
-    
-    console.log('Jest globals successfully initialized in jest.setup.js');
-  } catch (error) {
-    console.error('Failed to import jest from @jest/globals in jest.setup.js:', error);
-    // Last resort fallback - create a minimal mock implementation
-    global.jest = {
-      fn: (impl) => impl || (() => {}),
-      mock: () => {},
-      unmock: () => {},
-      spyOn: () => ({ mockImplementation: () => ({}) }),
-      clearAllMocks: () => {},
-      resetAllMocks: () => {},
-      requireActual: (path) => require(path)
-    };
-  }
-}
-
-// Verify jest is available
-if (typeof global.jest !== 'undefined') {
-  console.log('Jest is available globally at end of jest.setup.js');
-} else {
-  console.error('Jest is still not available globally at end of jest.setup.js');
-}
-
-// React要素のimport
-const React = require('react');
