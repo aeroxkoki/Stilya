@@ -21,16 +21,17 @@ module.exports = {
     }]
   },
   
-  // 無視するパターン
+  // モジュールトランスフォームの前処理が必要
+  // React Native のコアモジュールをトランスフォーム対象に含める
   transformIgnorePatterns: [
-    'node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|react-native-reanimated))'
+    'node_modules/(?!(((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|react-native-reanimated|@babel/runtime)/))'
   ],
   
-  // モック設定
+  // モック設定 - 問題のあるモジュールを直接モックに置き換え
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '\\.svg': '<rootDir>/src/__mocks__/svgMock.js',
-    // React Native Jestセットアップファイルを自前のCommonJSバージョンに置き換え
+    // React Native Jest setupファイルを自前のCommonJSバージョンに置き換え
     'react-native/jest/setup': '<rootDir>/src/__mocks__/react-native-jest-setup.js',
     // New Architecture 関連のモジュールを無効化
     'react-native/Libraries/TurboModule/(.*)': '<rootDir>/src/__mocks__/emptyModule.js',
@@ -38,6 +39,8 @@ module.exports = {
     'react-native/src/private/specs_DEPRECATED/(.*)': '<rootDir>/src/__mocks__/emptyModule.js',
     // expo-image のモック
     'expo-image': '<rootDir>/src/__mocks__/expo-image.js',
+    // babel-runtime ヘルパーの解決
+    '@babel/runtime/helpers/(.*)': '<rootDir>/node_modules/@babel/runtime/helpers/$1',
   },
   
   // セットアップファイル
@@ -107,6 +110,7 @@ module.exports = {
       EXPO_USE_NATIVE_MODULES: 'false',
       RCT_NEW_ARCH_ENABLED: 'false',
       EX_DEV_CLIENT_NETWORK_INSPECTOR: 'false',
+      BABEL_ENV: 'test',
       unstable_enablePackageExports: 'false',
     }
   }

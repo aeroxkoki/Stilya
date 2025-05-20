@@ -1,13 +1,19 @@
 /**
  * テスト用Babel設定
  * Expo SDK 53 / React Native 0.79用に最適化
- * 2025-05-20更新
+ * 2025-05-21更新 - GitHub Actions環境でのESM問題修正
  */
 
 module.exports = function(api) {
   api.cache(true);
   return {
     presets: [
+      ['@babel/preset-env', {
+        targets: {
+          node: 'current',
+        },
+        modules: 'commonjs', // 必ずCommonJSを出力
+      }],
       ['babel-preset-expo', {
         // テスト用に最適化
         lazyImports: false,
@@ -25,6 +31,12 @@ module.exports = function(api) {
         // ESModulesを使用しない設定
         useESModules: false
       }],
+      // ESモジュールをCommonJSに変換
+      ['@babel/plugin-transform-modules-commonjs', {
+        strict: false,
+        allowTopLevelThis: true,
+        loose: true,
+      }],
       // モジュール解決の設定
       ['module-resolver', {
         alias: {
@@ -32,6 +44,8 @@ module.exports = function(api) {
           'react-native/Libraries/TurboModule': './src/__mocks__/emptyModule',
           'react-native/src/private/devmenu': './src/__mocks__/emptyModule',
           'react-native/src/private/specs_DEPRECATED': './src/__mocks__/emptyModule',
+          // モックファイル
+          'react-native/jest/setup': './src/__mocks__/react-native-jest-setup',
           // フルパスエイリアス
           '@': './src',
         },
