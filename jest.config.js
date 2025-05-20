@@ -60,7 +60,12 @@ module.exports = {
     'default',
     ['jest-junit', {
       outputDirectory: 'test-results',
-      outputName: 'junit.xml',
+      outputName: ({ testResults }) => {
+        // テストパスに基づいて出力ファイル名を変更
+        const isOptionalTest = testResults.some(result => 
+          result.testFilePath.includes('/__tests__/optional/'));
+        return isOptionalTest ? 'junit-optional.xml' : 'junit.xml';
+      },
       classNameTemplate: '{classname}',
       titleTemplate: '{title}',
       ancestorSeparator: ' › ',
