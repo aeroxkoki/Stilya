@@ -22,7 +22,7 @@ module.exports = {
   
   // 無視するパターン - CI環境でのエラーを防ぐために範囲を広げる
   transformIgnorePatterns: [
-    'node_modules/(?!(jest-)?@?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|react-native-reanimated)'
+    'node_modules/(?!(jest-)?@?react-native|expo-.*|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|react-native-reanimated|@babel/runtime/helpers/|@shopify/flash-list)'
   ],
   
   // モック設定
@@ -41,8 +41,8 @@ module.exports = {
     './jest.setup.js'
   ],
   
-  // テスト環境
-  testEnvironment: 'node',
+  // テスト環境 - ESM対応のために'jest-environment-node'に変更
+  testEnvironment: 'jest-environment-node',
   
   // グローバル設定の注入を有効化
   injectGlobals: true,

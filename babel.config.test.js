@@ -17,6 +17,7 @@ module.exports = function(api) {
         extensions: ['.js', '.jsx', '.ts', '.tsx'],
       }],
     ],
+    // 統合されたenv設定
     env: {
       test: {
         plugins: [
@@ -32,19 +33,6 @@ module.exports = function(api) {
             },
           }],
         ],
-        // テスト用にPackage Exports を無効化
-        unstable_enablePackageExports: false,
-      },
-      production: {
-        plugins: ['transform-remove-console'],
-      },
-    },
-    // New Architecture 関連の最適化
-    env: {
-      production: {
-        plugins: ['transform-remove-console'],
-      },
-      test: {
         presets: [
           ['babel-preset-expo', {
             // テスト用に最適化
@@ -53,6 +41,11 @@ module.exports = function(api) {
             unstable_enablePackageExports: false,
           }]
         ],
+        // テスト用にPackage Exports を無効化
+        unstable_enablePackageExports: false,
+      },
+      production: {
+        plugins: ['transform-remove-console'],
       },
     },
   };
