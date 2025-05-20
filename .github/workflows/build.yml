@@ -342,8 +342,17 @@ jobs:
           # 明示的に再ログイン (新しい構文)
           npx eas-cli login --token "${{ secrets.EXPO_TOKEN }}"
           
-          echo "🚀 EAS ビルド実行中..."
-          npx eas-cli build --platform android --profile ci --verbose
+          # ブランチに応じてビルドプロファイルを選択
+          if [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
+            echo "🚀 develop ブランチ向けプレビュービルドを実行中..."
+            npx eas-cli build --platform android --profile preview --verbose
+          elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "🚀 main ブランチ向け本番ビルドを実行中..."
+            npx eas-cli build --platform android --profile production --verbose
+          else
+            echo "🚀 その他のブランチ向けCIビルドを実行中..."
+            npx eas-cli build --platform android --profile ci --verbose
+          fi
         
       - name: ビルド完了通知
         if: success()
