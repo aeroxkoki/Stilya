@@ -73,6 +73,10 @@ jobs:
           # テスト環境修正スクリプトを実行
           chmod +x ./scripts/fix-jest-for-github.sh
           ./scripts/fix-jest-for-github.sh
+          
+          # React Nativeのsetup.jsを直接パッチ
+          chmod +x ./scripts/patch-react-native-jest.sh
+          ./scripts/patch-react-native-jest.sh
       
       - name: 基本テスト（必須）
         id: basic_tests

@@ -28,7 +28,8 @@ module.exports = {
   
   // 無視するパターン - CI環境でのエラーを防ぐために範囲を広げる
   transformIgnorePatterns: [
-    'node_modules/(?!(jest-)?@?react-native|react-native|expo-.*|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|react-native-reanimated|@babel/runtime/helpers/|@shopify/flash-list)'
+    // すべてのnode_modulesをトランスパイル対象に含めると遅いので、必要なものだけ指定
+    'node_modules/(?!(@?react-native.*|react-native|expo-.*|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|react-native-reanimated|@babel/runtime|@shopify/flash-list|@?react-native-community))'
   ],
   
   // モック設定
