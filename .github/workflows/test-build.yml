@@ -1,0 +1,63 @@
+name: Test and Build
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: |
+          npm run test:basic
+          npm run test:simple
+          npm run test:authstore
+          npm run test:optional
+        env:
+          CI: true
+          NODE_OPTIONS: "--no-warnings --experimental-vm-modules"
+          EAS_SKIP_JAVASCRIPT_BUNDLING: "true"
+          EXPO_USE_NEW_ARCHITECTURE: "0"
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Preview
+        run: npx eas-cli build --platform all --profile preview --non-interactive
+        env:
+          EAS_SKIP_JAVASCRIPT_BUNDLING: "true"
+          EXPO_USE_NEW_ARCHITECTURE: "0"

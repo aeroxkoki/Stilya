@@ -1,6 +1,7 @@
 /**
  * Jest configuration for Stilya
  * CI環境で確実に動作するように最適化
+ * Expo SDK 53 / React Native 0.79に対応
  */
 
 module.exports = {
@@ -14,7 +15,9 @@ module.exports = {
   
   // 変換設定
   transform: {
-    '^.+\\.(js|jsx|ts|tsx)$': 'babel-jest'
+    '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', {
+      configFile: './babel.config.test.js' // テスト用Babel設定
+    }]
   },
   
   // 無視するパターン - CI環境でのエラーを防ぐために範囲を広げる
@@ -25,7 +28,12 @@ module.exports = {
   // モック設定
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
-    '\\.svg': '<rootDir>/src/__mocks__/svgMock.js'
+    '\\.svg': '<rootDir>/src/__mocks__/svgMock.js',
+    // New Architecture 関連のモジュールを無効化
+    'react-native/Libraries/TurboModule/(.*)': '<rootDir>/src/__mocks__/emptyModule.js',
+    'react-native/Libraries/Components/View/ViewNativeComponent': '<rootDir>/src/__mocks__/viewNativeComponent.js',
+    // expo-image のモック
+    'expo-image': '<rootDir>/src/__mocks__/expo-image.js',
   },
   
   // セットアップファイル
@@ -72,11 +80,27 @@ module.exports = {
   // その他の設定
   globals: {
     __DEV__: true,
+    // New Architecture 無効化フラグ
+    RN$Bridgeless: false,
+    // DevTools を無効化
+    __REACT_DEVTOOLS_GLOBAL_HOOK__: { isDisabled: true },
+    // Hermes エンジンを模倣
+    HermesInternal: null,
   },
   
   // React Native向けの設定
   haste: {
     defaultPlatform: 'ios',
     platforms: ['ios', 'android'],
+  },
+  
+  // 環境変数設定
+  testEnvironmentOptions: {
+    // Package Exportsを無効化する環境変数
+    env: {
+      NODE_OPTIONS: '--no-warnings --experimental-vm-modules',
+      EAS_SKIP_JAVASCRIPT_BUNDLING: 'true',
+    }
   }
+};
 };

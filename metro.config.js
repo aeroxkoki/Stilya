@@ -5,8 +5,10 @@ const { getDefaultConfig } = require('@expo/metro-config');
 const config = getDefaultConfig(__dirname);
 
 // パッケージエクスポートフィールド対応（問題が発生する場合のオプトアウト用）
+// Expo SDK 53 / React Native 0.79 では特に重要
 if (config.resolver) {
   config.resolver.unstable_enablePackageExports = false;
+  config.resolver.disableHierarchicalLookup = true;
 }
 
 // 共通設定（Supabaseなどのライブラリの問題に対応）
@@ -18,6 +20,7 @@ if (config.resolver) {
     stream: require.resolve('stream-browserify'),
     path: require.resolve('path-browserify'),
     url: require.resolve('url'),
+    fs: require.resolve('react-native-fs'),
   };
 }
 
@@ -49,6 +52,21 @@ if (__DEV__) {
   // 開発環境での最適化
   config.resetCache = false;
   config.maxWorkers = Math.max(2, (require('os').cpus().length / 2)); // 効率的なワーカー数
+}
+
+// GitHub Actions / CI環境での設定
+if (process.env.CI || process.env.GITHUB_ACTIONS) {
+  // CI環境ではキャッシュリセットを避ける
+  config.resetCache = false;
+  // パフォーマンス最適化
+  config.maxWorkers = 2;
+  // ウォッチモードを無効化
+  config.watchFolders = [];
+  // Package Exportsを確実に無効化
+  if (config.resolver) {
+    config.resolver.unstable_enablePackageExports = false;
+    config.resolver.disableHierarchicalLookup = true;
+  }
 }
 
 module.exports = config;

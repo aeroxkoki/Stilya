@@ -32,6 +32,35 @@ jest.mock('react-native/Libraries/Animated/NativeAnimatedHelper', () => ({
   disableQueue: jest.fn(),
 }), { virtual: true });
 
+// TurboModuleRegistry モック (New Architecture対応)
+jest.mock('react-native/Libraries/TurboModule/TurboModuleRegistry', () => ({
+  get: jest.fn((name) => {
+    return null;
+  }),
+  getEnforcing: jest.fn((name) => {
+    if (name === 'DevMenu') {
+      return {
+        reload: jest.fn(),
+        debugRemotely: jest.fn(),
+        devMenu: jest.fn(),
+      };
+    }
+    return {
+      install: jest.fn(),
+      get: jest.fn(),
+      getConstantsForViewManager: jest.fn(),
+      getViewManagerConfig: jest.fn(),
+    };
+  }),
+}), { virtual: true });
+
+// DevMenu モック
+jest.mock('react-native/src/private/specs_DEPRECATED/modules/NativeDevMenu', () => ({
+  reload: jest.fn(),
+  debugRemotely: jest.fn(),
+  devMenu: jest.fn(),
+}), { virtual: true });
+
 // React Native関連のモック
 jest.mock('react-native', () => {
   const RN = jest.requireActual('react-native');
@@ -158,6 +187,14 @@ jest.mock('react-native', () => {
         spring: {},
       },
     },
+    TurboModuleRegistry: {
+      get: jest.fn(() => null),
+      getEnforcing: jest.fn(() => ({
+        reload: jest.fn(),
+        debugRemotely: jest.fn(),
+        devMenu: jest.fn(),
+      })),
+    },
   };
 });
 
@@ -192,8 +229,22 @@ jest.mock('@expo/vector-icons', () => ({
   AntDesign: 'AntDesign',
 }));
 
+// Expo Image モック
+jest.mock('expo-image', () => ({
+  Image: {
+    prefetch: jest.fn(() => Promise.resolve(true)),
+    clearMemoryCache: jest.fn(() => Promise.resolve()),
+    clearDiskCache: jest.fn(() => Promise.resolve()),
+  },
+  ImageBackground: jest.fn(({children}) => children),
+  ImageProgress: jest.fn(({children}) => children),
+}));
+
 // テスト環境の設定
 global.__DEV__ = true;
 global.window = {};
 global.__reanimatedWorkletInit = jest.fn();
 global._WORKLET = false;
+
+// New Architecture関連の設定
+global.RN$Bridgeless = false;
