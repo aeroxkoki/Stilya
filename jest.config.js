@@ -25,7 +25,7 @@ module.exports = {
   // React Native のコアモジュールをトランスフォーム対象に含める
   // @babel/runtimeも明示的にトランスフォーム対象に含める
   transformIgnorePatterns: [
-    'node_modules/(?!(((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|expo-modules-core|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|react-native-reanimated|@babel/runtime)/)))'
+    'node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|expo-modules-core|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|react-native-reanimated|@babel/runtime))'
   ],
   
   // モック設定 - 問題のあるモジュールを直接モックに置き換え
