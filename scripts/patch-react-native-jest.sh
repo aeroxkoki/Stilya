@@ -22,22 +22,24 @@ if [ -f "$RN_JEST_SETUP" ]; then
 
   # ESM importを CommonJS requireに変換
   echo "ESM importを CommonJS requireに変換します..."
-  perl -pi -e 's/import\s+(\w+)\s+from\s+["\']([^"\']+)["\'];/var $1 = require("$2");/g' "$RN_JEST_SETUP"
+  sed -i 's/import \([a-zA-Z_][a-zA-Z0-9_]*\) from "\([^"]*\)";/var \1 = require("\2");/g' "$RN_JEST_SETUP"
+  sed -i "s/import \([a-zA-Z_][a-zA-Z0-9_]*\) from '\([^']*\)';/var \1 = require('\2');/g" "$RN_JEST_SETUP"
   
   # destructuring importsを変換
-  perl -pi -e 's/import\s+\{\s*([^}]+)\s*\}\s+from\s+["\']([^"\']+)["\'];/var _temp = require("$2"); var $1 = _temp.$1;/g' "$RN_JEST_SETUP"
+  sed -i 's/import {[ ]*\([^}]*\)[ ]*} from "\([^"]*\)";/var _temp = require("\2"); var \1 = _temp.\1;/g' "$RN_JEST_SETUP"
+  sed -i "s/import {[ ]*\([^}]*\)[ ]*} from '\([^']*\)';/var _temp = require('\2'); var \1 = _temp.\1;/g" "$RN_JEST_SETUP"
   
   # export defaultを module.exports に変換
   echo "export defaultを module.exports に変換します..."
-  perl -pi -e 's/export\s+default\s+([\w\{\}]+);/module.exports = $1;/g' "$RN_JEST_SETUP"
+  sed -i 's/export default \(.*\);/module.exports = \1;/g' "$RN_JEST_SETUP"
   
   # 単純なexport文を修正
   echo "その他のexport文を修正します..."
-  perl -pi -e 's/export\s+const/const/g' "$RN_JEST_SETUP"
-  perl -pi -e 's/export\s+function/function/g' "$RN_JEST_SETUP"
-  perl -pi -e 's/export\s+var/var/g' "$RN_JEST_SETUP"
-  perl -pi -e 's/export\s+let/let/g' "$RN_JEST_SETUP"
-  perl -pi -e 's/export\s+class/class/g' "$RN_JEST_SETUP"
+  sed -i 's/export const/const/g' "$RN_JEST_SETUP"
+  sed -i 's/export function/function/g' "$RN_JEST_SETUP"
+  sed -i 's/export var/var/g' "$RN_JEST_SETUP"
+  sed -i 's/export let/let/g' "$RN_JEST_SETUP"
+  sed -i 's/export class/class/g' "$RN_JEST_SETUP"
   
   # モジュール末尾に exports 追加
   echo "モジュールエクスポートを追加します..."
@@ -45,11 +47,11 @@ if [ -f "$RN_JEST_SETUP" ]; then
   
   # コンテンツを一時ファイルに保存
   TEMP_FILE=".jest/temp_exports.js"
-  grep -o "export const [a-zA-Z_][a-zA-Z0-9_]*" "${RN_JEST_SETUP}.bak" 2>/dev/null | perl -pe 's/export const (\w+)/module.exports.$1 = $1;/g' > "$TEMP_FILE"
-  grep -o "export function [a-zA-Z_][a-zA-Z0-9_]*" "${RN_JEST_SETUP}.bak" 2>/dev/null | perl -pe 's/export function (\w+)/module.exports.$1 = $1;/g' >> "$TEMP_FILE"
-  grep -o "export var [a-zA-Z_][a-zA-Z0-9_]*" "${RN_JEST_SETUP}.bak" 2>/dev/null | perl -pe 's/export var (\w+)/module.exports.$1 = $1;/g' >> "$TEMP_FILE"
-  grep -o "export let [a-zA-Z_][a-zA-Z0-9_]*" "${RN_JEST_SETUP}.bak" 2>/dev/null | perl -pe 's/export let (\w+)/module.exports.$1 = $1;/g' >> "$TEMP_FILE"
-  grep -o "export class [a-zA-Z_][a-zA-Z0-9_]*" "${RN_JEST_SETUP}.bak" 2>/dev/null | perl -pe 's/export class (\w+)/module.exports.$1 = $1;/g' >> "$TEMP_FILE"
+  grep -o "export const [a-zA-Z_][a-zA-Z0-9_]*" "${RN_JEST_SETUP}.bak" 2>/dev/null | sed 's/export const \(.*\)/module.exports.\1 = \1;/g' > "$TEMP_FILE"
+  grep -o "export function [a-zA-Z_][a-zA-Z0-9_]*" "${RN_JEST_SETUP}.bak" 2>/dev/null | sed 's/export function \(.*\)/module.exports.\1 = \1;/g' >> "$TEMP_FILE"
+  grep -o "export var [a-zA-Z_][a-zA-Z0-9_]*" "${RN_JEST_SETUP}.bak" 2>/dev/null | sed 's/export var \(.*\)/module.exports.\1 = \1;/g' >> "$TEMP_FILE"
+  grep -o "export let [a-zA-Z_][a-zA-Z0-9_]*" "${RN_JEST_SETUP}.bak" 2>/dev/null | sed 's/export let \(.*\)/module.exports.\1 = \1;/g' >> "$TEMP_FILE"
+  grep -o "export class [a-zA-Z_][a-zA-Z0-9_]*" "${RN_JEST_SETUP}.bak" 2>/dev/null | sed 's/export class \(.*\)/module.exports.\1 = \1;/g' >> "$TEMP_FILE"
   
   # 重複を削除して追加
   if [ -s "$TEMP_FILE" ]; then
@@ -77,9 +79,10 @@ if [ -f "$RN_JEST_SETUP" ]; then
         cp "$file" "$ESM_HELPERS_DIR/$BASENAME.cjs"
         
         # CJSに変換（ESM構文をCommonJSに置き換え）
-        perl -pi -e 's/export default/module.exports =/g' "$ESM_HELPERS_DIR/$BASENAME.cjs"
-        perl -pi -e 's/export //g' "$ESM_HELPERS_DIR/$BASENAME.cjs"
-        perl -pi -e 's/import (\w+) from ["\']([^"\']+)["\'];/var $1 = require("$2");/g' "$ESM_HELPERS_DIR/$BASENAME.cjs"
+        sed -i 's/export default/module.exports =/g' "$ESM_HELPERS_DIR/$BASENAME.cjs"
+        sed -i 's/export //g' "$ESM_HELPERS_DIR/$BASENAME.cjs"
+        sed -i 's/import \([a-zA-Z_][a-zA-Z0-9_]*\) from "\([^"]*\)";/var \1 = require("\2");/g' "$ESM_HELPERS_DIR/$BASENAME.cjs"
+        sed -i "s/import \([a-zA-Z_][a-zA-Z0-9_]*\) from '\([^']*\)';/var \1 = require('\2');/g" "$ESM_HELPERS_DIR/$BASENAME.cjs"
         
         echo "Created: $ESM_HELPERS_DIR/$BASENAME.cjs"
       fi
@@ -108,12 +111,12 @@ for module_path in \
     
     # 簡易パッチ - CommonJS変換
     echo "Patching $module_path..."
-    perl -pi -e 's/export default/module.exports =/g' "$module_path"
-    perl -pi -e 's/export const/const/g' "$module_path"
-    perl -pi -e 's/export function/function/g' "$module_path"
+    sed -i 's/export default/module.exports =/g' "$module_path"
+    sed -i 's/export const/const/g' "$module_path"
+    sed -i 's/export function/function/g' "$module_path"
     
     # エクスポート追加
-    grep -o "const [a-zA-Z_][a-zA-Z0-9_]*" "$module_path" | perl -pe 's/const (\w+)/module.exports.$1 = $1;/g' >> "$module_path"
+    grep -o "const [a-zA-Z_][a-zA-Z0-9_]*" "$module_path" | sed 's/const \(.*\)/module.exports.\1 = \1;/g' >> "$module_path"
   fi
 done
 
