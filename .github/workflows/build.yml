@@ -1,5 +1,13 @@
 name: Stilya CI/CD
 
+# 全体の環境変数を一元管理
+env:
+  NODE_OPTIONS: "--max-old-space-size=8192"
+  EAS_SKIP_JAVASCRIPT_BUNDLING: "1"
+  METRO_CONFIG_FIX: "true"
+  EXPO_USE_NATIVE_MODULES: "false"
+  RCT_NEW_ARCH_ENABLED: "false"
+
 on:
   push:
     branches: [ main, develop ]
@@ -22,9 +30,6 @@ jobs:
           node-version: '20'
           cache: 'npm'
       
-      - name: NODE_OPTIONS の環境変数設定
-        run: echo "NODE_OPTIONS=--max-old-space-size=8192" >> $GITHUB_ENV
-      
       - name: Expo CLI インストール
         run: npm install -g expo-cli@latest eas-cli@latest
       
@@ -42,6 +47,16 @@ jobs:
           npm install
           # 同期後にclean-installを実行
           npm ci
+      
+      - name: キャッシュクリア
+        run: |
+          set -e
+          echo "🧹 キャッシュをクリアします..."
+          rm -rf node_modules/.cache
+          rm -rf ~/.expo/cache || true
+          rm -rf .expo || true
+          rm -rf .expo-shared || true
+          rm -rf .metro-cache || true
       
       - name: Metro依存関係の修正
         run: |
@@ -232,6 +247,45 @@ jobs:
           else
             echo "::notice::すべてのテストが成功しました！"
           fi
+
+      - name: エラーログ収集
+        if: failure()
+        run: |
+          echo "📦 エラーログを収集しています..."
+          mkdir -p error-logs
+          
+          # テスト失敗情報
+          cp *.json error-logs/ 2>/dev/null || echo "JSONファイルがありません"
+          cp -r test-results error-logs/ 2>/dev/null || echo "テスト結果ディレクトリがありません"
+          
+          # 依存関係情報
+          npm list > error-logs/dependencies.txt 2>&1 || echo "依存関係の取得に失敗"
+          npm list expo react react-native metro > error-logs/core-deps.txt 2>&1 || echo "主要依存関係の取得に失敗"
+          
+          # 環境情報
+          echo "NODE_VERSION=$(node -v)" > error-logs/environment.txt
+          echo "NPM_VERSION=$(npm -v)" >> error-logs/environment.txt
+          echo "EXPO_CLI=$(expo --version 2>&1)" >> error-logs/environment.txt
+          echo "EAS_CLI=$(npx eas-cli --version 2>&1)" >> error-logs/environment.txt
+          
+          # 設定ファイル
+          cp *.config.js error-logs/ 2>/dev/null || echo "設定ファイルがありません"
+          cp app.json error-logs/ 2>/dev/null || echo "app.jsonがありません"
+          cp eas.json error-logs/ 2>/dev/null || echo "eas.jsonがありません"
+          
+          # ログファイル
+          cp *.log error-logs/ 2>/dev/null || echo "ログファイルがありません" 
+          cp -r ~/.expo/logs/* error-logs/ 2>/dev/null || echo "Expoログがありません"
+          
+          echo "✅ エラーログの収集が完了しました"
+      
+      - name: エラーログのアップロード
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: error-logs
+          path: error-logs/
+          if-no-files-found: ignore
   
   build:
     name: アプリビルド
@@ -240,8 +294,6 @@ jobs:
     # main/developブランチへのpushまたはワークフロー手動実行時のみビルド
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     
-    env:
-      EAS_SKIP_JAVASCRIPT_BUNDLING: "1"
     steps:
       - name: リポジトリをチェックアウト
         uses: actions/checkout@v4
@@ -251,9 +303,6 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-      
-      - name: NODE_OPTIONS の環境変数設定
-        run: echo "NODE_OPTIONS=--max-old-space-size=8192" >> $GITHUB_ENV
       
       - name: Expo CLI インストール
         run: npm install -g expo-cli@latest eas-cli@latest
@@ -275,10 +324,13 @@ jobs:
       
       - name: キャッシュクリア
         run: |
+          set -e
+          echo "🧹 キャッシュをクリアします..."
           rm -rf node_modules/.cache
-          rm -rf ~/.expo/cache
-          rm -rf .expo
-          rm -rf .expo-shared
+          rm -rf ~/.expo/cache || true
+          rm -rf .expo || true
+          rm -rf .expo-shared || true
+          rm -rf .metro-cache || true
       
       - name: Expo ログイン
         uses: expo/expo-github-action@v8
@@ -332,12 +384,14 @@ jobs:
       - name: EAS ビルド実行 (詳細モード)
         run: |
           echo "🚀 EAS ビルド開始前にキャッシュを完全にクリア..."
+          # キャッシュをクリア
+          set -e
           npm cache clean --force
           rm -rf node_modules/.cache
-          rm -rf ~/.expo/cache
-          rm -rf .expo
-          rm -rf .expo-shared
-          rm -rf .metro-cache
+          rm -rf ~/.expo/cache || true
+          rm -rf .expo || true
+          rm -rf .expo-shared || true
+          rm -rf .metro-cache || true
           
           # 明示的に再ログイン (新しい構文)
           npx eas-cli login --token "${{ secrets.EXPO_TOKEN }}"
@@ -357,6 +411,45 @@ jobs:
       - name: ビルド完了通知
         if: success()
         run: echo "✅ ビルドが正常に完了しました。"
+      
+      - name: エラーログ収集
+        if: failure()
+        run: |
+          echo "📦 ビルドエラーログを収集しています..."
+          mkdir -p build-error-logs
+          
+          # メトロ・EAS関連のログ
+          cp -r ~/.expo/logs/* build-error-logs/ 2>/dev/null || echo "Expoログがありません"
+          cp -r ~/.eas build-error-logs/ 2>/dev/null || echo "EAS設定がありません"
+          
+          # 依存関係情報
+          npm list > build-error-logs/dependencies.txt 2>&1 || echo "依存関係の取得に失敗"
+          npm list expo react react-native metro > build-error-logs/core-deps.txt 2>&1 || echo "主要依存関係の取得に失敗"
+          
+          # 環境情報
+          echo "NODE_VERSION=$(node -v)" > build-error-logs/environment.txt
+          echo "NPM_VERSION=$(npm -v)" >> build-error-logs/environment.txt
+          echo "EXPO_CLI=$(expo --version 2>&1)" >> build-error-logs/environment.txt
+          echo "EAS_CLI=$(npx eas-cli --version 2>&1)" >> build-error-logs/environment.txt
+          echo "METRO_VERSION=$(npm list metro | grep metro)" >> build-error-logs/environment.txt
+          
+          # 設定ファイル
+          cp *.config.js build-error-logs/ 2>/dev/null || echo "設定ファイルがありません"
+          cp app.json build-error-logs/ 2>/dev/null || echo "app.jsonがありません"
+          cp eas.json build-error-logs/ 2>/dev/null || echo "eas.jsonがありません"
+          
+          # ログファイル
+          cp *.log build-error-logs/ 2>/dev/null || echo "ログファイルがありません"
+          
+          echo "✅ ビルドエラーログの収集が完了しました"
+      
+      - name: ビルドエラーログのアップロード
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-error-logs
+          path: build-error-logs/
+          if-no-files-found: ignore
         
   update:
     name: OTAアップデート配信
@@ -374,9 +467,6 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-      
-      - name: NODE_OPTIONS の環境変数設定
-        run: echo "NODE_OPTIONS=--max-old-space-size=8192" >> $GITHUB_ENV
       
       - name: Expo CLI インストール
         run: npm install -g expo-cli@latest eas-cli@latest
@@ -408,3 +498,29 @@ jobs:
       - name: 更新完了通知
         if: success()
         run: echo "✅ OTAアップデートが正常に配信されました。"
+      
+      - name: エラーログ収集
+        if: failure()
+        run: |
+          echo "📦 アップデートエラーログを収集しています..."
+          mkdir -p update-error-logs
+          
+          # Expo・EAS関連のログ
+          cp -r ~/.expo/logs/* update-error-logs/ 2>/dev/null || echo "Expoログがありません"
+          
+          # EAI情報収集
+          npx eas-cli update:list --limit 5 --json > update-error-logs/update-history.json 2>/dev/null || echo "アップデート履歴の取得に失敗"
+          npx eas-cli project:info --json > update-error-logs/project-info.json 2>/dev/null || echo "プロジェクト情報の取得に失敗"
+          
+          # エラーメッセージをログファイルに出力
+          echo "最後のコマンド実行結果: $?" > update-error-logs/exit-status.txt
+          
+          echo "✅ アップデートエラーログの収集が完了しました"
+      
+      - name: アップデートエラーログのアップロード
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: update-error-logs
+          path: update-error-logs/
+          if-no-files-found: ignore
