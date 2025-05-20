@@ -48,6 +48,25 @@ stilya/
 └── package.json      # 依存関係とスクリプト
 ```
 
+### テスト実行方法
+
+テストを実行するには、以下のコマンドを使用します：
+
+```bash
+# Jest テストを実行
+npm test
+
+# 特定のテストファイルを実行
+npm run test:basic        # 基本テスト
+npm run test:authstore    # 認証ストアテスト
+
+# uuid の問題を修正した上でテストを実行
+npm run test:fix-uuid     # パッチ適用後にテストを実行
+```
+
+Jest テストの実行中に `Identifier 'uuid' has already been declared` エラーが発生した場合は、`test:fix-uuid` コマンドを使用してください。
+詳細な解決方法については [TEST_FIX.md](TEST_FIX.md) を参照してください。
+
 ## ビルド方法
 
 ### EASビルド (推奨)
@@ -197,6 +216,11 @@ npm run fix-metro
 3. **ビルドエラー**
    - 原因: JavaScriptバンドル生成の問題
    - 解決: `EAS_SKIP_JAVASCRIPT_BUNDLING=1`を設定
+
+4. **Jestテストの`uuid`エラー**
+   - 原因: jest-expoモジュールでのuuid競合
+   - 解決: `npm run test:fix-uuid`を実行してパッチを適用
+   - 詳細: [TEST_FIX.md](TEST_FIX.md)参照
 
 ## ライセンス
 

@@ -1,45 +1,70 @@
 #!/bin/bash
 # jest-expoのsetupファイルをパッチして直接修正するスクリプト
 # Expo SDK 53 / React Native 0.79での互換性問題を修正
+# 2025-05 アップデート: patch-packageを使用したアプローチを追加
 
 JEST_EXPO_SETUP="node_modules/jest-expo/src/preset/setup.js"
 
 echo "🩹 jest-expo のセットアップファイルをパッチします..."
 
+# 先に patch-package が使用可能かをチェック
+if command -v npx > /dev/null && npx --no-install patch-package --help > /dev/null 2>&1; then
+  echo "✅ patch-package を使用してパッチを適用します"
+  
+  # パッチディレクトリが存在するかチェック
+  if [ -d "patches" ] && [ -f "patches/jest-expo+50.0.0.patch" ]; then
+    echo "✅ 既存のパッチファイルを使用します"
+    npx --no-install patch-package
+    echo "✅ patch-package によるパッチが完了しました！"
+    exit 0
+  else
+    echo "⚠️ patches ディレクトリが見つからないため、従来の方法でパッチを適用します"
+  fi
+else
+  echo "⚠️ patch-package が見つからないため、従来の方法でパッチを適用します"
+fi
+
+# 従来の直接編集によるパッチ処理
 if [ -f "$JEST_EXPO_SETUP" ]; then
   # バックアップを作成
   cp "$JEST_EXPO_SETUP" "${JEST_EXPO_SETUP}.bak"
   echo "✅ バックアップを作成しました: ${JEST_EXPO_SETUP}.bak"
   
   # UUID関連の問題を修正
-  # 行番号278付近の「const uuid = require("uuid");」という行が問題
-  if grep -q "const uuid = require(\"uuid\");" "$JEST_EXPO_SETUP"; then
-    # 問題のある行を条件付き宣言に置き換える
-    sed -i'.tmp' 's/const uuid = require("uuid");/let uuid; try { uuid = require("uuid"); } catch(e) { console.warn("uuid already loaded or not available"); }/' "$JEST_EXPO_SETUP"
+  # 行番号223付近の「const uuid = jest.requireActual(...)」という行が問題
+  if grep -q "const uuid = jest.requireActual" "$JEST_EXPO_SETUP"; then
+    # 問題のある行を修正
+    sed -i'' 's/const uuid = jest.requireActual.*$/\/\/ Use our custom UUID mock instead of requiring it again\n    const customUuid = jest.requireActual("..\/..\/..\/src\/__mocks__\/uuid");/' "$JEST_EXPO_SETUP"
     echo "✅ UUID の重複宣言問題を修正しました"
     
-    # 一時ファイルを削除
-    rm -f "${JEST_EXPO_SETUP}.tmp"
+    # ExpoModulesCore.uuidの参照も修正
+    sed -i'' 's/ExpoModulesCore.uuid.v4 = uuid.default.v4;/ExpoModulesCore.uuid.v4 = customUuid.v4;/' "$JEST_EXPO_SETUP"
+    sed -i'' 's/ExpoModulesCore.uuid.v5 = uuid.default.v5;/ExpoModulesCore.uuid.v5 = customUuid.v5;/' "$JEST_EXPO_SETUP"
+    echo "✅ UUID メソッドの参照を修正しました"
+  elif grep -q "const uuid = require(\"uuid\");" "$JEST_EXPO_SETUP"; then
+    # 問題のある行を条件付き宣言に置き換える
+    sed -i'' 's/const uuid = require("uuid");/let uuid; try { uuid = require("uuid"); } catch(e) { console.warn("uuid already loaded or not available"); }/' "$JEST_EXPO_SETUP"
+    echo "✅ UUID の重複宣言問題を修正しました - 代替方法"
   fi
 
   # globalThis.expoが未定義の問題を修正
   if grep -q "const { EventEmitter, NativeModule, SharedObject } = globalThis.expo;" "$JEST_EXPO_SETUP" && ! grep -q "if (!globalThis.expo)" "$JEST_EXPO_SETUP"; then
     # globalThis.expoの初期化コードを追加
-    sed -i'.tmp2' 's/const { EventEmitter, NativeModule, SharedObject } = globalThis.expo;/\/\/ Ensure globalThis.expo exists\nif (!globalThis.expo) {\n  globalThis.expo = {\n    EventEmitter: class {\n      constructor() {\n        this.listeners = {};\n      }\n      addListener(eventName, listener) {\n        if (!this.listeners[eventName]) {\n          this.listeners[eventName] = [];\n        }\n        this.listeners[eventName].push(listener);\n        return { remove: () => this.removeListener(eventName, listener) };\n      }\n      removeListener(eventName, listener) {\n        if (this.listeners[eventName]) {\n          this.listeners[eventName] = this.listeners[eventName].filter(l => l !== listener);\n        }\n      }\n      removeAllListeners(eventName) {\n        if (eventName) {\n          delete this.listeners[eventName];\n        } else {\n          this.listeners = {};\n        }\n      }\n      emit(eventName, ...args) {\n        if (this.listeners[eventName]) {\n          this.listeners[eventName].forEach(listener => {\n            listener(...args);\n          });\n        }\n      }\n    },\n    NativeModule: class {\n      constructor(name) {\n        this.name = name;\n      }\n    },\n    SharedObject: class {\n      constructor(id) {\n        this.id = id;\n      }\n    }\n  };\n}\nconst { EventEmitter, NativeModule, SharedObject } = globalThis.expo;/' "$JEST_EXPO_SETUP"
+    EXPO_MOCK='\/\/ Ensure globalThis.expo exists\nif (!globalThis.expo) {\n  globalThis.expo = {\n    EventEmitter: class {\n      constructor() {\n        this.listeners = {};\n      }\n      addListener(eventName, listener) {\n        if (!this.listeners[eventName]) {\n          this.listeners[eventName] = [];\n        }\n        this.listeners[eventName].push(listener);\n        return { remove: () => this.removeListener(eventName, listener) };\n      }\n      removeListener(eventName, listener) {\n        if (this.listeners[eventName]) {\n          this.listeners[eventName] = this.listeners[eventName].filter(l => l !== listener);\n        }\n      }\n      removeAllListeners(eventName) {\n        if (eventName) {\n          delete this.listeners[eventName];\n        } else {\n          this.listeners = {};\n        }\n      }\n      emit(eventName, ...args) {\n        if (this.listeners[eventName]) {\n          this.listeners[eventName].forEach(listener => {\n            listener(...args);\n          });\n        }\n      }\n    },\n    NativeModule: class {\n      constructor(name) {\n        this.name = name;\n      }\n    },\n    SharedObject: class {\n      constructor(id) {\n        this.id = id;\n      }\n    }\n  };\n}\nconst { EventEmitter, NativeModule, SharedObject } = globalThis.expo;'
+    
+    # sedコマンドの互換性問題を回避するアプローチ
+    grep -v "const { EventEmitter, NativeModule, SharedObject } = globalThis.expo;" "$JEST_EXPO_SETUP" > "${JEST_EXPO_SETUP}.new"
+    # 元のファイルから特定の行を検索して、その行の場所に挿入
+    LINE_NUM=$(grep -n "const { EventEmitter, NativeModule, SharedObject } = globalThis.expo;" "$JEST_EXPO_SETUP" | cut -d':' -f1)
+    if [ -n "$LINE_NUM" ]; then
+      head -n $(($LINE_NUM-1)) "$JEST_EXPO_SETUP" > "${JEST_EXPO_SETUP}.new.tmp"
+      echo -e "$EXPO_MOCK" >> "${JEST_EXPO_SETUP}.new.tmp"
+      tail -n +$(($LINE_NUM+1)) "$JEST_EXPO_SETUP" >> "${JEST_EXPO_SETUP}.new.tmp"
+      mv "${JEST_EXPO_SETUP}.new.tmp" "${JEST_EXPO_SETUP}.new"
+    fi
+    
+    mv "${JEST_EXPO_SETUP}.new" "$JEST_EXPO_SETUP"
     echo "✅ globalThis.expo のモックを追加しました"
-    
-    # 一時ファイルを削除
-    rm -f "${JEST_EXPO_SETUP}.tmp2"
-  fi
-
-  # ExpoModulesCore.uuid 関連の修正
-  if grep -q "ExpoModulesCore.uuid.v4 = uuid.default.v4;" "$JEST_EXPO_SETUP"; then
-    # より堅牢なUUID処理を追加
-    sed -i'.tmp3' 's/ExpoModulesCore.uuid.v4 = uuid.default.v4;/\/\/ Ensure uuid methods are available\nif (uuid) {\n  ExpoModulesCore.uuid = uuid;\n  if (uuid.default && uuid.default.v4) {\n    ExpoModulesCore.uuid.v4 = uuid.default.v4;\n  } else if (uuid.v4) {\n    ExpoModulesCore.uuid.v4 = uuid.v4;\n  } else {\n    ExpoModulesCore.uuid.v4 = () => {\n      return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(\/[xy]\/g, function(c) {\n        var r = Math.random() * 16 | 0, v = c == "x" ? r : (r & 0x3 | 0x8);\n        return v.toString(16);\n      });\n    };\n  }\n} else {\n  ExpoModulesCore.uuid = {\n    v4: () => {\n      return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(\/[xy]\/g, function(c) {\n        var r = Math.random() * 16 | 0, v = c == "x" ? r : (r & 0x3 | 0x8);\n        return v.toString(16);\n      });\n    }\n  };\n}/' "$JEST_EXPO_SETUP"
-    echo "✅ UUID 関連の処理を強化しました"
-    
-    # 一時ファイルを削除
-    rm -f "${JEST_EXPO_SETUP}.tmp3"
   fi
 
 else

@@ -79,13 +79,22 @@ jobs:
           chmod +x ./scripts/fix-jest-for-github.sh
           ./scripts/fix-jest-for-github.sh
           
+          # patch-packageのインストール
+          npm install --save-dev patch-package
+          
+          # パッチの適用
+          if [ -d "patches" ] && [ -f "patches/jest-expo+50.0.0.patch" ]; then
+            echo "✅ patch-packageを使用してjest-expoのパッチを適用します"
+            npx patch-package
+          else
+            # 従来のスクリプトを使用
+            chmod +x ./scripts/patch-jest-expo.sh
+            ./scripts/patch-jest-expo.sh
+          fi
+          
           # React Nativeのsetup.jsを直接パッチ
           chmod +x ./scripts/patch-react-native-jest.sh
           ./scripts/patch-react-native-jest.sh
-          
-          # jest-expoのsetup.jsを直接パッチ
-          chmod +x ./scripts/patch-jest-expo.sh
-          ./scripts/patch-jest-expo.sh
           
           # Expo Modules互換性問題を解決するスクリプトを実行
           chmod +x ./scripts/fix-expo-modules-for-jest.sh
