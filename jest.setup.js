@@ -1,7 +1,7 @@
 /**
  * Stilya Jest セットアップファイル
  * Expo SDK 53 / React Native 0.79との互換性対応
- * 更新日: 2025-05-20
+ * 更新日: 2025-05-21
  */
 
 // globalThis.expo を事前に設定
@@ -51,6 +51,13 @@ if (!globalThis.expo) {
   };
 }
 
+// ExpoModulesCoreを設定
+if (!globalThis.ExpoModulesCore) {
+  globalThis.ExpoModulesCore = {
+    uuid: require('./src/__mocks__/uuid'),
+  };
+}
+
 // expo-modules-core を明示的にモック
 jest.mock('expo-modules-core', () => {
   const mockExports = {
@@ -63,6 +70,7 @@ jest.mock('expo-modules-core', () => {
     NativeModules: {},
     requireOptionalNativeModule: jest.fn(() => null),
     __esModule: true,
+    uuid: require('./src/__mocks__/uuid'),
   };
   return mockExports;
 }, { virtual: true });

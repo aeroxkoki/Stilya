@@ -50,6 +50,8 @@ module.exports = {
     'expo-modules-core/web/CoreModule': '<rootDir>/src/__mocks__/expo-modules-core/web/CoreModule.js',
     'expo-modules-core/index': '<rootDir>/src/__mocks__/expo-modules-core/index.js',
     'expo-modules-core': '<rootDir>/src/__mocks__/expo-modules-core/index.js',
+    // uuidモジュールのモック 
+    'uuid': '<rootDir>/src/__mocks__/uuid.js',
   },
   
   // セットアップファイル
