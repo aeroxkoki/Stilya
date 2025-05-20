@@ -14,37 +14,30 @@ module.exports = {
     '<rootDir>/src/__tests__/**/*.test.{js,jsx,ts,tsx}'
   ],
   
-  // ES Modules設定
-  extensionsToTreatAsEsm: ['.ts', '.tsx'],
-  
   // テスト実行前の前処理
   transform: {
     '^.+\\.(js|jsx|ts|tsx|mjs)$': ['babel-jest', {
       configFile: './babel.config.test.js',
-      // 古いBabel JSXプラグインを使用
-      plugins: ['babel-plugin-transform-react-jsx']
     }]
   },
   
-  // 無視するパターン - CI環境でのエラーを防ぐために範囲を広げる
+  // 無視するパターン
   transformIgnorePatterns: [
-    // すべてのnode_modulesをトランスパイル対象に含めると遅いので、必要なものだけ指定
-    'node_modules/(?!(@?react-native.*|react-native|expo-.*|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|react-native-reanimated|@babel/runtime|@shopify/flash-list|@?react-native-community))'
+    'node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|react-native-reanimated))'
   ],
   
   // モック設定
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '\\.svg': '<rootDir>/src/__mocks__/svgMock.js',
+    // React Native Jestセットアップファイルを自前のCommonJSバージョンに置き換え
+    'react-native/jest/setup': '<rootDir>/src/__mocks__/react-native-jest-setup.js',
     // New Architecture 関連のモジュールを無効化
     'react-native/Libraries/TurboModule/(.*)': '<rootDir>/src/__mocks__/emptyModule.js',
     'react-native/Libraries/Components/View/ViewNativeComponent': '<rootDir>/src/__mocks__/viewNativeComponent.js',
+    'react-native/src/private/specs_DEPRECATED/(.*)': '<rootDir>/src/__mocks__/emptyModule.js',
     // expo-image のモック
     'expo-image': '<rootDir>/src/__mocks__/expo-image.js',
-    // 問題のある setup.js ファイルをモック
-    'react-native/jest/setup': '<rootDir>/src/__mocks__/react-native-jest-setup.js',
-    // babel系のプラグインモック
-    'babel-plugin-transform-react-jsx': '<rootDir>/node_modules/babel-plugin-transform-react-jsx'
   },
   
   // セットアップファイル
@@ -52,7 +45,7 @@ module.exports = {
     './jest.setup.js'
   ],
   
-  // テスト環境 - NODE環境を使用してESM問題を回避
+  // テスト環境
   testEnvironment: 'node',
   
   // グローバル設定の注入を有効化
@@ -107,7 +100,6 @@ module.exports = {
   
   // 環境変数設定
   testEnvironmentOptions: {
-    // Package Exportsを無効化する環境変数
     env: {
       NODE_OPTIONS: '--no-warnings --experimental-vm-modules',
       EAS_SKIP_JAVASCRIPT_BUNDLING: 'true',
@@ -115,7 +107,6 @@ module.exports = {
       EXPO_USE_NATIVE_MODULES: 'false',
       RCT_NEW_ARCH_ENABLED: 'false',
       EX_DEV_CLIENT_NETWORK_INSPECTOR: 'false',
-      EX_USE_METRO_LITE_SERVER: 'false',
       unstable_enablePackageExports: 'false',
     }
   }

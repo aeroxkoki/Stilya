@@ -7,6 +7,8 @@ env:
   METRO_CONFIG_FIX: "true"
   EXPO_USE_NATIVE_MODULES: "false"
   RCT_NEW_ARCH_ENABLED: "false"
+  BABEL_ENV: "test"
+  JEST_CACHE_DIRECTORY: ".jest"
 
 on:
   push:
@@ -70,6 +72,9 @@ jobs:
           
       - name: テスト環境修正
         run: |
+          # キャッシュディレクトリを作成
+          mkdir -p .jest
+          
           # テスト環境修正スクリプトを実行
           chmod +x ./scripts/fix-jest-for-github.sh
           ./scripts/fix-jest-for-github.sh

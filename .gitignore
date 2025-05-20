@@ -63,6 +63,8 @@ junit.xml
 # Temporary files
 .metro-cache/
 .babel-cache/
+.jest/
+node_modules/.cache/
 
 # utility scripts (開発補助用スクリプト)
 fix-dependencies-legacy.sh
