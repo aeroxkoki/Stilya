@@ -38,8 +38,9 @@
     "github:build": "EAS_SKIP_JAVASCRIPT_BUNDLING=1 eas build --platform android --profile production --non-interactive",
     "postinstall": "npm install --no-save @babel/runtime@7.27.1 && npm dedupe && echo 'Dependencies configured'",
     "fix-test": "chmod +x ./scripts/patch-react-native-jest.sh && ./scripts/patch-react-native-jest.sh",
+    "fix-jest-expo": "chmod +x ./scripts/patch-jest-expo.sh && ./scripts/patch-jest-expo.sh",
     "install-test-deps": "chmod +x ./scripts/install-test-dependencies.sh && ./scripts/install-test-dependencies.sh",
-    "prepare-test": "npm run install-test-deps && npm run fix-test && ./scripts/fix-expo-modules-for-jest.sh"
+    "prepare-test": "npm run install-test-deps && npm run fix-test && npm run fix-jest-expo && ./scripts/fix-expo-modules-for-jest.sh"
   },
   "dependencies": {
     "@babel/runtime": "7.27.1",

@@ -1,52 +1,31 @@
 /**
- * CoreModule のモック
+ * expo-modules-core/web/CoreModule のモック
  */
 
-// コアモジュールのモック
-const EventEmitter = function() {
-  return {
-    addListener: jest.fn(),
-    emit: jest.fn(),
-    removeListener: jest.fn(),
-    removeAllListeners: jest.fn(),
-    listeners: jest.fn(() => [])
-  };
-};
-
-const SharedObject = {
-  create: jest.fn(),
-  get: jest.fn(),
-  set: jest.fn(),
-  update: jest.fn(),
-  delete: jest.fn()
-};
-
-const SharedRef = {
-  create: jest.fn(),
-  get: jest.fn()
-};
-
-const NativeModule = {
-  createNativeModuleProxy: jest.fn(),
-  getModule: jest.fn(),
-  hasModule: jest.fn(() => false)
-};
-
-// エクスポート
 module.exports = {
-  EventEmitter,
-  SharedObject,
-  SharedRef,
-  NativeModule,
-  
-  // ESM互換性のためのフラグ
-  __esModule: true,
-  
-  // デフォルトエクスポート
+  // コアモジュール機能をモック
   default: {
-    EventEmitter,
-    SharedObject,
-    SharedRef,
-    NativeModule
-  }
+    // 必要なメソッド
+    createModuleRegistry: jest.fn(() => ({
+      getModuleByName: jest.fn(),
+      getAllModules: jest.fn(() => []),
+    })),
+    
+    // プラットフォーム関連
+    platform: {
+      OS: 'web',
+      select: jest.fn(obj => obj.web || obj.default),
+    },
+    
+    // エラー型
+    CodedError: class CodedError extends Error {
+      constructor(code, message) {
+        super(message);
+        this.code = code;
+      }
+    },
+  },
+  
+  // CommonJS互換用
+  __esModule: true,
 };

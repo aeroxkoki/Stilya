@@ -4,14 +4,57 @@
  * 更新日: 2025-05-20
  */
 
+// globalThis.expo を事前に設定
+if (!globalThis.expo) {
+  globalThis.expo = {
+    EventEmitter: class {
+      constructor() {
+        this.listeners = {};
+      }
+      addListener(eventName, listener) {
+        if (!this.listeners[eventName]) {
+          this.listeners[eventName] = [];
+        }
+        this.listeners[eventName].push(listener);
+        return { remove: () => this.removeListener(eventName, listener) };
+      }
+      removeListener(eventName, listener) {
+        if (this.listeners[eventName]) {
+          this.listeners[eventName] = this.listeners[eventName].filter(l => l !== listener);
+        }
+      }
+      removeAllListeners(eventName) {
+        if (eventName) {
+          delete this.listeners[eventName];
+        } else {
+          this.listeners = {};
+        }
+      }
+      emit(eventName, ...args) {
+        if (this.listeners[eventName]) {
+          this.listeners[eventName].forEach(listener => {
+            listener(...args);
+          });
+        }
+      }
+    },
+    NativeModule: class {
+      constructor(name) {
+        this.name = name;
+      }
+    },
+    SharedObject: class {
+      constructor(id) {
+        this.id = id;
+      }
+    }
+  };
+}
+
 // expo-modules-core を明示的にモック
 jest.mock('expo-modules-core', () => {
   const mockExports = {
-    EventEmitter: jest.fn().mockImplementation(() => ({
-      addListener: jest.fn(),
-      emit: jest.fn(),
-      removeListener: jest.fn(),
-    })),
+    EventEmitter: globalThis.expo.EventEmitter,
     NativeModulesProxy: {},
     Platform: {
       OS: 'web',

@@ -1,53 +1,40 @@
 /**
- * expo-modules-core のモック - Web
- * ESMモジュールの互換性問題を解決するためのモック
+ * expo-modules-core/web のモック
  */
 
-// コアモジュールのモック
-const EventEmitter = function() {
-  return {
-    addListener: jest.fn(),
-    emit: jest.fn(),
-    removeListener: jest.fn(),
-    removeAllListeners: jest.fn(),
-    listeners: jest.fn(() => [])
-  };
-};
-
-const SharedObject = {
-  create: jest.fn(),
-  get: jest.fn(),
-  set: jest.fn(),
-  update: jest.fn(),
-  delete: jest.fn()
-};
-
-const SharedRef = {
-  create: jest.fn(),
-  get: jest.fn()
-};
-
-const NativeModule = {
-  createNativeModuleProxy: jest.fn(),
-  getModule: jest.fn(),
-  hasModule: jest.fn(() => false)
-};
-
-// エクスポート
+// モジュールをエクスポート
 module.exports = {
-  EventEmitter,
-  SharedObject,
-  SharedRef,
-  NativeModule,
+  // ライフサイクルイベント用エミッター
+  EventEmitter: require('../index').EventEmitter,
   
-  // ESM互換性のためのフラグ
-  __esModule: true,
+  // その他のモック
+  Platform: {
+    OS: 'web',
+    select: jest.fn(obj => obj.web || obj.default),
+  },
   
-  // デフォルトエクスポート
-  default: {
-    EventEmitter,
-    SharedObject,
-    SharedRef,
-    NativeModule
-  }
+  // Webエントリーポイント用
+  WebEventEmitter: class {
+    constructor() {
+      this.listeners = {};
+    }
+    
+    addListener(eventName, listener) {
+      if (!this.listeners[eventName]) {
+        this.listeners[eventName] = [];
+      }
+      this.listeners[eventName].push(listener);
+      return { remove: () => this.removeListener(eventName, listener) };
+    }
+    
+    removeAllListeners() {
+      this.listeners = {};
+    }
+    
+    emit(eventName, ...args) {
+      if (this.listeners[eventName]) {
+        this.listeners[eventName].forEach(listener => listener(...args));
+      }
+    }
+  },
 };
