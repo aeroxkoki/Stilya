@@ -82,10 +82,14 @@ jobs:
           # patch-packageのインストール
           npm install --save-dev patch-package
           
-          # パッチの適用
+          # 直接パッチスクリプトを優先実行 (パッチファイルの問題を解決)
+          chmod +x ./scripts/direct-patch-jest-expo.sh
+          ./scripts/direct-patch-jest-expo.sh
+          
+          # パッチの適用（直接パッチ後なので、このステップは基本的にスキップされる）
           if [ -d "patches" ] && [ -f "patches/jest-expo+50.0.0.patch" ]; then
             echo "✅ patch-packageを使用してjest-expoのパッチを適用します"
-            npx patch-package
+            npx patch-package || echo "パッチ適用をスキップします - 直接パッチが適用済み"
           else
             # 従来のスクリプトを使用
             chmod +x ./scripts/patch-jest-expo.sh
