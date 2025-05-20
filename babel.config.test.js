@@ -23,8 +23,6 @@ module.exports = function(api) {
         plugins: [
           // テスト環境専用の設定
           'react-native-reanimated/plugin',
-          // バベルキャッシュの無効化（テスト時）
-          'transform-react-jsx',
           // Package Exports 機能の無効化
           ['babel-plugin-transform-imports', {
             'react-native': {
