@@ -82,6 +82,10 @@ jobs:
           # React Nativeのsetup.jsを直接パッチ
           chmod +x ./scripts/patch-react-native-jest.sh
           ./scripts/patch-react-native-jest.sh
+          
+          # Expo Modules互換性問題を解決するスクリプトを実行
+          chmod +x ./scripts/fix-expo-modules-for-jest.sh
+          ./scripts/fix-expo-modules-for-jest.sh
       
       - name: 基本テスト（必須）
         id: basic_tests

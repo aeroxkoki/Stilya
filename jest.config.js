@@ -44,8 +44,12 @@ module.exports = {
     'expo-image': '<rootDir>/src/__mocks__/expo-image.js',
     // babel-runtime ヘルパーの解決
     '@babel/runtime/helpers/(.*)': '<rootDir>/node_modules/@babel/runtime/helpers/$1',
-    // expo-modules-core の ESM 問題を解決
-    'expo-modules-core/(.*)': '<rootDir>/src/__mocks__/emptyModule.js',
+    // expo-modules-core の ESM 問題を解決 - より具体的なモックを使用
+    'expo-modules-core/web/index.web.ts': '<rootDir>/src/__mocks__/expo-modules-core/web/index.web.js',
+    'expo-modules-core/web/index.web': '<rootDir>/src/__mocks__/expo-modules-core/web/index.web.js',
+    'expo-modules-core/web/CoreModule': '<rootDir>/src/__mocks__/expo-modules-core/web/CoreModule.js',
+    'expo-modules-core/index': '<rootDir>/src/__mocks__/expo-modules-core/index.js',
+    'expo-modules-core': '<rootDir>/src/__mocks__/expo-modules-core/index.js',
   },
   
   // セットアップファイル

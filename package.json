@@ -39,7 +39,7 @@
     "postinstall": "npm install --no-save @babel/runtime@7.27.1 && npm dedupe && echo 'Dependencies configured'",
     "fix-test": "chmod +x ./scripts/patch-react-native-jest.sh && ./scripts/patch-react-native-jest.sh",
     "install-test-deps": "chmod +x ./scripts/install-test-dependencies.sh && ./scripts/install-test-dependencies.sh",
-    "prepare-test": "npm run install-test-deps && npm run fix-test"
+    "prepare-test": "npm run install-test-deps && npm run fix-test && ./scripts/fix-expo-modules-for-jest.sh"
   },
   "dependencies": {
     "@babel/runtime": "7.27.1",

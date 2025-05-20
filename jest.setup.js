@@ -4,9 +4,59 @@
  * 更新日: 2025-05-20
  */
 
-// ESMモジュール対応のためにJestグローバル設定
-// テスト環境向けにトランスパイルされたモジュールを確実に使用するための設定
-jest.autoMockOff();
+// expo-modules-core を明示的にモック
+jest.mock('expo-modules-core', () => {
+  const mockExports = {
+    EventEmitter: jest.fn().mockImplementation(() => ({
+      addListener: jest.fn(),
+      emit: jest.fn(),
+      removeListener: jest.fn(),
+    })),
+    NativeModulesProxy: {},
+    Platform: {
+      OS: 'web',
+      select: jest.fn((obj) => obj.web || obj.default),
+    },
+    NativeModules: {},
+    requireOptionalNativeModule: jest.fn(() => null),
+    __esModule: true,
+  };
+  return mockExports;
+}, { virtual: true });
+
+// expo-modules-core/web 関連のモック
+jest.mock('expo-modules-core/web/index.web', () => {
+  return {
+    EventEmitter: jest.fn(),
+    NativeModule: {
+      createNativeModuleProxy: jest.fn(),
+    },
+    SharedObject: {
+      create: jest.fn(),
+    },
+    SharedRef: {
+      create: jest.fn(),
+    },
+    __esModule: true,
+  };
+}, { virtual: true });
+
+// expo-modules-core/web/CoreModule のモック
+jest.mock('expo-modules-core/web/CoreModule', () => {
+  return {
+    EventEmitter: jest.fn(),
+    NativeModule: {
+      createNativeModuleProxy: jest.fn(),
+    },
+    SharedObject: {
+      create: jest.fn(),
+    },
+    SharedRef: {
+      create: jest.fn(),
+    },
+    __esModule: true,
+  };
+}, { virtual: true });
 
 // New Architecture関連の無効化
 global.RN$Bridgeless = false;
