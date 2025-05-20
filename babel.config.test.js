@@ -36,6 +36,7 @@ module.exports = function(api) {
         strict: false,
         allowTopLevelThis: true,
         loose: true,
+        noInterop: false,
       }],
       // モジュール解決の設定
       ['module-resolver', {
@@ -61,6 +62,7 @@ module.exports = function(api) {
             strict: false,
             allowTopLevelThis: true,
             loose: true,
+            noInterop: false,
           }]
         ],
       },

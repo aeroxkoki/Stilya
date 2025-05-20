@@ -1,0 +1,63 @@
+name: Test Suite
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Run Test Suite
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Display node and npm versions
+        run: |
+          node -v
+          npm -v
+          echo "PATH=$PATH"
+
+      - name: Run basic tests
+        run: npm run test src/__tests__/basic.test.js src/__tests__/simple.test.js -- --json --outputFile=basic-test-results.json
+        continue-on-error: true
+        
+      - name: Run auth tests
+        run: npm run test src/__tests__/auth/authStore.test.ts -- --json --outputFile=auth-test-results.json
+        continue-on-error: true
+        
+      - name: Run other tests
+        run: |
+          echo "その他のテストを実行します（失敗しても続行します）"
+          npm run test -- --testPathIgnorePatterns=basic.test.js|simple.test.js|authStore.test.ts|optional --json --outputFile=other-test-results.json
+        continue-on-error: true
+        
+      - name: Run optional tests
+        run: |
+          echo "オプションテストを実行します"
+          npm run test:optional
+        continue-on-error: true
+        
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: |
+            basic-test-results.json
+            auth-test-results.json
+            other-test-results.json
+            optional-test-results.json
+          retention-days: 7

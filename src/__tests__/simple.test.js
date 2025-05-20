@@ -1,31 +1,28 @@
 /**
- * Ultra-simple test for CI
- * This test should always pass with minimal dependencies
+ * シンプルテスト - Expo SDK 53 / React Native 0.79 互換性テスト
  */
 
-// Jest globals are explicitly required
-const { describe, test, expect } = require('@jest/globals');
+// シンプルなユーティリティ関数
+const sum = (a, b) => a + b;
+const multiply = (a, b) => a * b;
+const divide = (a, b) => b !== 0 ? a / b : null;
 
-// サンプルのシンプルなテストケース
-describe('Basic Test Suite', () => {
-  // 数値計算テスト
-  test('simple addition works', () => {
-    expect(1 + 1).toBe(2);
+describe('Simple utility functions', () => {
+  test('sum adds two numbers', () => {
+    expect(sum(1, 2)).toBe(3);
+    expect(sum(-1, 1)).toBe(0);
+    expect(sum(0, 0)).toBe(0);
   });
 
-  // 文字列比較テスト
-  test('string equality check works', () => {
-    expect('test').toBe('test');
+  test('multiply multiplies two numbers', () => {
+    expect(multiply(2, 3)).toBe(6);
+    expect(multiply(0, 5)).toBe(0);
+    expect(multiply(-2, 3)).toBe(-6);
   });
 
-  // ブーリアンテスト
-  test('boolean check works', () => {
-    expect(true).toBeTruthy();
-  });
-  
-  // オブジェクト比較テスト
-  test('object equality works', () => {
-    const obj = { name: 'Stilya', type: 'app' };
-    expect(obj).toEqual({ name: 'Stilya', type: 'app' });
+  test('divide divides two numbers', () => {
+    expect(divide(6, 2)).toBe(3);
+    expect(divide(0, 5)).toBe(0);
+    expect(divide(5, 0)).toBe(null);
   });
 });

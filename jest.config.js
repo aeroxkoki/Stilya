@@ -25,7 +25,7 @@ module.exports = {
   // React Native のコアモジュールをトランスフォーム対象に含める
   // @babel/runtimeも明示的にトランスフォーム対象に含める
   transformIgnorePatterns: [
-    'node_modules/(?!(((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|react-native-reanimated|@babel/runtime)/))'
+    'node_modules/(?!(((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|expo-modules-core|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|react-native-reanimated|@babel/runtime)/)))'
   ],
   
   // モック設定 - 問題のあるモジュールを直接モックに置き換え
@@ -44,6 +44,8 @@ module.exports = {
     'expo-image': '<rootDir>/src/__mocks__/expo-image.js',
     // babel-runtime ヘルパーの解決
     '@babel/runtime/helpers/(.*)': '<rootDir>/node_modules/@babel/runtime/helpers/$1',
+    // expo-modules-core の ESM 問題を解決
+    'expo-modules-core/(.*)': '<rootDir>/src/__mocks__/emptyModule.js',
   },
   
   // セットアップファイル
