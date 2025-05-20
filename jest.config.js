@@ -2,7 +2,7 @@
  * Jest configuration for Stilya
  * CI環境で確実に動作するように最適化
  * Expo SDK 53 / React Native 0.79に対応
- * 最終更新: 2025-05-20
+ * 最終更新: 2025-05-21
  */
 
 module.exports = {
@@ -23,20 +23,23 @@ module.exports = {
   
   // モジュールトランスフォームの前処理が必要
   // React Native のコアモジュールをトランスフォーム対象に含める
+  // @babel/runtimeも明示的にトランスフォーム対象に含める
   transformIgnorePatterns: [
     'node_modules/(?!(((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|react-native-reanimated|@babel/runtime)/))'
   ],
   
   // モック設定 - 問題のあるモジュールを直接モックに置き換え
   moduleNameMapper: {
+    // パス別名
     '^@/(.*)$': '<rootDir>/src/$1',
+    // ファイル形式別モック
     '\\.svg': '<rootDir>/src/__mocks__/svgMock.js',
-    // React Native Jest setupファイルを自前のCommonJSバージョンに置き換え
-    'react-native/jest/setup': '<rootDir>/src/__mocks__/react-native-jest-setup.js',
     // New Architecture 関連のモジュールを無効化
     'react-native/Libraries/TurboModule/(.*)': '<rootDir>/src/__mocks__/emptyModule.js',
     'react-native/Libraries/Components/View/ViewNativeComponent': '<rootDir>/src/__mocks__/viewNativeComponent.js',
     'react-native/src/private/specs_DEPRECATED/(.*)': '<rootDir>/src/__mocks__/emptyModule.js',
+    // ESM互換性問題のモジュール
+    'react-native/jest/setup': '<rootDir>/src/__mocks__/react-native-jest-setup.js',
     // expo-image のモック
     'expo-image': '<rootDir>/src/__mocks__/expo-image.js',
     // babel-runtime ヘルパーの解決
@@ -48,7 +51,7 @@ module.exports = {
     './jest.setup.js'
   ],
   
-  // テスト環境
+  // テスト環境 - NodeJS環境に設定
   testEnvironment: 'node',
   
   // グローバル設定の注入を有効化

@@ -2,11 +2,12 @@
  * React Native jest/setup.js の完全なCommonJS版モック
  * ESM構文を全てCommonJSに変換し、Jest環境で動作するようにします
  * Expo SDK 53 / React Native 0.79に対応
+ * 最終更新: 2025-05-21
  */
 
 'use strict';
 
-// モック化するHelperインポート
+// モック化するHelperインポート - 必ずCommonJS形式
 const _classCallCheck = require('@babel/runtime/helpers/classCallCheck');
 const _createClass = require('@babel/runtime/helpers/createClass');
 const _defineProperty = require('@babel/runtime/helpers/defineProperty');
@@ -376,7 +377,4 @@ module.exports = {
   Platform,
   StyleSheet,
   YellowBox,
-  
-  // ESMの互換性フラグ
-  __esModule: true,
 };

@@ -1,133 +1,157 @@
-#!/bin/bash
+#\!/bin/bash
+# React Native Jest setup.jsファイルを直接パッチするスクリプト
+# Expo SDK 53 / React Native 0.79用
+# 最終更新: 2025-05-21
 
-# React Native のsetupファイルを直接パッチするスクリプト
-# GitHub Actions環境でのJestテスト実行時のESM互換性問題を解決します
-# 作成日: 2025-05-20
+set -e
+echo "🩹 React Native Jest setupファイルをパッチします..."
 
-echo "React Native Jest Setup パッチングスクリプトを実行します"
+# react-native/jest/setup.jsファイルのパス
+SETUP_FILE="node_modules/react-native/jest/setup.js"
 
-# node_modulesのパスを設定
-RN_PATH="./node_modules/react-native"
-RN_JEST_SETUP="$RN_PATH/jest/setup.js"
-
-# キャッシュディレクトリを作成して確実に存在するようにする
-mkdir -p .jest
-
-if [ -f "$RN_JEST_SETUP" ]; then
-  echo "React Native Jest Setup ファイルが見つかりました: $RN_JEST_SETUP"
-
-  # バックアップを作成
-  cp "$RN_JEST_SETUP" "${RN_JEST_SETUP}.bak"
-  echo "バックアップを作成しました: ${RN_JEST_SETUP}.bak"
-
-  # ESM importを CommonJS requireに変換
-  echo "ESM importを CommonJS requireに変換します..."
-  sed -i 's/import \([a-zA-Z_][a-zA-Z0-9_]*\) from "\([^"]*\)";/var \1 = require("\2");/g' "$RN_JEST_SETUP"
-  sed -i "s/import \([a-zA-Z_][a-zA-Z0-9_]*\) from '\([^']*\)';/var \1 = require('\2');/g" "$RN_JEST_SETUP"
+if [ -f "$SETUP_FILE" ]; then
+  echo "✅ React Native Jest setupファイルを検出しました: $SETUP_FILE"
   
-  # destructuring importsを変換
-  sed -i 's/import {[ ]*\([^}]*\)[ ]*} from "\([^"]*\)";/var _temp = require("\2"); var \1 = _temp.\1;/g' "$RN_JEST_SETUP"
-  sed -i "s/import {[ ]*\([^}]*\)[ ]*} from '\([^']*\)';/var _temp = require('\2'); var \1 = _temp.\1;/g" "$RN_JEST_SETUP"
+  # ファイルのバックアップを作成
+  cp "$SETUP_FILE" "${SETUP_FILE}.bak"
+  echo "📦 オリジナルファイルをバックアップしました: ${SETUP_FILE}.bak"
   
-  # export defaultを module.exports に変換
-  echo "export defaultを module.exports に変換します..."
-  sed -i 's/export default \(.*\);/module.exports = \1;/g' "$RN_JEST_SETUP"
+  # 直接ファイルを修正（ESM importをCommonJSに変換）
+  echo "🔧 ESM importをCommonJSに変換しています..."
+  sed -i.temp 's/import \([A-Za-z_]*\) from \([@A-Za-z0-9/_.-]*\);/const \1 = require(\2);/g' "$SETUP_FILE"
+  rm -f "${SETUP_FILE}.temp"
   
-  # 単純なexport文を修正
-  echo "その他のexport文を修正します..."
-  sed -i 's/export const/const/g' "$RN_JEST_SETUP"
-  sed -i 's/export function/function/g' "$RN_JEST_SETUP"
-  sed -i 's/export var/var/g' "$RN_JEST_SETUP"
-  sed -i 's/export let/let/g' "$RN_JEST_SETUP"
-  sed -i 's/export class/class/g' "$RN_JEST_SETUP"
+  # export defaultをmodule.exportsに変換
+  echo "🔧 export defaultをmodule.exportsに変換しています..."
+  sed -i.temp 's/export default \([A-Za-z_]*\);/module.exports = \1;/g' "$SETUP_FILE"
+  rm -f "${SETUP_FILE}.temp"
   
-  # モジュール末尾に exports 追加
-  echo "モジュールエクスポートを追加します..."
-  echo -e "\n// Add exports for CommonJS compatibility" >> "$RN_JEST_SETUP"
+  # named exportsを処理
+  echo "🔧 named exportsを処理しています..."
+  sed -i.temp 's/export { \([A-Za-z_, ]*\) };/module.exports = { \1 };/g' "$SETUP_FILE"
+  rm -f "${SETUP_FILE}.temp"
   
-  # コンテンツを一時ファイルに保存
-  TEMP_FILE=".jest/temp_exports.js"
-  grep -o "export const [a-zA-Z_][a-zA-Z0-9_]*" "${RN_JEST_SETUP}.bak" 2>/dev/null | sed 's/export const \(.*\)/module.exports.\1 = \1;/g' > "$TEMP_FILE"
-  grep -o "export function [a-zA-Z_][a-zA-Z0-9_]*" "${RN_JEST_SETUP}.bak" 2>/dev/null | sed 's/export function \(.*\)/module.exports.\1 = \1;/g' >> "$TEMP_FILE"
-  grep -o "export var [a-zA-Z_][a-zA-Z0-9_]*" "${RN_JEST_SETUP}.bak" 2>/dev/null | sed 's/export var \(.*\)/module.exports.\1 = \1;/g' >> "$TEMP_FILE"
-  grep -o "export let [a-zA-Z_][a-zA-Z0-9_]*" "${RN_JEST_SETUP}.bak" 2>/dev/null | sed 's/export let \(.*\)/module.exports.\1 = \1;/g' >> "$TEMP_FILE"
-  grep -o "export class [a-zA-Z_][a-zA-Z0-9_]*" "${RN_JEST_SETUP}.bak" 2>/dev/null | sed 's/export class \(.*\)/module.exports.\1 = \1;/g' >> "$TEMP_FILE"
+  # ESM importとexportsの冒頭に検出用コメントを追加
+  echo "🔍 未変換のimport/export文をチェック中..."
+  grep -n "import " "$SETUP_FILE" || echo "✅ すべてのimport文が変換されました"
+  grep -n "export " "$SETUP_FILE" || echo "✅ すべてのexport文が変換されました"
   
-  # 重複を削除して追加
-  if [ -s "$TEMP_FILE" ]; then
-    sort -u "$TEMP_FILE" >> "$RN_JEST_SETUP"
-  fi
-  
-  # モジュールの互換性確保のための追加コード
-  echo -e "// Ensure CommonJS compatibility" >> "$RN_JEST_SETUP"
-  echo -e "if (typeof module !== 'undefined' && module.exports) {" >> "$RN_JEST_SETUP"
-  echo -e "  module.exports.__esModule = true;" >> "$RN_JEST_SETUP"
-  echo -e "}" >> "$RN_JEST_SETUP"
-  
-  echo "React Native Jestのパッチング完了"
-  
-  # babel-runtimeのヘルパーモジュールをシンボリックリンクで追加
-  echo "babel-runtimeのヘルパーモジュールをリンクします..."
-  HELPERS_DIR="./node_modules/@babel/runtime/helpers"
-  ESM_HELPERS_DIR="$HELPERS_DIR/esm"
-  
-  if [ -d "$HELPERS_DIR" ] && [ -d "$ESM_HELPERS_DIR" ]; then
-    for file in "$ESM_HELPERS_DIR"/*.js; do
-      BASENAME=$(basename "$file" .js)
-      if [ ! -f "$ESM_HELPERS_DIR/$BASENAME.cjs" ]; then
-        # ESM版のファイルをコピーしてCJSバージョンを作成
-        cp "$file" "$ESM_HELPERS_DIR/$BASENAME.cjs"
-        
-        # CJSに変換（ESM構文をCommonJSに置き換え）
-        sed -i 's/export default/module.exports =/g' "$ESM_HELPERS_DIR/$BASENAME.cjs"
-        sed -i 's/export //g' "$ESM_HELPERS_DIR/$BASENAME.cjs"
-        sed -i 's/import \([a-zA-Z_][a-zA-Z0-9_]*\) from "\([^"]*\)";/var \1 = require("\2");/g' "$ESM_HELPERS_DIR/$BASENAME.cjs"
-        sed -i "s/import \([a-zA-Z_][a-zA-Z0-9_]*\) from '\([^']*\)';/var \1 = require('\2');/g" "$ESM_HELPERS_DIR/$BASENAME.cjs"
-        
-        echo "Created: $ESM_HELPERS_DIR/$BASENAME.cjs"
-      fi
-    done
-    echo "babel-runtimeヘルパーの準備完了"
-  else
-    echo "警告: @babel/runtime/helpers ディレクトリが見つかりません"
-  fi
-  
+  echo "✅ React Native Jest setupファイルのパッチが完了しました！"
 else
-  echo "エラー: React Native Jest Setup ファイルが見つかりません: $RN_JEST_SETUP"
-  exit 1
+  echo "⚠️ React Native Jest setupファイルが見つかりません: $SETUP_FILE"
+  echo "🔍 node_modules以下のsetup.jsファイルを検索中..."
+  find node_modules -name "setup.js" | grep -i jest
+  
+  # モックファイルを作成
+  echo "📦 モックsetupファイルを作成します..."
+  mkdir -p "src/__mocks__/react-native/jest"
+  cat > "src/__mocks__/react-native/jest/setup.js" << 'MOCK_EOF'
+/**
+ * React Native Jest setup.js のモック
+ * ESM構文をCommonJSに変換したバージョン
+ * Expo SDK 53 / React Native 0.79互換
+ * 作成日: 2025-05-21
+ */
+
+'use strict';
+
+// CommonJS形式でヘルパーをインポート
+const _classCallCheck = require('@babel/runtime/helpers/classCallCheck');
+const _createClass = require('@babel/runtime/helpers/createClass');
+const _defineProperty = require('@babel/runtime/helpers/defineProperty');
+const _extends = require('@babel/runtime/helpers/extends');
+const _inherits = require('@babel/runtime/helpers/inherits');
+const _possibleConstructorReturn = require('@babel/runtime/helpers/possibleConstructorReturn');
+const _getPrototypeOf = require('@babel/runtime/helpers/getPrototypeOf');
+const _objectWithoutProperties = require('@babel/runtime/helpers/objectWithoutProperties');
+const _toConsumableArray = require('@babel/runtime/helpers/toConsumableArray');
+
+// モックコンポーネント生成用ヘルパー
+function mockComponent(moduleName) {
+  const React = require('react');
+  function Component(props) {
+    _classCallCheck(this, Component);
+    return React.createElement(moduleName, props, props.children);
+  }
+  
+  Component.displayName = moduleName;
+  return Component;
+}
+
+// 基本的なモジュールモック
+const stylesModule = {
+  create: jest.fn(styles => styles),
+  flatten: jest.fn(styles => styles),
+};
+
+const animatedModule = {
+  View: mockComponent('AnimatedView'),
+  Text: mockComponent('AnimatedText'),
+  Image: mockComponent('AnimatedImage'),
+  createAnimatedComponent: jest.fn(component => component),
+  timing: jest.fn(() => ({ start: jest.fn() })),
+  spring: jest.fn(() => ({ start: jest.fn() })),
+  add: jest.fn(),
+  multiply: jest.fn(),
+  Value: jest.fn(() => ({
+    setValue: jest.fn(),
+    setOffset: jest.fn(),
+    interpolate: jest.fn(() => ({ interpolate: jest.fn() })),
+    addListener: jest.fn(),
+    removeListener: jest.fn(),
+    stopAnimation: jest.fn(),
+  })),
+};
+
+// エクスポート
+module.exports = {
+  // ヘルパー関数
+  _classCallCheck,
+  _createClass,
+  _defineProperty,
+  _extends,
+  _inherits,
+  _possibleConstructorReturn,
+  _getPrototypeOf,
+  _objectWithoutProperties,
+  _toConsumableArray,
+  
+  // コンポーネントビルダー
+  mockComponent,
+  
+  // モックコンポーネント
+  Text: mockComponent('Text'),
+  View: mockComponent('View'),
+  Image: mockComponent('Image'),
+  ScrollView: mockComponent('ScrollView'),
+  FlatList: mockComponent('FlatList'),
+  
+  // モジュール
+  StyleSheet: stylesModule,
+  Animated: animatedModule,
+  
+  // その他の追加モック
+  Platform: { OS: 'ios', select: jest.fn(obj => obj.ios) },
+  I18nManager: { isRTL: false, getConstants: () => ({ isRTL: false }) },
+};
+MOCK_EOF
+  echo "✅ モックsetupファイルを作成しました: src/__mocks__/react-native/jest/setup.js"
 fi
 
-# パッチ対象の node_modules の検証
-for module_path in \
-  "./node_modules/react-native/Libraries/Animated/NativeAnimatedHelper.js" \
-  "./node_modules/react-native/Libraries/Components/View/ViewNativeComponent.js" \
-  "./node_modules/react-native/Libraries/TurboModule/TurboModuleRegistry.js"; do
-  
-  if [ -f "$module_path" ] && grep -q "export " "$module_path"; then
-    # バックアップを作成
-    if [ ! -f "${module_path}.bak" ]; then
-      cp "$module_path" "${module_path}.bak"
-    fi
-    
-    # 簡易パッチ - CommonJS変換
-    echo "Patching $module_path..."
-    sed -i 's/export default/module.exports =/g' "$module_path"
-    sed -i 's/export const/const/g' "$module_path"
-    sed -i 's/export function/function/g' "$module_path"
-    
-    # エクスポート追加
-    grep -o "const [a-zA-Z_][a-zA-Z0-9_]*" "$module_path" | sed 's/const \(.*\)/module.exports.\1 = \1;/g' >> "$module_path"
-  fi
-done
+# jest.configでモックを確実に使用するようにする
+echo "🔧 jest.config.jsを更新してモックを確実に使用するようにします..."
+JEST_CONFIG="jest.config.js"
 
-# 環境変数の設定を表示
-echo "環境変数を確認..."
-echo "NODE_ENV: $NODE_ENV"
-echo "NODE_OPTIONS: $NODE_OPTIONS"
-echo "EAS_SKIP_JAVASCRIPT_BUNDLING: $EAS_SKIP_JAVASCRIPT_BUNDLING"
-echo "METRO_CONFIG_FIX: $METRO_CONFIG_FIX"
-echo "EXPO_USE_NATIVE_MODULES: $EXPO_USE_NATIVE_MODULES"
-echo "RCT_NEW_ARCH_ENABLED: $RCT_NEW_ARCH_ENABLED"
+if grep -q "'react-native/jest/setup'" "$JEST_CONFIG"; then
+  echo "✅ jest.config.jsはすでに設定されています"
+else
+  echo "⚠️ jest.config.jsに'react-native/jest/setup'のマッピングがありません。追加してください。"
+  echo "例: 'react-native/jest/setup': '<rootDir>/src/__mocks__/react-native-jest-setup.js',"
+fi
 
-echo "パッチスクリプトの実行完了"
-exit 0
+# テスト環境を設定
+echo "🧪 テスト環境変数を設定しています..."
+export NODE_ENV=test
+export BABEL_ENV=test
+
+echo "🎉 React Native Jest setupパッチが完了しました！"
