@@ -44,9 +44,7 @@ module.exports = function(api) {
             disableImportExportTransform: true,
             unstable_enablePackageExports: false,
           }]
-        ],
-        // テスト用にPackage Exports を無効化
-        unstable_enablePackageExports: false,
+        ]
       },
       production: {
         plugins: ['transform-remove-console'],
