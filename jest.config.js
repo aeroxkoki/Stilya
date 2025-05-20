@@ -100,7 +100,12 @@ module.exports = {
     env: {
       NODE_OPTIONS: '--no-warnings --experimental-vm-modules',
       EAS_SKIP_JAVASCRIPT_BUNDLING: 'true',
+      // Bridgeless解決用
+      EXPO_USE_NATIVE_MODULES: 'false',
+      RCT_NEW_ARCH_ENABLED: 'false',
+      EX_DEV_CLIENT_NETWORK_INSPECTOR: 'false',
+      EX_USE_METRO_LITE_SERVER: 'false',
+      unstable_enablePackageExports: 'false',
     }
   }
-};
 };

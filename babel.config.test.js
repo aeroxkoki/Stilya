@@ -11,7 +11,10 @@ module.exports = function(api) {
           'react-native/Libraries/TurboModule': './src/__mocks__/emptyModule',
           'react-native/src/private/devmenu': './src/__mocks__/emptyModule',
           'react-native/src/private/specs_DEPRECATED': './src/__mocks__/emptyModule',
+          // expo-image のモック
+          'expo-image': './src/__mocks__/expo-image.js',
         },
+        extensions: ['.js', '.jsx', '.ts', '.tsx'],
       }],
     ],
     env: {
@@ -19,10 +22,37 @@ module.exports = function(api) {
         plugins: [
           // テスト環境専用の設定
           'react-native-reanimated/plugin',
+          // バベルキャッシュの無効化（テスト時）
+          'transform-react-jsx',
+          // Package Exports 機能の無効化
+          ['babel-plugin-transform-imports', {
+            'react-native': {
+              transform: 'react-native/index',
+              preventFullImport: false,
+            },
+          }],
         ],
+        // テスト用にPackage Exports を無効化
+        unstable_enablePackageExports: false,
       },
       production: {
         plugins: ['transform-remove-console'],
+      },
+    },
+    // New Architecture 関連の最適化
+    env: {
+      production: {
+        plugins: ['transform-remove-console'],
+      },
+      test: {
+        presets: [
+          ['babel-preset-expo', {
+            // テスト用に最適化
+            lazyImports: false,
+            disableImportExportTransform: true,
+            unstable_enablePackageExports: false,
+          }]
+        ],
       },
     },
   };

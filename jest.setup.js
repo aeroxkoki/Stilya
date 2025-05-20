@@ -33,26 +33,39 @@ jest.mock('react-native/Libraries/Animated/NativeAnimatedHelper', () => ({
 }), { virtual: true });
 
 // TurboModuleRegistry モック (New Architecture対応)
-jest.mock('react-native/Libraries/TurboModule/TurboModuleRegistry', () => ({
-  get: jest.fn((name) => {
-    return null;
-  }),
-  getEnforcing: jest.fn((name) => {
-    if (name === 'DevMenu') {
+jest.mock('react-native/Libraries/TurboModule/TurboModuleRegistry', () => {
+  const DevMenuMock = {
+    reload: jest.fn(),
+    debugRemotely: jest.fn(),
+    show: jest.fn(),
+    hide: jest.fn(),
+    devMenu: jest.fn(),
+  };
+  
+  return {
+    get: jest.fn((name) => {
+      if (name === 'DevMenu') {
+        return DevMenuMock;
+      }
+      return null;
+    }),
+    getEnforcing: jest.fn((name) => {
+      // DevMenu特別処理
+      if (name === 'DevMenu') {
+        return DevMenuMock;
+      }
+      // その他のデフォルトモック
       return {
-        reload: jest.fn(),
-        debugRemotely: jest.fn(),
-        devMenu: jest.fn(),
+        install: jest.fn(),
+        get: jest.fn(),
+        getConstantsForViewManager: jest.fn(),
+        getViewManagerConfig: jest.fn(),
+        then: jest.fn((cb) => cb && cb()),
+        catch: jest.fn(),
       };
-    }
-    return {
-      install: jest.fn(),
-      get: jest.fn(),
-      getConstantsForViewManager: jest.fn(),
-      getViewManagerConfig: jest.fn(),
-    };
-  }),
-}), { virtual: true });
+    }),
+  };
+}, { virtual: true });
 
 // DevMenu モック
 jest.mock('react-native/src/private/specs_DEPRECATED/modules/NativeDevMenu', () => ({
@@ -188,12 +201,37 @@ jest.mock('react-native', () => {
       },
     },
     TurboModuleRegistry: {
-      get: jest.fn(() => null),
-      getEnforcing: jest.fn(() => ({
-        reload: jest.fn(),
-        debugRemotely: jest.fn(),
-        devMenu: jest.fn(),
-      })),
+      get: jest.fn((name) => {
+        if (name === 'DevMenu') {
+          return {
+            reload: jest.fn(),
+            debugRemotely: jest.fn(),
+            show: jest.fn(),
+            hide: jest.fn(),
+            devMenu: jest.fn(),
+          };
+        }
+        return null;
+      }),
+      getEnforcing: jest.fn((name) => {
+        if (name === 'DevMenu') {
+          return {
+            reload: jest.fn(),
+            debugRemotely: jest.fn(),
+            show: jest.fn(),
+            hide: jest.fn(),
+            devMenu: jest.fn(),
+          };
+        }
+        return {
+          install: jest.fn(),
+          get: jest.fn(),
+          getConstantsForViewManager: jest.fn(),
+          getViewManagerConfig: jest.fn(),
+          then: jest.fn((cb) => cb && cb()),
+          catch: jest.fn(),
+        };
+      }),
     },
   };
 });
