@@ -58,15 +58,19 @@ jobs:
           rm -rf .expo-shared || true
           rm -rf .metro-cache || true
       
-      - name: Metro依存関係の修正
+      - name: 依存関係の修正
         run: |
+          # Metroの依存関係修正
           chmod +x ./scripts/fix-metro-dependencies.sh
           ./scripts/fix-metro-dependencies.sh
-      
+          
+          # テスト環境の依存関係修正
+          chmod +x ./scripts/fix-test-dependencies.sh
+          ./scripts/fix-test-dependencies.sh
+          
       - name: Jest 設定の拡張
         run: |
           echo "Jestの設定を拡張します..."
-          # jest.config.jsに結果レポーターを追加
           grep -q "reporters:" jest.config.js || node -e "
             const fs = require('fs');
             const config = require('./jest.config.js');

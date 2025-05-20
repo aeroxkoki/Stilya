@@ -41,7 +41,9 @@ module.exports = {
     'expo-image': '<rootDir>/src/__mocks__/expo-image.js',
     // 問題のある setup.js ファイルをモック
     'react-native/jest/setup': '<rootDir>/src/__mocks__/react-native-jest-setup.js',
-    '@babel/runtime/helpers/(.*)': '<rootDir>/node_modules/@babel/runtime/helpers/$1.js'
+    '@babel/runtime/helpers/(.*)': '<rootDir>/node_modules/@babel/runtime/helpers/$1.js',
+    // babel系のプラグインモック
+    'babel-plugin-transform-react-jsx': '<rootDir>/node_modules/babel-plugin-transform-react-jsx'
   },
   
   // セットアップファイル
