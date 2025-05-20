@@ -31,6 +31,10 @@ module.exports = function(api) {
               transform: 'react-native/index',
               preventFullImport: false,
             },
+            '@babel/runtime/helpers': {
+              transform: '@babel/runtime/helpers/${member}',
+              preventFullImport: true
+            }
           }],
         ],
         presets: [

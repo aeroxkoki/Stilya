@@ -24,8 +24,15 @@ jobs:
           npm install
           npm ci
 
-      - name: Install Jest environment
-        run: npm install --save-dev jest-environment-node
+      - name: Setup React Native Testing Environment
+        run: |
+          # CJSモックファイルが存在するか確認
+          mkdir -p src/__mocks__
+          test -f src/__mocks__/react-native-jest-setup.js || echo "⚠️ react-native-jest-setup.js モックが見つかりません。テストが失敗する可能性があります。"
+          
+          # モジュールのインストール確認
+          npm list babel-plugin-transform-imports || npm install --save-dev babel-plugin-transform-imports
+          npm list jest-environment-node || npm install --save-dev jest-environment-node
 
       - name: Run tests
         run: |

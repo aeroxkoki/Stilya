@@ -13,10 +13,13 @@ module.exports = {
     '<rootDir>/src/__tests__/**/*.test.{js,jsx,ts,tsx}'
   ],
   
-  // 変換設定
+  // ES Modules設定
+  extensionsToTreatAsEsm: ['.ts', '.tsx', '.mjs'],
+  
+  // テスト実行前の前処理
   transform: {
-    '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', {
-      configFile: './babel.config.test.js' // テスト用Babel設定
+    '^.+\\.(js|jsx|ts|tsx|mjs)$': ['babel-jest', {
+      configFile: './babel.config.test.js'
     }]
   },
   
@@ -34,6 +37,9 @@ module.exports = {
     'react-native/Libraries/Components/View/ViewNativeComponent': '<rootDir>/src/__mocks__/viewNativeComponent.js',
     // expo-image のモック
     'expo-image': '<rootDir>/src/__mocks__/expo-image.js',
+    // 問題のある setup.js ファイルをモック
+    'react-native/jest/setup': '<rootDir>/src/__mocks__/react-native-jest-setup.js',
+    '@babel/runtime/helpers/(.*)': '<rootDir>/node_modules/@babel/runtime/helpers/$1.js'
   },
   
   // セットアップファイル
