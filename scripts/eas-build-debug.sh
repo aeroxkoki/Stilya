@@ -82,7 +82,7 @@ echo "📋 Expo ログイン情報:"
 if [ -n "$EXPO_TOKEN" ]; then
   echo "EXPO_TOKEN 環境変数が設定されているため、自動ログインを試みます。"
   # CI環境ではEXPO_TOKENを使って自動ログイン
-  npx eas-cli login --non-interactive --token=$EXPO_TOKEN || echo "⚠️ 自動ログインに失敗しました。"
+  npx eas-cli login --token "$EXPO_TOKEN" || echo "⚠️ 自動ログインに失敗しました。"
 fi
 
 npx eas-cli whoami || echo "❌ EAS CLI でログインできません！"
@@ -93,12 +93,12 @@ PROJECT_ID=$(node -e 'try { console.log(require("./app.json").expo.extra.eas.pro
 if [ -n "$PROJECT_ID" ]; then
   echo "📋 Project ID: $PROJECT_ID"
   
-  if npx eas-cli project:info --id=$PROJECT_ID --non-interactive &>/dev/null; then
+  if npx eas-cli project:info --id="$PROJECT_ID" &>/dev/null; then
     echo "✅ EAS プロジェクト設定が正常に取得できました。"
   else
     echo "❌ EAS プロジェクト設定の取得に失敗しました。"
     echo "以下のコマンドでプロジェクト設定を初期化できます:"
-    echo "npx eas-cli project:init --id=\"$PROJECT_ID\" --non-interactive"
+    echo "npx eas-cli project:init --id=\"$PROJECT_ID\""
   fi
 else
   echo "❌ app.json から projectId を取得できませんでした。"
@@ -107,12 +107,12 @@ fi
 
 # 前回のビルド結果の確認
 echo "📋 前回のビルド結果:"
-npx eas-cli build:list --limit 1 --non-interactive --json 2>/dev/null | grep -E '"status"|"platform"|"profile"' || echo "❌ 過去のビルド履歴が見つかりません。"
+npx eas-cli build:list --limit 1 --json 2>/dev/null | grep -E '"status"|"platform"|"profile"' || echo "❌ 過去のビルド履歴が見つかりません。"
 
 # デバイス登録の確認（開発用ビルドの場合）
 if [[ -n "$CI" ]] && grep -q '"developmentClient": true' eas.json; then
   echo "⚠️ developmentClient が有効になっていますが、CI環境ではデバイス登録が必要です。"
-  npx eas-cli device:list --non-interactive || echo "❌ 登録されたデバイスが見つかりません。"
+  npx eas-cli device:list || echo "❌ 登録されたデバイスが見つかりません。"
 fi
 
 # まとめ

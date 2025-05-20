@@ -293,8 +293,8 @@ jobs:
       
       - name: EASプロジェクト初期化
         run: |
-          # 明示的にEXPO_TOKENを使ってログイン
-          npx eas-cli login --non-interactive --token=${{ secrets.EXPO_TOKEN }}
+          # 明示的にEXPO_TOKENを使ってログイン (新しい構文)
+          npx eas-cli login --token "${{ secrets.EXPO_TOKEN }}"
           
           # app.jsonからプロジェクトIDを取得
           PROJECT_ID=$(node -e "console.log(require('./app.json').expo.extra.eas.projectId || '')")
@@ -306,9 +306,9 @@ jobs:
           
           # EASプロジェクトを初期化（プロジェクトIDを指定）
           if [ -n "$PROJECT_ID" ]; then
-            npx eas-cli project:init --id="$PROJECT_ID" --non-interactive || echo "プロジェクトはすでに存在します"
+            npx eas-cli project:init --id="$PROJECT_ID" || echo "プロジェクトはすでに存在します"
           else
-            npx eas-cli project:init --non-interactive || echo "新規プロジェクト作成に失敗しました"
+            npx eas-cli project:init || echo "新規プロジェクト作成に失敗しました"
           fi
           
           # プロジェクト情報を表示
@@ -339,11 +339,11 @@ jobs:
           rm -rf .expo-shared
           rm -rf .metro-cache
           
-          # 明示的に再ログイン
-          npx eas-cli login --non-interactive --token=${{ secrets.EXPO_TOKEN }}
+          # 明示的に再ログイン (新しい構文)
+          npx eas-cli login --token "${{ secrets.EXPO_TOKEN }}"
           
           echo "🚀 EAS ビルド実行中..."
-          npx eas-cli build --platform android --profile ci --non-interactive --verbose
+          npx eas-cli build --platform android --profile ci --verbose
         
       - name: ビルド完了通知
         if: success()
@@ -387,14 +387,14 @@ jobs:
       
       - name: EAS Update 実行
         run: |
-          # 明示的にEXPO_TOKENを使ってログイン（念のため）
-          npx eas-cli login --non-interactive --token=${{ secrets.EXPO_TOKEN }}
+          # 明示的にEXPO_TOKENを使ってログイン（念のため）(新しい構文)
+          npx eas-cli login --token "${{ secrets.EXPO_TOKEN }}"
           
           # Android向けアップデート
-          npx eas-cli update --platform android --message "$(git log -1 --pretty=%B)" --non-interactive
+          npx eas-cli update --platform android --message "$(git log -1 --pretty=%B)"
           
           # iOS向けアップデート（将来的に必要な場合）
-          # npx eas-cli update --platform ios --message "$(git log -1 --pretty=%B)" --non-interactive
+          # npx eas-cli update --platform ios --message "$(git log -1 --pretty=%B)"
       
       - name: 更新完了通知
         if: success()

@@ -57,7 +57,7 @@ jobs:
         run: npm ci
 
       - name: Build Preview
-        run: npx eas-cli build --platform all --profile preview --non-interactive
+        run: npx eas-cli build --platform all --profile preview
         env:
           EAS_SKIP_JAVASCRIPT_BUNDLING: "true"
           EXPO_USE_NEW_ARCHITECTURE: "0"
