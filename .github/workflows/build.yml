@@ -83,7 +83,12 @@ jobs:
         id: other_tests
         run: |
           echo "その他のテストを実行します（失敗しても続行します）"
-          npm run test -- --testPathIgnorePatterns="basic.test.js|simple.test.js|authStore.test.ts" --json --outputFile=other-test-results.json || echo "一部のテストが失敗しましたが、開発を継続します"
+          # 通常のその他テスト
+          npm run test -- --testPathIgnorePatterns="basic.test.js|simple.test.js|authStore.test.ts|optional" --json --outputFile=other-test-results.json || echo "一部のテストが失敗しましたが、開発を継続します"
+          
+          # オプションテストディレクトリのテスト
+          mkdir -p test-results
+          npm run test:optional -- --json --outputFile=optional-test-results.json || echo "オプションテストの一部が失敗しましたが、開発を継続します"
         continue-on-error: true
       
       - name: テスト結果サマリーの生成
@@ -145,13 +150,14 @@ jobs:
             const basicResults = readTestResults('basic-test-results.json', 'Basic Tests');
             const authResults = readTestResults('auth-test-results.json', 'Auth Tests');
             const otherResults = readTestResults('other-test-results.json', 'Other Tests');
+            const optionalResults = readTestResults('optional-test-results.json', 'Optional Tests');
             
             // 総合スタッツ
             const totalResults = {
-              totalTests: basicResults.totalTests + authResults.totalTests + otherResults.totalTests,
-              passedTests: basicResults.passedTests + authResults.passedTests + otherResults.passedTests,
-              failedTests: basicResults.failedTests + authResults.failedTests + otherResults.failedTests,
-              pendingTests: basicResults.pendingTests + authResults.pendingTests + otherResults.pendingTests
+              totalTests: basicResults.totalTests + authResults.totalTests + otherResults.totalTests + optionalResults.totalTests,
+              passedTests: basicResults.passedTests + authResults.passedTests + otherResults.passedTests + optionalResults.passedTests,
+              failedTests: basicResults.failedTests + authResults.failedTests + otherResults.failedTests + optionalResults.failedTests,
+              pendingTests: basicResults.pendingTests + authResults.pendingTests + otherResults.pendingTests + optionalResults.pendingTests
             };
             
             // 合格率の計算
@@ -197,6 +203,7 @@ jobs:
             basic-test-results.json
             auth-test-results.json
             other-test-results.json
+            optional-test-results.json
             test-results/*.xml
           if-no-files-found: ignore
       
@@ -204,7 +211,7 @@ jobs:
         if: always()
         run: |
           echo "テスト結果は GitHub Actions のサマリーで確認できます。"
-          FAIL_COUNT=$(cat basic-test-results.json auth-test-results.json other-test-results.json 2>/dev/null | grep -o '"numFailedTests":[0-9]*' | awk -F: '{sum+=$2} END {print sum}')
+          FAIL_COUNT=$(cat basic-test-results.json auth-test-results.json other-test-results.json optional-test-results.json 2>/dev/null | grep -o '"numFailedTests":[0-9]*' | awk -F: '{sum+=$2} END {print sum}')
           
           if [ "$FAIL_COUNT" -gt "0" ]; then
             echo "::warning::テストに失敗があります。サマリータブで詳細を確認してください。"
