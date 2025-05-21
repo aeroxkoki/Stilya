@@ -92,7 +92,8 @@ module.exports = {
       ancestorSeparator: ' › ',
       suiteNameTemplate: '{filename}',
       includeConsoleOutput: true
-    }]
+    }],
+    ['<rootDir>/__tests__/TerminalReporter.js', {}]
   ],
   
   // その他の設定

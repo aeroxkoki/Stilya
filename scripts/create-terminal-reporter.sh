@@ -4,6 +4,62 @@
 
 echo "📝 Creating TerminalReporter.js for Metro compatibility..."
 
+# Jest用のTerminalReporterも作成
+echo "📝 Creating TerminalReporter.js for Jest..."
+mkdir -p __tests__
+
+# Jest用のTerminalReporterを作成
+cat > __tests__/TerminalReporter.js << 'EOL'
+/**
+ * Custom Terminal Reporter for Jest Tests
+ * Used in GitHub Actions CI pipeline
+ */
+class TerminalReporter {
+  constructor(globalConfig, options) {
+    this._globalConfig = globalConfig;
+    this._options = options || {};
+  }
+
+  onRunComplete(contexts, results) {
+    // Test run completed
+    console.log('\nSummary of Test Results:');
+    console.log(`Total Tests: ${results.numTotalTests}`);
+    console.log(`Tests Passed: ${results.numPassedTests}`);
+    console.log(`Tests Failed: ${results.numFailedTests}`);
+    
+    if (results.numFailedTests > 0) {
+      console.log('\nFailed Tests:');
+      results.testResults.forEach(testResult => {
+        if (testResult.failureMessage) {
+          console.log(`- ${testResult.testFilePath}`);
+        }
+      });
+    }
+  }
+
+  onRunStart() {
+    console.log('Starting test suite...');
+  }
+
+  onTestResult(test, testResult) {
+    if (testResult.failureMessage) {
+      console.log(`\nTest failed: ${testResult.testFilePath}`);
+    }
+  }
+}
+
+module.exports = TerminalReporter;
+EOL
+
+chmod 644 __tests__/TerminalReporter.js
+
+if [ -f "__tests__/TerminalReporter.js" ]; then
+  echo "✅ Jest TerminalReporter.js successfully created"
+else
+  echo "❌ Failed to create Jest TerminalReporter.js"
+  exit 1
+fi
+
 # ディレクトリーの作成
 mkdir -p node_modules/metro/src/lib
 
