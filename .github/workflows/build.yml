@@ -44,6 +44,8 @@ jobs:
         run: |
           chmod +x ./fix-dependencies.sh
           ./fix-dependencies.sh
+          chmod +x ./fix-metro-config.js
+          node fix-metro-config.js
           echo "✅ Dependencies fixed"
 
       - name: Clear cache
