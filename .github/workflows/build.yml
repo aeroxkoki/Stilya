@@ -43,5 +43,13 @@ jobs:
         run: |
           bash ./scripts/ci-build-fix.sh
 
+      - name: 🔍 Check app.json config
+        run: cat app.json | grep -A 2 "owner"
+
       - name: 🛠 Run EAS build
-        run: eas build --platform android --profile ci --non-interactive
+        run: |
+          echo "📱 Running EAS build with explicit owner..."
+          # ビルド前に一時的に確認
+          echo "Running with EXPO_TOKEN length: ${#EXPO_TOKEN}"
+          eas whoami
+          eas build --platform android --profile ci --non-interactive --owner aeroxkoki
