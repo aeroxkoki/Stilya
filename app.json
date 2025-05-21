@@ -7,6 +7,9 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "owner": "aeroxkoki",
+    "hooks": {
+      "disableEnvironmentLoad": true
+    },
     "runtimeVersion": {
       "policy": "sdkVersion"
     },
