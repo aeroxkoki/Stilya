@@ -123,6 +123,6 @@ jobs:
           echo "EAS_SKIP_JAVASCRIPT_BUNDLING: $EAS_SKIP_JAVASCRIPT_BUNDLING"
           echo "NODE_ENV: $NODE_ENV"
           
-          # ビルド実行 - --local-build-options でGitHub Actions環境内でのクレデンシャル位置を明示
-          eas build --platform android --profile ci --non-interactive --no-wait --local-credentials-file="$(pwd)/credentials.json"
+          # ビルド実行 - eas.jsonの設定で自動的にcredentials.jsonが使用される
+          eas build --platform android --profile ci --non-interactive --no-wait
           echo "✅ ビルドは EAS Build サーバーで実行されます"
