@@ -1,163 +1,104 @@
-name: Test
+name: Test Suite
 
 on:
   push:
     branches: [ main, develop ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
   pull_request:
     branches: [ main, develop ]
   workflow_dispatch:
+
+env:
+  NODE_ENV: test
+  NODE_OPTIONS: "--max-old-space-size=4096 --no-warnings --experimental-vm-modules"
+  TZ: "Asia/Tokyo"
 
 jobs:
   test:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
     
-    - name: Set up Node.js
+    - name: Setup Node.js
       uses: actions/setup-node@v3
       with:
         node-version: 20
         cache: 'npm'
     
-    - name: Install dependencies
-      run: npm ci
-      
-    - name: Install and apply patches
+    - name: Setup environment
       run: |
-        # patch-packageをインストール
-        npm install --save-dev patch-package
+        # CIに適したnpmrc設定
+        echo "cache=false" > .npmrc
+        echo "prefer-offline=false" >> .npmrc
+        echo "fund=false" >> .npmrc
+        echo "audit=false" >> .npmrc
         
-        # パッチを適用
-        if [ -d "patches" ] && [ -f "patches/jest-expo+50.0.0.patch" ]; then
-          echo "✅ patch-packageを使用してパッチを適用します"
+        # キャッシュのクリーンアップ
+        rm -rf node_modules/.cache
+        rm -rf ~/.expo/cache
+        rm -rf ~/.metro-cache
+    
+    - name: Install dependencies
+      run: |
+        npm ci --no-audit --no-fund
+        npm install --no-save jest-junit@16.0.0 patch-package
+        
+        # Metro関連依存関係を揃える（テスト環境用）
+        npm install --no-save \
+          metro@0.77.0 \
+          metro-core@0.77.0 \
+          @babel/runtime@7.27.1
+      
+    - name: Prepare test environment
+      run: |
+        # 1. パッチの適用
+        if [ -d "patches" ] && [ "$(ls -A patches)" ]; then
+          echo "✅ Applying patches with patch-package"
           npx patch-package
         else
-          # 従来のスクリプトを実行
+          # 代替スクリプトを実行
+          echo "⚙️ Running legacy patch script"
           chmod +x ./scripts/patch-jest-expo.sh
           ./scripts/patch-jest-expo.sh
         fi
         
-    - name: Setup TerminalReporter
-      run: |
-        echo "🛠️ Setting up TerminalReporter..."
-        # __tests__ディレクトリが存在しなければ作成
+        # 2. TerminalReporterの設定
+        echo "🛠️ Setting up test reporters"
         mkdir -p __tests__
         
-        # TerminalReporterの作成
-        cat > __tests__/TerminalReporter.js << 'EOL'
-        /**
-         * Custom Terminal Reporter for Jest Tests
-         * Used in GitHub Actions CI pipeline
-         */
-        class TerminalReporter {
-          constructor(globalConfig, options) {
-            this._globalConfig = globalConfig;
-            this._options = options || {};
-          }
-
-          onRunComplete(contexts, results) {
-            // Test run completed
-            console.log('\nSummary of Test Results:');
-            console.log(`Total Tests: ${results.numTotalTests}`);
-            console.log(`Tests Passed: ${results.numPassedTests}`);
-            console.log(`Tests Failed: ${results.numFailedTests}`);
-            
-            if (results.numFailedTests > 0) {
-              console.log('\nFailed Tests:');
-              results.testResults.forEach(testResult => {
-                if (testResult.failureMessage) {
-                  console.log(`- ${testResult.testFilePath}`);
-                }
-              });
-            }
-          }
-
-          onRunStart() {
-            console.log('Starting test suite...');
-          }
-
-          onTestResult(test, testResult) {
-            if (testResult.failureMessage) {
-              console.log(`\nTest failed: ${testResult.testFilePath}`);
-            }
-          }
-        }
-
-        module.exports = TerminalReporter;
-        EOL
+        # JestテストレポーターとMetroのTerminalReporterを共通スクリプトで準備
+        chmod +x ./scripts/create-terminal-reporter.sh
+        ./scripts/create-terminal-reporter.sh
         
-        # Metro用のTerminalReporterも確保
-        mkdir -p node_modules/metro/src/lib
-        cat > node_modules/metro/src/lib/TerminalReporter.js << 'EOL'
-        /**
-         * Copyright (c) Meta Platforms, Inc. and affiliates.
-         *
-         * This source code is licensed under the MIT license found in the
-         * LICENSE file in the root directory of this source tree.
-         *
-         * @flow strict-local
-         * @format
-         */
-
-        'use strict';
-
-        /**
-         * Metro Reporter for compatibility with Expo SDK 53.
-         * This is a simplified implementation that provides required functionality.
-         */
-        class TerminalReporter {
-          constructor(terminal) {
-            this._terminal = terminal || {
-              log: console.log.bind(console),
-              error: console.error.bind(console),
-              info: console.info.bind(console),
-              warn: console.warn.bind(console)
-            };
-            this._errors = [];
-            this._warnings = [];
-          }
-
-          handleError(error) {
-            this._errors.push(error);
-            if (this._terminal && this._terminal.error) {
-              this._terminal.error(error);
-            }
-          }
-
-          handleWarning(warning) {
-            this._warnings.push(warning);
-            if (this._terminal && this._terminal.warn) {
-              this._terminal.warn(warning);
-            }
-          }
-
-          getErrors() {
-            return this._errors;
-          }
-
-          getWarnings() {
-            return this._warnings;
-          }
-
-          update() {}
-          
-          terminal() { 
-            return this._terminal; 
-          }
-        }
-
-        module.exports = TerminalReporter;
-        EOL
-        
-        echo "✅ TerminalReporter setup complete"
-      
+        # 3. テスト実行のための環境変数
+        echo "✓ Test environment ready"
+    
     - name: Run tests
-      run: npm run test:fix-uuid
+      run: |
+        # uuid問題を修正してから実行
+        npm run test:fix-uuid
+        
+        # JUnit形式でレポートを出力 (CI統合用)
+        JEST_JUNIT_OUTPUT_DIR=./test-results JEST_JUNIT_OUTPUT_NAME=junit.xml \
+        npx jest --config jest.config.js --ci --reporters=default --reporters=jest-junit
+      
+    - name: Generate test summary
+      if: always()
+      run: |
+        if [ -d "test-results" ]; then
+          echo "📊 Generating test summary"
+          npm run test:summary || true
+        fi
       
     - name: Upload test results
       uses: actions/upload-artifact@v4
-      with:
-        name: test-results
-        path: test-results/
       if: always()
+      with:
+        name: test-reports
+        path: |
+          test-results/
+          **/junit*.xml

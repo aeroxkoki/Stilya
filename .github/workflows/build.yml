@@ -1,33 +1,48 @@
-name: Build Stilya App
+name: Build and Deploy
 
 on:
   push:
     branches: [ main, develop ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
   pull_request:
     branches: [ main, develop ]
   workflow_dispatch:
+
+env:
+  # ビルド環境設定
+  NODE_ENV: production
+  NODE_OPTIONS: --max-old-space-size=8192
+  TZ: Asia/Tokyo
+  
+  # Expo/EAS設定
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  EAS_SKIP_JAVASCRIPT_BUNDLING: 1
+  EXPO_NO_CACHE: 1
+  EXPO_NO_DOTENV: 1
+  EXPO_NO_BUNDLE: 1
+  SKIP_BUNDLING: 1
+  METRO_FORCE_NODE_MODULE_RESOLUTION: 1
+  
+  # キーストア設定
+  ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+  ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+  ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+  ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+  
+  # ビルド時の環境変数（空値でもCI/CD環境でエラーにならないよう）
+  SUPABASE_URL: ""
+  SUPABASE_ANON_KEY: ""
+  LINKSHARE_API_TOKEN: ""
+  LINKSHARE_MERCHANT_ID: ""
+  RAKUTEN_APP_ID: ""
+  RAKUTEN_AFFILIATE_ID: ""
 
 jobs:
   build:
     runs-on: ubuntu-latest
     
-    env:
-      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-      EAS_SKIP_JAVASCRIPT_BUNDLING: 1
-      NODE_OPTIONS: --max-old-space-size=8192
-      NODE_ENV: production
-      EXPO_NO_CACHE: 1
-      EXPO_NO_DOTENV: 1
-      EXPO_NO_BUNDLE: 1
-      SKIP_BUNDLING: 1
-      METRO_FORCE_NODE_MODULE_RESOLUTION: 1
-      CI: true
-      # キーストア設定
-      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -38,7 +53,7 @@ jobs:
           node-version: 20
           cache: 'npm'
 
-      - name: Clean caches and setup environment
+      - name: Setup environment
         run: |
           # クリーンアップ
           rm -rf node_modules/.cache
@@ -76,18 +91,21 @@ jobs:
           
           echo "✅ Dependencies installed"
 
-      - name: Fix Metro compatibility issues
+      - name: Fix Metro compatibility
         run: |
           # Metro関連問題の総合修正（スクリプト実行）
           chmod +x ./scripts/fix-github-actions-metro.sh
-          bash ./scripts/fix-github-actions-metro.sh || true
+          ./scripts/fix-github-actions-metro.sh || true
           
-          # TerminalReporterの作成を確実に行う
+          # Metro互換レイヤーを構築
+          echo "🔧 Setting up Metro compatibility layer..."
+          
+          # 1. ディレクトリ構造の確保
           mkdir -p node_modules/metro/src/lib
           mkdir -p node_modules/@expo/cli/node_modules/metro/src/lib
           mkdir -p node_modules/metro-core/src
           
-          # TerminalReporterの実装（エラーが発生した場合のバックアップ方法）
+          # 2. TerminalReporterの実装
           cat > node_modules/metro/src/lib/TerminalReporter.js << 'EOL'
 /**
  * Metro Reporter for Expo SDK 53 compatibility (optimized fix)
@@ -125,10 +143,11 @@ class TerminalReporter {
 module.exports = TerminalReporter;
 EOL
           
-          # Expoの内部依存用にコピー
+          # 3. Expoの内部依存用にコピー
           cp -f node_modules/metro/src/lib/TerminalReporter.js node_modules/@expo/cli/node_modules/metro/src/lib/TerminalReporter.js || true
           
-          # metro-coreモジュールの補完作成
+          # 4. metro-coreモジュールの補完作成
+          # package.jsonを追加
           cat > node_modules/metro-core/package.json << 'EOL'
 {
   "name": "metro-core",
@@ -139,6 +158,7 @@ EOL
 }
 EOL
 
+          # src/index.jsを追加
           cat > node_modules/metro-core/src/index.js << 'EOL'
 /**
  * Metro Core compatibility module for Expo SDK 53
@@ -190,52 +210,11 @@ module.exports = {
 };
 EOL
 
-          # リンク作成
+          # 5. リンク作成
           mkdir -p node_modules/@expo/cli/node_modules/metro-core
           ln -sf ../../../node_modules/metro-core node_modules/@expo/cli/node_modules/metro-core || true
           
-          echo "✅ Metro compatibility issues fixed"
-
-      - name: Patch Environment Module
-        run: |
-          # 環境変数処理モジュールのパッチ
-          chmod +x ./scripts/patch-expo-env.sh
-          bash ./scripts/patch-expo-env.sh
-
-      - name: Prepare keystore
-        if: env.ANDROID_KEYSTORE_BASE64 != ''
-        run: |
-          mkdir -p android/app
-          echo ${{ secrets.ANDROID_KEYSTORE_BASE64 }} | base64 --decode > android/app/stilya-keystore.jks
-          echo '{"android": {"keystore": {"keystorePath": "android/app/stilya-keystore.jks", "keystorePassword": "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}", "keyAlias": "${{ secrets.ANDROID_KEY_ALIAS }}", "keyPassword": "${{ secrets.ANDROID_KEY_PASSWORD }}"}}}' > credentials.json
-          echo "✅ Keystore prepared"
-
-      - name: Create temporary keystore for build
-        if: env.ANDROID_KEYSTORE_BASE64 == ''
-        run: |
-          mkdir -p android/app
-          keytool -genkeypair -v -keystore android/app/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
-          echo "✅ Debug keystore created"
-
-      - name: Build Android App
-        run: |
-          echo "🏗️ Building Android app with fixed configuration..."
-          
-          # 環境変数問題の回避
-          export EXPO_NO_DOTENV=1
-          export SKIP_BUNDLING=1
-          export EAS_SKIP_JAVASCRIPT_BUNDLING=1
-          export METRO_FORCE_NODE_MODULE_RESOLUTION=1
-          
-          # 必須環境変数を空で定義（エラー回避）
-          export SUPABASE_URL=""
-          export SUPABASE_ANON_KEY=""
-          export LINKSHARE_API_TOKEN=""
-          export LINKSHARE_MERCHANT_ID=""
-          export RAKUTEN_APP_ID=""
-          export RAKUTEN_AFFILIATE_ID=""
-          
-          # metro.config.jsを最適化
+          # 6. Metroコンフィグの最適化
           cat > metro.config.js << 'EOL'
 /**
  * Metro configuration for Stilya - GitHub Actions互換版
@@ -280,16 +259,61 @@ config.serializer.getRunModuleStatement = moduleId => `__r(${moduleId});`;
 module.exports = config;
 EOL
           
+          echo "✅ Metro compatibility setup completed"
+
+      - name: Patch Environment Module
+        if: success()
+        run: |
+          # 環境変数処理モジュールのパッチ
+          chmod +x ./scripts/patch-expo-env.sh
+          ./scripts/patch-expo-env.sh
+
+      - name: Prepare keystore
+        if: env.ANDROID_KEYSTORE_BASE64 != ''
+        run: |
+          # プロダクション用キーストアの準備
+          mkdir -p android/app
+          echo ${{ secrets.ANDROID_KEYSTORE_BASE64 }} | base64 --decode > android/app/stilya-keystore.jks
+          echo '{
+            "android": {
+              "keystore": {
+                "keystorePath": "android/app/stilya-keystore.jks",
+                "keystorePassword": "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}",
+                "keyAlias": "${{ secrets.ANDROID_KEY_ALIAS }}",
+                "keyPassword": "${{ secrets.ANDROID_KEY_PASSWORD }}"
+              }
+            }
+          }' > credentials.json
+          echo "✅ Production keystore prepared"
+
+      - name: Create temporary keystore for build
+        if: env.ANDROID_KEYSTORE_BASE64 == ''
+        run: |
+          # デバッグキーストアの作成
+          mkdir -p android/app
+          keytool -genkeypair -v -keystore android/app/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          echo "✅ Debug keystore created"
+
+      - name: Build Android App
+        run: |
+          echo "🏗️ Building Android app with fixed configuration..."
+          
+          # 環境設定の再確認
+          export EXPO_NO_DOTENV=1
+          export SKIP_BUNDLING=1
+          export EAS_SKIP_JAVASCRIPT_BUNDLING=1
+          export METRO_FORCE_NODE_MODULE_RESOLUTION=1
+          
           # プレビルド（JavaScriptバンドリングをスキップ）
           npx expo prebuild --platform android --clean
           
           # metro関連の問題を防ぐための追加の修正
           mkdir -p android/app/src/main/assets
           
-          # 空のバンドルファイルを生成して-EAS_SKIP_JAVASCRIPT_BUNDLINGが効くようにする
+          # 空のバンドルファイルを生成
           echo "// Empty bundle for CI build - Generated at $(date)" > android/app/src/main/assets/index.android.bundle
           
-          # TerminalReporterのリンクを確実にする
+          # TerminalReporterのリンクを確認
           ln -sf ../../../../metro/src/lib/TerminalReporter.js node_modules/@expo/cli/node_modules/metro/src/lib/TerminalReporter.js
           
           # モジュール解決パスの修正とExpo安定化設定
@@ -297,13 +321,14 @@ EOL
           export EXPO_USE_DEV_SERVER=false
           export EXPO_USE_METRO=false
           
-          # トラブルシューティング情報表示
-          echo "📊 Node.js情報: $(node -v)"
-          echo "📊 NPM情報: $(npm -v)"
-          echo "📊 Expo CLI情報: $(npx expo --version)"
-          echo "📊 eas-cli情報: $(eas --version)"
+          # 診断情報の表示
+          echo "📊 環境情報:"
+          echo "Node.js: $(node -v)"
+          echo "NPM: $(npm -v)"
+          echo "Expo CLI: $(npx expo --version)"
+          echo "EAS CLI: $(eas --version)"
           
-          # Androidビルド
+          # Androidビルド実行
           cd android
           ./gradlew --no-daemon assembleRelease
           cd ..
@@ -314,6 +339,13 @@ EOL
           
           if [ -f "dist/stilya-release.apk" ]; then
             echo "✅ Build successful: $(ls -la dist/stilya-release.apk)"
+            
+            # APKのサイズとハッシュを表示
+            APK_SIZE=$(du -h dist/stilya-release.apk | cut -f1)
+            APK_SHA=$(sha256sum dist/stilya-release.apk | cut -d' ' -f1)
+            echo "📦 APK情報:"
+            echo "サイズ: $APK_SIZE"
+            echo "SHA256: $APK_SHA"
           else
             echo "❌ Build failed"
             exit 1
