@@ -98,6 +98,9 @@ class TerminalReporter {
   getWarnings() {
     return this._warnings;
   }
+
+  // GitHub Actions環境でのビルドに必要なメソッド
+  update() {}
 }
 
 module.exports = TerminalReporter;
