@@ -103,6 +103,26 @@ if [ -f app.json ]; then
   fi
 fi
 
+# App.config.js/tsの確認
+echo "📦 app.config.js/ts の確認..."
+if [ -f app.config.js ]; then
+  # projectId が設定されているか確認
+  if ! grep -q "projectId" app.config.js; then
+    echo "⚠️ app.config.js に projectId が設定されていない可能性があります。手動で確認してください。"
+  else
+    echo "✅ app.config.js に projectId が設定されています。"
+  fi
+fi
+
+if [ -f app.config.ts ]; then
+  # projectId が設定されているか確認
+  if ! grep -q "projectId" app.config.ts; then
+    echo "⚠️ app.config.ts に projectId が設定されていない可能性があります。手動で確認してください。"
+  else
+    echo "✅ app.config.ts に projectId が設定されています。"
+  fi
+fi
+
 # GitHub Actions用のEXPO_TOKENチェック
 if [ -n "$CI" ] && [ -n "$EXPO_TOKEN" ]; then
   echo "✅ EXPO_TOKEN 環境変数が正しく設定されています"

@@ -1,6 +1,6 @@
 {
   "cli": {
-    "version": "16.6.1",
+    "version": ">=7.3.0",
     "appVersionSource": "remote",
     "promptToConfigurePushNotifications": false
   },
@@ -14,7 +14,10 @@
       "env": {
         "EAS_SKIP_JAVASCRIPT_BUNDLING": "1"
       },
-      "autoIncrement": true
+      "autoIncrement": true,
+      "runtimeVersion": {
+        "policy": "sdkVersion"
+      }
     },
     "development": {
       "distribution": "internal",

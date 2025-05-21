@@ -6,18 +6,13 @@ set -e
 
 echo "🔧 GitHub Actions CI/EAS環境特有の問題を修正します..."
 
-# パッチ適用用ディレクトリの作成
-if [ ! -d patches ]; then
-  mkdir -p patches
-fi
-
-# シリアライザのパッチ適用
-echo "📦 Metro serializer問題のパッチを適用..."
-if [ -f patch-expo-serializer.js ]; then
-  node patch-expo-serializer.js
-else
-  echo "⚠️ patch-expo-serializer.js が見つかりません。スキップします。"
-fi
+# キャッシュのクリア
+echo "🧹 キャッシュを完全にクリア..."
+rm -rf node_modules/.cache
+rm -rf ~/.expo/cache 2>/dev/null || true
+rm -rf .expo/cache 2>/dev/null || true
+rm -rf .metro-cache 2>/dev/null || true
+yarn cache clean || true
 
 # 環境変数の確認
 if [ -n "$EXPO_TOKEN" ]; then
@@ -66,13 +61,5 @@ pkg.resolutions = {
 };
 fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n");
 '
-
-# キャッシュのクリア
-echo "🧹 キャッシュを完全にクリア..."
-rm -rf node_modules/.cache
-rm -rf ~/.expo/cache 2>/dev/null || true
-rm -rf .expo/cache 2>/dev/null || true
-rm -rf .metro-cache 2>/dev/null || true
-yarn cache clean || true
 
 echo "✅ CI/EAS環境用のビルド修正が完了しました！"
