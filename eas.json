@@ -1,57 +1,44 @@
 {
   "cli": {
     "version": ">=7.3.0",
-    "appVersionSource": "remote"
+    "requireCommit": false,
+    "promptToConfigurePushNotifications": false
   },
   "build": {
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "android": {
-        "buildType": "apk"
-      }
+      "ios": {
+        "simulator": true
+      },
+      "channel": "development"
     },
     "preview": {
       "distribution": "internal",
-      "android": {
-        "buildType": "apk"
-      }
+      "channel": "preview"
     },
     "production": {
       "autoIncrement": true,
-      "android": {
-        "buildType": "app-bundle"
-      }
+      "channel": "production"
     },
     "local": {
-      "distribution": "internal",
       "android": {
-        "buildType": "apk"
-      },
-      "env": {
-        "EAS_SKIP_JAVASCRIPT_BUNDLING": "1"
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
       }
     },
     "ci": {
-      "developmentClient": false,
-      "distribution": "internal",
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleRelease",
-        "withoutCredentials": false
+        "withoutCredentials": true
       },
       "env": {
         "EAS_SKIP_JAVASCRIPT_BUNDLING": "1",
-        "EXPO_NO_CACHE": "1",
-        "NODE_OPTIONS": "--max-old-space-size=8192"
+        "EXPO_NO_CACHE": "1"
       },
-      "cache": {
-        "key": "stilya-eas-build-v1"
-      },
-      "autoIncrement": true,
-      "runtimeVersion": {
-        "policy": "appVersion"
-      }
+      "autoIncrement": false,
+      "channel": "production"
     }
   },
   "submit": {

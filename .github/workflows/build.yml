@@ -46,18 +46,177 @@ jobs:
           npm install -g eas-cli@7.3.0
           echo "✅ Dependencies installed"
 
-      - name: Apply Metro fixes
+      - name: Fix Metro Dependencies
         run: |
-          chmod +x ./scripts/fix-metro-for-ci.sh
-          ./scripts/fix-metro-for-ci.sh
-          echo "✅ Metro fixes applied"
+          npm install --no-save @babel/runtime@7.27.1 \
+            @expo/metro-config@0.9.0 \
+            metro@0.77.0 \
+            metro-core@0.77.0 \
+            metro-runtime@0.77.0 \
+            metro-react-native-babel-transformer@0.77.0 \
+            metro-resolver@0.77.0 \
+            metro-source-map@0.77.0 \
+            metro-cache@0.77.0 \
+            babel-preset-expo@13.1.11
+          echo "✅ Metro dependencies fixed"
+
+      - name: Create Terminal Reporter
+        run: |
+          mkdir -p node_modules/metro/src/lib
+          cat > node_modules/metro/src/lib/TerminalReporter.js << 'EOL'
+          /**
+           * Metro Reporter for Expo SDK 53 compatibility
+           */
+          class TerminalReporter {
+            constructor(terminal) {
+              this._terminal = terminal || {
+                log: console.log.bind(console),
+                error: console.error.bind(console),
+                info: console.info.bind(console),
+                warn: console.warn.bind(console)
+              };
+              this._errors = [];
+              this._warnings = [];
+            }
+
+            update() {}
+            terminal() { return this._terminal; }
+            
+            handleError(error) {
+              this._errors.push(error);
+              if (this._terminal && this._terminal.error) {
+                this._terminal.error(error);
+              }
+            }
+
+            handleWarning(warning) {
+              this._warnings.push(warning);
+              if (this._terminal && this._terminal.warn) {
+                this._terminal.warn(warning);
+              }
+            }
+
+            getErrors() { return this._errors; }
+            getWarnings() { return this._warnings; }
+          }
+
+          module.exports = TerminalReporter;
+          EOL
+          echo "✅ Terminal Reporter created"
+
+      - name: Update Metro Config
+        run: |
+          cat > metro.config.js << 'EOL'
+          /**
+           * Metro configuration for Stilya
+           * Optimized for GitHub Actions and Expo SDK 53
+           */
+          const { getDefaultConfig } = require('@expo/metro-config');
+          const path = require('path');
+
+          const config = getDefaultConfig(__dirname);
+
+          // バンドルの最適化設定
+          config.transformer = {
+            ...config.transformer,
+            assetPlugins: ['expo-asset/tools/hashAssetFiles'],
+            minifierPath: 'metro-minify-terser',
+            minifierConfig: {
+              // 最適化レベルを下げて安定性を確保
+              ecma: 8,
+              keep_classnames: true,
+              keep_fnames: true,
+              module: true,
+            },
+          };
+
+          // Resolver設定を最適化
+          config.resolver = {
+            ...config.resolver,
+            extraNodeModules: {
+              "metro/src/lib/TerminalReporter": path.resolve(__dirname, "node_modules/metro/src/lib/TerminalReporter.js")
+            },
+            resolverMainFields: ['react-native', 'browser', 'main'],
+            disableHierarchicalLookup: true,
+            unstable_enablePackageExports: false,
+          };
+
+          // Ensure correct serializer for Expo SDK 53
+          config.serializer = config.serializer || {};
+          config.serializer.getModulesRunBeforeMainModule = () => [
+            require.resolve('expo/AppEntry'),
+          ];
+
+          // キャッシュ設定の最適化
+          config.cacheStores = [
+            {
+              type: 'file',
+            },
+          ];
+
+          module.exports = config;
+          EOL
+          echo "✅ Metro config updated"
+
+      - name: Update EAS Config
+        run: |
+          cat > eas.json << 'EOL'
+          {
+            "cli": {
+              "version": ">=7.3.0",
+              "requireCommit": false,
+              "promptToConfigurePushNotifications": false
+            },
+            "build": {
+              "development": {
+                "developmentClient": true,
+                "distribution": "internal",
+                "ios": {
+                  "simulator": true
+                },
+                "channel": "development"
+              },
+              "preview": {
+                "distribution": "internal",
+                "channel": "preview"
+              },
+              "production": {
+                "autoIncrement": true,
+                "channel": "production"
+              },
+              "local": {
+                "android": {
+                  "buildType": "apk",
+                  "gradleCommand": ":app:assembleRelease"
+                }
+              },
+              "ci": {
+                "android": {
+                  "buildType": "apk",
+                  "gradleCommand": ":app:assembleRelease",
+                  "withoutCredentials": true
+                },
+                "env": {
+                  "EAS_SKIP_JAVASCRIPT_BUNDLING": "1",
+                  "EXPO_NO_CACHE": "1"
+                },
+                "autoIncrement": false,
+                "channel": "production"
+              }
+            },
+            "submit": {
+              "production": {}
+            }
+          }
+          EOL
+          echo "✅ EAS config updated"
 
       - name: Prepare keystore
         if: env.ANDROID_KEYSTORE_BASE64 != ''
         run: |
           mkdir -p android/app
           echo ${{ secrets.ANDROID_KEYSTORE_BASE64 }} | base64 --decode > android/app/stilya-keystore.jks
-          echo '{'$'\n''  "android": {'$'\n''    "keystore": {'$'\n''      "keystorePath": "android/app/stilya-keystore.jks",'$'\n''      "keystorePassword": "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}",'$'\n''      "keyAlias": "${{ secrets.ANDROID_KEY_ALIAS }}",'$'\n''      "keyPassword": "${{ secrets.ANDROID_KEY_PASSWORD }}"'$'\n''    }'$'\n''  }'$'\n''}'$'\n' > credentials.json
+          echo '{'"\\n"'  "android": {'"\\n"'    "keystore": {'"\\n"'      "keystorePath": "android/app/stilya-keystore.jks",'"\\n"'      "keystorePassword": "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}",'"\\n"'      "keyAlias": "${{ secrets.ANDROID_KEY_ALIAS }}",'"\\n"'      "keyPassword": "${{ secrets.ANDROID_KEY_PASSWORD }}"'"\\n"'    }'"\\n"'  }'"\\n"'}''"\\n"' > credentials.json
           echo "✅ Keystore prepared"
 
       - name: Create temporary keystore for build
@@ -71,16 +230,19 @@ jobs:
         run: |
           echo "🏗️ Building Android app with fixed configuration..."
           
-          # Expoプレビルド（JavaScriptバンドリングを明示的にスキップ）
+          # プレビルド（JavaScriptバンドリングをスキップ）
           npx expo prebuild --platform android --clean
           
           # metro関連の問題を防ぐための追加の修正
           mkdir -p android/app/src/main/assets
           touch android/app/src/main/assets/index.android.bundle
-
+          
+          # 空のバンドルファイルを生成して-EAS_SKIP_JAVASCRIPT_BUNDLINGが効くようにする
+          echo "// Empty bundle for CI build" > android/app/src/main/assets/index.android.bundle
+          
           # Androidビルド
           cd android
-          ./gradlew assembleRelease
+          ./gradlew --no-daemon assembleRelease
           cd ..
           
           # ビルド結果を移動

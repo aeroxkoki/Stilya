@@ -10,6 +10,14 @@
     "hooks": {
       "disableEnvironmentLoad": true
     },
+    "experiments": {
+      "tsconfigPaths": true,
+      "typedRoutes": true
+    },
+    "packagerOpts": {
+      "sourceExts": ["js", "jsx", "ts", "tsx", "cjs", "mjs"],
+      "config": "metro.config.js"
+    },
     "runtimeVersion": {
       "policy": "sdkVersion"
     },
