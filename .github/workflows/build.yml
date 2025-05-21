@@ -52,67 +52,21 @@ jobs:
 
       - name: 📦 Fix Metro compatibility issues
         run: |
-          # 緊急対応：直接ファイルを作成する方法を試します
-          echo "🚨 直接ファイル作成方式でMetro互換性問題を修正します..."
+          # 緊急対応：別途作成したスクリプトでファイルを直接作成
+          echo "🚨 Metro互換性問題を修正します..."
+          
+          # まず緊急修正スクリプトを実行
           chmod +x ./scripts/fix-metro-serializer-direct.sh
           ./scripts/fix-metro-serializer-direct.sh
           
-          # TerminalReporter.jsファイルの存在確認
-          if [ ! -f "node_modules/metro/src/lib/TerminalReporter.js" ]; then
-            echo "⚠️ ファイルが見つかりません。手動で作成します..."
-            mkdir -p node_modules/metro/src/lib
-            cat > node_modules/metro/src/lib/TerminalReporter.js << 'EOL'
-/**
- * Copyright (c) Meta Platforms, Inc. and affiliates.
- *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * @flow strict-local
- * @format
- */
-
-'use strict';
-
-class TerminalReporter {
-  constructor(terminal) {
-    this._terminal = terminal;
-    this._errors = [];
-    this._warnings = [];
-  }
-
-  handleError(error) {
-    this._errors.push(error);
-  }
-
-  handleWarning(warning) {
-    this._warnings.push(warning);
-  }
-
-  getErrors() {
-    return this._errors;
-  }
-
-  getWarnings() {
-    return this._warnings;
-  }
-
-  update() {}
-  terminal() { return this._terminal; }
-}
-
-module.exports = TerminalReporter;
-EOL
-            chmod 644 node_modules/metro/src/lib/TerminalReporter.js
-            echo "✅ ファイルを手動で作成しました"
-          fi
+          # バックアップとしてTerminalReporter専用スクリプトも実行
+          chmod +x ./scripts/create-terminal-reporter.sh
+          ./scripts/create-terminal-reporter.sh
           
-          # ファイルの存在と内容を確認
+          # ファイルの存在確認
           if [ -f "node_modules/metro/src/lib/TerminalReporter.js" ]; then
             ls -la node_modules/metro/src/lib/TerminalReporter.js
-            echo "📋 ファイルの先頭部分:"
-            head -n 5 node_modules/metro/src/lib/TerminalReporter.js
-            echo "✅ TerminalReporter.js exists and has content"
+            echo "✅ TerminalReporter.js exists and is ready"
           else
             echo "❌ CRITICAL ERROR: TerminalReporter.js still does not exist!"
             exit 1
