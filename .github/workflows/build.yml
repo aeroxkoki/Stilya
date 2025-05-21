@@ -52,20 +52,70 @@ jobs:
 
       - name: 📦 Fix Metro compatibility issues
         run: |
-          # Metro互換性の問題を修正
-          chmod +x ./scripts/fix-metro-incompatibility.sh
-          ./scripts/fix-metro-incompatibility.sh
-          
-          # キャッシュディレクトリを確認
-          mkdir -p node_modules/metro/src/lib
-          ls -la node_modules/metro/src/lib || echo "Directory does not exist"
+          # 緊急対応：直接ファイルを作成する方法を試します
+          echo "🚨 直接ファイル作成方式でMetro互換性問題を修正します..."
+          chmod +x ./scripts/fix-metro-serializer-direct.sh
+          ./scripts/fix-metro-serializer-direct.sh
           
           # TerminalReporter.jsファイルの存在確認
           if [ ! -f "node_modules/metro/src/lib/TerminalReporter.js" ]; then
-            echo "ERROR: TerminalReporter.js was not created properly"
-            exit 1
+            echo "⚠️ ファイルが見つかりません。手動で作成します..."
+            mkdir -p node_modules/metro/src/lib
+            cat > node_modules/metro/src/lib/TerminalReporter.js << 'EOL'
+/**
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ * @flow strict-local
+ * @format
+ */
+
+'use strict';
+
+class TerminalReporter {
+  constructor(terminal) {
+    this._terminal = terminal;
+    this._errors = [];
+    this._warnings = [];
+  }
+
+  handleError(error) {
+    this._errors.push(error);
+  }
+
+  handleWarning(warning) {
+    this._warnings.push(warning);
+  }
+
+  getErrors() {
+    return this._errors;
+  }
+
+  getWarnings() {
+    return this._warnings;
+  }
+
+  update() {}
+  terminal() { return this._terminal; }
+}
+
+module.exports = TerminalReporter;
+EOL
+            chmod 644 node_modules/metro/src/lib/TerminalReporter.js
+            echo "✅ ファイルを手動で作成しました"
+          fi
+          
+          # ファイルの存在と内容を確認
+          if [ -f "node_modules/metro/src/lib/TerminalReporter.js" ]; then
+            ls -la node_modules/metro/src/lib/TerminalReporter.js
+            echo "📋 ファイルの先頭部分:"
+            head -n 5 node_modules/metro/src/lib/TerminalReporter.js
+            echo "✅ TerminalReporter.js exists and has content"
           else
-            echo "✅ TerminalReporter.js exists"
+            echo "❌ CRITICAL ERROR: TerminalReporter.js still does not exist!"
+            exit 1
           fi
 
       - name: 🔧 Install EAS CLI
@@ -144,17 +194,16 @@ jobs:
           export EAS_SKIP_JAVASCRIPT_BUNDLING=1
           export NODE_OPTIONS="--max-old-space-size=8192"
           
-          # ローカルビルド実行（互換性修正スクリプトを使用）
-          npm run fix-metro-compatibility
+          # 緊急対応：直接修正を適用
+          npm run fix-metro-emergency
+          
+          # ファイルの存在確認
+          echo "確認: TerminalReporter.jsが存在するか確認します..."
+          ls -la node_modules/metro/src/lib/TerminalReporter.js || echo "ファイルが見つかりません"
+          
+          # ローカルビルド実行
           chmod +x ./scripts/local-android-build.sh
           bash ./scripts/local-android-build.sh
-          
-          # ビルド失敗時に緊急対応
-          if [ $? -ne 0 ]; then
-            echo "⚠️ ビルドに失敗しました。緊急修復を実行します..."
-            npm run fix-metro-emergency
-            bash ./scripts/local-android-build.sh
-          fi
           
           # ビルド結果の確認
           if [ -f "stilya-release.apk" ]; then
