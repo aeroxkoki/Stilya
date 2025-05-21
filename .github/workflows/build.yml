@@ -42,7 +42,7 @@ jobs:
           echo "app.json の内容を確認:"
           cat app.json
           echo "app.config.js の内容を確認:"
-          cat app.config.js
+          if [ -f app.config.js ]; then cat app.config.js; fi
           echo "app.config.ts の内容を確認:"
           if [ -f app.config.ts ]; then cat app.config.ts; fi
           echo "EAS projectId確認:"
@@ -52,4 +52,4 @@ jobs:
         run: |
           echo "📱 Running EAS build..."
           eas whoami
-          eas build --platform android --profile ci --non-interactive --owner aeroxkoki
+          eas build --platform android --profile ci --non-interactive
