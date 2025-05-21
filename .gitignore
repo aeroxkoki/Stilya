@@ -18,6 +18,10 @@ expo-env.d.ts
 *.key
 *.mobileprovision
 
+# Native folders for Prebuild
+/android/
+/ios/
+
 # Specifically for Stilya
 android/app/stilya-keystore.jks
 keystore-base64.txt

@@ -34,6 +34,7 @@
     },
     "ci": {
       "developmentClient": false,
+      "distribution": "internal",
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleRelease",
@@ -43,6 +44,9 @@
         "EAS_SKIP_JAVASCRIPT_BUNDLING": "1",
         "EXPO_NO_CACHE": "1",
         "NODE_OPTIONS": "--max-old-space-size=8192"
+      },
+      "cache": {
+        "key": "stilya-eas-build-v1"
       },
       "autoIncrement": true,
       "runtimeVersion": {
