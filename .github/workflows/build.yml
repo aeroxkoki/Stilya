@@ -39,14 +39,51 @@ jobs:
         run: |
           npm ci
           npm install -g eas-cli@latest expo-cli@latest
+          # metro-configを明示的にインストール
+          npm install --save-dev @expo/metro-config@0.9.0 --force
+          npm dedupe
+          echo "✅ Dependencies installed"
 
-      - name: Fix dependencies
+      - name: Create TerminalReporter
         run: |
-          chmod +x ./fix-dependencies.sh
-          ./fix-dependencies.sh
-          chmod +x ./fix-metro-config.js
-          node fix-metro-config.js
-          echo "✅ Dependencies fixed"
+          mkdir -p node_modules/metro/src/lib
+          cat > node_modules/metro/src/lib/TerminalReporter.js << 'EOL'
+          /**
+           * Metro Reporter for compatibility with Expo SDK 53.
+           */
+          "use strict";
+          class TerminalReporter {
+            constructor(terminal) {
+              this._terminal = terminal;
+              this._errors = [];
+              this._warnings = [];
+            }
+            handleError(error) { this._errors.push(error); }
+            handleWarning(warning) { this._warnings.push(warning); }
+            getErrors() { return this._errors; }
+            getWarnings() { return this._warnings; }
+            update() {}
+            terminal() { return this._terminal; }
+          }
+          module.exports = TerminalReporter;
+          EOL
+          chmod 644 node_modules/metro/src/lib/TerminalReporter.js
+          echo "✅ TerminalReporter.js created"
+
+      - name: Verify dependencies
+        run: |
+          if [ -d "node_modules/@expo/metro-config" ]; then
+            echo "✅ @expo/metro-config is installed"
+          else
+            echo "❌ @expo/metro-config is NOT installed"
+            npm install --save-dev @expo/metro-config@0.9.0 --force
+            if [ -d "node_modules/@expo/metro-config" ]; then
+              echo "✅ @expo/metro-config is now installed"
+            else
+              echo "❌ Failed to install @expo/metro-config"
+              exit 1
+            fi
+          fi
 
       - name: Clear cache
         run: |
