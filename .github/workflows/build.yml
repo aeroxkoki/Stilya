@@ -106,7 +106,7 @@ jobs:
           mkdir -p node_modules/metro-core/src
           
           # 2. TerminalReporterの実装
-          cat > node_modules/metro/src/lib/TerminalReporter.js << "EOL"
+          cat > node_modules/metro/src/lib/TerminalReporter.js << 'EOL'
 /**
  * Metro Reporter for Expo SDK 53 compatibility (optimized fix)
  * CIビルド用に最適化
@@ -148,7 +148,7 @@ EOL
           
           # 4. metro-coreモジュールの補完作成
           # package.jsonを追加
-          cat > node_modules/metro-core/package.json << "EOL"
+          cat > node_modules/metro-core/package.json << 'EOL'
 {
   "name": "metro-core",
   "version": "0.77.0",
@@ -159,7 +159,7 @@ EOL
 EOL
 
           # src/index.jsを追加
-          cat > node_modules/metro-core/src/index.js << "EOL"
+          cat > node_modules/metro-core/src/index.js << 'EOL'
 /**
  * Metro Core compatibility module for Expo SDK 53
  * GitHub Actions用互換レイヤー
@@ -215,7 +215,7 @@ EOL
           ln -sf ../../../node_modules/metro-core node_modules/@expo/cli/node_modules/metro-core || true
           
           # 6. Metroコンフィグの最適化
-          cat > metro.config.js << "EOL"
+          cat > metro.config.js << 'EOL'
 /**
  * Metro configuration for Stilya - GitHub Actions互換版
  */
