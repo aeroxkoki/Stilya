@@ -39,12 +39,25 @@ jobs:
       - name: 🔧 Install EAS CLI
         run: yarn global add eas-cli@16.6.1
 
+      - name: 🔧 Setup EAS project
+        run: |
+          echo "EASプロジェクト設定の初期化..."
+          # 既存のEAS設定を確認
+          eas project:info || echo "EASプロジェクト情報が見つかりません。設定を行います。"
+          # プロジェクトID確認
+          PROJECT_ID=$(cat app.json | grep -o '\"projectId\": \"[^\"]*\"' | cut -d':' -f2 | tr -d '\" ' || echo "")
+          echo "Project ID from app.json: $PROJECT_ID"
+
       - name: 🛠 Apply build fixes
         run: |
           bash ./scripts/ci-build-fix.sh
 
       - name: 🔍 Check app.json config
-        run: cat app.json | grep -A 2 "owner"
+        run: |
+          echo "app.json の内容を確認:"
+          cat app.json
+          echo "owner設定の確認:"
+          cat app.json | grep -A 2 "owner"
 
       - name: 🛠 Run EAS build
         run: |
@@ -52,4 +65,14 @@ jobs:
           # ビルド前に一時的に確認
           echo "Running with EXPO_TOKEN length: ${#EXPO_TOKEN}"
           eas whoami
-          eas build --platform android --profile ci --non-interactive
+          echo "EAS環境変数の設定:"
+          env | grep -i expo || true
+          
+          # app.jsonのownerとprojectId設定を確認
+          OWNER=$(cat app.json | grep -o '"owner": "[^"]*"' | cut -d':' -f2 | tr -d '" ' || echo "")
+          PROJECT_ID=$(cat app.json | grep -o '"projectId": "[^"]*"' | cut -d':' -f2 | tr -d '" ' || echo "")
+          echo "Owner from app.json: $OWNER"
+          echo "Project ID from app.json: $PROJECT_ID"
+          
+          # ビルドコマンド実行
+          eas build --platform android --profile ci --non-interactive --owner aeroxkoki
