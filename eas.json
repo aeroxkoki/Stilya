@@ -1,6 +1,6 @@
 {
   "cli": {
-    "version": ">=3.0.0"
+    "version": ">=16.0.0"
   },
   "build": {
     "ci": {
@@ -11,7 +11,33 @@
       },
       "env": {
         "EAS_SKIP_JAVASCRIPT_BUNDLING": "1"
+      },
+      "autoIncrement": true,
+      "runtimeVersion": {
+        "policy": "sdkVersion"
       }
+    },
+    "development": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "developmentClient": true,
+      "channel": "development"
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "channel": "preview"
+    },
+    "production": {
+      "autoIncrement": true,
+      "channel": "production"
     }
+  },
+  "submit": {
+    "production": {}
   }
 }

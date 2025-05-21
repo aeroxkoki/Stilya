@@ -1,70 +1,40 @@
 #\!/bin/bash
-# ci-build-fix.sh
-# GitHub Actions CI環境向けビルド問題修正スクリプト
+# fix-ci-build.sh
+# GitHub Actions CI環境でのExpo EASビルド問題を修正するスクリプト
 
 set -e
-echo "🛠️ CI環境向けビルド問題の修正を開始します..."
 
-# patch-packageの問題を回避
-echo "🩹 patch-packageの問題を修正します..."
-if [ \! -d "./patches" ]; then
-  mkdir -p ./patches
-  echo "📁 patchesディレクトリを作成しました"
-fi
+echo "🔧 GitHub Actions CI/EAS環境特有の問題を修正します..."
 
-# jest-expoパッチファイルを作成/確認
-PATCH_FILE="./patches/jest-expo+50.0.0.patch"
-if [ \! -f "$PATCH_FILE" ] || \! grep -q "diff --git" "$PATCH_FILE"; then
-  # バックアップ作成（既存ファイルがある場合）
-  if [ -f "$PATCH_FILE" ]; then
-    mv "$PATCH_FILE" "${PATCH_FILE}.bak"
-    echo "既存のパッチファイルをバックアップしました: ${PATCH_FILE}.bak"
-  fi
-  
-  # 有効な最小限のパッチファイルを作成
-  cat > "$PATCH_FILE" << EOF
-diff --git a/node_modules/jest-expo/src/preset/setup.js b/node_modules/jest-expo/src/preset/setup.js
-index 00000000..99999999 100644
---- a/node_modules/jest-expo/src/preset/setup.js
-+++ b/node_modules/jest-expo/src/preset/setup.js
-@@ -1,3 +1,4 @@
-+// CI環境用ダミーパッチ 
- // Jest Expo setup file
- 
- // Any manual setup needed
-EOF
+# シリアライザのパッチ適用
+echo "📦 Metro serializer問題のパッチを適用..."
+node patch-expo-serializer.js
 
-  echo "✅ 有効なパッチファイルを作成しました: $PATCH_FILE"
-fi
+# Node環境最適化
+export NODE_OPTIONS="--max-old-space-size=8192"
 
-# package.jsonのpostinstallスクリプトを一時的に変更
-if [ -f "package.json" ]; then
-  echo "📝 package.jsonのpostinstallスクリプトを修正します..."
-  
-  # バックアップ作成
-  cp package.json package.json.bak
-  
-  # sedコマンドの互換性対応
-  if [[ "$OSTYPE" == "darwin"* ]]; then
-    # macOS用
-    sed -i '' 's/"postinstall": "npm install --no-save @babel\/runtime@7.27.1 && npm dedupe && patch-package/"postinstall": "npm install --no-save @babel\/runtime@7.27.1 && npm dedupe/' package.json
-  else
-    # Linux用
-    sed -i 's/"postinstall": "npm install --no-save @babel\/runtime@7.27.1 && npm dedupe && patch-package/"postinstall": "npm install --no-save @babel\/runtime@7.27.1 && npm dedupe/' package.json
-  fi
-  
-  echo "✅ package.jsonを修正しました（バックアップ: package.json.bak）"
-fi
+# Metro依存関係の修正
+echo "📦 Metro依存関係を最適化..."
+npm install --no-save --no-package-lock \
+  metro@0.76.8 \
+  metro-config@0.76.8 \
+  @expo/metro-config@0.20.14 \
+  metro-cache@0.76.8 \
+  metro-minify-terser@0.76.8 \
+  metro-transform-worker@0.76.8
 
-# Metro設定チェック（New Architecture互換性問題）
-if [ -f "metro.config.js" ]; then
-  echo "🔍 metro.config.jsの確認..."
-  
-  if \! grep -q "unstable_enablePackageExports = false" metro.config.js; then
-    echo "⚠️ Package Exports設定が見つかりません。metro.config.jsを確認してください。"
-  else
-    echo "✅ Package Exports設定が適切に設定されています"
-  fi
-fi
+# Babel設定の修正
+echo "📦 Babel依存関係を最適化..."
+npm install --no-save --no-package-lock \
+  @babel/runtime@7.27.1 \
+  babel-preset-expo@13.0.0
 
-echo "✅ CI環境向けビルド問題の修正が完了しました"
+# キャッシュのクリア
+echo "🧹 キャッシュを完全にクリア..."
+rm -rf node_modules/.cache
+rm -rf ~/.expo/cache 2>/dev/null || true
+rm -rf .expo/cache 2>/dev/null || true
+rm -rf .metro-cache 2>/dev/null || true
+npm cache clean --force
+
+echo "✅ CI/EAS環境用のビルド修正が完了しました！"
