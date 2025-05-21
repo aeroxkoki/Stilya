@@ -63,7 +63,9 @@
     "fix-expo-metro": "npm run fix-metro && npm run create-bundle-helpers",
     "fix:metro-config": "npm install --save-dev @expo/metro-config@0.9.0 --force && npm dedupe",
     "fix:deps": "npm install --force && npm run fix:metro-config && npm run fix-babel",
-    "fix:ci-build": "npm run setup:ci && npm run clean && npm run fix:metro-all && npm run github:build:local"
+    "fix:ci-build": "npm run setup:ci && npm run clean && npm run fix:metro-all && npm run github:build:local",
+    "fix:metro-ci": "chmod +x ./scripts/fix-metro-for-ci.sh && ./scripts/fix-metro-for-ci.sh",
+    "test:github-actions": "chmod +x ./scripts/test-github-actions-fix.sh && ./scripts/test-github-actions-fix.sh"
   },
   "dependencies": {
     "@babel/runtime": "7.27.1",
