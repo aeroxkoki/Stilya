@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 🧰 Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v3
         with:
           node-version: 20
 
@@ -35,7 +35,7 @@ jobs:
           yarn cache clean
 
       - name: 🔧 Install EAS CLI
-        run: yarn global add eas-cli@16.6.1
+        run: yarn global add eas-cli@7.3.0
 
       - name: 🛠 Apply build fixes
         run: |
