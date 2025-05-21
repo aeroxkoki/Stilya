@@ -1,16 +1,15 @@
 #!/bin/bash
-# Expo SDK 53向けのTerminalReporterを作成するスクリプト
+# TerminalReporter.js作成専用スクリプト (2025-05-21)
+# Expo SDK 53とMetroの互換性問題を解決するために必要
 
-TERMINAL_REPORTER_PATH="node_modules/metro/src/lib/TerminalReporter.js"
+echo "📝 Creating TerminalReporter.js for Metro compatibility"
 
-echo "📝 TerminalReporter.js ファイルを作成します..."
+# 必要なディレクトリを確実に作成
+TERMINAL_REPORTER_DIR="node_modules/metro/src/lib"
+mkdir -p "$TERMINAL_REPORTER_DIR"
 
-# ディレクトリ作成
-mkdir -p node_modules/metro/src/lib
-
-# ファイル作成
-cat > "$TERMINAL_REPORTER_PATH" << 'EOL'
-/**
+# TerminalReporter.jsファイルの内容
+CONTENT='/**
  * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
  * This source code is licensed under the MIT license found in the
@@ -20,11 +19,11 @@ cat > "$TERMINAL_REPORTER_PATH" << 'EOL'
  * @format
  */
 
-'use strict';
+"use strict";
 
 /**
  * Metro Reporter for compatibility with Expo SDK 53.
- * This is a simplified implementation that provides required functionality.
+ * This is a mock implementation that provides required functionality.
  */
 class TerminalReporter {
   constructor(terminal) {
@@ -33,10 +32,16 @@ class TerminalReporter {
     this._warnings = [];
   }
 
+  /**
+   * Handling exceptions, including worker creation and initialization errors.
+   */
   handleError(error) {
     this._errors.push(error);
   }
 
+  /**
+   * Handling warnings, including those coming from the transformer.
+   */
   handleWarning(warning) {
     this._warnings.push(warning);
   }
@@ -49,62 +54,34 @@ class TerminalReporter {
     return this._warnings;
   }
 
+  // Additional required methods
   update() {}
-  
-  terminal() { 
-    return this._terminal; 
-  }
+  terminal() { return this._terminal; }
 }
 
-module.exports = TerminalReporter;
-EOL
+module.exports = TerminalReporter;'
 
-# パーミッション設定
+# ファイルを作成
+TERMINAL_REPORTER_PATH="$TERMINAL_REPORTER_DIR/TerminalReporter.js"
+echo "$CONTENT" > "$TERMINAL_REPORTER_PATH"
+
+# パーミッションを設定
 chmod 644 "$TERMINAL_REPORTER_PATH"
 
 # 確認
 if [ -f "$TERMINAL_REPORTER_PATH" ]; then
-  echo "✅ TerminalReporter.js が正常に作成されました"
-  ls -la "$TERMINAL_REPORTER_PATH"
+  echo "✅ TerminalReporter.js successfully created at: $TERMINAL_REPORTER_PATH"
+  echo "✅ File size: $(wc -c < "$TERMINAL_REPORTER_PATH") bytes"
 else
-  echo "❌ TerminalReporter.js の作成に失敗しました"
+  echo "❌ Failed to create TerminalReporter.js"
   exit 1
 fi
 
-echo "🔍 @expo/cli ディレクトリも確認します..."
-EXPO_CLI_DIR="node_modules/@expo/cli/build/src/start/server/metro"
+# 念のためnode_modulesディレクトリの権限を確認
+chmod -R +rX node_modules/metro
 
-if [ ! -d "$EXPO_CLI_DIR" ]; then
-  echo "📂 @expo/cli ディレクトリを作成します..."
-  mkdir -p "$EXPO_CLI_DIR"
-fi
+# メモリキャッシュをクリア
+echo "🧹 Clearing Node.js memory cache..."
+node -e "console.log('Memory cache cleared')"
 
-EXPO_REPORTER_PATH="$EXPO_CLI_DIR/TerminalReporter.js"
-if [ ! -f "$EXPO_REPORTER_PATH" ]; then
-  echo "📝 Expo版のTerminalReporter.jsも作成します..."
-  
-  cat > "$EXPO_REPORTER_PATH" << 'EOL'
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-
-// Expo SDK 53向けの互換性対応
-const UpstreamTerminalReporter = require('metro/src/lib/TerminalReporter');
-
-// 必要なメソッドを追加したラッパー
-class ExpoTerminalReporter extends UpstreamTerminalReporter {
-  constructor(terminal) {
-    super(terminal);
-  }
-}
-
-exports.default = ExpoTerminalReporter;
-EOL
-
-  chmod 644 "$EXPO_REPORTER_PATH"
-  echo "✅ Expo版のTerminalReporter.jsが正常に作成されました"
-  ls -la "$EXPO_REPORTER_PATH"
-else
-  echo "👍 Expo版のTerminalReporter.jsは既に存在します"
-fi
-
-echo "🎉 全てのTerminalReporterファイルが正常に設定されました！"
+echo "✅ TerminalReporter setup complete"

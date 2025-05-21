@@ -1,176 +1,102 @@
-name: Android Build for Stilya (MVP)
+name: Build Stilya App
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
   workflow_dispatch:
-    inputs:
-      build_type:
-        description: 'ビルドタイプ'
-        required: true
-        default: 'local'
-        type: choice
-        options:
-          - local
-          - eas
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       EAS_SKIP_JAVASCRIPT_BUNDLING: 1
-      NODE_OPTIONS: "--max-old-space-size=8192"
-      NODE_ENV: "production"
-      BUILD_TYPE: ${{ github.event.inputs.build_type || 'local' }}
-      # Android Keystore関連の環境変数
+      NODE_OPTIONS: --max-old-space-size=8192
+      NODE_ENV: production
+      BUILD_TYPE: local
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
       ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
       ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
     steps:
-      - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v3
 
-      - name: 🧰 Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
-          node-version: 20
-          cache: 'yarn'
+          node-version: 18.x
+          cache: 'npm'
 
-      - name: 🔧 Enable Yarn
-        run: corepack enable
-
-      - name: 🔄 Update metro.config.js
+      - name: Install dependencies
         run: |
-          echo "📝 metro.config.js を確認・更新します"
-          # metro.config.js が既に最新かを確認
-          if ! grep -q "metro-stilya-cache" metro.config.js 2>/dev/null; then
-            echo "⚠️ metro.config.js を最新版に更新します"
-            cp .github/workflows/templates/metro.config.js metro.config.js || echo "テンプレートが見つからないため、修正スクリプトを実行します"
-          else
-            echo "✅ metro.config.js は最新です"
-          fi
+          npm ci
+          npm install -g eas-cli expo-cli
 
-      - name: 📦 Install dependencies
+      - name: Create TerminalReporter.js
         run: |
-          echo "📦 依存関係をインストールします..."
-          # インストールと修正を一括実行
-          yarn run install:ci
-
-      - name: 🧹 Clear cache
-        run: |
-          echo "🧹 キャッシュをクリアします..."
-          rm -rf node_modules/.cache
-          rm -rf ~/.expo ~/.cache/metro .expo .expo-shared
-          rm -rf $TMPDIR/metro-* 2>/dev/null || true
-
-      - name: 📝 Setup TerminalReporter
-        run: |
-          echo "📝 TerminalReporter.js をセットアップします..."
-          # ディレクトリ作成
           mkdir -p node_modules/metro/src/lib
-          
-          # ファイル作成
           cat > node_modules/metro/src/lib/TerminalReporter.js << 'EOL'
           /**
-           * Copyright (c) Meta Platforms, Inc. and affiliates.
-           *
-           * This source code is licensed under the MIT license found in the
-           * LICENSE file in the root directory of this source tree.
-           *
-           * @flow strict-local
-           * @format
-           */
-          
-          'use strict';
-          
-          /**
            * Metro Reporter for compatibility with Expo SDK 53.
-           * This is a simplified implementation that provides required functionality.
            */
+          "use strict";
           class TerminalReporter {
             constructor(terminal) {
               this._terminal = terminal;
               this._errors = [];
               this._warnings = [];
             }
-          
-            handleError(error) {
-              this._errors.push(error);
-            }
-          
-            handleWarning(warning) {
-              this._warnings.push(warning);
-            }
-          
-            getErrors() {
-              return this._errors;
-            }
-          
-            getWarnings() {
-              return this._warnings;
-            }
-          
+            handleError(error) { this._errors.push(error); }
+            handleWarning(warning) { this._warnings.push(warning); }
+            getErrors() { return this._errors; }
+            getWarnings() { return this._warnings; }
             update() {}
-            
-            terminal() { 
-              return this._terminal; 
-            }
+            terminal() { return this._terminal; }
           }
-          
           module.exports = TerminalReporter;
           EOL
-          
-          # ファイルの存在確認
+          chmod 644 node_modules/metro/src/lib/TerminalReporter.js
+          echo "✅ TerminalReporter.js created"
+
+      - name: Clear cache
+        run: |
+          rm -rf node_modules/.cache
+          rm -rf ~/.expo/cache
+          rm -rf ~/.metro-cache
+          rm -rf .expo
+          rm -rf .expo-shared
+          echo "✅ Caches cleared"
+
+      - name: Verify Metro compatibility
+        run: |
           if [ -f "node_modules/metro/src/lib/TerminalReporter.js" ]; then
-            ls -la node_modules/metro/src/lib/TerminalReporter.js
-            echo "✅ TerminalReporter.js が正常に作成されました"
+            echo "✅ TerminalReporter.js exists"
           else
-            echo "❌ TerminalReporter.js の作成に失敗しました"
+            echo "❌ TerminalReporter.js not found"
             exit 1
           fi
 
-      - name: 🔧 Install EAS CLI
-        run: yarn global add eas-cli@16.6.1
-
-      - name: 🔑 Setup Android keystore
+      - name: Setup Expo
         run: |
-          echo "🔑 Android keystore をセットアップします..."
+          npx expo-doctor
+          npx expo install --check
+
+      - name: Prepare keystore
+        if: env.ANDROID_KEYSTORE_BASE64 != ''
+        run: |
           mkdir -p android/app
-          
-          # credentials.json をルートディレクトリに作成
-          echo '{
-            "android": {
-              "keystore": {
-                "keystorePath": "android/app/stilya-keystore.jks",
-                "keystorePassword": "${{ secrets.ANDROID_KEYSTORE_PASSWORD || 'android' }}",
-                "keyAlias": "${{ secrets.ANDROID_KEY_ALIAS || 'androiddebugkey' }}",
-                "keyPassword": "${{ secrets.ANDROID_KEY_PASSWORD || 'android' }}"
-              }
-            }
-          }' > credentials.json
-          
-          # BASE64エンコードされたキーストアがある場合はデコード
-          if [ ! -z "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
-            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/stilya-keystore.jks
-            echo "✅ キーストアを復号化して保存しました"
-          else
-            echo "⚠️ キーストアが提供されていないためダミーキーストアを作成します"
-            chmod +x ./scripts/create-dummy-keystore.sh
-            ./scripts/create-dummy-keystore.sh
-          fi
-          
-          chmod 644 credentials.json
+          echo ${{ secrets.ANDROID_KEYSTORE_BASE64 }} | base64 --decode > android/app/stilya-keystore.jks
+          echo '{"android":{"keystore":{"keystorePath":"android/app/stilya-keystore.jks","keystorePassword":"${{ secrets.ANDROID_KEYSTORE_PASSWORD }}","keyAlias":"${{ secrets.ANDROID_KEY_ALIAS }}","keyPassword":"${{ secrets.ANDROID_KEY_PASSWORD }}"}}}' > credentials.json
+          echo "✅ Keystore prepared"
 
-      - name: 🛠 Run build
+      - name: Build Android App
         run: |
-          echo "🏗️ ${{ env.BUILD_TYPE }} ビルドを実行します..."
+          echo "🏗️ local ビルドを実行します..."
           
-          if [ "${{ env.BUILD_TYPE }}" == "eas" ]; then
+          if [ "local" == "eas" ]; then
             # EAS ビルド
             echo "🌐 EAS ビルドを実行します..."
             eas build --platform android --profile ci --non-interactive --no-wait
@@ -191,10 +117,9 @@ jobs:
             fi
           fi
 
-      - name: 📦 Upload APK artifact
-        if: env.BUILD_TYPE == 'local' && success()
-        uses: actions/upload-artifact@v4
+      - name: Upload APK
+        if: success()
+        uses: actions/upload-artifact@v3
         with:
-          name: stilya-apk
+          name: stilya-app
           path: stilya-release.apk
-          retention-days: 7

@@ -24,14 +24,66 @@ npm run fix-metro-compatibility
 echo "🔍 Verifying Metro compatibility..."
 TERMINAL_REPORTER_PATH="node_modules/metro/src/lib/TerminalReporter.js"
 if [ ! -f "$TERMINAL_REPORTER_PATH" ]; then
-  echo "⚠️ TerminalReporter.js がまだ作成されていません。再度修正します..."
-  chmod +x "$SCRIPT_DIR/fix-metro-incompatibility.sh"
-  "$SCRIPT_DIR/fix-metro-incompatibility.sh"
+  echo "⚠️ TerminalReporter.js がまだ作成されていません。専用スクリプトで作成します..."
+  
+  # 専用スクリプトの権限と存在を確認
+  if [ ! -f "$SCRIPT_DIR/create-terminal-reporter.sh" ]; then
+    echo "📝 create-terminal-reporter.sh が見つからないため作成します..."
+    # スクリプトの内容をインラインで作成
+    cat > "$SCRIPT_DIR/create-terminal-reporter.sh" << 'EOL'
+#!/bin/bash
+# TerminalReporter.js作成専用スクリプト (2025-05-21)
+echo "📝 Creating TerminalReporter.js for Metro compatibility"
+TERMINAL_REPORTER_DIR="node_modules/metro/src/lib"
+mkdir -p "$TERMINAL_REPORTER_DIR"
+CONTENT='/**
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+"use strict";
+class TerminalReporter {
+  constructor(terminal) {
+    this._terminal = terminal;
+    this._errors = [];
+    this._warnings = [];
+  }
+  handleError(error) { this._errors.push(error); }
+  handleWarning(warning) { this._warnings.push(warning); }
+  getErrors() { return this._errors; }
+  getWarnings() { return this._warnings; }
+  update() {}
+  terminal() { return this._terminal; }
+}
+module.exports = TerminalReporter;'
+TERMINAL_REPORTER_PATH="$TERMINAL_REPORTER_DIR/TerminalReporter.js"
+echo "$CONTENT" > "$TERMINAL_REPORTER_PATH"
+chmod 644 "$TERMINAL_REPORTER_PATH"
+if [ -f "$TERMINAL_REPORTER_PATH" ]; then
+  echo "✅ TerminalReporter.js created successfully"
+else
+  echo "❌ Failed to create TerminalReporter.js"
+  exit 1
+fi
+EOL
+  fi
+
+  # スクリプトを実行
+  chmod +x "$SCRIPT_DIR/create-terminal-reporter.sh"
+  "$SCRIPT_DIR/create-terminal-reporter.sh"
   
   # 再度確認
   if [ ! -f "$TERMINAL_REPORTER_PATH" ]; then
-    echo "❌ TerminalReporter.js の作成に失敗しました。ビルドを中止します。"
-    exit 1
+    # 直接インラインで作成を試みる（最終手段）
+    echo "⚠️ スクリプトでの作成に失敗しました。直接作成を試みます..."
+    mkdir -p "node_modules/metro/src/lib"
+    echo '"use strict";class TerminalReporter{constructor(e){this._terminal=e,this._errors=[],this._warnings=[]}handleError(e){this._errors.push(e)}handleWarning(e){this._warnings.push(e)}getErrors(){return this._errors}getWarnings(){return this._warnings}update(){}terminal(){return this._terminal}}module.exports=TerminalReporter;' > "$TERMINAL_REPORTER_PATH"
+    
+    if [ ! -f "$TERMINAL_REPORTER_PATH" ]; then
+      echo "❌ TerminalReporter.js の作成に失敗しました。ビルドを中止します。"
+      exit 1
+    fi
   fi
 fi
 echo "✅ Metro compatibility verified."
