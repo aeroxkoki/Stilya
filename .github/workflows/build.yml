@@ -26,10 +26,12 @@ jobs:
       - name: 🔧 Enable Yarn
         run: corepack enable
 
-      - name: 📦 Install dependencies
-        run: yarn install --frozen-lockfile
+      - name: 📦 Update Metro/Babel dependencies
+        run: |
+          cd $GITHUB_WORKSPACE
+          bash ./scripts/fix-metro-dependencies.sh
 
-      - name: 🧹 Clear Expo/Metro cache
+      - name: 🧹 Clear cache
         run: |
           rm -rf ~/.expo ~/.cache/metro .expo .expo-shared
           yarn cache clean

@@ -15,12 +15,12 @@ fi
 
 # パッケージの固定バージョンをインストール
 echo "📦 Metro 関連パッケージのインストール..."
-npm install --save-dev metro@0.76.8 metro-config@0.76.8 @expo/metro-config@0.20.14
+npm install --save-dev metro@0.77.0 metro-config@0.77.0 @expo/metro-config@0.9.0 metro-cache@0.77.0 metro-minify-terser@0.77.0 metro-transform-worker@0.77.0
 
 # Babel ランタイムの設定
 echo "📦 Babel ランタイムの設定..."
 npm install --save @babel/runtime@7.27.1
-npm install --save-dev babel-preset-expo@13.0.0
+npm install --save-dev babel-preset-expo@13.1.11
 
 # React Native Paper と関連パッケージの最新版をインストール
 echo "📦 UI関連パッケージの更新..."
@@ -41,7 +41,11 @@ if (config.resolver) {\\
 }' metro.config.js
     else
       # Linux用
-      sed -i '/const config = getDefaultConfig/a\\\n// パッケージエクスポートフィールド対応（問題が発生する場合のオプトアウト用）\\\nif (config.resolver) {\\\n  config.resolver.unstable_enablePackageExports = false;\\\n}' metro.config.js
+      sed -i '/const config = getDefaultConfig/a\\\
+// パッケージエクスポートフィールド対応（問題が発生する場合のオプトアウト用）\\\
+if (config.resolver) {\\\
+  config.resolver.unstable_enablePackageExports = false;\\\
+}' metro.config.js
     fi
   fi
 fi
@@ -119,9 +123,57 @@ if grep -q "@supabase/supabase-js" package.json; then
   fi
 fi
 
+# package.jsonのresolutionsを更新
+echo "📦 package.jsonのresolutionsを更新..."
+if [ -f package.json ]; then
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    # macOSの場合、一時ファイルを使用
+    node -e '
+    const fs = require("fs");
+    const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+    pkg.resolutions = {
+      "@babel/runtime": "7.27.1",
+      "metro": "0.77.0", 
+      "metro-config": "0.77.0",
+      "metro-cache": "0.77.0",
+      "metro-minify-terser": "0.77.0",
+      "metro-transform-worker": "0.77.0",
+      "@expo/metro-config": "0.9.0",
+      "babel-preset-expo": "13.1.11",
+      "rimraf": "^3.0.2"
+    };
+    fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n");
+    '
+  else
+    # Linux用
+    node -e '
+    const fs = require("fs");
+    const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+    pkg.resolutions = {
+      "@babel/runtime": "7.27.1",
+      "metro": "0.77.0", 
+      "metro-config": "0.77.0",
+      "metro-cache": "0.77.0",
+      "metro-minify-terser": "0.77.0",
+      "metro-transform-worker": "0.77.0",
+      "@expo/metro-config": "0.9.0",
+      "babel-preset-expo": "13.1.11",
+      "rimraf": "^3.0.2"
+    };
+    fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n");
+    '
+  fi
+  echo "✅ package.jsonのresolutionsを更新しました"
+fi
+
 # 依存関係の重複を解消
 echo "🧹 依存関係の重複を解消..."
 npm dedupe
+
+# ロックファイルを更新
+echo "📦 ロックファイルを更新..."
+rm -f yarn.lock
+yarn
 
 # 既存のMetroキャッシュをクリア
 echo "🧹 キャッシュを削除..."
