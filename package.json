@@ -155,6 +155,7 @@
     "metro-runtime": "0.77.0",
     "metro-source-map": "0.77.0",
     "metro-transform-worker": "0.77.0",
+    "metro-resolver": "0.77.0",
     "patch-package": "^8.0.0",
     "prettier": "^3.2.5",
     "react-test-renderer": "19.1.0",

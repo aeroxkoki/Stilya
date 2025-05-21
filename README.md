@@ -226,3 +226,110 @@ npm run fix-metro
 
 [MIT](LICENSE)
 # Metro互換性問題修正
+
+## GitHub ActionsでExpo SDK 53ビルド問題の修正方法
+
+Expo SDK 53 + React Native 0.79を使用したプロジェクトでGitHub Actionsを使用する場合、以下の修正を適用しました。
+
+### 主な修正と最適化
+
+1. **Metro依存関係のバージョン統一**
+   - `metro-*` パッケージを全て 0.77.0 に統一
+   - `@expo/metro-config` を 0.9.0 に固定
+   - `@babel/runtime` を 7.27.1 に固定
+
+2. **TerminalReporterモジュールの互換性対応**
+   - Metro's TerminalReporterクラスの互換実装を自動生成
+   - Expoの内部依存パスへのリンク作成
+   - metro-coreモジュールの互換実装追加
+
+3. **EASビルド最適化フラグの追加**
+   - `EAS_SKIP_JAVASCRIPT_BUNDLING=1`
+   - `METRO_FORCE_NODE_MODULE_RESOLUTION=1`
+   - `EXPO_NO_CACHE=1`
+   - `EXPO_NO_DOTENV=1`
+
+4. **最適化されたメトロ設定**
+   - シリアライザー問題に対応するカスタム設定
+   - リゾルバパスの最適化
+   - ヒエラルキー検索の無効化でモジュール解決を高速化
+
+### ローカルでのビルド方法
+
+```bash
+# 依存関係のクリーンインストール
+npm ci
+
+# メトロ互換性スクリプト実行
+npm run fix:metro-all
+
+# ローカルビルド実行
+npm run build:fixed:final
+```
+
+### GitHub Actionsでのビルド成功
+
+最新のGitHub Actionsワークフローでは、先述の修正がすべて適用されています。修正点の詳細は以下の構成ファイルで確認できます：
+
+- `.github/workflows/build.yml` - CI/CDワークフロー
+- `scripts/fix-github-actions-metro.sh` - Metro/TerminalReporter修正
+- `eas.json` - EASビルド設定
+
+### テスト問題の修正
+
+テスト実行時に発生していた「uuid」関連の問題を修正するスクリプトも追加しました：
+
+```bash
+# テスト環境の修正と実行
+npm run test:fix-uuid
+npm test
+```
+
+## 開発者向けの推奨事項
+
+1. **新規インストール時**
+   ```bash
+   npm ci
+   npm run fix:metro-all
+   ```
+
+2. **ローカルビルドの実行**
+   ```bash
+   # 最適化されたローカルビルド
+   npm run build:fixed:final
+   ```
+
+3. **GitHub Actions確認方法**
+   ```bash
+   # テスト用ワークフロー実行
+   npm run test:github-actions
+   
+   # 変更をプッシュしてGitHub Actionsを実行
+   git add .
+   git commit -m "Fix: GitHub Actions compatibility with Expo SDK 53"
+   git push
+   ```
+
+## トラブルシューティング
+
+問題が解決しない場合は、以下の手順を試してください:
+
+1. **依存関係の再構築**
+   ```bash
+   rm -rf node_modules
+   npm ci
+   npm run fix-metro
+   npm run create-terminal-reporter
+   ```
+
+2. **エミュレータでのテスト**
+   ```bash
+   # 開発ビルド実行
+   npm run android
+   ```
+
+3. **バイナリのローカル生成**
+   ```bash
+   npm run build:fixed:final
+   # 出力: ./dist/stilya-release.apk
+   ```

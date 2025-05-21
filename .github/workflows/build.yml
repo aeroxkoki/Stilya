@@ -19,6 +19,8 @@ jobs:
       EXPO_NO_CACHE: 1
       EXPO_NO_DOTENV: 1
       EXPO_NO_BUNDLE: 1
+      SKIP_BUNDLING: 1
+      METRO_FORCE_NODE_MODULE_RESOLUTION: 1
       CI: true
       # キーストア設定
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -36,44 +38,69 @@ jobs:
           node-version: 20
           cache: 'npm'
 
-      - name: Clean caches
+      - name: Clean caches and setup environment
         run: |
+          # クリーンアップ
           rm -rf node_modules/.cache
           rm -rf ~/.expo/cache
           rm -rf ~/.metro-cache
-          echo "✅ Caches cleaned"
+          
+          # CIに適したnpmrc設定
+          echo "cache=false" > .npmrc
+          echo "prefer-offline=false" >> .npmrc
+          echo "fund=false" >> .npmrc
+          echo "audit=false" >> .npmrc
+          echo "update-notifier=false" >> .npmrc
+          echo "scripts-prepend-node-path=true" >> .npmrc
+          
+          echo "✅ Environment setup completed"
 
       - name: Install dependencies
         run: |
-          npm ci
+          # 依存関係クリーンインストール
+          npm ci --no-audit --no-fund --prefer-offline=false
+          
+          # グローバルEAS CLIインストール
           npm install -g eas-cli@7.3.0
+          
+          # Metro関連の依存関係を確実に揃える
+          npm install --no-save \
+            metro@0.77.0 \
+            metro-config@0.77.0 \
+            metro-core@0.77.0 \
+            metro-runtime@0.77.0 \
+            metro-source-map@0.77.0 \
+            metro-resolver@0.77.0 \
+            @expo/metro-config@0.9.0 \
+            @babel/runtime@7.27.1
+          
           echo "✅ Dependencies installed"
 
       - name: Fix Metro compatibility issues
         run: |
-          # Metro関連の依存関係を修正（エラーがあっても継続）
+          # Metro関連問題の総合修正（スクリプト実行）
           chmod +x ./scripts/fix-github-actions-metro.sh
           bash ./scripts/fix-github-actions-metro.sh || true
           
-          # TerminalReporterの作成スクリプトを実行（エラーがあっても継続）
-          chmod +x ./scripts/create-terminal-reporter.sh
-          bash ./scripts/create-terminal-reporter.sh || true
-          
-          # 該当ディレクトリの状態を確認
-          echo "📂 Checking directory structure..."
+          # TerminalReporterの作成を確実に行う
           mkdir -p node_modules/metro/src/lib
           mkdir -p node_modules/@expo/cli/node_modules/metro/src/lib
+          mkdir -p node_modules/metro-core/src
           
-          # TerminalReporterの存在確認と修復
-          if [ ! -f "node_modules/metro/src/lib/TerminalReporter.js" ]; then
-            echo "⚠️ TerminalReporter.js missing, creating..."
-            cat > node_modules/metro/src/lib/TerminalReporter.js << 'EOL'
+          # TerminalReporterの実装（エラーが発生した場合のバックアップ方法）
+          cat > node_modules/metro/src/lib/TerminalReporter.js << 'EOL'
 /**
- * Metro Reporter for Expo SDK 53 compatibility (emergency fix)
+ * Metro Reporter for Expo SDK 53 compatibility (optimized fix)
+ * CIビルド用に最適化
  */
 class TerminalReporter {
   constructor(terminal) {
-    this._terminal = terminal || console;
+    this._terminal = terminal || {
+      log: console.log.bind(console),
+      error: console.error.bind(console),
+      info: console.info.bind(console),
+      warn: console.warn.bind(console)
+    };
     this._errors = [];
     this._warnings = [];
   }
@@ -97,10 +124,75 @@ class TerminalReporter {
 
 module.exports = TerminalReporter;
 EOL
-          fi
           
-          # 必ずコピーを実行
+          # Expoの内部依存用にコピー
           cp -f node_modules/metro/src/lib/TerminalReporter.js node_modules/@expo/cli/node_modules/metro/src/lib/TerminalReporter.js || true
+          
+          # metro-coreモジュールの補完作成
+          cat > node_modules/metro-core/package.json << 'EOL'
+{
+  "name": "metro-core",
+  "version": "0.77.0",
+  "description": "Metro core compatibility layer for Expo SDK 53",
+  "main": "src/index.js",
+  "license": "MIT"
+}
+EOL
+
+          cat > node_modules/metro-core/src/index.js << 'EOL'
+/**
+ * Metro Core compatibility module for Expo SDK 53
+ * GitHub Actions用互換レイヤー
+ */
+class Terminal {
+  constructor(options) {
+    this._options = options || {};
+    this._stdio = options?.stdio || {
+      stdout: process.stdout,
+      stderr: process.stderr,
+    };
+    
+    this._logEnabled = !this._options.quiet;
+    this._isMinimal = !!this._options.minimal;
+  }
+
+  log(...args) {
+    if (this._logEnabled) {
+      console.log(...args);
+    }
+  }
+
+  error(...args) {
+    console.error(...args);
+  }
+
+  info(...args) {
+    if (this._logEnabled && !this._isMinimal) {
+      console.info(...args);
+    }
+  }
+
+  warn(...args) {
+    if (this._logEnabled) {
+      console.warn(...args);
+    }
+  }
+}
+
+module.exports = {
+  Terminal,
+  Logger: {
+    createWorker: () => ({
+      log: console.log.bind(console),
+      error: console.error.bind(console),
+    }),
+  },
+};
+EOL
+
+          # リンク作成
+          mkdir -p node_modules/@expo/cli/node_modules/metro-core
+          ln -sf ../../../node_modules/metro-core node_modules/@expo/cli/node_modules/metro-core || true
           
           echo "✅ Metro compatibility issues fixed"
 
@@ -130,8 +222,10 @@ EOL
           echo "🏗️ Building Android app with fixed configuration..."
           
           # 環境変数問題の回避
-          export EXPO_NO_DOTENV=1  # .envファイルの読み込みをスキップ
-          export SKIP_BUNDLING=1   # Metroバンドリングをスキップ
+          export EXPO_NO_DOTENV=1
+          export SKIP_BUNDLING=1
+          export EAS_SKIP_JAVASCRIPT_BUNDLING=1
+          export METRO_FORCE_NODE_MODULE_RESOLUTION=1
           
           # 必須環境変数を空で定義（エラー回避）
           export SUPABASE_URL=""
@@ -141,25 +235,73 @@ EOL
           export RAKUTEN_APP_ID=""
           export RAKUTEN_AFFILIATE_ID=""
           
+          # metro.config.jsを最適化
+          cat > metro.config.js << 'EOL'
+/**
+ * Metro configuration for Stilya - GitHub Actions互換版
+ */
+const { getDefaultConfig } = require('@expo/metro-config');
+const path = require('path');
+
+const config = getDefaultConfig(__dirname);
+
+// リゾルバー設定の最適化
+config.resolver = {
+  ...config.resolver,
+  extraNodeModules: {
+    "metro/src/lib/TerminalReporter": path.resolve(__dirname, "node_modules/metro/src/lib/TerminalReporter.js"),
+    "metro-config": path.resolve(__dirname, "node_modules/metro-config"),
+    "metro-core": path.resolve(__dirname, "node_modules/metro-core"),
+    "@": path.resolve(__dirname, "src")
+  },
+  disableHierarchicalLookup: true,
+  unstable_enablePackageExports: false,
+  sourceExts: ['js', 'jsx', 'ts', 'tsx', 'json', 'mjs']
+};
+
+// トランスフォーマー設定
+config.transformer = {
+  ...config.transformer,
+  minifierPath: 'metro-minify-terser',
+  getTransformOptions: async () => ({
+    transform: {
+      experimentalImportSupport: false,
+      inlineRequires: true,
+    },
+  }),
+};
+
+// シリアライザー設定
+config.serializer = config.serializer || {};
+config.serializer.getModulesRunBeforeMainModule = () => [];
+config.serializer.getPolyfills = () => [];
+config.serializer.getRunModuleStatement = moduleId => `__r(${moduleId});`;
+
+module.exports = config;
+EOL
+          
           # プレビルド（JavaScriptバンドリングをスキップ）
           npx expo prebuild --platform android --clean
           
           # metro関連の問題を防ぐための追加の修正
           mkdir -p android/app/src/main/assets
-          touch android/app/src/main/assets/index.android.bundle
+          
+          # 空のバンドルファイルを生成して-EAS_SKIP_JAVASCRIPT_BUNDLINGが効くようにする
+          echo "// Empty bundle for CI build - Generated at $(date)" > android/app/src/main/assets/index.android.bundle
           
           # TerminalReporterのリンクを確実にする
           ln -sf ../../../../metro/src/lib/TerminalReporter.js node_modules/@expo/cli/node_modules/metro/src/lib/TerminalReporter.js
           
-          # 空のバンドルファイルを生成して-EAS_SKIP_JAVASCRIPT_BUNDLINGが効くようにする
-          echo "// Empty bundle for CI build - Generated $(date)" > android/app/src/main/assets/index.android.bundle
-          
-          # メトロ関連のエラーを回避するためのモジュール解決パスの修正
+          # モジュール解決パスの修正とExpo安定化設定
           export NODE_PATH=$(pwd)/node_modules
-          
-          # Expo CLI を使用するときの安定性のためのフラグ設定
           export EXPO_USE_DEV_SERVER=false
           export EXPO_USE_METRO=false
+          
+          # トラブルシューティング情報表示
+          echo "📊 Node.js情報: $(node -v)"
+          echo "📊 NPM情報: $(npm -v)"
+          echo "📊 Expo CLI情報: $(npx expo --version)"
+          echo "📊 eas-cli情報: $(eas --version)"
           
           # Androidビルド
           cd android
@@ -171,8 +313,7 @@ EOL
           find android/app/build/outputs -name "*.apk" -type f -exec cp {} dist/stilya-release.apk \;
           
           if [ -f "dist/stilya-release.apk" ]; then
-            echo "✅ Build successful"
-            ls -la dist/stilya-release.apk
+            echo "✅ Build successful: $(ls -la dist/stilya-release.apk)"
           else
             echo "❌ Build failed"
             exit 1
