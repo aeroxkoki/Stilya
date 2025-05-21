@@ -18,6 +18,27 @@ export interface SwipeData {
 const OFFLINE_SWIPE_STORAGE_KEY = 'offline_swipe_data';
 
 /**
+ * スワイプ結果を記録する（最適化版）
+ * @param userId ユーザーID
+ * @param productId 商品ID
+ * @param result スワイプ結果 ('yes' or 'no')
+ * @returns 保存に成功したかどうか
+ */
+export const recordSwipe = async (
+  userId: string,
+  productId: string,
+  result: SwipeResult
+): Promise<boolean> => {
+  if (!userId || !productId) {
+    console.warn('Invalid user or product ID for swipe recording');
+    return false;
+  }
+  
+  // 既存の処理を再利用（より効率的な実装）
+  return saveSwipeResult(userId, productId, result);
+};
+
+/**
  * スワイプ結果を保存する
  * @param userId ユーザーID
  * @param productId 商品ID

@@ -1,8 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchProducts, fetchProductsByTags } from '@/services/productService';
 import { Product } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import { getSwipeHistory } from '@/services/swipeService';
+import { recordSwipe } from '@/services/swipeService'; 
+import { useImagePrefetch } from '@/utils/imageUtils';
+import { InteractionManager } from 'react-native';
 
 interface ProductsState {
   products: Product[];
@@ -26,6 +29,7 @@ interface UseProductsReturn {
 
 /**
  * 商品データとスワイプ管理のためのカスタムフック
+ * パフォーマンス最適化済み
  */
 export const useProducts = (): UseProductsReturn => {
   const { user } = useAuth();
@@ -41,11 +45,37 @@ export const useProducts = (): UseProductsReturn => {
   const [refreshing, setRefreshing] = useState(false);
   const pageSize = 10;
   
+  // 画像プリフェッチ用
+  const { prefetchImages } = useImagePrefetch();
+  const loadingRef = useRef(false);
+  const swipedProductsRef = useRef<Set<string>>(new Set());
+  
   // 現在表示中の商品
   const currentProduct = productsData.products[currentIndex];
 
-  // 商品データを取得
+  // スワイプ履歴を取得（初回のみ）
+  useEffect(() => {
+    const fetchSwipeHistory = async () => {
+      if (!user) return;
+      
+      try {
+        const swipeHistory = await getSwipeHistory(user.id);
+        const swipedIds = new Set(swipeHistory.map(swipe => swipe.productId));
+        swipedProductsRef.current = swipedIds;
+      } catch (err) {
+        console.error('Error fetching initial swipe history:', err);
+      }
+    };
+    
+    fetchSwipeHistory();
+  }, [user]);
+
+  // 商品データを取得（最適化版）
   const loadProducts = useCallback(async (reset = false) => {
+    // 同時に複数の読み込みリクエストが走らないように保護
+    if (loadingRef.current && !reset) return;
+    loadingRef.current = true;
+    
     try {
       if (reset) {
         setIsLoading(true);
@@ -58,37 +88,26 @@ export const useProducts = (): UseProductsReturn => {
         });
         setError(null);
       } else if (!productsData.hasMore) {
+        loadingRef.current = false;
         return;
       }
 
       // ローディング状態を管理
       setIsLoading(prevState => reset ? true : prevState);
       
-      // すでにスワイプした商品のIDを取得
-      let swipedProductIds: string[] = [];
-      
-      if (user) {
-        try {
-          const swipeHistory = await getSwipeHistory(user.id);
-          swipedProductIds = swipeHistory.map(swipe => swipe.productId);
-        } catch (err) {
-          console.error('Error fetching swipe history:', err);
-          // 続行（エラーでも商品は取得可能）
-        }
-      }
-
       // 商品データを取得
       const newProducts = await fetchProducts(pageSize, page * pageSize);
       
       // スワイプ済みの商品を除外
       const filteredProducts = Array.isArray(newProducts) ? newProducts.filter(
-        product => !swipedProductIds.includes(product.id)
+        product => !swipedProductsRef.current.has(product.id)
       ) : [];
 
       // 結果が十分でない場合の処理
       if (filteredProducts.length === 0 && (Array.isArray(newProducts) ? newProducts.length > 0 : false)) {
         // スワイプ済みを除外した結果、商品がない場合は次のページを試みる
         setPage(prevPage => prevPage + 1);
+        loadingRef.current = false;
         if (!reset) {
           loadProducts(false);
         }
@@ -112,14 +131,26 @@ export const useProducts = (): UseProductsReturn => {
           totalFetched: prev.totalFetched + filteredProducts.length
         };
       });
+      
+      // 画像をプリフェッチ（バックグラウンドで、UIブロックなし）
+      InteractionManager.runAfterInteractions(() => {
+        const imagesToPrefetch = filteredProducts
+          .map(p => p.imageUrl || p.image_url)
+          .filter(Boolean) as string[];
+          
+        if (imagesToPrefetch.length > 0) {
+          prefetchImages(imagesToPrefetch, reset); // 最初のロードは高優先度
+        }
+      });
     } catch (err) {
       setError('商品データの読み込みに失敗しました。');
       console.error('Error loading products:', err);
     } finally {
       setIsLoading(false);
       setRefreshing(false);
+      loadingRef.current = false;
     }
-  }, [user, page, pageSize, productsData.hasMore]);
+  }, [user, page, pageSize, productsData.hasMore, prefetchImages]);
 
   // 初回マウント時に商品データを取得
   useEffect(() => {
@@ -149,20 +180,34 @@ export const useProducts = (): UseProductsReturn => {
     await loadProducts(true);
   }, [loadProducts]);
 
-  // スワイプハンドラー
-  const handleSwipe = useCallback((product: Product, direction: 'left' | 'right') => {
+  // スワイプハンドラー（最適化版）
+  const handleSwipe = useCallback(async (product: Product, direction: 'left' | 'right') => {
+    if (!product || !user) return;
+    
+    // スワイプデータを記録（非同期、待たない）
+    const result = direction === 'right' ? 'yes' : 'no';
+    recordSwipe(user.id, product.id, result).catch(err => {
+      console.error('Error recording swipe:', err);
+    });
+    
+    // スワイプ済みリストに追加（メモリ上のキャッシュ）
+    swipedProductsRef.current.add(product.id);
+    
     // 次の商品へ
     setCurrentIndex(prevIndex => {
       const nextIndex = prevIndex + 1;
       
       // 残りの商品が少なくなったら追加ロード
-      if (productsData.products.length - nextIndex <= 5 && productsData.hasMore && !isLoading) {
-        loadMore();
+      // 非同期で処理（UIをブロックしない）
+      if (productsData.products.length - nextIndex <= 5 && productsData.hasMore && !loadingRef.current) {
+        InteractionManager.runAfterInteractions(() => {
+          loadMore();
+        });
       }
       
       return nextIndex;
     });
-  }, [productsData.products.length, productsData.hasMore, isLoading, loadMore]);
+  }, [productsData.products.length, productsData.hasMore, loadMore, user]);
 
   return {
     products: productsData.products,

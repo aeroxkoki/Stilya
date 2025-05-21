@@ -245,4 +245,10 @@ const styles = StyleSheet.create({
   }
 });
 
-export default SwipeCard;
+export default React.memo(SwipeCard, (prevProps, nextProps) => {
+  // 重要な props が変わらない場合は再レンダリングしない
+  return (
+    prevProps.product.id === nextProps.product.id &&
+    prevProps.screenshotMode === nextProps.screenshotMode
+  );
+});
