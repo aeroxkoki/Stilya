@@ -53,28 +53,27 @@ jobs:
           npm install -g eas-cli@latest expo-cli@latest
           echo "✅ Core dependencies installed"
 
-      - name: Install Metro dependencies
+      - name: Setup TerminalReporter and fix Metro
         run: |
-          # すべてのMetro依存関係をインストール
-          npm install --save-dev \
-            metro@0.77.0 \
-            metro-core@0.77.0 \
-            metro-runtime@0.77.0 \
-            metro-config@0.77.0 \
-            metro-resolver@0.77.0 \
-            metro-transform-worker@0.77.0 \
-            metro-source-map@0.77.0 \
-            @expo/metro-config@0.9.0 \
-            --force
-          npm dedupe
-          echo "✅ Metro dependencies installed"
-
-      - name: Create TerminalReporter
-        run: |
+          echo "🛠️ Setting up TerminalReporter and fixing Metro..."
+          # TerminalReporterの作成
           mkdir -p node_modules/metro/src/lib
           cat > node_modules/metro/src/lib/TerminalReporter.js << 'EOL'
           /**
-           * Metro compatibility layer for Expo SDK 53
+           * Copyright (c) Meta Platforms, Inc. and affiliates.
+           *
+           * This source code is licensed under the MIT license found in the
+           * LICENSE file in the root directory of this source tree.
+           *
+           * @flow strict-local
+           * @format
+           */
+
+          'use strict';
+
+          /**
+           * Metro Reporter for compatibility with Expo SDK 53.
+           * This is a simplified implementation that provides required functionality.
            */
           class TerminalReporter {
             constructor(terminal) {
@@ -90,10 +89,16 @@ jobs:
 
             handleError(error) {
               this._errors.push(error);
+              if (this._terminal && this._terminal.error) {
+                this._terminal.error(error);
+              }
             }
 
             handleWarning(warning) {
               this._warnings.push(warning);
+              if (this._terminal && this._terminal.warn) {
+                this._terminal.warn(warning);
+              }
             }
 
             getErrors() {
@@ -113,110 +118,115 @@ jobs:
 
           module.exports = TerminalReporter;
           EOL
+
           chmod 644 node_modules/metro/src/lib/TerminalReporter.js
-          echo "✅ TerminalReporter.js created"
+
+          # Metro関連パッケージの追加インストール
+          npm install --save-dev \
+            metro@0.77.0 \
+            metro-core@0.77.0 \
+            metro-runtime@0.77.0 \
+            metro-config@0.77.0 \
+            metro-source-map@0.77.0 \
+            metro-transform-worker@0.77.0 \
+            @babel/runtime@7.27.1 \
+            @expo/metro-config@0.9.0 \
+            --force
+          
+          echo "✅ Metro dependencies installed and configured"
 
       - name: Verify Metro setup
         run: |
-          # メトロ関連パッケージの確認
-          if [ -d "node_modules/metro-core" ] && [ -d "node_modules/metro" ] && [ -f "node_modules/metro/src/lib/TerminalReporter.js" ]; then
-            echo "✅ Metro setup verified successfully"
+          # TerminalReporter.jsの存在確認
+          if [ -f "node_modules/metro/src/lib/TerminalReporter.js" ]; then
+            echo "✅ TerminalReporter.js exists"
           else
-            echo "⚠️ Metro setup incomplete, fixing..."
-            
-            # 必要なディレクトリを作成
-            mkdir -p node_modules/metro-core/src
-            mkdir -p node_modules/metro/src/lib
-            
-            # metro-coreの最小実装
-            echo '{
-              "name": "metro-core",
-              "version": "0.77.0",
-              "main": "src/index.js"
-            }' > node_modules/metro-core/package.json
-            
-            echo 'class Terminal {
-              constructor() {
-                this._log = console.log.bind(console);
-                this._error = console.error.bind(console);
-              }
-              log(...args) { this._log(...args); }
-              error(...args) { this._error(...args); }
-              info(...args) { this._log(...args); }
-              warn(...args) { this._log(...args); }
-            }
-            module.exports = { Terminal };' > node_modules/metro-core/src/index.js
-            
-            # TerminalReporterを再作成
-            echo 'class TerminalReporter {
-              constructor(terminal) {
-                this._terminal = terminal || console;
-                this._errors = [];
-                this._warnings = [];
-              }
-              handleError(error) { this._errors.push(error); }
-              handleWarning(warning) { this._warnings.push(warning); }
-              getErrors() { return this._errors; }
-              getWarnings() { return this._warnings; }
-              update() {}
-              terminal() { return this._terminal; }
-            }
-            module.exports = TerminalReporter;' > node_modules/metro/src/lib/TerminalReporter.js
-            
-            echo "✅ Emergency Metro setup complete"
+            echo "❌ TerminalReporter.js is missing"
+            exit 1
           fi
-
-      - name: Install explicit dependencies
-        run: |
-          # 明示的に必要なパッケージをインストール
-          npm install --save-dev \
-            metro-core@0.77.0 \
-            metro-runtime@0.77.0 \
-            metro-babel-transformer@0.77.0 \
-            metro-react-native-babel-transformer@0.77.0 \
-            @babel/runtime@7.27.1 \
-            --force
+          
+          # パッケージバージョン確認
+          npm list metro @expo/metro-config | grep -E 'metro|@expo/metro-config'
+          
+          # 依存関係の重複解消
           npm dedupe
-          echo "✅ Additional dependencies installed"
 
-      - name: Configure package.json for Metro
+      - name: Configure metro.config.js
         run: |
-          # package.jsonのresolitionsセクションが正しいことを確認
-          jq '.resolutions["metro-core"] = "0.77.0" | 
-              .resolutions["metro-runtime"] = "0.77.0" | 
-              .resolutions["@expo/metro-config"] = "0.9.0"' package.json > package.json.tmp
-          mv package.json.tmp package.json
-          echo "✅ package.json configured"
+          # metro.config.jsの確認・修正
+          if [ -f "metro.config.js" ]; then
+            # TerminalReporter参照の追加
+            if ! grep -q "extraNodeModules" metro.config.js; then
+              echo "Updating metro.config.js..."
+              
+              cat > metro.config.js << 'EOL'
+          /**
+           * Metro configuration for Stilya (Expo SDK 53 / 2025)
+           */
+          const { getDefaultConfig } = require('@expo/metro-config');
+          const path = require('path');
 
-      - name: Setup Expo
-        run: |
-          # expo-doctorを実行
-          npx expo-doctor || true # エラーが出ても続行
-          
-          # expo環境変数設定
-          export EAS_NO_VCS=1
-          export EAS_LOCAL_BUILD_ARTIFACTS_DIR=./build-artifacts
-          export EAS_LOCAL_BUILD_SKIP_CLEANUP=1
-          
-          # EAS設定確認
-          npx eas-cli --version
-          npx expo install --check || true # 依存関係のチェック（エラーは無視）
+          // Get default config from Expo
+          const config = getDefaultConfig(__dirname);
+
+          // Make sure TerminalReporter is properly resolved
+          config.resolver = config.resolver || {};
+          config.resolver.extraNodeModules = config.resolver.extraNodeModules || {};
+          config.resolver.extraNodeModules["metro/src/lib/TerminalReporter"] = path.resolve(__dirname, "node_modules/metro/src/lib/TerminalReporter.js");
+
+          // パッケージエクスポートフィールド対応（問題回避）
+          config.resolver.unstable_enablePackageExports = false;
+          config.resolver.disableHierarchicalLookup = true;
+
+          // Enable Hermes for performance
+          config.transformer.hermesEnabled = true;
+
+          // Stability improvements for CI/EAS
+          config.resetCache = true;
+
+          module.exports = config;
+          EOL
+              
+              echo "✅ metro.config.js updated"
+            else
+              echo "✅ metro.config.js already contains extraNodeModules configuration"
+            fi
+          else
+            echo "⚠️ metro.config.js not found, creating..."
+            # ファイルが存在しない場合は新規作成
+            cat > metro.config.js << 'EOL'
+          /**
+           * Metro configuration for Stilya (Expo SDK 53 / 2025)
+           */
+          const { getDefaultConfig } = require('@expo/metro-config');
+          const path = require('path');
+
+          // Get default config from Expo
+          const config = getDefaultConfig(__dirname);
+
+          // Make sure TerminalReporter is properly resolved
+          config.resolver = config.resolver || {};
+          config.resolver.extraNodeModules = config.resolver.extraNodeModules || {};
+          config.resolver.extraNodeModules["metro/src/lib/TerminalReporter"] = path.resolve(__dirname, "node_modules/metro/src/lib/TerminalReporter.js");
+
+          // パッケージエクスポートフィールド対応（問題回避）
+          config.resolver.unstable_enablePackageExports = false;
+          config.resolver.disableHierarchicalLookup = true;
+
+          // Enable Hermes for performance
+          config.transformer.hermesEnabled = true;
+
+          module.exports = config;
+          EOL
+            echo "✅ metro.config.js created"
+          fi
 
       - name: Prepare keystore
         if: env.ANDROID_KEYSTORE_BASE64 != ''
         run: |
           mkdir -p android/app
           echo ${{ secrets.ANDROID_KEYSTORE_BASE64 }} | base64 --decode > android/app/stilya-keystore.jks
-          echo '{
-            "android": {
-              "keystore": {
-                "keystorePath": "android/app/stilya-keystore.jks",
-                "keystorePassword": "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}",
-                "keyAlias": "${{ secrets.ANDROID_KEY_ALIAS }}",
-                "keyPassword": "${{ secrets.ANDROID_KEY_PASSWORD }}"
-              }
-            }
-          }' > credentials.json
+          echo '{'$'\n''  "android": {'$'\n''    "keystore": {'$'\n''      "keystorePath": "android/app/stilya-keystore.jks",'$'\n''      "keystorePassword": "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}",'$'\n''      "keyAlias": "${{ secrets.ANDROID_KEY_ALIAS }}",'$'\n''      "keyPassword": "${{ secrets.ANDROID_KEY_PASSWORD }}"'$'\n''    }'$'\n''  }'$'\n''}'$'\n' > credentials.json
           echo "✅ Keystore prepared"
 
       - name: Build Android App

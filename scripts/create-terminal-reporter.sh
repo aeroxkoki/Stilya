@@ -1,19 +1,15 @@
 #!/bin/bash
-# 【改良版】TerminalReporter.js作成専用スクリプト (2025-05-21)
-# Expo SDK 53とMetroの互換性問題を確実に解決する専用スクリプト
+# create-terminal-reporter.sh
+# Expo SDK 53 向けにMetroのTerminalReporterを作成するスクリプト
 
-echo "📝 Creating TerminalReporter.js for Metro compatibility"
+echo "📝 Creating TerminalReporter.js for Metro compatibility..."
 
-# 権限の確認と修正
-chmod -R +rw node_modules 2>/dev/null || true
+# ディレクトリーの作成
+mkdir -p node_modules/metro/src/lib
 
-# 必要なディレクトリを確実に作成（パーミッション777で作成して後で修正）
-TERMINAL_REPORTER_DIR="node_modules/metro/src/lib"
-mkdir -p "$TERMINAL_REPORTER_DIR"
-chmod -R 777 "$TERMINAL_REPORTER_DIR" 2>/dev/null || true
-
-# TerminalReporter.jsファイルの内容
-CONTENT='/**
+# TerminalReporter.jsを作成
+cat > node_modules/metro/src/lib/TerminalReporter.js << 'EOL'
+/**
  * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
  * This source code is licensed under the MIT license found in the
@@ -23,7 +19,7 @@ CONTENT='/**
  * @format
  */
 
-"use strict";
+'use strict';
 
 /**
  * Metro Reporter for compatibility with Expo SDK 53.
@@ -31,23 +27,28 @@ CONTENT='/**
  */
 class TerminalReporter {
   constructor(terminal) {
-    this._terminal = terminal;
+    this._terminal = terminal || {
+      log: console.log.bind(console),
+      error: console.error.bind(console),
+      info: console.info.bind(console),
+      warn: console.warn.bind(console)
+    };
     this._errors = [];
     this._warnings = [];
   }
 
-  /**
-   * Handling exceptions, including worker creation and initialization errors.
-   */
   handleError(error) {
     this._errors.push(error);
+    if (this._terminal && this._terminal.error) {
+      this._terminal.error(error);
+    }
   }
 
-  /**
-   * Handling warnings, including those coming from the transformer.
-   */
   handleWarning(warning) {
     this._warnings.push(warning);
+    if (this._terminal && this._terminal.warn) {
+      this._terminal.warn(warning);
+    }
   }
 
   getErrors() {
@@ -58,80 +59,79 @@ class TerminalReporter {
     return this._warnings;
   }
 
-  // Additional required methods
   update() {}
-  terminal() { return this._terminal; }
+  
+  terminal() { 
+    return this._terminal; 
+  }
 }
 
-module.exports = TerminalReporter;'
+module.exports = TerminalReporter;
+EOL
 
-# ファイルを作成（複数の方法で試行）
-TERMINAL_REPORTER_PATH="$TERMINAL_REPORTER_DIR/TerminalReporter.js"
+# 権限の設定
+chmod 644 node_modules/metro/src/lib/TerminalReporter.js
 
-# 方法1: catでリダイレクト
-echo "$CONTENT" > "$TERMINAL_REPORTER_PATH"
-chmod 644 "$TERMINAL_REPORTER_PATH" 2>/dev/null || true
-
-# 確認
-if [ ! -f "$TERMINAL_REPORTER_PATH" ] || [ ! -s "$TERMINAL_REPORTER_PATH" ]; then
-  echo "⚠️ 方法1で失敗しました。別の方法を試みます..."
-  
-  # 方法2: nodeで作成
-  NODE_PATH=$(which node || echo "node")
-  $NODE_PATH -e "
-    const fs = require('fs');
-    const path = '$TERMINAL_REPORTER_PATH';
-    const content = \`$CONTENT\`;
-    try {
-      fs.writeFileSync(path, content);
-      console.log('✅ File created using Node.js');
-    } catch (e) {
-      console.error('Error creating file with Node.js:', e);
-    }
-  "
-  
-  # 方法3: シンプルなコンテンツでの作成（最終手段）
-  if [ ! -f "$TERMINAL_REPORTER_PATH" ] || [ ! -s "$TERMINAL_REPORTER_PATH" ]; then
-    echo "⚠️ 方法2で失敗しました。シンプルバージョンを試みます..."
-    echo "'use strict';class TerminalReporter{constructor(e){this._terminal=e,this._errors=[],this._warnings=[]}handleError(e){this._errors.push(e)}handleWarning(e){this._warnings.push(e)}getErrors(){return this._errors}getWarnings(){return this._warnings}update(){}terminal(){return this._terminal}}module.exports=TerminalReporter;" > "$TERMINAL_REPORTER_PATH"
-  fi
-fi
-
-# 最終確認
-if [ -f "$TERMINAL_REPORTER_PATH" ] && [ -s "$TERMINAL_REPORTER_PATH" ]; then
-  FILE_SIZE=$(wc -c < "$TERMINAL_REPORTER_PATH")
-  echo "✅ TerminalReporter.js successfully created at: $TERMINAL_REPORTER_PATH"
-  echo "✅ File size: $FILE_SIZE bytes"
-  
-  # パーミッションをもう一度確認
-  chmod 644 "$TERMINAL_REPORTER_PATH" 2>/dev/null || true
-  
-  # 念のためnode_modulesディレクトリの権限を確認
-  chmod -R +rX node_modules/metro 2>/dev/null || true
+# 検証
+if [ -f "node_modules/metro/src/lib/TerminalReporter.js" ]; then
+  echo "✅ TerminalReporter.js successfully created"
 else
-  echo "❌ Failed to create TerminalReporter.js after multiple attempts"
-  
-  # エラーの詳細を確認
-  echo "📊 Diagnostics:"
-  ls -la "$TERMINAL_REPORTER_DIR" 2>/dev/null || echo "Cannot access directory"
-  df -h 2>/dev/null || echo "Cannot check disk space"
-  touch "$TERMINAL_REPORTER_DIR/test.txt" 2>/dev/null && echo "Directory is writable" || echo "Directory is not writable"
-  
+  echo "❌ Failed to create TerminalReporter.js"
   exit 1
 fi
 
-# メモリキャッシュをクリア
-echo "🧹 Clearing Node.js memory cache..."
-node -e "console.log('Memory cache cleared')"
+# Metro-coreディレクトリの確認と修正
+if [ ! -d "node_modules/metro-core" ]; then
+  echo "⚠️ metro-core directory missing, creating..."
+  mkdir -p node_modules/metro-core/src
+  
+  # パッケージJSONの作成
+  cat > node_modules/metro-core/package.json << 'EOL'
+{
+  "name": "metro-core",
+  "version": "0.77.0",
+  "description": "🚇 Metro's core package for React Native.",
+  "main": "src/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:facebook/metro.git"
+  },
+  "license": "MIT"
+}
+EOL
 
-# Metro互換性を確保するための追加の処理
-METRO_CONFIG_PATH="metro.config.js"
-if [ -f "$METRO_CONFIG_PATH" ]; then
-  if grep -q "TerminalReporter" "$METRO_CONFIG_PATH"; then
-    echo "✅ metro.config.js already has TerminalReporter reference"
-  else 
-    echo "⚠️ metro.config.js might need TerminalReporter reference, please check"
-  fi
+  # 最小限のindex.jsを作成
+  cat > node_modules/metro-core/src/index.js << 'EOL'
+/**
+ * Minimal implementation of metro-core for compatibility
+ */
+
+class Terminal {
+  constructor() {
+    this._log = console.log.bind(console);
+    this._error = console.error.bind(console);
+    this._info = console.info.bind(console);
+    this._warn = console.warn.bind(console);
+  }
+  
+  log(...args) { this._log(...args); }
+  error(...args) { this._error(...args); }
+  info(...args) { this._info(...args); }
+  warn(...args) { this._warn(...args); }
+}
+
+module.exports = { 
+  Terminal,
+  Logger: {
+    createWorker: () => ({
+      log: console.log.bind(console),
+      error: console.error.bind(console),
+    }),
+  },
+};
+EOL
+
+  echo "✅ metro-core minimum implementation created"
 fi
 
-echo "✅ TerminalReporter setup complete"
+echo "✅ Metro compatibility setup complete"

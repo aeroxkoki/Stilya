@@ -59,7 +59,8 @@
     "prepare-test": "npm run install-test-deps && npm run fix-test && npm run fix-jest-expo && ./scripts/fix-expo-modules-for-jest.sh",
     "bundle": "node --max_old_space_size=4096 node_modules/expo/AppEntry.js",
     "fix:metro-config": "npm install --save-dev @expo/metro-config@0.9.0 --force && npm dedupe",
-    "fix:deps": "npm install --force && npm run fix:metro-config && npm run fix-babel"
+    "fix:deps": "npm install --force && npm run fix:metro-config && npm run fix-babel",
+    "fix:ci-build": "npm run setup:ci && npm run clean && npm run fix:metro-all && npm run github:build:local"
   },
   "dependencies": {
     "@babel/runtime": "7.27.1",
@@ -138,7 +139,10 @@
     "metro": "0.77.0",
     "metro-cache": "0.77.0",
     "metro-config": "0.77.0",
+    "metro-core": "0.77.0",
     "metro-minify-terser": "0.77.0",
+    "metro-runtime": "0.77.0",
+    "metro-source-map": "0.77.0",
     "metro-transform-worker": "0.77.0",
     "patch-package": "^8.0.0",
     "prettier": "^3.2.5",
@@ -155,7 +159,11 @@
     "metro": "0.77.0",
     "metro-config": "0.77.0",
     "metro-cache": "0.77.0",
+    "metro-core": "0.77.0", 
     "metro-minify-terser": "0.77.0",
+    "metro-source-map": "0.77.0",
+    "metro-runtime": "0.77.0",
+    "metro-resolver": "0.77.0",
     "metro-transform-worker": "0.77.0",
     "@expo/metro-config": "0.9.0",
     "babel-preset-expo": "13.1.11",

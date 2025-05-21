@@ -32,6 +32,7 @@ npm install
 # Metro 設定の修正
 echo "🔧 Metro 設定を修正します..."
 npm install --save-dev @expo/metro-config@0.9.0 --force
+npm install --save-dev metro-core@0.77.0 --force
 npm dedupe
 
 # Babel ランタイム修正
