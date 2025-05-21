@@ -40,31 +40,11 @@ jobs:
           npm ci
           npm install -g eas-cli@latest expo-cli@latest
 
-      - name: Create TerminalReporter.js
+      - name: Fix dependencies
         run: |
-          mkdir -p node_modules/metro/src/lib
-          cat > node_modules/metro/src/lib/TerminalReporter.js << 'EOL'
-          /**
-           * Metro Reporter for compatibility with Expo SDK 53.
-           */
-          "use strict";
-          class TerminalReporter {
-            constructor(terminal) {
-              this._terminal = terminal;
-              this._errors = [];
-              this._warnings = [];
-            }
-            handleError(error) { this._errors.push(error); }
-            handleWarning(warning) { this._warnings.push(warning); }
-            getErrors() { return this._errors; }
-            getWarnings() { return this._warnings; }
-            update() {}
-            terminal() { return this._terminal; }
-          }
-          module.exports = TerminalReporter;
-          EOL
-          chmod 644 node_modules/metro/src/lib/TerminalReporter.js
-          echo "✅ TerminalReporter.js created"
+          chmod +x ./fix-dependencies.sh
+          ./fix-dependencies.sh
+          echo "✅ Dependencies fixed"
 
       - name: Clear cache
         run: |
