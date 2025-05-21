@@ -1,51 +1,88 @@
 #!/bin/bash
-# Direct EAS build script that bypasses expo export:embed command
-# (c) 2025 Stilya App Team
+# direct-eas-build.sh
+# ローカル環境でEASビルドを直接実行するスクリプト
 
-set -e # Exit on any error
+set -e
 
-echo "🚀 Starting direct EAS build without Metro bundling..."
+echo "🚀 EASビルドを直接実行します..."
 
-# Set all needed environment variables
-export EAS_NO_METRO=true
-export EXPO_NO_CACHE=true
-export EAS_SKIP_JAVASCRIPT_BUNDLING=1
-export EXPO_NO_BUNDLER=1
-export EAS_BUILD_PLATFORM=android
-export EAS_BUILD_SKIP_EMBED=true
-export EAS_PROJECT_ID=beb25e0f-344b-4f2f-8b64-20614b9744a3
-
-# 1. Clean all caches
-echo "🧹 Cleaning caches..."
-rm -rf node_modules/.cache
-rm -rf ~/.expo/cache
-rm -rf ~/.metro-cache
-rm -rf .expo
-rm -rf .expo-shared
-
-# 2. Extract project ID from app.json if available
-PROJECT_ID=$(node -e "try { const appJson = require('../app.json'); console.log(appJson.expo?.extra?.eas?.projectId || ''); } catch(e) { console.log(''); }")
-
-if [ -n "$PROJECT_ID" ]; then
-  echo "✅ Found project ID in app.json: $PROJECT_ID"
-  export EAS_PROJECT_ID=$PROJECT_ID
-else
-  echo "⚠️ No project ID found in app.json"
-  if npx eas-cli project:info &> /dev/null; then
-    echo "✅ EAS project is already configured."
-  else
-    echo "⚠️ EAS project needs to be configured."
-    echo "Please run 'npx eas-cli init' manually before trying again."
+# 前提条件の確認
+if ! which eas >/dev/null; then
+    echo "❌ EAS CLIがインストールされていません。yarn global add eas-cli@7.3.0 を実行してください。"
     exit 1
-  fi
 fi
 
-# 3. Run EAS build with special flags
-echo "🏗️ Running EAS build with bypass flags..."
-npx eas-cli build \
-  --platform android \
-  --non-interactive \
-  --profile production \
-  --no-wait
+# Expoログイン状態確認
+eas whoami || {
+    echo "❌ Expoにログインしていません。eas login を実行してください。"
+    exit 1
+}
 
-echo "✅ Direct build initiated - check Expo dashboard for progress!"
+# 依存関係の修正(実行済みか確認)
+if [ ! -f node_modules/.build_fixed ]; then
+    echo "📦 依存関係を修正します..."
+    bash ./scripts/fix-metro-dependencies.sh
+    touch node_modules/.build_fixed
+fi
+
+# キャッシュクリア
+echo "🧹 キャッシュをクリア..."
+rm -rf node_modules/.cache
+rm -rf ~/.expo/cache 2>/dev/null || true
+rm -rf .expo/cache 2>/dev/null || true
+rm -rf .metro-cache 2>/dev/null || true
+
+# プロファイル選択
+echo "📱 ビルドプロファイルを選択してください:"
+echo "1) ci (CI用内部テスト)"
+echo "2) development (開発用)"
+echo "3) preview (プレビュー)"
+echo "4) production (本番)"
+read -p "選択 (デフォルト: 2): " profile_choice
+
+case $profile_choice in
+    1)
+        PROFILE="ci"
+        ;;
+    3)
+        PROFILE="preview"
+        ;;
+    4)
+        PROFILE="production"
+        ;;
+    *)
+        PROFILE="development"
+        ;;
+esac
+
+# プラットフォーム選択
+echo "📱 ビルドプラットフォームを選択してください:"
+echo "1) Android"
+echo "2) iOS"
+echo "3) 両方"
+read -p "選択 (デフォルト: 1): " platform_choice
+
+case $platform_choice in
+    2)
+        PLATFORM="ios"
+        ;;
+    3)
+        PLATFORM="all"
+        ;;
+    *)
+        PLATFORM="android"
+        ;;
+esac
+
+echo "🚀 ${PROFILE}プロファイルで${PLATFORM}向けビルドを開始します..."
+
+# EAS環境変数設定 (CIプロファイルの場合はJavaScriptバンドルをスキップ)
+if [ "$PROFILE" = "ci" ]; then
+    export EAS_SKIP_JAVASCRIPT_BUNDLING=1
+fi
+
+# ビルド実行
+eas build --platform $PLATFORM --profile $PROFILE
+
+echo "✅ ビルドリクエストが送信されました。進捗はEASダッシュボードで確認できます。"
+echo "https://expo.dev/accounts/aeroxkoki/projects/stilya/builds"

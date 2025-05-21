@@ -19,6 +19,14 @@ else
   echo "⚠️ patch-expo-serializer.js が見つかりません。スキップします。"
 fi
 
+# 環境変数の確認
+if [ -n "$EXPO_TOKEN" ]; then
+  echo "✅ EXPO_TOKEN環境変数が設定されています"
+else
+  echo "⚠️ EXPO_TOKEN環境変数が見つかりません。GitHubシークレットを確認してください。"
+  exit 1
+fi
+
 # Node環境最適化
 export NODE_OPTIONS="--max-old-space-size=8192"
 
