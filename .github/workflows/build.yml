@@ -93,171 +93,9 @@ jobs:
 
       - name: Fix Metro compatibility
         run: |
-          # Metro関連問題の総合修正（スクリプト実行）
+          # Metro互換レイヤーの構築（スクリプト実行）
           chmod +x ./scripts/fix-github-actions-metro.sh
-          ./scripts/fix-github-actions-metro.sh || true
-          
-          # Metro互換レイヤーを構築
-          echo "🔧 Setting up Metro compatibility layer..."
-          
-          # 1. ディレクトリ構造の確保
-          mkdir -p node_modules/metro/src/lib
-          mkdir -p node_modules/@expo/cli/node_modules/metro/src/lib
-          mkdir -p node_modules/metro-core/src
-          
-          # 2. TerminalReporterの実装
-          cat > node_modules/metro/src/lib/TerminalReporter.js << 'EOL'
-/**
- * Metro Reporter for Expo SDK 53 compatibility (optimized fix)
- * CIビルド用に最適化
- */
-class TerminalReporter {
-  constructor(terminal) {
-    this._terminal = terminal || {
-      log: console.log.bind(console),
-      error: console.error.bind(console),
-      info: console.info.bind(console),
-      warn: console.warn.bind(console)
-    };
-    this._errors = [];
-    this._warnings = [];
-  }
-
-  update() {}
-  terminal() { return this._terminal; }
-  
-  handleError(error) {
-    this._errors.push(error);
-    console.error(error);
-  }
-
-  handleWarning(warning) {
-    this._warnings.push(warning);
-    console.warn(warning);
-  }
-
-  getErrors() { return this._errors; }
-  getWarnings() { return this._warnings; }
-}
-
-module.exports = TerminalReporter;
-EOL
-          
-          # 3. Expoの内部依存用にコピー
-          cp -f node_modules/metro/src/lib/TerminalReporter.js node_modules/@expo/cli/node_modules/metro/src/lib/TerminalReporter.js || true
-          
-          # 4. metro-coreモジュールの補完作成
-          # package.jsonを追加
-          cat > node_modules/metro-core/package.json << 'EOL'
-{
-  "name": "metro-core",
-  "version": "0.77.0",
-  "description": "Metro core compatibility layer for Expo SDK 53",
-  "main": "src/index.js",
-  "license": "MIT"
-}
-EOL
-
-          # src/index.jsを追加
-          cat > node_modules/metro-core/src/index.js << 'EOL'
-/**
- * Metro Core compatibility module for Expo SDK 53
- * GitHub Actions用互換レイヤー
- */
-class Terminal {
-  constructor(options) {
-    this._options = options || {};
-    this._stdio = options?.stdio || {
-      stdout: process.stdout,
-      stderr: process.stderr,
-    };
-    
-    this._logEnabled = !this._options.quiet;
-    this._isMinimal = !!this._options.minimal;
-  }
-
-  log(...args) {
-    if (this._logEnabled) {
-      console.log(...args);
-    }
-  }
-
-  error(...args) {
-    console.error(...args);
-  }
-
-  info(...args) {
-    if (this._logEnabled && !this._isMinimal) {
-      console.info(...args);
-    }
-  }
-
-  warn(...args) {
-    if (this._logEnabled) {
-      console.warn(...args);
-    }
-  }
-}
-
-module.exports = {
-  Terminal,
-  Logger: {
-    createWorker: () => ({
-      log: console.log.bind(console),
-      error: console.error.bind(console),
-    }),
-  },
-};
-EOL
-
-          # 5. リンク作成
-          mkdir -p node_modules/@expo/cli/node_modules/metro-core
-          ln -sf ../../../node_modules/metro-core node_modules/@expo/cli/node_modules/metro-core || true
-          
-          # 6. Metroコンフィグの最適化
-          cat > metro.config.js << 'EOL'
-/**
- * Metro configuration for Stilya - GitHub Actions互換版
- */
-const { getDefaultConfig } = require('@expo/metro-config');
-const path = require('path');
-
-const config = getDefaultConfig(__dirname);
-
-// リゾルバー設定の最適化
-config.resolver = {
-  ...config.resolver,
-  extraNodeModules: {
-    "metro/src/lib/TerminalReporter": path.resolve(__dirname, "node_modules/metro/src/lib/TerminalReporter.js"),
-    "metro-config": path.resolve(__dirname, "node_modules/metro-config"),
-    "metro-core": path.resolve(__dirname, "node_modules/metro-core"),
-    "@": path.resolve(__dirname, "src")
-  },
-  disableHierarchicalLookup: true,
-  unstable_enablePackageExports: false,
-  sourceExts: ['js', 'jsx', 'ts', 'tsx', 'json', 'mjs']
-};
-
-// トランスフォーマー設定
-config.transformer = {
-  ...config.transformer,
-  minifierPath: 'metro-minify-terser',
-  getTransformOptions: async () => ({
-    transform: {
-      experimentalImportSupport: false,
-      inlineRequires: true,
-    },
-  }),
-};
-
-// シリアライザー設定
-config.serializer = config.serializer || {};
-config.serializer.getModulesRunBeforeMainModule = () => [];
-config.serializer.getPolyfills = () => [];
-config.serializer.getRunModuleStatement = moduleId => `__r(${moduleId});`;
-
-module.exports = config;
-EOL
+          ./scripts/fix-github-actions-metro.sh
           
           echo "✅ Metro compatibility setup completed"
 
@@ -274,16 +112,7 @@ EOL
           # プロダクション用キーストアの準備
           mkdir -p android/app
           echo ${{ secrets.ANDROID_KEYSTORE_BASE64 }} | base64 --decode > android/app/stilya-keystore.jks
-          echo '{
-            "android": {
-              "keystore": {
-                "keystorePath": "android/app/stilya-keystore.jks",
-                "keystorePassword": "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}",
-                "keyAlias": "${{ secrets.ANDROID_KEY_ALIAS }}",
-                "keyPassword": "${{ secrets.ANDROID_KEY_PASSWORD }}"
-              }
-            }
-          }' > credentials.json
+          echo '{"android":{"keystore":{"keystorePath":"android/app/stilya-keystore.jks","keystorePassword":"${{ secrets.ANDROID_KEYSTORE_PASSWORD }}","keyAlias":"${{ secrets.ANDROID_KEY_ALIAS }}","keyPassword":"${{ secrets.ANDROID_KEY_PASSWORD }}"}}}' > credentials.json
           echo "✅ Production keystore prepared"
 
       - name: Create temporary keystore for build
@@ -314,7 +143,7 @@ EOL
           echo "// Empty bundle for CI build - Generated at $(date)" > android/app/src/main/assets/index.android.bundle
           
           # TerminalReporterのリンクを確認
-          ln -sf ../../../../metro/src/lib/TerminalReporter.js node_modules/@expo/cli/node_modules/metro/src/lib/TerminalReporter.js
+          ln -sf ../../../../metro/src/lib/TerminalReporter.js node_modules/@expo/cli/node_modules/metro/src/lib/TerminalReporter.js || true
           
           # モジュール解決パスの修正とExpo安定化設定
           export NODE_PATH=$(pwd)/node_modules
