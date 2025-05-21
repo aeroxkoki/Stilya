@@ -23,6 +23,15 @@ yarn cache clean
 echo "📋 eas.json の設定確認:"
 cat ./eas.json
 
+# Keystoreの確認
+if [ -f "android/app/stilya-keystore.jks" ]; then
+  echo "✓ Keystore が正常に設定されています"
+fi
+
+if [ -f "credentials.json" ]; then
+  echo "✓ credentials.json が正常に設定されています"
+fi
+
 # バージョン情報の出力
 echo "📦 パッケージ情報:"
 node -v

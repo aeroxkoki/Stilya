@@ -1,6 +1,6 @@
 {
   "cli": {
-    "version": ">=16.6.1",
+    "version": ">=7.3.0",
     "appVersionSource": "remote",
     "promptToConfigurePushNotifications": false
   },
@@ -10,14 +10,15 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk",
-        "gradleCommand": ":app:assembleRelease"
+        "gradleCommand": ":app:assembleRelease",
+        "withoutCredentials": false,
+        "credentialsSource": "local"
       },
       "env": {
         "EAS_SKIP_JAVASCRIPT_BUNDLING": "1",
         "NODE_ENV": "production"
       },
-      "autoIncrement": true,
-      "credentialsSource": "remote"
+      "autoIncrement": true
     },
     "development": {
       "distribution": "internal",

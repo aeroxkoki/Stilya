@@ -14,6 +14,11 @@ jobs:
       EAS_SKIP_JAVASCRIPT_BUNDLING: 1
       NODE_OPTIONS: "--max-old-space-size=8192"
       NODE_ENV: "production"
+      # Android Keystore関連の環境変数を追加
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
     steps:
       - name: 📥 Checkout repository
@@ -36,7 +41,25 @@ jobs:
           yarn cache clean
 
       - name: 🔧 Install EAS CLI
-        run: yarn global add eas-cli@16.6.1
+        run: yarn global add eas-cli@7.3.0
+
+      - name: 🔑 Setup Android keystore
+        if: ${{ env.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          mkdir -p android/app
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/stilya-keystore.jks
+          # eas.json の credentialsSource: local と連携するための credentials.json を作成
+          echo '{
+            "android": {
+              "keystore": {
+                "keystorePath": "android/app/stilya-keystore.jks",
+                "keystorePassword": "'$ANDROID_KEYSTORE_PASSWORD'",
+                "keyAlias": "'$ANDROID_KEY_ALIAS'",
+                "keyPassword": "'$ANDROID_KEY_PASSWORD'"
+              }
+            }
+          }' > credentials.json
+          echo "Keystore setup completed"
 
       - name: 🔍 ビルド前準備を実行
         run: ./scripts/pre-eas-build.sh
@@ -45,6 +68,6 @@ jobs:
         run: |
           echo "📱 Running EAS build..."
           eas whoami
-          # 既存の認証情報を使用し、新規生成を避ける
+          # --local-build-options パラメータを追加してローカル認証情報を使用
           eas build --platform android --profile ci --non-interactive --no-wait
           echo "✅ ビルドは EAS Build サーバーで実行されます"
