@@ -181,7 +181,13 @@
     "babel-preset-expo": "13.1.11",
     "rimraf": "^3.0.2",
     "glob": "^9.3.5",
-    "core-js": "^3.30.1"
+    "core-js": "^3.30.1",
+    "@expo/prebuild-config": "~9.0.0",
+    "@expo/config-plugins": "~10.0.0",
+    "expo-system-ui": "~3.0.0",
+    "chalk": "^4.1.2",
+    "react-native-svg": "15.2.0",
+    "react-native-web": "~0.19.10"
   },
   "expo": {
     "doctor": {
