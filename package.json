@@ -24,6 +24,7 @@
     "setup": "npm install && npm run clean",
     "fix-metro": "bash ./scripts/fix-metro-dependencies.sh",
     "fix-metro-compatibility": "chmod +x ./scripts/fix-metro-incompatibility.sh && ./scripts/fix-metro-incompatibility.sh",
+    "fix-metro-emergency": "chmod +x ./scripts/fix-metro-serializer-direct.sh && ./scripts/fix-metro-serializer-direct.sh",
     "fix-babel": "npm install --no-save @babel/runtime && npm dedupe @babel/runtime",
     "build:local": "bash ./scripts/local-android-build.sh",
     "build:local:release": "EXPO_NO_CACHE=true NODE_ENV=production bash ./scripts/local-android-build.sh",

@@ -18,7 +18,23 @@ export NODE_ENV=production
 
 # 依存関係の確認と修正
 echo "📦 Verifying dependencies..."
-npm run fix-metro-compatibility # 新しい互換性修正スクリプトを使用
+npm run fix-metro-compatibility
+
+# Metro互換性の追加チェック
+echo "🔍 Verifying Metro compatibility..."
+TERMINAL_REPORTER_PATH="node_modules/metro/src/lib/TerminalReporter.js"
+if [ ! -f "$TERMINAL_REPORTER_PATH" ]; then
+  echo "⚠️ TerminalReporter.js がまだ作成されていません。再度修正します..."
+  chmod +x "$SCRIPT_DIR/fix-metro-incompatibility.sh"
+  "$SCRIPT_DIR/fix-metro-incompatibility.sh"
+  
+  # 再度確認
+  if [ ! -f "$TERMINAL_REPORTER_PATH" ]; then
+    echo "❌ TerminalReporter.js の作成に失敗しました。ビルドを中止します。"
+    exit 1
+  fi
+fi
+echo "✅ Metro compatibility verified."
 
 # キャッシュのクリーンアップ
 echo "🧹 Cleaning caches..."

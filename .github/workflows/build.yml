@@ -50,10 +50,23 @@ jobs:
           rm -rf ~/.expo ~/.cache/metro .expo .expo-shared
           yarn cache clean
 
-      - name: 📦 Fix Metro dependencies
+      - name: 📦 Fix Metro compatibility issues
         run: |
+          # Metro互換性の問題を修正
           chmod +x ./scripts/fix-metro-incompatibility.sh
           ./scripts/fix-metro-incompatibility.sh
+          
+          # キャッシュディレクトリを確認
+          mkdir -p node_modules/metro/src/lib
+          ls -la node_modules/metro/src/lib || echo "Directory does not exist"
+          
+          # TerminalReporter.jsファイルの存在確認
+          if [ ! -f "node_modules/metro/src/lib/TerminalReporter.js" ]; then
+            echo "ERROR: TerminalReporter.js was not created properly"
+            exit 1
+          else
+            echo "✅ TerminalReporter.js exists"
+          fi
 
       - name: 🔧 Install EAS CLI
         run: yarn global add eas-cli@16.6.1
@@ -135,6 +148,13 @@ jobs:
           npm run fix-metro-compatibility
           chmod +x ./scripts/local-android-build.sh
           bash ./scripts/local-android-build.sh
+          
+          # ビルド失敗時に緊急対応
+          if [ $? -ne 0 ]; then
+            echo "⚠️ ビルドに失敗しました。緊急修復を実行します..."
+            npm run fix-metro-emergency
+            bash ./scripts/local-android-build.sh
+          fi
           
           # ビルド結果の確認
           if [ -f "stilya-release.apk" ]; then
