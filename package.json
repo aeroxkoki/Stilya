@@ -51,7 +51,8 @@
     "postinstall": "npm install --no-save @babel/runtime@7.27.1 && npm dedupe && echo 'Dependencies configured'",
     "fix-test": "chmod +x ./scripts/patch-react-native-jest.sh && ./scripts/patch-react-native-jest.sh",
     "fix-jest-expo": "chmod +x ./scripts/patch-jest-expo.sh && ./scripts/patch-jest-expo.sh",
-    "install-test-deps": "chmod +x ./scripts/install-test-dependencies.sh && ./scripts/install-test-dependencies.sh",
+    "fix-missing-versions": "node ./scripts/fix-missing-versions.js",
+    "install:ci": "yarn install && node ./scripts/fix-missing-versions.js",
     "prepare-test": "npm run install-test-deps && npm run fix-test && npm run fix-jest-expo && ./scripts/fix-expo-modules-for-jest.sh",
     "bundle": "node --max_old_space_size=4096 node_modules/expo/AppEntry.js"
   },
@@ -153,7 +154,9 @@
     "metro-transform-worker": "0.77.0",
     "@expo/metro-config": "0.9.0",
     "babel-preset-expo": "13.1.11",
-    "rimraf": "^3.0.2"
+    "rimraf": "^3.0.2",
+    "glob": "^9.3.5",
+    "core-js": "^3.30.1"
   },
   "private": true
 }
