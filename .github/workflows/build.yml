@@ -55,49 +55,9 @@ jobs:
           chmod +x ./scripts/fix-github-actions-metro.sh
           bash ./scripts/fix-github-actions-metro.sh
           
-          # TerminalReporterの正しい配置を確認
-          if [ ! -f "node_modules/metro/src/lib/TerminalReporter.js" ]; then
-            echo "⚠️ TerminalReporter.js not found, creating..."
-            mkdir -p node_modules/metro/src/lib
-            
-            # Expo CLI用の内部ディレクトリも確保
-            mkdir -p node_modules/@expo/cli/node_modules/metro/src/lib
-            
-            # TerminalReporterの内容
-            cat > node_modules/metro/src/lib/TerminalReporter.js << 'EOF'
-/**
- * Metro Reporter for Expo SDK 53 compatibility
- */
-class TerminalReporter {
-  constructor(terminal) {
-    this._terminal = terminal || console;
-    this._errors = [];
-    this._warnings = [];
-  }
-
-  update() {}
-  terminal() { return this._terminal; }
-  
-  handleError(error) {
-    this._errors.push(error);
-    console.error(error);
-  }
-
-  handleWarning(warning) {
-    this._warnings.push(warning);
-    console.warn(warning);
-  }
-
-  getErrors() { return this._errors; }
-  getWarnings() { return this._warnings; }
-}
-
-module.exports = TerminalReporter;
-EOF
-            
-            # Expoの内部依存用にコピー
-            cp node_modules/metro/src/lib/TerminalReporter.js node_modules/@expo/cli/node_modules/metro/src/lib/TerminalReporter.js
-          fi
+          # TerminalReporterの作成スクリプトを実行
+          chmod +x ./scripts/create-terminal-reporter.sh
+          bash ./scripts/create-terminal-reporter.sh
           
           echo "✅ Metro compatibility issues fixed"
 
@@ -115,33 +75,33 @@ EOF
             
             # 環境変数モジュールを修正 (.env読み込みエラーを回避)
             cat > $EXPO_ENV_PATH << 'EOL'
-          "use strict";
-          Object.defineProperty(exports, "__esModule", { value: true });
-          exports.load = exports.loadAsync = exports.hasEnv = exports.getEnv = exports.loadProjectEnv = void 0;
-          
-          // 簡易版の環境変数処理モジュール (エラー回避用)
-          const getEnv = () => process.env;
-          exports.getEnv = getEnv;
-          
-          const hasEnv = (name) => !!process.env[name];
-          exports.hasEnv = hasEnv;
-          
-          const loadProjectEnv = async () => {
-            console.log("[ExpoEnv] 環境変数の読み込みをスキップします (CI環境)");
-            return {};
-          };
-          exports.loadProjectEnv = loadProjectEnv;
-          
-          const loadAsync = async (props) => {
-            return process.env;
-          };
-          exports.loadAsync = loadAsync;
-          
-          const load = (props) => {
-            return process.env;
-          };
-          exports.load = load;
-          EOL
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.load = exports.loadAsync = exports.hasEnv = exports.getEnv = exports.loadProjectEnv = void 0;
+
+// 簡易版の環境変数処理モジュール (エラー回避用)
+const getEnv = () => process.env;
+exports.getEnv = getEnv;
+
+const hasEnv = (name) => !!process.env[name];
+exports.hasEnv = hasEnv;
+
+const loadProjectEnv = async () => {
+  console.log("[ExpoEnv] 環境変数の読み込みをスキップします (CI環境)");
+  return {};
+};
+exports.loadProjectEnv = loadProjectEnv;
+
+const loadAsync = async (props) => {
+  return process.env;
+};
+exports.loadAsync = loadAsync;
+
+const load = (props) => {
+  return process.env;
+};
+exports.load = load;
+EOL
           
             echo "✅ 環境変数処理モジュールのパッチを適用しました"
           else
@@ -172,7 +132,7 @@ EOF
         run: |
           mkdir -p android/app
           echo ${{ secrets.ANDROID_KEYSTORE_BASE64 }} | base64 --decode > android/app/stilya-keystore.jks
-          echo '{'\"\\\\n\"'  \"android\": {'\"\\\\n\"'    \"keystore\": {'\"\\\\n\"'      \"keystorePath\": \"android/app/stilya-keystore.jks\",'\"\\\\n\"'      \"keystorePassword\": \"${{ secrets.ANDROID_KEYSTORE_PASSWORD }}\",'\"\\\\n\"'      \"keyAlias\": \"${{ secrets.ANDROID_KEY_ALIAS }}\",'\"\\\\n\"'      \"keyPassword\": \"${{ secrets.ANDROID_KEY_PASSWORD }}\"'\"\\\\n\"'    }'\"\\\\n\"'  }'\"\\\\n\"'}''\"\\\\n\"' > credentials.json
+          echo '{"android": {"keystore": {"keystorePath": "android/app/stilya-keystore.jks", "keystorePassword": "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}", "keyAlias": "${{ secrets.ANDROID_KEY_ALIAS }}", "keyPassword": "${{ secrets.ANDROID_KEY_PASSWORD }}"}}}' > credentials.json
           echo "✅ Keystore prepared"
 
       - name: Create temporary keystore for build

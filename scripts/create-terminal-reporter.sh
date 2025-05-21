@@ -1,56 +1,38 @@
 #!/bin/bash
+# create-terminal-reporter.sh
+# Metro TerminalReporter互換レイヤーを生成するスクリプト
 
-# Create the directory structure if it doesn't exist
+set -e  # エラーで停止
+
+echo "Creating TerminalReporter compatibility layer..."
+
+# ディレクトリの準備
 mkdir -p node_modules/metro/src/lib
+mkdir -p node_modules/@expo/cli/node_modules/metro/src/lib
 
-# Create the Terminal Reporter file
+# TerminalReporterファイルの作成
 cat > node_modules/metro/src/lib/TerminalReporter.js << 'EOL'
 /**
- * Copyright (c) Meta Platforms, Inc. and affiliates.
- *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * @flow strict-local
- * @format
- */
-
-'use strict';
-
-/**
- * Metro Reporter for compatibility with Expo SDK 53.
- * This is a simplified implementation that provides required functionality.
+ * Metro Reporter for Expo SDK 53 compatibility
  */
 class TerminalReporter {
   constructor(terminal) {
-    this._terminal = terminal || {
-      log: console.log.bind(console),
-      error: console.error.bind(console),
-      info: console.info.bind(console),
-      warn: console.warn.bind(console)
-    };
+    this._terminal = terminal || console;
     this._errors = [];
     this._warnings = [];
   }
 
   update() {}
-  
-  terminal() { 
-    return this._terminal; 
-  }
+  terminal() { return this._terminal; }
   
   handleError(error) {
     this._errors.push(error);
-    if (this._terminal && this._terminal.error) {
-      this._terminal.error(error);
-    }
+    console.error(error);
   }
 
   handleWarning(warning) {
     this._warnings.push(warning);
-    if (this._terminal && this._terminal.warn) {
-      this._terminal.warn(warning);
-    }
+    console.warn(warning);
   }
 
   getErrors() { return this._errors; }
@@ -60,7 +42,7 @@ class TerminalReporter {
 module.exports = TerminalReporter;
 EOL
 
-echo "✅ TerminalReporter.js created successfully"
+# Expoの内部依存用にコピー
+cp node_modules/metro/src/lib/TerminalReporter.js node_modules/@expo/cli/node_modules/metro/src/lib/TerminalReporter.js
 
-# 実行権限を確保
-chmod +x node_modules/metro/src/lib/TerminalReporter.js
+echo "✅ TerminalReporter compatibility layer created successfully"
