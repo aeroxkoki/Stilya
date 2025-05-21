@@ -65,35 +65,35 @@ jobs:
             
             # TerminalReporterの内容
             cat > node_modules/metro/src/lib/TerminalReporter.js << 'EOF'
-            /**
-             * Metro Reporter for Expo SDK 53 compatibility
-             */
-            class TerminalReporter {
-              constructor(terminal) {
-                this._terminal = terminal || console;
-                this._errors = [];
-                this._warnings = [];
-              }
+/**
+ * Metro Reporter for Expo SDK 53 compatibility
+ */
+class TerminalReporter {
+  constructor(terminal) {
+    this._terminal = terminal || console;
+    this._errors = [];
+    this._warnings = [];
+  }
 
-              update() {}
-              terminal() { return this._terminal; }
-              
-              handleError(error) {
-                this._errors.push(error);
-                console.error(error);
-              }
+  update() {}
+  terminal() { return this._terminal; }
+  
+  handleError(error) {
+    this._errors.push(error);
+    console.error(error);
+  }
 
-              handleWarning(warning) {
-                this._warnings.push(warning);
-                console.warn(warning);
-              }
+  handleWarning(warning) {
+    this._warnings.push(warning);
+    console.warn(warning);
+  }
 
-              getErrors() { return this._errors; }
-              getWarnings() { return this._warnings; }
-            }
+  getErrors() { return this._errors; }
+  getWarnings() { return this._warnings; }
+}
 
-            module.exports = TerminalReporter;
-            EOF
+module.exports = TerminalReporter;
+EOF
             
             # Expoの内部依存用にコピー
             cp node_modules/metro/src/lib/TerminalReporter.js node_modules/@expo/cli/node_modules/metro/src/lib/TerminalReporter.js
