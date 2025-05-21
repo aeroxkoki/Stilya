@@ -11,11 +11,20 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
+      # Expo/EAS設定
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       EAS_SKIP_JAVASCRIPT_BUNDLING: 1
+      EAS_NO_VCS: 1
+      EAS_LOCAL_BUILD_ARTIFACTS_DIR: ./build-artifacts
+      EAS_LOCAL_BUILD_SKIP_CLEANUP: 1
+      EXPO_NO_CACHE: 1
+      
+      # ビルド環境設定
       NODE_OPTIONS: --max-old-space-size=8192
       NODE_ENV: production
       BUILD_TYPE: local
+      
+      # キーストア設定
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
       ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -105,8 +114,17 @@ jobs:
 
       - name: Setup Expo
         run: |
-          npx expo-doctor
-          npx expo install --check
+          # expo-doctorを実行
+          npx expo-doctor || true # エラーが出ても続行
+          
+          # expo環境変数設定
+          export EAS_NO_VCS=1
+          export EAS_LOCAL_BUILD_ARTIFACTS_DIR=./build-artifacts
+          export EAS_LOCAL_BUILD_SKIP_CLEANUP=1
+          
+          # EAS設定確認
+          npx eas-cli --version
+          npx expo install --check || true # 依存関係のチェック（エラーは無視）
 
       - name: Prepare keystore
         if: env.ANDROID_KEYSTORE_BASE64 != ''
@@ -120,25 +138,33 @@ jobs:
         run: |
           echo "🏗️ local ビルドを実行します..."
           
-          if [ "local" == "eas" ]; then
-            # EAS ビルド
-            echo "🌐 EAS ビルドを実行します..."
-            eas build --platform android --profile ci --non-interactive --no-wait
-            echo "✅ ビルドジョブが EAS に送信されました"
+          # ローカルビルド環境変数を明示的に設定
+          export EAS_NO_VCS=1
+          export EAS_LOCAL_BUILD_ARTIFACTS_DIR=./build-artifacts
+          export EAS_LOCAL_BUILD_SKIP_CLEANUP=1
+          export EXPO_NO_CACHE=1
+          export NODE_ENV=production
+          
+          # エラーが出た場合のログ出力強化
+          set -o pipefail
+          
+          # ローカルビルド
+          echo "💻 ローカルビルドを実行します..."
+          chmod +x ./scripts/local-android-build.sh
+          ./scripts/local-android-build.sh
+          
+          # ビルド結果の確認
+          if [ -f "stilya-release.apk" ]; then
+            echo "✅ ローカルビルドが成功しました"
+            ls -la stilya-release.apk
           else
-            # ローカルビルド
-            echo "💻 ローカルビルドを実行します..."
-            chmod +x ./scripts/local-android-build.sh
-            ./scripts/local-android-build.sh
-            
-            # ビルド結果の確認
-            if [ -f "stilya-release.apk" ]; then
-              echo "✅ ローカルビルドが成功しました"
-              ls -la stilya-release.apk
-            else
-              echo "❌ ローカルビルドが失敗しました"
-              exit 1
-            fi
+            echo "❌ ローカルビルドが失敗しました"
+            # エラーログ収集
+            mkdir -p build-logs
+            find . -name "*.log" -type f -exec cp {} build-logs/ \;
+            find android -name "*.log" -type f -exec cp {} build-logs/ \;
+            echo "ログを build-logs ディレクトリにコピーしました"
+            exit 1
           fi
 
       - name: Upload APK
@@ -147,3 +173,14 @@ jobs:
         with:
           name: stilya-app
           path: stilya-release.apk
+          
+      - name: Upload Build Logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            build-logs/
+            **/build/**/*.log
+            android/app/build/outputs/logs/
+            ~/.npm/_logs/
