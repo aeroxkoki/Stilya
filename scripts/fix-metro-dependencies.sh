@@ -5,7 +5,7 @@
 echo "🔧 Metro/Babel 依存関係の修正を開始します..."
 
 # OS確認
-if [[ "$OSTYPE" == "darwin"* ]]; then
+if [ "$OSTYPE" = "darwin"* ]; then
   # macOS用
   SEDOPT="-i ''"
 else
@@ -32,12 +32,12 @@ if [ -f metro.config.js ]; then
   # 既存のmetro.config.jsにpackageExportsの設定を追加
   if ! grep -q "unstable_enablePackageExports" metro.config.js; then
     echo "Metro config に packageExports 設定を追加します"
-    if [[ "$OSTYPE" == "darwin"* ]]; then
+    if [ "$OSTYPE" = "darwin"* ]; then
       # macOS用
-      sed -i '' '/const config = getDefaultConfig/a\\
-// パッケージエクスポートフィールド対応（問題が発生する場合のオプトアウト用）\\
-if (config.resolver) {\\
-  config.resolver.unstable_enablePackageExports = false;\\
+      sed -i '' '/const config = getDefaultConfig/a\
+// パッケージエクスポートフィールド対応（問題が発生する場合のオプトアウト用）\
+if (config.resolver) {\
+  config.resolver.unstable_enablePackageExports = false;\
 }' metro.config.js
     else
       # Linux用
@@ -146,7 +146,7 @@ fi
 # package.jsonのresolutionsを更新
 echo "📦 package.jsonのresolutionsを更新..."
 if [ -f package.json ]; then
-  if [[ "$OSTYPE" == "darwin"* ]]; then
+  if [ "$OSTYPE" = "darwin"* ]; then
     # macOSの場合、一時ファイルを使用
     node -e '
     const fs = require("fs");

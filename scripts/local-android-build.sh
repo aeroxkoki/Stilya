@@ -63,13 +63,24 @@ cd android
 
 # Gradleビルドの実行
 echo "🏗️ Running Gradle build..."
-if [ "$(uname)" == "Darwin" ]; then
-  # macOS
-  ./gradlew assembleRelease
-else
-  # Linux/Windows
-  gradlew assembleRelease
+# gradlewの存在確認
+if [ ! -f "./gradlew" ]; then
+  echo "⚠️ gradlew が見つかりません。権限を確認します..."
+  chmod +x "./gradlew" 2>/dev/null || echo "gradlewファイルが存在しません"
+  
+  if [ ! -f "./gradlew" ]; then
+    echo "🔄 gradlew が見つからないため、作成します..."
+    touch ./gradlew
+    chmod +x ./gradlew
+    echo '#!/bin/bash
+exec ./gradlew.bat "$@"' > ./gradlew
+  fi
 fi
+
+# Gradleビルドの実行
+echo "🏗️ gradlew で APK をビルドします..."
+chmod +x ./gradlew
+./gradlew assembleRelease
 
 # ビルド結果の確認
 if [ $? -eq 0 ]; then

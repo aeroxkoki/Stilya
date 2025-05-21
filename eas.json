@@ -1,61 +1,49 @@
 {
   "cli": {
-    "version": ">=16.6.1",
-    "appVersionSource": "remote",
-    "promptToConfigurePushNotifications": false
+    "version": ">=7.3.0",
+    "appVersionSource": "remote"
   },
   "build": {
-    "ci": {
-      "developmentClient": false,
-      "distribution": "internal",
-      "android": {
-        "buildType": "apk",
-        "gradleCommand": ":app:assembleRelease",
-        "withoutCredentials": false,
-        "credentialsSource": "local"
-      },
-      "env": {
-        "EAS_SKIP_JAVASCRIPT_BUNDLING": "1",
-        "NODE_ENV": "production"
-      },
-      "autoIncrement": true,
-      "runtimeVersion": {
-        "policy": "appVersion"
-      }
-    },
     "development": {
+      "developmentClient": true,
       "distribution": "internal",
       "android": {
         "buildType": "apk"
-      },
-      "developmentClient": true,
-      "channel": "development"
+      }
     },
     "preview": {
       "distribution": "internal",
       "android": {
         "buildType": "apk"
-      },
-      "channel": "preview"
+      }
     },
     "production": {
       "autoIncrement": true,
-      "channel": "production"
+      "android": {
+        "buildType": "app-bundle"
+      }
     },
     "local": {
       "distribution": "internal",
       "android": {
-        "buildType": "apk",
-        "gradleCommand": ":app:assembleRelease"
-      },
-      "ios": {
-        "buildConfiguration": "Release"
+        "buildType": "apk"
       },
       "env": {
-        "EAS_SKIP_JAVASCRIPT_BUNDLING": "1",
-        "NODE_ENV": "production"
+        "EAS_SKIP_JAVASCRIPT_BUNDLING": "1"
+      }
+    },
+    "ci": {
+      "developmentClient": false,
+      "android": {
+        "buildType": "apk"
       },
-      "autoIncrement": true
+      "env": {
+        "EAS_SKIP_JAVASCRIPT_BUNDLING": "1"
+      },
+      "autoIncrement": true,
+      "runtimeVersion": {
+        "policy": "appVersion"
+      }
     }
   },
   "submit": {
