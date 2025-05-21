@@ -108,6 +108,7 @@ EOL
   else
     echo "👍 Expoディレクトリのファイルは既に存在します"
   fi
+  fi
 else
   echo "⚠️ Expoディレクトリが見つかりません - このステップはスキップします"
 fi

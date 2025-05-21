@@ -1,10 +1,11 @@
 /**
  * Metro configuration for Stilya (Expo SDK 53 / 2025)
- * 最適化済みビルド設定（GitHub Actions互換）
+ * GitHub Actions 互換設定
  */
 const { getDefaultConfig } = require('@expo/metro-config');
 const path = require('path');
 const os = require('os');
+const fs = require('fs');
 
 // Get default config from Expo
 const config = getDefaultConfig(__dirname);
@@ -61,7 +62,6 @@ config.cacheStores = [
 
 // ==== TerminalReporter Creation ====
 // Ensure TerminalReporter exists for Metro compatibility
-const fs = require('fs');
 const terminalReporterPath = path.resolve(__dirname, 'node_modules/metro/src/lib/TerminalReporter.js');
 const terminalReporterDir = path.dirname(terminalReporterPath);
 

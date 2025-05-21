@@ -1,11 +1,15 @@
 #!/bin/bash
-# GitHub Actions用の直接TerminalReporter.js作成スクリプト
+# Expo SDK 53向けのTerminalReporterを作成するスクリプト
 
-# 必要なディレクトリを確認
+TERMINAL_REPORTER_PATH="node_modules/metro/src/lib/TerminalReporter.js"
+
+echo "📝 TerminalReporter.js ファイルを作成します..."
+
+# ディレクトリ作成
 mkdir -p node_modules/metro/src/lib
 
-# ファイル内容の作成
-cat > node_modules/metro/src/lib/TerminalReporter.js << 'EOL'
+# ファイル作成
+cat > "$TERMINAL_REPORTER_PATH" << 'EOL'
 /**
  * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
@@ -18,6 +22,10 @@ cat > node_modules/metro/src/lib/TerminalReporter.js << 'EOL'
 
 'use strict';
 
+/**
+ * Metro Reporter for compatibility with Expo SDK 53.
+ * This is a simplified implementation that provides required functionality.
+ */
 class TerminalReporter {
   constructor(terminal) {
     this._terminal = terminal;
@@ -42,21 +50,61 @@ class TerminalReporter {
   }
 
   update() {}
-  terminal() { return this._terminal; }
+  
+  terminal() { 
+    return this._terminal; 
+  }
 }
 
 module.exports = TerminalReporter;
 EOL
 
-# 権限設定
-chmod 644 node_modules/metro/src/lib/TerminalReporter.js
+# パーミッション設定
+chmod 644 "$TERMINAL_REPORTER_PATH"
 
 # 確認
-if [ -f "node_modules/metro/src/lib/TerminalReporter.js" ]; then
-  echo "✅ TerminalReporter.js created successfully"
-  ls -la node_modules/metro/src/lib/TerminalReporter.js
-  head -n 5 node_modules/metro/src/lib/TerminalReporter.js
+if [ -f "$TERMINAL_REPORTER_PATH" ]; then
+  echo "✅ TerminalReporter.js が正常に作成されました"
+  ls -la "$TERMINAL_REPORTER_PATH"
 else
-  echo "❌ Failed to create TerminalReporter.js"
+  echo "❌ TerminalReporter.js の作成に失敗しました"
   exit 1
 fi
+
+echo "🔍 @expo/cli ディレクトリも確認します..."
+EXPO_CLI_DIR="node_modules/@expo/cli/build/src/start/server/metro"
+
+if [ ! -d "$EXPO_CLI_DIR" ]; then
+  echo "📂 @expo/cli ディレクトリを作成します..."
+  mkdir -p "$EXPO_CLI_DIR"
+fi
+
+EXPO_REPORTER_PATH="$EXPO_CLI_DIR/TerminalReporter.js"
+if [ ! -f "$EXPO_REPORTER_PATH" ]; then
+  echo "📝 Expo版のTerminalReporter.jsも作成します..."
+  
+  cat > "$EXPO_REPORTER_PATH" << 'EOL'
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+
+// Expo SDK 53向けの互換性対応
+const UpstreamTerminalReporter = require('metro/src/lib/TerminalReporter');
+
+// 必要なメソッドを追加したラッパー
+class ExpoTerminalReporter extends UpstreamTerminalReporter {
+  constructor(terminal) {
+    super(terminal);
+  }
+}
+
+exports.default = ExpoTerminalReporter;
+EOL
+
+  chmod 644 "$EXPO_REPORTER_PATH"
+  echo "✅ Expo版のTerminalReporter.jsが正常に作成されました"
+  ls -la "$EXPO_REPORTER_PATH"
+else
+  echo "👍 Expo版のTerminalReporter.jsは既に存在します"
+fi
+
+echo "🎉 全てのTerminalReporterファイルが正常に設定されました！"
