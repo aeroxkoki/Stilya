@@ -47,6 +47,8 @@
     "eas:build:ci": "npm run setup:ci && EAS_SKIP_JAVASCRIPT_BUNDLING=1 eas build --platform android --profile ci --non-interactive --no-wait",
     "build:fixed": "bash ./scripts/fixed-android-build.sh",
     "build:fixed:v2": "bash ./scripts/fixed-android-build-v2.sh",
+    "build:fixed:final": "bash ./scripts/fixed-android-build-final.sh",
+    "fix:env": "bash ./scripts/patch-env-module.sh",
     "build:github-actions": "npm run setup:ci && npm run build:local:release",
     "fix:metro-all": "npm run fix-metro && npm run create-terminal-reporter && npm run fix-metro-compatibility",
     "eas:prep": "bash ./scripts/eas-build-prepare.sh",
