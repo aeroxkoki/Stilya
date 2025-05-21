@@ -1,5 +1,6 @@
 // ExpoのJSON解析エラーに対処するための修正版エントリーポイント
 import { registerRootComponent } from 'expo';
+import './src/utils/polyfills'; // グローバルポリフィルを最初にロード
 import App from './App';
 
 // JSONパーサーパッチをロード（できるだけ早く）
