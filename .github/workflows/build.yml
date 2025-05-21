@@ -41,33 +41,88 @@ jobs:
           yarn cache clean
 
       - name: 🔧 Install EAS CLI
-        run: yarn global add eas-cli@7.3.0
+        run: yarn global add eas-cli@16.6.1
 
       - name: 🔑 Setup Android keystore
-        if: ${{ env.ANDROID_KEYSTORE_BASE64 }}
         run: |
+          echo "Setting up Android keystore..."
+          # android/app ディレクトリの存在を確認して作成
           mkdir -p android/app
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/stilya-keystore.jks
-          # eas.json の credentialsSource: local と連携するための credentials.json を作成
+          
+          # credentials.json をルートディレクトリに作成
           echo '{
             "android": {
               "keystore": {
                 "keystorePath": "android/app/stilya-keystore.jks",
-                "keystorePassword": "'$ANDROID_KEYSTORE_PASSWORD'",
-                "keyAlias": "'$ANDROID_KEY_ALIAS'",
-                "keyPassword": "'$ANDROID_KEY_PASSWORD'"
+                "keystorePassword": "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}",
+                "keyAlias": "${{ secrets.ANDROID_KEY_ALIAS }}",
+                "keyPassword": "${{ secrets.ANDROID_KEY_PASSWORD }}"
               }
             }
           }' > credentials.json
-          echo "Keystore setup completed"
+          
+          # デバッグ出力
+          echo "Current directory: $(pwd)"
+          echo "Credentials file location: $(ls -la credentials.json || echo 'Not found')"
+          
+          # BASE64エンコードされたキーストアがある場合はデコード
+          if [ ! -z "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/stilya-keystore.jks
+            echo "Keystore decoded and saved to android/app/stilya-keystore.jks"
+            ls -la android/app/stilya-keystore.jks || echo "Keystore file not found!"
+          else
+            echo "No ANDROID_KEYSTORE_BASE64 provided, skipping keystore setup"
+            # ダミーのキーストアファイルを作成（テスト用）
+            dd if=/dev/urandom of=android/app/stilya-keystore.jks bs=1k count=2
+            echo "Created dummy keystore for testing"
+          fi
+          
+          # credentials.jsonのパーミッションを確認
+          chmod 644 credentials.json
+          echo "Set credentials.json permissions to 644"
 
       - name: 🔍 ビルド前準備を実行
         run: ./scripts/pre-eas-build.sh
+
+      - name: 🔍 Credentials状態を確認
+        run: ./scripts/debug-credentials.sh
 
       - name: 🛠 Run EAS build
         run: |
           echo "📱 Running EAS build..."
           eas whoami
-          # --local-build-options パラメータを追加してローカル認証情報を使用
-          eas build --platform android --profile ci --non-interactive --no-wait
+          
+          # credentials.jsonの存在を確認
+          if [ -f "credentials.json" ]; then
+            echo "credentials.json found at project root"
+            cat credentials.json | sed 's/"keystorePassword": ".*"/"keystorePassword": "****"/g' | sed 's/"keyPassword": ".*"/"keyPassword": "****"/g'
+          else
+            echo "credentials.json NOT found - creating it now"
+            echo '{
+              "android": {
+                "keystore": {
+                  "keystorePath": "android/app/stilya-keystore.jks",
+                  "keystorePassword": "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}",
+                  "keyAlias": "${{ secrets.ANDROID_KEY_ALIAS }}",
+                  "keyPassword": "${{ secrets.ANDROID_KEY_PASSWORD }}"
+                }
+              }
+            }' > credentials.json
+            echo "credentials.json created"
+          fi
+          
+          # Keystoreの存在も確認
+          if [ -f "android/app/stilya-keystore.jks" ]; then
+            echo "Keystore file exists"
+          else
+            echo "Keystore file missing - will need to create it"
+          fi
+          
+          # 環境変数の出力（秘密のパスワードなどは含めない）
+          echo "Environment variable checks:"
+          echo "EAS_SKIP_JAVASCRIPT_BUNDLING: $EAS_SKIP_JAVASCRIPT_BUNDLING"
+          echo "NODE_ENV: $NODE_ENV"
+          
+          # ビルド実行 - --local-build-options でGitHub Actions環境内でのクレデンシャル位置を明示
+          eas build --platform android --profile ci --non-interactive --no-wait --local-credentials-file="$(pwd)/credentials.json"
           echo "✅ ビルドは EAS Build サーバーで実行されます"
