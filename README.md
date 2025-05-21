@@ -225,3 +225,4 @@ npm run fix-metro
 ## ライセンス
 
 [MIT](LICENSE)
+# Metro互換性問題修正
