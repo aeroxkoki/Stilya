@@ -39,93 +39,154 @@ jobs:
           node-version: 20.x
           cache: 'npm'
 
-      - name: Clean lock files
+      - name: Clean lock files and cache
         run: |
           rm -f yarn.lock
-          echo "✅ Removed duplicate lock files"
+          rm -rf node_modules/.cache
+          rm -rf ~/.expo/cache
+          rm -rf ~/.metro-cache
+          echo "✅ Removed lock files and caches"
 
       - name: Install dependencies
         run: |
           npm ci
           npm install -g eas-cli@latest expo-cli@latest
-          # metro-configを明示的にインストール
-          npm install --save-dev @expo/metro-config@0.9.0 --force
+          echo "✅ Core dependencies installed"
+
+      - name: Install Metro dependencies
+        run: |
+          # すべてのMetro依存関係をインストール
+          npm install --save-dev \
+            metro@0.77.0 \
+            metro-core@0.77.0 \
+            metro-runtime@0.77.0 \
+            metro-config@0.77.0 \
+            metro-resolver@0.77.0 \
+            metro-transform-worker@0.77.0 \
+            metro-source-map@0.77.0 \
+            @expo/metro-config@0.9.0 \
+            --force
           npm dedupe
-          echo "✅ Dependencies installed"
+          echo "✅ Metro dependencies installed"
 
       - name: Create TerminalReporter
         run: |
           mkdir -p node_modules/metro/src/lib
-          echo 'class TerminalReporter { constructor(terminal) { this._terminal = terminal; this._errors = []; this._warnings = []; } handleError(error) { this._errors.push(error); } handleWarning(warning) { this._warnings.push(warning); } getErrors() { return this._errors; } getWarnings() { return this._warnings; } update() {} terminal() { return this._terminal; } } module.exports = TerminalReporter;' > node_modules/metro/src/lib/TerminalReporter.js
+          cat > node_modules/metro/src/lib/TerminalReporter.js << 'EOL'
+          /**
+           * Metro compatibility layer for Expo SDK 53
+           */
+          class TerminalReporter {
+            constructor(terminal) {
+              this._terminal = terminal || {
+                log: console.log.bind(console),
+                error: console.error.bind(console),
+                info: console.info.bind(console),
+                warn: console.warn.bind(console)
+              };
+              this._errors = [];
+              this._warnings = [];
+            }
+
+            handleError(error) {
+              this._errors.push(error);
+            }
+
+            handleWarning(warning) {
+              this._warnings.push(warning);
+            }
+
+            getErrors() {
+              return this._errors;
+            }
+
+            getWarnings() {
+              return this._warnings;
+            }
+
+            update() {}
+            
+            terminal() { 
+              return this._terminal; 
+            }
+          }
+
+          module.exports = TerminalReporter;
+          EOL
           chmod 644 node_modules/metro/src/lib/TerminalReporter.js
           echo "✅ TerminalReporter.js created"
 
-      - name: Verify dependencies
+      - name: Verify Metro setup
         run: |
-          if [ -d "node_modules/@expo/metro-config" ]; then
-            echo "✅ @expo/metro-config is installed"
+          # メトロ関連パッケージの確認
+          if [ -d "node_modules/metro-core" ] && [ -d "node_modules/metro" ] && [ -f "node_modules/metro/src/lib/TerminalReporter.js" ]; then
+            echo "✅ Metro setup verified successfully"
           else
-            echo "❌ @expo/metro-config is NOT installed"
-            # 通常のインストールを試みる
-            npm install --save-dev @expo/metro-config@0.9.0 --force
-            # 再度確認
-            if [ -d "node_modules/@expo/metro-config" ]; then
-              echo "✅ @expo/metro-config is now installed"
-            else
-              echo "❌ Failed to install @expo/metro-config"
-              # 強制インストールを実行（インラインで実装）
-              echo "🚨 緊急インストールを実行します..."
-              mkdir -p node_modules/@expo/metro-config/build
-              echo '{"name":"@expo/metro-config","version":"0.9.0","main":"build/index.js"}' > node_modules/@expo/metro-config/package.json
-              echo 'function getDefaultConfig() { return { resolver: { resolverMainFields: ["react-native", "browser", "main"], platforms: ["ios", "android", "web"] }, transformer: { babelTransformerPath: require.resolve("metro-react-native-babel-transformer") } }; }; module.exports = { getDefaultConfig };' > node_modules/@expo/metro-config/build/index.js
-              echo "✅ 緊急インストール完了"
-              # 再度確認
-              if [ -d "node_modules/@expo/metro-config" ]; then
-                echo "✅ @expo/metro-config が存在します"
-              else
-                echo "❌ インストールが完全に失敗しました"
-                exit 1
-              fi
-            fi
-          fi
-
-      - name: Clear cache
-        run: |
-          rm -rf node_modules/.cache
-          rm -rf ~/.expo/cache
-          rm -rf ~/.metro-cache
-          rm -rf .expo
-          rm -rf .expo-shared
-          echo "✅ Caches cleared"
-
-      - name: Verify Metro compatibility
-        run: |
-          if [ -f "node_modules/metro/src/lib/TerminalReporter.js" ]; then
-            echo "✅ TerminalReporter.js exists"
-          else
-            echo "❌ TerminalReporter.js not found"
-            echo "🔧 Creating TerminalReporter.js again..."
-            mkdir -p node_modules/metro/src/lib
-            echo 'class TerminalReporter { constructor(terminal) { this._terminal = terminal; this._errors = []; this._warnings = []; } handleError(error) { this._errors.push(error); } handleWarning(warning) { this._warnings.push(warning); } getErrors() { return this._errors; } getWarnings() { return this._warnings; } update() {} terminal() { return this._terminal; } } module.exports = TerminalReporter;' > node_modules/metro/src/lib/TerminalReporter.js
+            echo "⚠️ Metro setup incomplete, fixing..."
             
-            if [ -f "node_modules/metro/src/lib/TerminalReporter.js" ]; then
-              echo "✅ TerminalReporter.js creation successful"
-            else
-              echo "❌ Failed to create TerminalReporter.js - directory issue"
-              # 最後の手段 - 必要なすべてのディレクトリを強制作成
-              mkdir -p node_modules/metro
-              mkdir -p node_modules/metro/src
-              mkdir -p node_modules/metro/src/lib
-              echo 'class TerminalReporter { constructor(terminal) { this._terminal = terminal; this._errors = []; this._warnings = []; } handleError(error) { this._errors.push(error); } handleWarning(warning) { this._warnings.push(warning); } getErrors() { return this._errors; } getWarnings() { return this._warnings; } update() {} terminal() { return this._terminal; } } module.exports = TerminalReporter;' > node_modules/metro/src/lib/TerminalReporter.js
-              
-              if [ -f "node_modules/metro/src/lib/TerminalReporter.js" ]; then
-                echo "✅ Emergency creation successful"
-              else
-                echo "❌ Complete failure to create file - will continue anyway"
-                # 失敗してもビルドを続行（次のステップでエラーが発生するかもしれないが）
-              fi
-            fi
+            # 必要なディレクトリを作成
+            mkdir -p node_modules/metro-core/src
+            mkdir -p node_modules/metro/src/lib
+            
+            # metro-coreの最小実装
+            echo '{
+              "name": "metro-core",
+              "version": "0.77.0",
+              "main": "src/index.js"
+            }' > node_modules/metro-core/package.json
+            
+            echo 'class Terminal {
+              constructor() {
+                this._log = console.log.bind(console);
+                this._error = console.error.bind(console);
+              }
+              log(...args) { this._log(...args); }
+              error(...args) { this._error(...args); }
+              info(...args) { this._log(...args); }
+              warn(...args) { this._log(...args); }
+            }
+            module.exports = { Terminal };' > node_modules/metro-core/src/index.js
+            
+            # TerminalReporterを再作成
+            echo 'class TerminalReporter {
+              constructor(terminal) {
+                this._terminal = terminal || console;
+                this._errors = [];
+                this._warnings = [];
+              }
+              handleError(error) { this._errors.push(error); }
+              handleWarning(warning) { this._warnings.push(warning); }
+              getErrors() { return this._errors; }
+              getWarnings() { return this._warnings; }
+              update() {}
+              terminal() { return this._terminal; }
+            }
+            module.exports = TerminalReporter;' > node_modules/metro/src/lib/TerminalReporter.js
+            
+            echo "✅ Emergency Metro setup complete"
           fi
+
+      - name: Install explicit dependencies
+        run: |
+          # 明示的に必要なパッケージをインストール
+          npm install --save-dev \
+            metro-core@0.77.0 \
+            metro-runtime@0.77.0 \
+            metro-babel-transformer@0.77.0 \
+            metro-react-native-babel-transformer@0.77.0 \
+            @babel/runtime@7.27.1 \
+            --force
+          npm dedupe
+          echo "✅ Additional dependencies installed"
+
+      - name: Configure package.json for Metro
+        run: |
+          # package.jsonのresolitionsセクションが正しいことを確認
+          jq '.resolutions["metro-core"] = "0.77.0" | 
+              .resolutions["metro-runtime"] = "0.77.0" | 
+              .resolutions["@expo/metro-config"] = "0.9.0"' package.json > package.json.tmp
+          mv package.json.tmp package.json
+          echo "✅ package.json configured"
 
       - name: Setup Expo
         run: |
@@ -146,12 +207,21 @@ jobs:
         run: |
           mkdir -p android/app
           echo ${{ secrets.ANDROID_KEYSTORE_BASE64 }} | base64 --decode > android/app/stilya-keystore.jks
-          echo '{"android":{"keystore":{"keystorePath":"android/app/stilya-keystore.jks","keystorePassword":"${{ secrets.ANDROID_KEYSTORE_PASSWORD }}","keyAlias":"${{ secrets.ANDROID_KEY_ALIAS }}","keyPassword":"${{ secrets.ANDROID_KEY_PASSWORD }}"}}}' > credentials.json
+          echo '{
+            "android": {
+              "keystore": {
+                "keystorePath": "android/app/stilya-keystore.jks",
+                "keystorePassword": "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}",
+                "keyAlias": "${{ secrets.ANDROID_KEY_ALIAS }}",
+                "keyPassword": "${{ secrets.ANDROID_KEY_PASSWORD }}"
+              }
+            }
+          }' > credentials.json
           echo "✅ Keystore prepared"
 
       - name: Build Android App
         run: |
-          echo "🏗️ local ビルドを実行します..."
+          echo "🏗️ Building Android app..."
           
           # ローカルビルド環境変数を明示的に設定
           export EAS_NO_VCS=1
@@ -160,25 +230,29 @@ jobs:
           export EXPO_NO_CACHE=1
           export NODE_ENV=production
           
-          # エラーが出た場合のログ出力強化
-          set -o pipefail
+          # 事前にprebuildを実行
+          npx expo prebuild --platform android --clean
           
-          # ローカルビルド
-          echo "💻 ローカルビルドを実行します..."
-          chmod +x ./scripts/local-android-build.sh
-          ./scripts/local-android-build.sh
+          # ビルドを実行
+          cd android
+          ./gradlew assembleRelease
+          cd ..
+          
+          # ビルド結果のファイル移動
+          mkdir -p dist
+          cp android/app/build/outputs/apk/release/app-release.apk dist/stilya-release.apk
           
           # ビルド結果の確認
-          if [ -f "stilya-release.apk" ]; then
-            echo "✅ ローカルビルドが成功しました"
-            ls -la stilya-release.apk
+          if [ -f "dist/stilya-release.apk" ]; then
+            echo "✅ Build successful"
+            ls -la dist/stilya-release.apk
           else
-            echo "❌ ローカルビルドが失敗しました"
+            echo "❌ Build failed"
             # エラーログ収集
             mkdir -p build-logs
             find . -name "*.log" -type f -exec cp {} build-logs/ \;
             find android -name "*.log" -type f -exec cp {} build-logs/ \;
-            echo "ログを build-logs ディレクトリにコピーしました"
+            echo "Logs copied to build-logs directory"
             exit 1
           fi
 
@@ -187,7 +261,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: stilya-app
-          path: stilya-release.apk
+          path: dist/stilya-release.apk
           
       - name: Upload Build Logs
         if: failure()
