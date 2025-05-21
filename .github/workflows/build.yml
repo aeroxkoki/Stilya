@@ -302,9 +302,15 @@ jobs:
           echo '{'$'\n''  "android": {'$'\n''    "keystore": {'$'\n''      "keystorePath": "android/app/stilya-keystore.jks",'$'\n''      "keystorePassword": "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}",'$'\n''      "keyAlias": "${{ secrets.ANDROID_KEY_ALIAS }}",'$'\n''      "keyPassword": "${{ secrets.ANDROID_KEY_PASSWORD }}"'$'\n''    }'$'\n''  }'$'\n''}'$'\n' > credentials.json
           echo "✅ Keystore prepared"
 
+      - name: Apply comprehensive Metro bundling fix
+        run: |
+          echo "🔧 Applying comprehensive Metro bundling fix..."
+          chmod +x ./scripts/fix-expo-metro-bundling.sh
+          ./scripts/fix-expo-metro-bundling.sh
+          
       - name: Build Android App
         run: |
-          echo "🏗️ Building Android app..."
+          echo "🏗️ Building Android app with fixed configuration..."
           
           # ローカルビルド環境変数を明示的に設定
           export EAS_NO_VCS=1
@@ -312,14 +318,7 @@ jobs:
           export EAS_LOCAL_BUILD_SKIP_CLEANUP=1
           export EXPO_NO_CACHE=1
           export NODE_ENV=production
-          
-          # 環境変数ローダーの修正
-          chmod +x ./scripts/fix-expo-env-loader.sh
-          ./scripts/fix-expo-env-loader.sh
-          
-          # Expoバンドルプロセス用のヘルパーファイルを作成（重要）
-          chmod +x ./scripts/create-bundle-helpers-env-fix.sh
-          ./scripts/create-bundle-helpers-env-fix.sh
+          export EAS_SKIP_JAVASCRIPT_BUNDLING=1
           
           # 事前にprebuildを実行
           npx expo prebuild --platform android --clean
