@@ -18,7 +18,7 @@ export NODE_ENV=production
 
 # 依存関係の確認と修正
 echo "📦 Verifying dependencies..."
-npm run fix-metro
+npm run fix-metro-compatibility # 新しい互換性修正スクリプトを使用
 
 # キャッシュのクリーンアップ
 echo "🧹 Cleaning caches..."

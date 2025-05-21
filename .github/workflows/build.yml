@@ -50,6 +50,11 @@ jobs:
           rm -rf ~/.expo ~/.cache/metro .expo .expo-shared
           yarn cache clean
 
+      - name: 📦 Fix Metro dependencies
+        run: |
+          chmod +x ./scripts/fix-metro-incompatibility.sh
+          ./scripts/fix-metro-incompatibility.sh
+
       - name: 🔧 Install EAS CLI
         run: yarn global add eas-cli@16.6.1
 
@@ -121,7 +126,13 @@ jobs:
         run: |
           echo "📱 Running local build..."
           
-          # ローカルビルド実行
+          # スキップフラグを明示的に設定
+          export EXPO_NO_CACHE=true
+          export EAS_SKIP_JAVASCRIPT_BUNDLING=1
+          export NODE_OPTIONS="--max-old-space-size=8192"
+          
+          # ローカルビルド実行（互換性修正スクリプトを使用）
+          npm run fix-metro-compatibility
           chmod +x ./scripts/local-android-build.sh
           bash ./scripts/local-android-build.sh
           
