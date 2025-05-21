@@ -18,6 +18,10 @@ expo-env.d.ts
 *.key
 *.mobileprovision
 
+# Specifically for Stilya
+android/app/stilya-keystore.jks
+keystore-base64.txt
+
 # Metro
 .metro-health-check*
 tmp/
