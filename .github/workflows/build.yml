@@ -92,34 +92,13 @@ jobs:
               echo "✅ @expo/metro-config is now installed"
             else
               echo "❌ Failed to install @expo/metro-config"
-              # 強制インストールスクリプトを生成して実行
-              cat > force-metro-config.sh << 'EOL'
-#!/bin/bash
-# 緊急インストールスクリプト
-echo "🚨 緊急インストールを実行します..."
-mkdir -p node_modules/@expo/metro-config/build
-echo '{
-  "name": "@expo/metro-config",
-  "version": "0.9.0",
-  "main": "build/index.js"
-}' > node_modules/@expo/metro-config/package.json
-echo 'function getDefaultConfig() {
-  return {
-    resolver: {
-      resolverMainFields: ["react-native", "browser", "main"],
-      platforms: ["ios", "android", "web"]
-    },
-    transformer: {
-      babelTransformerPath: require.resolve("metro-react-native-babel-transformer")
-    }
-  };
-}
-module.exports = { getDefaultConfig };' > node_modules/@expo/metro-config/build/index.js
-echo "✅ 緊急インストール完了"
-EOL
-              chmod +x force-metro-config.sh
-              ./force-metro-config.sh
-              echo "🔍 再度インストール状態を確認..."
+              # 強制インストールを実行（インラインで実装）
+              echo "🚨 緊急インストールを実行します..."
+              mkdir -p node_modules/@expo/metro-config/build
+              echo '{"name":"@expo/metro-config","version":"0.9.0","main":"build/index.js"}' > node_modules/@expo/metro-config/package.json
+              echo 'function getDefaultConfig() { return { resolver: { resolverMainFields: ["react-native", "browser", "main"], platforms: ["ios", "android", "web"] }, transformer: { babelTransformerPath: require.resolve("metro-react-native-babel-transformer") } }; }; module.exports = { getDefaultConfig };' > node_modules/@expo/metro-config/build/index.js
+              echo "✅ 緊急インストール完了"
+              # 再度確認
               if [ -d "node_modules/@expo/metro-config" ]; then
                 echo "✅ @expo/metro-config が存在します"
               else
