@@ -69,6 +69,17 @@ chmod -R +rw node_modules/metro 2>/dev/null || true
 
 echo "✅ Metro compatibility verified."
 
+# Expoバンドルプロセス用のヘルパーファイルを作成
+echo "🚀 Setting up Expo bundle helpers..."
+if [ -f "$SCRIPT_DIR/create-bundle-helpers.sh" ]; then
+  chmod +x "$SCRIPT_DIR/create-bundle-helpers.sh"
+  "$SCRIPT_DIR/create-bundle-helpers.sh"
+else
+  echo "⚠️ create-bundle-helpers.sh not found. Creating a minimal version..."
+  mkdir -p node_modules/@expo/cli/node_modules/metro/src/lib
+  echo 'module.exports=class TerminalReporter{constructor(e){this._terminal=e,this._errors=[],this._warnings=[]}handleError(e){this._errors.push(e)}handleWarning(e){this._warnings.push(e)}getErrors(){return this._errors}getWarnings(){return this._warnings}update(){}terminal(){return this._terminal}};' > node_modules/@expo/cli/node_modules/metro/src/lib/TerminalReporter.js
+fi
+
 # キャッシュのクリーンアップ
 echo "🧹 Cleaning caches..."
 rm -rf node_modules/.cache

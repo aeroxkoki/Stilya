@@ -58,9 +58,9 @@
     "install:ci": "yarn install && node ./scripts/fix-missing-versions.js",
     "prepare-test": "npm run install-test-deps && npm run fix-test && npm run fix-jest-expo && ./scripts/fix-expo-modules-for-jest.sh",
     "bundle": "node --max_old_space_size=4096 node_modules/expo/AppEntry.js",
-    "fix:metro-config": "npm install --save-dev @expo/metro-config@0.9.0 --force && npm dedupe",
-    "fix:deps": "npm install --force && npm run fix:metro-config && npm run fix-babel",
-    "fix:ci-build": "npm run setup:ci && npm run clean && npm run fix:metro-all && npm run github:build:local"
+    "create-bundle-helpers": "chmod +x ./scripts/create-bundle-helpers.sh && ./scripts/create-bundle-helpers.sh",
+    "prebuild-and-bundle": "npm run create-bundle-helpers && npm run prebuild",
+    "fix-expo-metro": "npm run fix-metro && npm run create-bundle-helpers",
   },
   "dependencies": {
     "@babel/runtime": "7.27.1",

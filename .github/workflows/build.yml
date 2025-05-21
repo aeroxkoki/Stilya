@@ -313,6 +313,10 @@ jobs:
           export EXPO_NO_CACHE=1
           export NODE_ENV=production
           
+          # Expoバンドルプロセス用のヘルパーファイルを作成（重要）
+          chmod +x ./scripts/create-bundle-helpers.sh
+          ./scripts/create-bundle-helpers.sh
+          
           # 事前にprebuildを実行
           npx expo prebuild --platform android --clean
           
