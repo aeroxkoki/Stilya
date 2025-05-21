@@ -61,6 +61,9 @@
     "create-bundle-helpers": "chmod +x ./scripts/create-bundle-helpers.sh && ./scripts/create-bundle-helpers.sh",
     "prebuild-and-bundle": "npm run create-bundle-helpers && npm run prebuild",
     "fix-expo-metro": "npm run fix-metro && npm run create-bundle-helpers",
+    "fix:metro-config": "npm install --save-dev @expo/metro-config@0.9.0 --force && npm dedupe",
+    "fix:deps": "npm install --force && npm run fix:metro-config && npm run fix-babel",
+    "fix:ci-build": "npm run setup:ci && npm run clean && npm run fix:metro-all && npm run github:build:local"
   },
   "dependencies": {
     "@babel/runtime": "7.27.1",
