@@ -1,4 +1,4 @@
-#\!/bin/bash
+#!/bin/bash
 # fix-ci-build.sh
 # GitHub Actions CI環境でのExpo EASビルド問題を修正するスクリプト
 
@@ -16,18 +16,18 @@ export NODE_OPTIONS="--max-old-space-size=8192"
 # Metro依存関係の修正
 echo "📦 Metro依存関係を最適化..."
 npm install --no-save --no-package-lock \
-  metro@0.76.8 \
-  metro-config@0.76.8 \
-  @expo/metro-config@0.20.14 \
-  metro-cache@0.76.8 \
-  metro-minify-terser@0.76.8 \
-  metro-transform-worker@0.76.8
+  metro@0.77.0 \
+  metro-config@0.77.0 \
+  @expo/metro-config@0.9.0 \
+  metro-cache@0.77.0 \
+  metro-minify-terser@0.77.0 \
+  metro-transform-worker@0.77.0
 
 # Babel設定の修正
 echo "📦 Babel依存関係を最適化..."
 npm install --no-save --no-package-lock \
   @babel/runtime@7.27.1 \
-  babel-preset-expo@13.0.0
+  babel-preset-expo@13.1.11
 
 # キャッシュのクリア
 echo "🧹 キャッシュを完全にクリア..."
