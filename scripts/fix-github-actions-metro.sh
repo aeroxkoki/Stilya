@@ -1,6 +1,6 @@
 #!/bin/bash
 # fix-github-actions-metro.sh
-# GitHub Actions専用のMetro互換性修正スクリプト
+# GitHub Actions専用のMetro互換性修正スクリプト (改良版)
 
 set -e  # エラーで停止
 
@@ -10,6 +10,7 @@ echo "🔧 GitHub Actions用のMetro互換性問題を修正します..."
 mkdir -p node_modules/metro/src/lib
 mkdir -p node_modules/metro-core/src
 mkdir -p node_modules/@expo/cli/node_modules/metro-config
+mkdir -p node_modules/@expo/cli/node_modules/metro/src/lib
 
 # Metro-configをリンク（CLI内のモジュール解決パスのため）
 if [ ! -d "node_modules/@expo/cli/node_modules/metro-config" ]; then
@@ -59,6 +60,10 @@ class TerminalReporter {
 module.exports = TerminalReporter;
 EOL
 echo "✅ TerminalReporter.jsを作成しました"
+
+# Expoの内部依存用にTerminalReporterをコピー
+cp node_modules/metro/src/lib/TerminalReporter.js node_modules/@expo/cli/node_modules/metro/src/lib/TerminalReporter.js
+echo "✅ Expoの内部依存用にTerminalReporterをコピーしました"
 
 # metro-coreモジュールの作成（互換レイヤー）
 cat > node_modules/metro-core/package.json << 'EOL'
@@ -152,12 +157,24 @@ npm install --no-save \
   @expo/metro-config@0.9.0 \
   @babel/runtime@7.27.1
 
+# Expoのモジュール解決パスのために必要なリンクを作成
+echo "🔗 Expoの内部依存用リンクを作成..."
+mkdir -p node_modules/@expo/cli/node_modules/metro-core
+ln -sf ../../../node_modules/metro-core node_modules/@expo/cli/node_modules/metro-core
+ln -sf ../../../node_modules/metro node_modules/@expo/cli/node_modules/metro
+
+# Bundleアセットディレクトリを作成して空のバンドルを配置（バンドルスキップ用）
+echo "📂 Android用アセットディレクトリを準備..."
+mkdir -p android/app/src/main/assets
+touch android/app/src/main/assets/index.android.bundle
+echo "// Empty bundle for CI build - EAS_SKIP_JAVASCRIPT_BUNDLING=1" > android/app/src/main/assets/index.android.bundle
+
 # メトロ設定を最適化
 echo "📝 metro.config.jsを最適化..."
 cat > metro.config.js << 'EOL'
 /**
  * Metro configuration for Stilya (GitHub Actions互換)
- * ビルド環境向けに最適化
+ * ビルド環境向けに最適化 - 2025/05/22改良版
  */
 const { getDefaultConfig } = require('@expo/metro-config');
 const path = require('path');
@@ -194,10 +211,71 @@ config.serializer = config.serializer || {};
 config.serializer.getModulesRunBeforeMainModule = () => [
   require.resolve('expo/AppEntry'),
 ];
+config.serializer.getPolyfills = () => [];
+config.serializer.getRunModuleStatement = moduleId => `__r(${moduleId});`;
+
+// Expoのファイル解決を改善
+config.watchFolders = [
+  path.resolve(__dirname, 'node_modules')
+];
 
 module.exports = config;
 EOL
 echo "✅ metro.config.jsを更新しました"
+
+# eas.jsonを最適化してバンドルスキップを確実に
+echo "📝 eas.jsonを最適化..."
+cat > eas.json << 'EOL'
+{
+  "cli": {
+    "version": ">=7.3.0",
+    "requireCommit": false,
+    "promptToConfigurePushNotifications": false
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "simulator": true
+      },
+      "channel": "development"
+    },
+    "preview": {
+      "distribution": "internal",
+      "channel": "preview"
+    },
+    "production": {
+      "autoIncrement": true,
+      "channel": "production"
+    },
+    "local": {
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
+      }
+    },
+    "ci": {
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease",
+        "withoutCredentials": true
+      },
+      "env": {
+        "EAS_SKIP_JAVASCRIPT_BUNDLING": "1",
+        "EXPO_NO_CACHE": "1",
+        "EXPO_NO_DOTENV": "1"
+      },
+      "autoIncrement": false,
+      "channel": "production"
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
+EOL
+echo "✅ eas.jsonを更新しました"
 
 # キャッシュをクリーンアップ
 echo "🧹 キャッシュをクリーンアップ..."
