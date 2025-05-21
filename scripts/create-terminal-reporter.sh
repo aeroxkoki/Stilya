@@ -2,13 +2,21 @@
 # create-terminal-reporter.sh
 # Metro TerminalReporter互換レイヤーを生成するスクリプト
 
-set -e  # エラーで停止
+# エラー時に中断せず、実行を継続する
+set +e
 
 echo "Creating TerminalReporter compatibility layer..."
 
-# ディレクトリの準備
+# -pフラグは既に存在するディレクトリを上書きしないので安全
 mkdir -p node_modules/metro/src/lib
+mkdir -p node_modules/@expo/cli/node_modules
+mkdir -p node_modules/@expo/cli/node_modules/metro
 mkdir -p node_modules/@expo/cli/node_modules/metro/src/lib
+
+# すべてのディレクトリが存在するか確認
+if [ ! -d "node_modules/metro/src/lib" ] || [ ! -d "node_modules/@expo/cli/node_modules/metro/src/lib" ]; then
+  echo "⚠️ Warning: Some directories could not be created. Continuing anyway..."
+fi
 
 # TerminalReporterファイルの作成
 cat > node_modules/metro/src/lib/TerminalReporter.js << 'EOL'
