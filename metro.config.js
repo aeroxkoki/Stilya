@@ -24,6 +24,7 @@ config.resolver.sourceExts = [
 config.resolver.extraNodeModules = {
   '@': path.resolve(__dirname, 'src'),
   'metro/src/lib/TerminalReporter': path.resolve(__dirname, 'node_modules/metro/src/lib/TerminalReporter.js'),
+  'metro-core': path.resolve(__dirname, 'node_modules/metro-core')
 };
 
 // ==== Transformer Settings ====

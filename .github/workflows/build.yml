@@ -60,8 +60,9 @@ jobs:
             babel-preset-expo@13.1.11
           echo "✅ Metro dependencies fixed"
 
-      - name: Create Terminal Reporter
+      - name: Create Metro Compatibility Files
         run: |
+          # Create TerminalReporter.js
           mkdir -p node_modules/metro/src/lib
           cat > node_modules/metro/src/lib/TerminalReporter.js << 'EOL'
           /**
@@ -103,6 +104,94 @@ jobs:
           module.exports = TerminalReporter;
           EOL
           echo "✅ Terminal Reporter created"
+          
+          # Create metro-core module
+          mkdir -p node_modules/metro-core/src
+          
+          cat > node_modules/metro-core/package.json << 'EOL'
+          {
+            "name": "metro-core",
+            "version": "0.77.0",
+            "description": "🚇 Metro's core package compatibility layer for Expo SDK 53",
+            "main": "src/index.js",
+            "license": "MIT"
+          }
+          EOL
+          
+          cat > node_modules/metro-core/src/index.js << 'EOL'
+          /**
+           * Metro Core compatibility module for Expo SDK 53
+           * Created for GitHub Actions build environment
+           */
+          
+          class Terminal {
+            constructor(options) {
+              this._options = options || {};
+              this._stdio = options?.stdio || {
+                stdout: process.stdout,
+                stderr: process.stderr,
+              };
+              
+              this._logEnabled = !this._options.quiet;
+              this._isMinimal = !!this._options.minimal;
+            }
+          
+            log(...args) {
+              if (this._logEnabled) {
+                console.log(...args);
+              }
+            }
+          
+            error(...args) {
+              console.error(...args);
+            }
+          
+            info(...args) {
+              if (this._logEnabled && !this._isMinimal) {
+                console.info(...args);
+              }
+            }
+          
+            warn(...args) {
+              if (this._logEnabled) {
+                console.warn(...args);
+              }
+            }
+          
+            debug(...args) {
+              if (this._options.debug) {
+                console.debug(...args);
+              }
+            }
+          
+            write(data) {
+              if (this._logEnabled) {
+                this._stdio.stdout?.write(data);
+              }
+            }
+          
+            writeError(data) {
+              this._stdio.stderr?.write(data);
+            }
+          }
+          
+          module.exports = {
+            Terminal,
+            Logger: {
+              createWorker: () => ({
+                log: console.log.bind(console),
+                error: console.error.bind(console),
+              }),
+            },
+          };
+          EOL
+          
+          echo "✅ Metro Core module created"
+          
+          # Fix links for @expo/cli
+          mkdir -p node_modules/@expo/cli/node_modules
+          ln -sf ../../../node_modules/metro-core node_modules/@expo/cli/node_modules/metro-core
+          echo "✅ Links fixed"
 
       - name: Update Metro Config
         run: |
@@ -134,7 +223,8 @@ jobs:
           config.resolver = {
             ...config.resolver,
             extraNodeModules: {
-              "metro/src/lib/TerminalReporter": path.resolve(__dirname, "node_modules/metro/src/lib/TerminalReporter.js")
+              "metro/src/lib/TerminalReporter": path.resolve(__dirname, "node_modules/metro/src/lib/TerminalReporter.js"),
+              "metro-core": path.resolve(__dirname, "node_modules/metro-core")
             },
             resolverMainFields: ['react-native', 'browser', 'main'],
             disableHierarchicalLookup: true,
