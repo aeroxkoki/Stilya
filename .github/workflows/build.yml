@@ -37,7 +37,7 @@ jobs:
           yarn cache clean
 
       - name: 🔧 Install EAS CLI
-        run: yarn global add eas-cli@7.3.0
+        run: yarn global add eas-cli@16.6.1
 
       - name: 🛠 Apply build fixes
         run: |
@@ -48,8 +48,8 @@ jobs:
 
       - name: 🛠 Run EAS build
         run: |
-          echo "📱 Running EAS build with explicit owner..."
+          echo "📱 Running EAS build..."
           # ビルド前に一時的に確認
           echo "Running with EXPO_TOKEN length: ${#EXPO_TOKEN}"
           eas whoami
-          eas build --platform android --profile ci --non-interactive --owner aeroxkoki
+          eas build --platform android --profile ci --non-interactive
