@@ -18,7 +18,10 @@
         "EAS_SKIP_JAVASCRIPT_BUNDLING": "1",
         "NODE_ENV": "production"
       },
-      "autoIncrement": true
+      "autoIncrement": true,
+      "runtimeVersion": {
+        "policy": "appVersion"
+      }
     },
     "development": {
       "distribution": "internal",
@@ -38,6 +41,21 @@
     "production": {
       "autoIncrement": true,
       "channel": "production"
+    },
+    "local": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
+      },
+      "ios": {
+        "buildConfiguration": "Release"
+      },
+      "env": {
+        "EAS_SKIP_JAVASCRIPT_BUNDLING": "1",
+        "NODE_ENV": "production"
+      },
+      "autoIncrement": true
     }
   },
   "submit": {

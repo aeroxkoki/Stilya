@@ -1,8 +1,8 @@
 #!/bin/bash
 # Local Build Script for Android (EAS回避策)
-# Stilyaプロジェクト用ローカルビルドスクリプト
+# Stilyaプロジェクト用ローカルビルドスクリプト - 最適化版
 
-echo "🚀 Starting local Android build process for Stilya..."
+echo "🚀 Starting enhanced local Android build process for Stilya..."
 
 # 作業ディレクトリの確認
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -14,6 +14,7 @@ export EXPO_NO_CACHE=true
 export EAS_NO_VCS=1
 export EAS_SKIP_JAVASCRIPT_BUNDLING=1
 export CI=false # ローカルビルドなのでCIフラグはオフに
+export NODE_ENV=production
 
 # 依存関係の確認と修正
 echo "📦 Verifying dependencies..."
@@ -24,6 +25,34 @@ echo "🧹 Cleaning caches..."
 rm -rf node_modules/.cache
 rm -rf ~/.expo/cache
 rm -rf ~/.metro-cache
+rm -rf .expo 
+rm -rf .expo-shared
+
+# 証明書の確認
+echo "🔑 Checking keystore..."
+if [ -f "android/app/stilya-keystore.jks" ]; then
+  echo "✓ Keystore found"
+else
+  echo "⚠️ Keystore not found, creating dummy keystore for development"
+  mkdir -p android/app
+  bash "$SCRIPT_DIR/create-dummy-keystore.sh"
+fi
+
+# credentials.jsonの確認
+if [ ! -f "credentials.json" ]; then
+  echo "⚠️ credentials.json not found, creating..."
+  echo '{
+    "android": {
+      "keystore": {
+        "keystorePath": "android/app/stilya-keystore.jks",
+        "keystorePassword": "android",
+        "keyAlias": "androiddebugkey",
+        "keyPassword": "android"
+      }
+    }
+  }' > credentials.json
+  echo "✓ Created credentials.json with default dev values"
+fi
 
 # Expoプロジェクトの準備
 echo "🔧 Preparing Expo project..."
@@ -36,15 +65,15 @@ cd android
 echo "🏗️ Running Gradle build..."
 if [ "$(uname)" == "Darwin" ]; then
   # macOS
-  ./gradlew assembleDebug
+  ./gradlew assembleRelease
 else
   # Linux/Windows
-  gradlew assembleDebug
+  gradlew assembleRelease
 fi
 
 # ビルド結果の確認
 if [ $? -eq 0 ]; then
-  APK_PATH="$PROJECT_ROOT/android/app/build/outputs/apk/debug/app-debug.apk"
+  APK_PATH="$PROJECT_ROOT/android/app/build/outputs/apk/release/app-release.apk"
   
   if [ -f "$APK_PATH" ]; then
     echo "✅ Build successful! APK generated at:"
@@ -55,8 +84,8 @@ if [ $? -eq 0 ]; then
     echo "📊 APK size: $APK_SIZE"
     
     # プロジェクトルートにコピー
-    cp "$APK_PATH" "$PROJECT_ROOT/stilya-debug.apk"
-    echo "📱 APK copied to project root as stilya-debug.apk"
+    cp "$APK_PATH" "$PROJECT_ROOT/stilya-release.apk"
+    echo "📱 APK copied to project root as stilya-release.apk"
   else
     echo "❌ Build seemed to succeed, but APK not found at expected location."
   fi

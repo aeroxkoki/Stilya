@@ -1,9 +1,19 @@
-name: EAS Build for Stilya (MVP)
+name: Android Build for Stilya (MVP)
 
 on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'ビルドタイプ'
+        required: true
+        default: 'local'
+        type: choice
+        options:
+          - local
+          - eas
 
 jobs:
   build:
@@ -14,7 +24,7 @@ jobs:
       EAS_SKIP_JAVASCRIPT_BUNDLING: 1
       NODE_OPTIONS: "--max-old-space-size=8192"
       NODE_ENV: "production"
-      # Android Keystore関連の環境変数を追加
+      # Android Keystore関連の環境変数
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
       ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -61,20 +71,15 @@ jobs:
             }
           }' > credentials.json
           
-          # デバッグ出力
-          echo "Current directory: $(pwd)"
-          echo "Credentials file location: $(ls -la credentials.json || echo 'Not found')"
-          
           # BASE64エンコードされたキーストアがある場合はデコード
           if [ ! -z "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
             echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/stilya-keystore.jks
             echo "Keystore decoded and saved to android/app/stilya-keystore.jks"
             ls -la android/app/stilya-keystore.jks || echo "Keystore file not found!"
           else
-            echo "No ANDROID_KEYSTORE_BASE64 provided, skipping keystore setup"
-            # ダミーのキーストアファイルを作成（テスト用）
-            dd if=/dev/urandom of=android/app/stilya-keystore.jks bs=1k count=2
-            echo "Created dummy keystore for testing"
+            echo "No ANDROID_KEYSTORE_BASE64 provided, running create-dummy-keystore.sh"
+            chmod +x ./scripts/create-dummy-keystore.sh
+            ./scripts/create-dummy-keystore.sh
           fi
           
           # credentials.jsonのパーミッションを確認
@@ -82,47 +87,57 @@ jobs:
           echo "Set credentials.json permissions to 644"
 
       - name: 🔍 ビルド前準備を実行
-        run: ./scripts/pre-eas-build.sh
+        run: |
+          chmod +x ./scripts/pre-eas-build.sh
+          ./scripts/pre-eas-build.sh
 
       - name: 🔍 Credentials状態を確認
-        run: ./scripts/debug-credentials.sh
+        run: |
+          chmod +x ./scripts/debug-credentials.sh
+          ./scripts/debug-credentials.sh
+
+      - name: 📱 ビルドタイプの決定
+        id: build_type
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "BUILD_TYPE=${{ github.event.inputs.build_type }}" >> $GITHUB_ENV
+          else
+            echo "BUILD_TYPE=local" >> $GITHUB_ENV
+          fi
+          echo "選択されたビルドタイプ: ${{ env.BUILD_TYPE }}"
 
       - name: 🛠 Run EAS build
+        if: env.BUILD_TYPE == 'eas'
         run: |
           echo "📱 Running EAS build..."
           eas whoami
           
-          # credentials.jsonの存在を確認
-          if [ -f "credentials.json" ]; then
-            echo "credentials.json found at project root"
-            cat credentials.json | sed 's/"keystorePassword": ".*"/"keystorePassword": "****"/g' | sed 's/"keyPassword": ".*"/"keyPassword": "****"/g'
-          else
-            echo "credentials.json NOT found - creating it now"
-            echo '{
-              "android": {
-                "keystore": {
-                  "keystorePath": "android/app/stilya-keystore.jks",
-                  "keystorePassword": "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}",
-                  "keyAlias": "${{ secrets.ANDROID_KEY_ALIAS }}",
-                  "keyPassword": "${{ secrets.ANDROID_KEY_PASSWORD }}"
-                }
-              }
-            }' > credentials.json
-            echo "credentials.json created"
-          fi
-          
-          # Keystoreの存在も確認
-          if [ -f "android/app/stilya-keystore.jks" ]; then
-            echo "Keystore file exists"
-          else
-            echo "Keystore file missing - will need to create it"
-          fi
-          
-          # 環境変数の出力（秘密のパスワードなどは含めない）
-          echo "Environment variable checks:"
-          echo "EAS_SKIP_JAVASCRIPT_BUNDLING: $EAS_SKIP_JAVASCRIPT_BUNDLING"
-          echo "NODE_ENV: $NODE_ENV"
-          
-          # ビルド実行 - eas.jsonの設定で自動的にcredentials.jsonが使用される
+          # ビルド実行 - EAS Build
           eas build --platform android --profile ci --non-interactive --no-wait
           echo "✅ ビルドは EAS Build サーバーで実行されます"
+
+      - name: 🛠 Run Local build
+        if: env.BUILD_TYPE == 'local'
+        run: |
+          echo "📱 Running local build..."
+          
+          # ローカルビルド実行
+          chmod +x ./scripts/local-android-build.sh
+          ./scripts/local-android-build.sh
+          
+          # ビルド結果の確認
+          if [ -f "stilya-release.apk" ]; then
+            echo "✅ Local build successful"
+            ls -la stilya-release.apk
+          else
+            echo "❌ Local build failed"
+            exit 1
+          fi
+
+      - name: 📦 Upload APK artifact
+        if: env.BUILD_TYPE == 'local' && success()
+        uses: actions/upload-artifact@v3
+        with:
+          name: stilya-apk
+          path: stilya-release.apk
+          retention-days: 7
