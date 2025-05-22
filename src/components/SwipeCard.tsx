@@ -25,9 +25,11 @@ const GESTURE_UPDATE_THROTTLE = 8;
 
 interface SwipeCardProps {
   product: Product;
-  onSwipeLeft: () => void;
-  onSwipeRight: () => void;
-  onCardPress: () => void;
+  onSwipeLeft?: () => void;
+  onSwipeRight?: () => void;
+  onPress?: () => void;
+  yesIndicatorStyle?: any;
+  noIndicatorStyle?: any;
   index?: number;
   testID?: string;
 }
@@ -36,7 +38,9 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
   product,
   onSwipeLeft,
   onSwipeRight,
-  onCardPress,
+  onPress,
+  yesIndicatorStyle,
+  noIndicatorStyle,
   index = 0,
   testID,
 }) => {
@@ -155,9 +159,9 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
   const onSwipeComplete = useCallback((direction: 'right' | 'left') => {
     // スワイプ処理をメインスレッドの処理完了後に実行
     InteractionManager.runAfterInteractions(() => {
-      if (direction === 'right') {
+      if (direction === 'right' && onSwipeRight) {
         onSwipeRight();
-      } else {
+      } else if (direction === 'left' && onSwipeLeft) {
         onSwipeLeft();
       }
       position.setValue({ x: 0, y: 0 });
@@ -206,21 +210,21 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
       style={[
         styles.container,
         cardAnimStyle,
-        { padding: theme.spacing.s }
+        { padding: 8 }
       ]}
       testID={testID}
       {...(index === 0 ? panResponder.panHandlers : {})}
     >
       <TouchableOpacity
         activeOpacity={0.95}
-        onPress={index === 0 ? onCardPress : undefined}
+        onPress={index === 0 ? onPress : undefined}
         style={[
           styles.card,
           {
-            borderRadius: theme.radius.l,
-            backgroundColor: isDarkMode ? theme.colors.background.card : '#fff',
+            borderRadius: 8,
+            backgroundColor: isDarkMode ? '#333' : '#fff',
             shadowColor: isDarkMode ? '#000' : '#222',
-            borderColor: theme.colors.border.light,
+            borderColor: '#eee',
             borderWidth: isDarkMode ? 1 : 0,
           }
         ]}
@@ -254,22 +258,13 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
           ]}
         >
           <View style={styles.titleContainer}>
-            <Text style={[
-              styles.brand,
-              { color: theme.colors.text.inverse }
-            ]}>
+            <Text style={styles.brand}>
               {product.brand}
             </Text>
-            <Text style={[
-              styles.title,
-              { color: theme.colors.text.inverse }
-            ]}>
+            <Text style={styles.title}>
               {product.title}
             </Text>
-            <Text style={[
-              styles.price,
-              { color: theme.colors.accent }
-            ]}>
+            <Text style={styles.price}>
               {formatPrice(product.price)}
             </Text>
           </View>
@@ -278,15 +273,9 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
             {product.tags.slice(0, 3).map((tag, tagIndex) => (
               <View 
                 key={tagIndex} 
-                style={[
-                  styles.tag,
-                  { backgroundColor: 'rgba(255, 255, 255, 0.2)' }
-                ]}
+                style={styles.tag}
               >
-                <Text style={[
-                  styles.tagText,
-                  { color: theme.colors.text.inverse }
-                ]}>
+                <Text style={styles.tagText}>
                   {tag}
                 </Text>
               </View>
@@ -304,7 +293,7 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
           <Feather 
             name="check-circle" 
             size={80} 
-            color={theme.colors.status.success} 
+            color="#10B981" 
           />
         </Animated.View>
 
@@ -317,7 +306,7 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
           <Feather 
             name="x-circle" 
             size={80} 
-            color={theme.colors.status.error} 
+            color="#EF4444" 
           />
         </Animated.View>
       </TouchableOpacity>
@@ -365,15 +354,18 @@ const styles = StyleSheet.create({
   brand: {
     fontSize: 14,
     fontWeight: '500',
+    color: '#fff',
   },
   title: {
     fontSize: 20,
     fontWeight: '700',
     marginBottom: 4,
+    color: '#fff',
   },
   price: {
     fontSize: 18,
     fontWeight: '600',
+    color: '#10B981',
   },
   tagsContainer: {
     flexDirection: 'row',
@@ -385,9 +377,11 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginRight: 6,
     marginBottom: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   tagText: {
     fontSize: 12,
+    color: '#fff',
   },
   yesLabel: {
     position: 'absolute',

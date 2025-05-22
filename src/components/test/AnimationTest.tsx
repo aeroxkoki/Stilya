@@ -18,13 +18,14 @@ const AnimationTest = () => {
 
   // Animation styles
   const animatedStyle = useAnimatedStyle(() => {
+    'worklet';
     return {
       transform: [
         { scale: scale.value },
         { rotate: `${rotation.value}deg` },
         { translateX: translateX.value }
-      ]
-    };
+      ] as any
+    } as any;
   });
 
   // Test animation sequences

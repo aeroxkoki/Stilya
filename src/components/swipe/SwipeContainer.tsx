@@ -131,14 +131,15 @@ const SwipeContainer: React.FC<SwipeContainerProps> = ({
 
   // カードのアニメーションスタイル
   const animatedCardStyle = useAnimatedStyle(() => {
+    'worklet';
     return {
       transform: [
         { translateX: translateX.value },
         { translateY: translateY.value },
         { rotate: `${rotation.value}deg` },
         { scale: scale.value },
-      ],
-    };
+      ] as any,
+    } as any;
   });
 
   // Yes/Noインジケーターのアニメーションスタイル
