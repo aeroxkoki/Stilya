@@ -1,35 +1,59 @@
-const { getDefaultConfig } = require('@expo/metro-config');
-const path = require('path');
+const { getDefaultConfig } = require('expo/metro-config');
+const { withNativeWind } = require('nativewind/metro');
 
 const config = getDefaultConfig(__dirname);
 
-// Resolver configuration
-config.resolver = {
-  ...config.resolver,
-  sourceExts: [...config.resolver.sourceExts, 'cjs', 'mjs'],
-  unstable_enablePackageExports: false,
-  disableHierarchicalLookup: true,
+// NativeWind support (暫定的にコメントアウト)
+// const nativeWindConfig = withNativeWind(config, { input: './src/styles/global.css' });
+
+// TypeScript and module resolution optimizations
+config.resolver.alias = {
+  '@': './src',
+  '@/components': './src/components',
+  '@/screens': './src/screens',
+  '@/hooks': './src/hooks',
+  '@/services': './src/services',
+  '@/utils': './src/utils',
+  '@/types': './src/types',
+  '@/store': './src/store',
+  '@/constants': './src/constants',
+  '@/assets': './assets',
 };
 
-// Transformer configuration  
-config.transformer = {
-  ...config.transformer,
-  hermesEnabled: true,
-  getTransformOptions: async () => ({
-    transform: {
-      experimentalImportSupport: false,
-      inlineRequires: true,
-    },
-  }),
+// Performance optimizations
+config.transformer.minifierConfig = {
+  keep_fnames: true,
+  mangle: {
+    keep_fnames: true,
+  },
 };
 
-// Serializer configuration for compatibility
-config.serializer = {
-  ...config.serializer,
-  customSerializer: null,
-};
+// Asset optimization
+config.resolver.assetExts = [
+  ...config.resolver.assetExts,
+  'bin',
+  'txt',
+  'jpg',
+  'png',
+  'json',
+  'svg',
+  'webp',
+];
 
-// Cache configuration
-config.resetCache = process.env.CI === 'true';
+// Source map support for debugging
+config.serializer.map = true;
+
+// Cache configuration for better performance
+config.cacheStores = [
+  {
+    name: 'default',
+    type: 'FileStore',
+  },
+];
+
+// Reset cache in development
+if (process.env.NODE_ENV === 'development') {
+  config.resetCache = true;
+}
 
 module.exports = config;

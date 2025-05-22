@@ -1,28 +1,16 @@
-import React, { useEffect, useState } from 'react';
-import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
+import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, View, Text } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 
-// スクリーンの import
-import SwipeScreen from '../screens/SwipeScreen';
-import ProductDetailScreen from '../screens/ProductDetailScreen';
-import RecommendationsScreen from '../screens/RecommendationsScreen';
-import ProfileScreen from '../screens/ProfileScreen';
-import AuthScreen from '../screens/AuthScreen';
-import OnboardingScreen from '../screens/OnboardingScreen';
-
-// サービスと状態管理
-import { supabase } from '../services/supabase';
-import { useAuth } from '../hooks/useAuth';
-import { useTheme } from '../contexts/ThemeContext';
+// Context
+import { useAuth } from '../contexts/AuthContext';
 
 // 型定義
 type RootStackParamList = {
   Main: undefined;
   Auth: undefined;
-  Onboarding: undefined;
   ProductDetail: { productId: string };
 };
 
@@ -36,23 +24,48 @@ type MainTabParamList = {
 const Stack = createStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
+// 一時的なスクリーンコンポーネント
+const SwipeScreen = () => (
+  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+    <Text style={{ fontSize: 18, fontWeight: 'bold' }}>スワイプ画面</Text>
+    <Text style={{ marginTop: 10, color: '#666' }}>スワイプ機能を実装予定</Text>
+  </View>
+);
+
+const RecommendationsScreen = () => (
+  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+    <Text style={{ fontSize: 18, fontWeight: 'bold' }}>おすすめ画面</Text>
+    <Text style={{ marginTop: 10, color: '#666' }}>レコメンド機能を実装予定</Text>
+  </View>
+);
+
+const ProfileScreen = () => (
+  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+    <Text style={{ fontSize: 18, fontWeight: 'bold' }}>プロフィール画面</Text>
+    <Text style={{ marginTop: 10, color: '#666' }}>プロフィール機能を実装予定</Text>
+  </View>
+);
+
+const AuthScreen = () => (
+  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+    <Text style={{ fontSize: 18, fontWeight: 'bold' }}>認証画面</Text>
+    <Text style={{ marginTop: 10, color: '#666' }}>ログイン・サインアップ機能を実装予定</Text>
+  </View>
+);
+
 // メインのタブナビゲーション
 const MainTabNavigator = () => {
-  const { theme, isDarkMode } = useTheme();
-
   return (
     <Tab.Navigator
       screenOptions={{
-        tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: theme.colors.text.secondary,
+        tabBarActiveTintColor: '#3b82f6',
+        tabBarInactiveTintColor: '#6b7280',
         tabBarStyle: {
-          backgroundColor: theme.colors.background.main,
+          backgroundColor: '#ffffff',
           borderTopWidth: 1,
-          borderTopColor: theme.colors.border.light,
-          elevation: 0, // Android用シャドウ除去
-          shadowOpacity: 0, // iOS用シャドウ除去
-          height: 60, // タブバーの高さ調整
-          paddingBottom: 8, // 下部のパディング
+          borderTopColor: '#e5e7eb',
+          height: 60,
+          paddingBottom: 8,
         },
         tabBarLabelStyle: {
           fontSize: 12,
@@ -96,120 +109,40 @@ const MainTabNavigator = () => {
   );
 };
 
-// カスタムナビゲーションテーマ
-const getNavigationTheme = (appTheme: any, isDark: boolean) => {
-  const baseTheme = isDark ? DarkTheme : DefaultTheme;
-  
-  return {
-    ...baseTheme,
-    colors: {
-      ...baseTheme.colors,
-      primary: appTheme.colors.primary,
-      background: appTheme.colors.background.main,
-      card: appTheme.colors.background.card,
-      text: appTheme.colors.text.primary,
-      border: appTheme.colors.border.light,
-      notification: appTheme.colors.status.error,
-    },
-  };
-};
-
 // ルートナビゲーター
 const AppNavigator = () => {
-  const { user, isLoading, fetchProfile, isSessionValid } = useAuth();
-  const { theme, isDarkMode } = useTheme();
-  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean>(false);
-  
-  // カスタムナビゲーションテーマを取得
-  const navigationTheme = getNavigationTheme(theme, isDarkMode);
-
-  // セッションの有効性を定期的にチェック
-  useEffect(() => {
-    // アプリ起動時にセッションの有効性をチェック
-    isSessionValid();
-
-    // 定期的にセッションの有効性をチェック (5分ごと)
-    const intervalId = setInterval(() => {
-      isSessionValid();
-    }, 5 * 60 * 1000);
-
-    return () => {
-      clearInterval(intervalId);
-    };
-  }, []);
-
-  useEffect(() => {
-    // ユーザーがオンボーディングを完了しているか確認するロジック
-    const checkOnboardingStatus = async () => {
-      if (user) {
-        // プロファイルを取得
-        await fetchProfile();
-        
-        // ユーザープロファイルのデータを基にオンボーディング完了かどうかを判定
-        const hasCompleted = !!(user.gender && user.stylePreference && user.ageGroup);
-        setHasCompletedOnboarding(hasCompleted);
-      }
-    };
-
-    checkOnboardingStatus();
-  }, [user]);
+  const { user, isLoading } = useAuth();
 
   // ローディング中はローディング画面を表示
   if (isLoading) {
     return (
-      <View 
-        style={{ 
-          flex: 1, 
-          justifyContent: 'center', 
-          alignItems: 'center',
-          backgroundColor: theme.colors.background.main 
-        }}
-      >
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+      <View style={{ 
+        flex: 1, 
+        justifyContent: 'center', 
+        alignItems: 'center',
+        backgroundColor: '#ffffff'
+      }}>
+        <ActivityIndicator size="large" color="#3b82f6" />
+        <Text style={{ marginTop: 16, color: '#6b7280' }}>読み込み中...</Text>
       </View>
     );
   }
 
   return (
-    <NavigationContainer theme={navigationTheme}>
-      <Stack.Navigator 
-        screenOptions={{ 
-          headerShown: false,
-          headerStyle: {
-            backgroundColor: theme.colors.background.main,
-            elevation: 0,
-            shadowOpacity: 0,
-          },
-          headerTintColor: theme.colors.text.primary,
-          headerTitleStyle: {
-            fontWeight: '600',
-          },
-          cardStyle: {
-            backgroundColor: theme.colors.background.main,
-          }
-        }}
-      >
-        {user ? (
-          hasCompletedOnboarding ? (
-            <>
-              <Stack.Screen name="Main" component={MainTabNavigator} />
-              <Stack.Screen 
-                name="ProductDetail" 
-                component={ProductDetailScreen}
-                options={{
-                  headerShown: true,
-                  title: '商品詳細',
-                }}
-              />
-            </>
-          ) : (
-            <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-          )
-        ) : (
-          <Stack.Screen name="Auth" component={AuthScreen} />
-        )}
-      </Stack.Navigator>
-    </NavigationContainer>
+    <Stack.Navigator 
+      screenOptions={{ 
+        headerShown: false,
+        cardStyle: {
+          backgroundColor: '#ffffff',
+        }
+      }}
+    >
+      {user ? (
+        <Stack.Screen name="Main" component={MainTabNavigator} />
+      ) : (
+        <Stack.Screen name="Auth" component={AuthScreen} />
+      )}
+    </Stack.Navigator>
   );
 };
 

@@ -1,15 +1,12 @@
+/** @type {import('jest').Config} */
 module.exports = {
   preset: 'jest-expo',
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   transformIgnorePatterns: [
-    'node_modules/(?!(jest-)?react-native|@react-native|expo|@expo|@unimodules|unimodules)',
+    'node_modules/(?\!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|react-navigation|@react-navigation/.*)'
   ],
-  collectCoverage: false,
-  setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup.js'],
-  testEnvironment: 'jsdom',
-  moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1',
-  },
+  testEnvironment: 'node',
   testMatch: [
-    '<rootDir>/src/__tests__/basic.test.tsx',
-  ],
+    '<rootDir>/src/__tests__/**/*.test.{js,jsx,ts,tsx}'
+  ]
 };

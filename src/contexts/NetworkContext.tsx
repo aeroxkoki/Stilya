@@ -1,20 +1,16 @@
-import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
-import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
-import { syncOfflineSwipes } from '@/services/swipeService';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import NetInfo from '@react-native-community/netinfo';
 
 interface NetworkContextType {
-  isConnected: boolean | null;
+  isConnected: boolean;
   isInternetReachable: boolean | null;
-  syncOfflineData: () => Promise<void>;
-  lastSync: Date | null;
+  connectionType: string | null;
 }
 
-// コンテキストの作成
-export const NetworkContext = createContext<NetworkContextType>({
-  isConnected: null,
+const NetworkContext = createContext<NetworkContextType>({
+  isConnected: true,
   isInternetReachable: null,
-  syncOfflineData: async () => {},
-  lastSync: null,
+  connectionType: null,
 });
 
 interface NetworkProviderProps {
@@ -22,86 +18,34 @@ interface NetworkProviderProps {
 }
 
 export const NetworkProvider: React.FC<NetworkProviderProps> = ({ children }) => {
-  const [networkState, setNetworkState] = useState<{
-    isConnected: boolean | null;
-    isInternetReachable: boolean | null;
-  }>({
-    isConnected: null,
-    isInternetReachable: null,
-  });
-  const [lastSync, setLastSync] = useState<Date | null>(null);
-  const [previouslyConnected, setPreviouslyConnected] = useState<boolean | null>(null);
+  const [isConnected, setIsConnected] = useState<boolean>(true);
+  const [isInternetReachable, setIsInternetReachable] = useState<boolean | null>(null);
+  const [connectionType, setConnectionType] = useState<string | null>(null);
 
-  // ネットワーク状態の変化を監視
   useEffect(() => {
-    // 初期状態を取得
-    const getInitialState = async () => {
-      const state = await NetInfo.fetch();
-      setNetworkState({
-        isConnected: state.isConnected,
-        isInternetReachable: state.isInternetReachable,
-      });
-      setPreviouslyConnected(state.isConnected);
-    };
-
-    getInitialState();
-
-    // 状態変化のリスナーを登録
-    const unsubscribe = NetInfo.addEventListener((state: NetInfoState) => {
-      console.log('Network state changed:', state);
-      setNetworkState({
-        isConnected: state.isConnected,
-        isInternetReachable: state.isInternetReachable,
-      });
-
-      // オフラインからオンラインに戻った場合、オフラインデータを同期
-      if (previouslyConnected === false && state.isConnected === true) {
-        syncOfflineData();
-      }
-
-      setPreviouslyConnected(state.isConnected);
+    // ネットワーク状態を監視
+    const unsubscribe = NetInfo.addEventListener(state => {
+      setIsConnected(state.isConnected ?? false);
+      setIsInternetReachable(state.isInternetReachable);
+      setConnectionType(state.type);
     });
 
-    // クリーンアップ関数
-    return () => {
-      unsubscribe();
-    };
-  }, [previouslyConnected]);
+    return unsubscribe;
+  }, []);
 
-  // オフラインデータの同期機能
-  const syncOfflineData = async () => {
-    try {
-      if (networkState.isConnected) {
-        console.log('Syncing offline data...');
-        
-        // スワイプデータの同期
-        await syncOfflineSwipes();
-        
-        // 同期完了時刻を更新
-        setLastSync(new Date());
-        
-        console.log('Offline data synced successfully');
-      } else {
-        console.log('Cannot sync offline data: device is offline');
-      }
-    } catch (error) {
-      console.error('Error syncing offline data:', error);
-    }
+  const value: NetworkContextType = {
+    isConnected,
+    isInternetReachable,
+    connectionType,
   };
 
   return (
-    <NetworkContext.Provider
-      value={{
-        isConnected: networkState.isConnected,
-        isInternetReachable: networkState.isInternetReachable,
-        syncOfflineData,
-        lastSync,
-      }}
-    >
+    <NetworkContext.Provider value={value}>
       {children}
     </NetworkContext.Provider>
   );
 };
 
-// カスタムフックの作成
-export const useNetwork = () => useContext(NetworkContext);
+export const useNetwork = () => {
+  return useContext(NetworkContext);
+};

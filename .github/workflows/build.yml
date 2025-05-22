@@ -1,4 +1,4 @@
-name: EAS Build and Test
+name: Stilya CI/CD
 
 on:
   push:
@@ -6,88 +6,89 @@ on:
   pull_request:
     branches: [main, develop]
 
+env:
+  NODE_VERSION: '20.11.1'
+
 jobs:
   test:
+    name: 🧪 Test & Lint
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout repository
+      - name: 📦 Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: 🏗️ Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version-file: '.nvmrc'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
-      - name: Clear cache directories
+      - name: 🧹 Clear cache directories
         run: |
           rm -rf ~/.expo ~/.cache ~/.npm/_logs
           rm -rf .expo .expo-shared node_modules/.cache
 
-      - name: Install dependencies
+      - name: 📚 Install dependencies
         run: |
           rm -f package-lock.json
-          npm install
+          npm ci
 
-      - name: Run linter
+      - name: 🔍 Run linter
         run: npm run lint
 
-      - name: Run type check
-        run: npm run type-check || echo "⚠️ TypeScript warnings found but continuing..."
+      - name: 🔧 Run type check
+        run: npm run type-check
 
-      - name: Run tests
+      - name: 🧪 Run tests
         run: npm run test:ci
 
   build:
+    name: 🏗️ EAS Build (Android)
     runs-on: ubuntu-latest
     needs: test
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     
     steps:
-      - name: Checkout repository
+      - name: 📦 Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: 🏗️ Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version-file: '.nvmrc'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
-      - name: Clear all cache directories
+      - name: 🧹 Clear all cache directories
         run: |
           rm -rf ~/.expo ~/.cache ~/.npm/_logs
           rm -rf .expo .expo-shared node_modules/.cache
           rm -rf ~/.cache/metro .metro-cache
 
-      - name: Install dependencies
+      - name: 📚 Install dependencies
         run: |
           rm -f package-lock.json
-          npm install
+          npm ci
 
-      - name: Verify expo-modules-autolinking version
-        run: |
-          npm ls expo-modules-autolinking || echo "expo-modules-autolinking check completed"
-
-      - name: Install EAS CLI
+      - name: 🔧 Install EAS CLI
         run: npm install -g eas-cli@7.3.0
 
-      - name: Clear Metro and Expo cache
+      - name: 🧹 Clear Metro and Expo cache
         run: |
           rm -rf ~/.expo ~/.cache/metro .expo .expo-shared
           npm run clean
 
-      - name: Login to Expo
+      - name: 🔐 Login to Expo
         run: npx eas login --non-interactive
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
-      - name: Verify EAS configuration
+      - name: ✅ Verify EAS configuration
         run: npx eas config --platform android --profile ci
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
-      - name: Build with EAS
+      - name: 🚀 Build with EAS
         run: npx eas build --platform android --profile ci --non-interactive
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
@@ -97,3 +98,36 @@ jobs:
           LINKSHARE_MERCHANT_ID: ${{ secrets.LINKSHARE_MERCHANT_ID }}
           RAKUTEN_APP_ID: ${{ secrets.RAKUTEN_APP_ID }}
           RAKUTEN_AFFILIATE_ID: ${{ secrets.RAKUTEN_AFFILIATE_ID }}
+
+      - name: 📊 Upload build artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eas-build-logs
+          path: |
+            ~/.expo/logs/
+            eas-build-*.log
+          retention-days: 7
+
+  security:
+    name: 🔒 Security Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📦 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🏗️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📚 Install dependencies
+        run: npm ci
+
+      - name: 🔍 Run security audit
+        run: npm audit --audit-level=high
+
+      - name: 🔒 Check for vulnerabilities
+        run: npx audit-ci --high
