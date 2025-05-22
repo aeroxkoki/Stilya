@@ -238,8 +238,6 @@ const SwipeContainer: React.FC<SwipeContainerProps> = ({
               onPress={handleCardPress}
               onSwipeLeft={isConnected === false ? undefined : handleNoButtonPress}
               onSwipeRight={isConnected === false ? undefined : handleYesButtonPress}
-              yesIndicatorStyle={yesIndicatorStyle}
-              noIndicatorStyle={noIndicatorStyle}
               testID="current-swipe-card"
             />
           )}

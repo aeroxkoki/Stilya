@@ -28,8 +28,6 @@ interface SwipeCardProps {
   onSwipeLeft?: () => void;
   onSwipeRight?: () => void;
   onPress?: () => void;
-  yesIndicatorStyle?: any;
-  noIndicatorStyle?: any;
   index?: number;
   testID?: string;
 }
@@ -39,8 +37,6 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
   onSwipeLeft,
   onSwipeRight,
   onPress,
-  yesIndicatorStyle,
-  noIndicatorStyle,
   index = 0,
   testID,
 }) => {
@@ -200,10 +196,10 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
       { translateY: position.y },
       { rotate },
       { scale }
-    ],
+    ] as any,
     opacity,
     zIndex: 100 - index,
-  }), [position.x, position.y, rotate, scale, opacity, index]);
+  } as any), [position.x, position.y, rotate, scale, opacity, index]);
 
   return (
     <Animated.View
