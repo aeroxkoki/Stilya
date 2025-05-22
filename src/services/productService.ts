@@ -1,5 +1,4 @@
 import { supabase, handleSupabaseError, handleSupabaseSuccess, TABLES } from './supabase';
-import { Product, Swipe } from '../types';
 
 export class ProductService {
   // Fetch products for swiping

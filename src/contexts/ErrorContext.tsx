@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
+import React, { createContext, useState, useEffect, useContext, ReactNode, useCallback } from 'react';
 import Toast from 'react-native-toast-message';
 import { useNetwork } from './NetworkContext';
 
@@ -16,7 +16,7 @@ interface ErrorMessage {
   id: string;
   type: ErrorType;
   message: string;
-  details?: any;
+  details?: unknown;
   timestamp: Date;
   handled: boolean;
 }
@@ -24,7 +24,7 @@ interface ErrorMessage {
 // エラーコンテキストの型定義
 interface ErrorContextType {
   errors: ErrorMessage[];
-  addError: (type: ErrorType, message: string, details?: any) => void;
+  addError: (type: ErrorType, message: string, details?: unknown) => void;
   clearError: (id: string) => void;
   clearAllErrors: () => void;
   hasUnhandledErrors: boolean;
@@ -50,6 +50,20 @@ export const ErrorProvider: React.FC<ErrorProviderProps> = ({ children }) => {
   // エラーが未処理かどうかを計算
   const hasUnhandledErrors = errors.some((error) => !error.handled);
 
+  // 新しいエラーを追加
+  const addError = useCallback((type: ErrorType, message: string, details?: unknown) => {
+    const newError: ErrorMessage = {
+      id: Date.now().toString(),
+      type,
+      message,
+      details,
+      timestamp: new Date(),
+      handled: false,
+    };
+
+    setErrors((prevErrors) => [...prevErrors, newError]);
+  }, []);
+
   // ネットワーク状態の変化を監視して、必要に応じてエラーメッセージを表示
   useEffect(() => {
     if (isConnected === false) {
@@ -58,7 +72,7 @@ export const ErrorProvider: React.FC<ErrorProviderProps> = ({ children }) => {
         'インターネット接続がありません。一部の機能が制限される場合があります。',
       );
     }
-  }, [isConnected]);
+  }, [isConnected, addError]);
 
   // エラーが追加されたら自動的にトーストで表示
   useEffect(() => {
@@ -115,20 +129,6 @@ export const ErrorProvider: React.FC<ErrorProviderProps> = ({ children }) => {
       default:
         return 'エラーが発生しました';
     }
-  };
-
-  // 新しいエラーを追加
-  const addError = (type: ErrorType, message: string, details?: any) => {
-    const newError: ErrorMessage = {
-      id: Date.now().toString(),
-      type,
-      message,
-      details,
-      timestamp: new Date(),
-      handled: false,
-    };
-
-    setErrors((prevErrors) => [...prevErrors, newError]);
   };
 
   // 特定のエラーをクリア

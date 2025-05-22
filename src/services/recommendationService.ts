@@ -1,6 +1,15 @@
 import { supabase, handleSupabaseError, handleSupabaseSuccess, TABLES } from './supabase';
 import { Product, UserPreference } from '../types';
 
+interface SwipeWithProduct {
+  products: {
+    tags?: string[];
+    category?: string;
+    price?: number;
+    brand?: string;
+  };
+}
+
 export class RecommendationService {
   // Analyze user preferences based on swipe history
   static async analyzeUserPreferences(userId: string): Promise<UserPreference | null> {
@@ -29,7 +38,7 @@ export class RecommendationService {
       const brandFrequency: Record<string, number> = {};
       const prices: number[] = [];
 
-      data.forEach((swipe: any) => {
+      data.forEach((swipe: SwipeWithProduct) => {
         const product = swipe.products;
         if (product) {
           // Count tags
@@ -83,8 +92,8 @@ export class RecommendationService {
         dislikedTags: [], // Would need additional analysis for disliked tags
         preferredCategories,
         avgPriceRange,
-        brands: preferredBrands, // 追加
-        price_range: avgPriceRange, // レガシー対応
+        brands: preferredBrands,
+        price_range: avgPriceRange,
       };
     } catch (error) {
       console.error('Error analyzing user preferences:', error);
@@ -135,40 +144,40 @@ export class RecommendationService {
 
       // Score and sort products based on preference matching
       const scoredProducts = (data || []).map((product: Product) => {
-        let score = 0;
+        let productScore = 0;
 
         // Tag matching score
         if (product.tags && preferences.likedTags) {
           const matchingTags = product.tags.filter(tag => 
             preferences.likedTags.includes(tag)
           ).length;
-          score += matchingTags * 3;
+          productScore += matchingTags * 3;
         }
 
         // Category matching score
         if (preferences.preferredCategories.includes(product.category)) {
-          score += 2;
+          productScore += 2;
         }
 
         // Brand matching score
         if (preferences.brands && preferences.brands.includes(product.brand)) {
-          score += 1;
+          productScore += 1;
         }
 
         // Price range score
         const priceRange = preferences.price_range || preferences.avgPriceRange;
         if (product.price >= priceRange.min && 
             product.price <= priceRange.max) {
-          score += 1;
+          productScore += 1;
         }
 
-        return { ...product, score };
+        return { ...product, score: productScore };
       });
 
       // Sort by score and remove score property
       const recommendations = scoredProducts
         .sort((a, b) => b.score - a.score)
-        .map(({ score, ...product }) => product);
+        .map(({ score: _, ...product }) => product);
 
       return handleSupabaseSuccess(recommendations);
     } catch (error) {

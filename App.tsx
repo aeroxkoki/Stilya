@@ -64,7 +64,7 @@ class ErrorBoundary extends React.Component<
   }
 }
 
-export default function App(): React.JSX.Element {
+export default function App() {
   useEffect(() => {
     // アプリ初期化
     const initializeApp = async () => {

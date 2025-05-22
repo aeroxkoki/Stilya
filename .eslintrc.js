@@ -1,7 +1,23 @@
 module.exports = {
+  root: true,
+  parser: '@typescript-eslint/parser',
+  plugins: ['@typescript-eslint', 'react', 'react-hooks'],
   extends: [
-    'eslint:recommended'
+    'eslint:recommended',
+    'plugin:@typescript-eslint/recommended',
+    'plugin:react/recommended',
+    'plugin:react-hooks/recommended',
   ],
+  env: {
+    browser: true,
+    es6: true,
+    node: true,
+  },
+  settings: {
+    react: {
+      version: 'detect',
+    },
+  },
   parserOptions: {
     ecmaFeatures: {
       jsx: true,
@@ -9,19 +25,22 @@ module.exports = {
     ecmaVersion: 2020,
     sourceType: 'module',
   },
-  env: {
-    browser: true,
-    es6: true,
-    node: true,
+  rules: {
+    'react/react-in-jsx-scope': 'off',
+    'react/prop-types': 'off',
+    '@typescript-eslint/explicit-function-return-type': 'off',
+    '@typescript-eslint/explicit-module-boundary-types': 'off',
+    'no-console': 'off',
   },
   ignorePatterns: [
     'node_modules/',
     '.expo/',
-    'dist/',
-    'build/',
-    'coverage/',
-    '**/*.test.ts',
-    '**/*.test.tsx',
-    'src/__tests__/**/*',
+    'android/',
+    'ios/',
+    '**/__mocks__/**',
+    '*.config.js',
+    'jest.setup.js',
+    'test/**',
+    '__tests__/**',
   ],
 };

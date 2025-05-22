@@ -61,7 +61,7 @@ export interface UserPreference {
 // 認証状態
 export interface AuthState {
   user: User | null;
-  session: any | null;
+  session: Record<string, unknown> | null;
   loading: boolean;
   error: string | null;
 }
@@ -69,7 +69,7 @@ export interface AuthState {
 // 認証フック戻り値
 export interface UseAuthReturn {
   user: User | null;
-  session: any | null;
+  session: Record<string, unknown> | null;
   loading: boolean;
   error: string | null;
   signIn: (email: string, password: string) => Promise<void>;

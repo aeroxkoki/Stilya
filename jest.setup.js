@@ -1,33 +1,34 @@
 // Jest setup for React Native Testing Library
+/* eslint-env jest */
 
 // Mock React Native modules
-jest.mock('react-native/Libraries/EventEmitter/NativeEventEmitter');
+global.jest.mock('react-native/Libraries/EventEmitter/NativeEventEmitter');
 
-// Mock Expo modules
-jest.mock('expo-secure-store', () => ({
-  getItemAsync: jest.fn(),
-  setItemAsync: jest.fn(),
-  deleteItemAsync: jest.fn(),
+// Mock Expo modules  
+global.jest.mock('expo-secure-store', () => ({
+  getItemAsync: global.jest.fn(),
+  setItemAsync: global.jest.fn(),
+  deleteItemAsync: global.jest.fn(),
 }));
 
 // Mock React Navigation
-jest.mock('@react-navigation/native', () => ({
+global.jest.mock('@react-navigation/native', () => ({
   NavigationContainer: ({ children }) => children,
   useNavigation: () => ({
-    navigate: jest.fn(),
-    goBack: jest.fn(),
+    navigate: global.jest.fn(),
+    goBack: global.jest.fn(),
   }),
 }));
 
 // Silence console.warn and console.error during tests
 global.console = {
   ...console,
-  warn: jest.fn(),
-  error: jest.fn(),
+  warn: global.jest.fn(),
+  error: global.jest.fn(),
 };
 
 // Mock global fetch
-global.fetch = jest.fn();
+global.fetch = global.jest.fn();
 
 // Set test timeout
-jest.setTimeout(10000);
+global.jest.setTimeout(10000);

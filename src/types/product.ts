@@ -37,7 +37,7 @@ export interface FavoriteProduct {
 
 // 商品サービス関連の型
 export interface ProductService {
-  fetchProducts: (options?: any) => Promise<Product[]>;
+  fetchProducts: (options?: Record<string, unknown>) => Promise<Product[]>;
   fetchProductById: (id: string) => Promise<Product | null>;
   fetchRecommendedProducts: (userId: string, limit?: number) => Promise<Product[]>;
   recordProductClick: (productId: string, product?: Product) => Promise<boolean>;

@@ -3,6 +3,9 @@
 
 import Constants from 'expo-constants';
 
+// 開発環境判定
+export const IS_DEV = process.env.NODE_ENV === 'development';
+
 // Supabase設定
 export const SUPABASE_URL = Constants.expoConfig?.extra?.supabaseUrl || process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 export const SUPABASE_ANON_KEY = Constants.expoConfig?.extra?.supabaseAnonKey || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -13,7 +16,6 @@ export const A8_NET_API_KEY = Constants.expoConfig?.extra?.a8NetApiKey || proces
 
 // アプリ設定
 export const APP_VERSION = Constants.expoConfig?.version || '1.0.0';
-export const IS_DEV = __DEV__;
 
 // ログレベル設定
 export const LOG_LEVEL = IS_DEV ? 'debug' : 'error';

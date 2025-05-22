@@ -32,7 +32,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, _password?: string) => {
     try {
       setIsLoading(true);
       // TODO: 実際の認証ロジックを実装
@@ -53,7 +53,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const register = async (email: string, password: string) => {
+  const register = async (email: string, _password?: string) => {
     try {
       setIsLoading(true);
       // TODO: 実際の登録ロジックを実装
