@@ -17,7 +17,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version-file: '.nvmrc'
           cache: 'npm'
 
       - name: Clear cache directories
@@ -51,26 +51,34 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version-file: '.nvmrc'
           cache: 'npm'
 
-      - name: Clear cache directories
+      - name: Clear all cache directories
         run: |
           rm -rf ~/.expo ~/.cache ~/.npm/_logs
           rm -rf .expo .expo-shared node_modules/.cache
+          rm -rf ~/.cache/metro .metro-cache
 
       - name: Install dependencies
         run: |
           rm -f package-lock.json
           npm install
 
+      - name: Verify expo-modules-autolinking version
+        run: |
+          npm ls expo-modules-autolinking || echo "expo-modules-autolinking check completed"
+
       - name: Install EAS CLI
         run: npm install -g eas-cli@7.3.0
 
-      - name: Clear Metro cache
+      - name: Clear Metro and Expo cache
         run: |
           rm -rf ~/.expo ~/.cache/metro .expo .expo-shared
           npm run clean
+
+      - name: Verify EAS configuration
+        run: eas config --platform android --profile ci
 
       - name: Build with EAS
         run: eas build --platform android --profile ci --non-interactive
