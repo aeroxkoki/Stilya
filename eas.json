@@ -1,8 +1,6 @@
 {
   "cli": {
-    "version": ">=7.3.0",
-    "requireCommit": false,
-    "promptToConfigurePushNotifications": false
+    "version": ">=7.3.0"
   },
   "build": {
     "development": {
@@ -13,17 +11,14 @@
       "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true,
-      "node": "20.11.1"
+      "autoIncrement": true
     },
     "ci": {
       "android": {
-        "buildType": "apk",
-        "gradleCommand": ":app:assembleRelease"
+        "buildType": "apk"
       },
       "env": {
         "EAS_SKIP_JAVASCRIPT_BUNDLING": "1",
-        "EXPO_NO_CACHE": "1",
         "NODE_ENV": "production"
       },
       "node": "20.11.1",
