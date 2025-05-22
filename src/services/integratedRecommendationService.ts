@@ -36,10 +36,10 @@ export const getEnhancedRecommendations = async (
 
     // ユーザーの好みに基づく楽天商品
     let forYouProducts: Product[] = [];
-    if (userPrefs && userPrefs.topTags && userPrefs.topTags.length > 0) {
+    if (userPrefs && userPrefs.likedTags && userPrefs.likedTags.length > 0) {
       // タグベースで関連商品を取得
       forYouProducts = await fetchRelatedProducts(
-        userPrefs.topTags,
+        userPrefs.likedTags,
         excludeIds,
         Math.floor(limit / 2)
       );

@@ -6,10 +6,10 @@ import 'react-native-url-polyfill/auto';
 
 // Node.js用のグローバルイベントターゲットポリフィル
 if (typeof global.EventTarget === 'undefined') {
-  global.EventTarget = function () {};
-  global.EventTarget.prototype.addEventListener = function () {};
-  global.EventTarget.prototype.removeEventListener = function () {};
-  global.EventTarget.prototype.dispatchEvent = function () {
+  (global as any).EventTarget = function () {} as any;
+  (global as any).EventTarget.prototype.addEventListener = function () {};
+  (global as any).EventTarget.prototype.removeEventListener = function () {};
+  (global as any).EventTarget.prototype.dispatchEvent = function () {
     return true;
   };
 }
