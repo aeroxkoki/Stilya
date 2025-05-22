@@ -23,18 +23,13 @@
       "distribution": "store",
       "autoIncrement": true,
       "android": {
-        "buildType": "aab"
+        "buildType": "app-bundle"
       }
     },
     "ci": {
       "distribution": "internal",
       "android": {
-        "buildType": "apk",
-        "gradle": {
-          "buildOptions": {
-            "maxWorkers": 1
-          }
-        }
+        "buildType": "apk"
       },
       "env": {
         "NODE_ENV": "production"
