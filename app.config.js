@@ -7,9 +7,7 @@ export default {
     icon: "./assets/icon.png",
     userInterfaceStyle: "automatic",
     owner: "aeroxkoki",
-    runtimeVersion: {
-      policy: "sdkVersion"
-    },
+    runtimeVersion: "1.0.0",
     updates: {
       url: "https://u.expo.dev/beb25e0f-344b-4f2f-8b64-20614b9744a3",
       fallbackToCacheTimeout: 0,
