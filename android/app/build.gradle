@@ -102,15 +102,28 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        release {
+            if (project.hasProperty('STILYA_UPLOAD_STORE_FILE')) {
+                storeFile file(STILYA_UPLOAD_STORE_FILE)
+                storePassword STILYA_UPLOAD_STORE_PASSWORD
+                keyAlias STILYA_UPLOAD_KEY_ALIAS
+                keyPassword STILYA_UPLOAD_KEY_PASSWORD
+            } else {
+                // Fallback to existing keystore
+                storeFile file('stilya-keystore.jks')
+                storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD') ?: 'android'
+                keyAlias System.getenv('ANDROID_KEY_ALIAS') ?: 'androiddebugkey'
+                keyPassword System.getenv('ANDROID_KEY_PASSWORD') ?: 'android'
+            }
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            // Use release signing config instead of debug
+            signingConfig signingConfigs.release
             shrinkResources (findProperty('android.enableShrinkResourcesInReleaseBuilds')?.toBoolean() ?: false)
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"

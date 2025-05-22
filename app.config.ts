@@ -35,8 +35,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
         backgroundColor: "#ffffff"
-      },
-      package: "com.stilya.app"
+      }
     },
     web: {
       favicon: "./assets/favicon.png"
