@@ -15,20 +15,22 @@ if (typeof global.EventTarget === 'undefined') {
 }
 
 // ストリームポリフィル
-global.ReadableStream = global.ReadableStream || function () {};
+if (typeof global.ReadableStream === 'undefined') {
+  (global as any).ReadableStream = function () {} as any;
+}
 
 // 他のポリフィル
 if (typeof global.process === 'undefined') {
-  global.process = {};
+  (global as any).process = {};
 }
 if (typeof global.process.nextTick === 'undefined') {
-  global.process.nextTick = setTimeout;
+  (global as any).process.nextTick = setTimeout;
 }
 
 if (typeof global.Buffer === 'undefined') {
-  global.Buffer = {
+  (global as any).Buffer = {
     isBuffer: () => false,
-    from: (data) => ({ data }),
+    from: (data: any) => ({ data }),
   };
 }
 
