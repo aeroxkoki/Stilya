@@ -1,7 +1,6 @@
 import { Product } from '@/types';
-import { getRecommendedProducts, getRecommendationsByCategory } from './recommendationService';
+import { getRecommendations, analyzeUserPreferences } from './recommendationService';
 import { fetchRakutenFashionProducts, fetchRelatedProducts } from './rakutenService';
-import { analyzeUserPreferences } from './recommendationService';
 
 interface OutfitRecommendation {
   top: Product | null;
@@ -28,7 +27,7 @@ export const getEnhancedRecommendations = async (
     // 並列でデータを取得
     const [internalRecs, externalRecs, userPrefs] = await Promise.all([
       // 内部DBからの推薦
-      getRecommendedProducts(userId, Math.floor(limit / 2), excludeIds),
+      getRecommendations(userId, Math.floor(limit / 2)),
       // 楽天APIからの商品取得（トレンド）
       fetchRakutenFashionProducts(undefined, 100371, 1, Math.floor(limit / 2)),
       // ユーザーの好み分析
@@ -89,12 +88,16 @@ export const getEnhancedCategoryRecommendations = async (
   isLoading: boolean;
 }> => {
   try {
-    // 内部DBからカテゴリ別のレコメンド
-    const internalRecs = await getRecommendationsByCategory(
-      userId,
-      categories,
-      limit
-    );
+    // 内部DBからカテゴリ別のレコメンド（簡易版）
+    const internalRecsArray = await getRecommendations(userId, limit * categories.length);
+    
+    // カテゴリごとに分割
+    const internalRecs: Record<string, Product[]> = {};
+    categories.forEach((category, index) => {
+      const start = index * limit;
+      const end = start + limit;
+      internalRecs[category] = internalRecsArray.slice(start, end);
+    });
 
     // 楽天APIからのカテゴリデータ (カテゴリIDマッピング)
     const categoryMappings: Record<string, number> = {
