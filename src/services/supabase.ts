@@ -25,7 +25,7 @@ export const TABLES = {
 } as const;
 
 // Helper function to handle Supabase errors
-export const handleSupabaseError = (error: any) => {
+export const handleSupabaseError = (error: Error | { message: string }) => {
   console.error('Supabase error:', error);
   return {
     success: false,
