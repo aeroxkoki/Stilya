@@ -1,5 +1,5 @@
 import { Product, UserPreference } from '@/types';
-import { getRecommendedProducts } from '@/services/recommendationService';
+import { getRecommendations } from '@/services/recommendationService';
 
 /**
  * レコメンデーションサービスのパフォーマンス測定ツール
@@ -37,10 +37,9 @@ export class RecommendationProfiler {
 
     try {
       // レコメンデーションAPI実行
-      result = await getRecommendedProducts(
+      result = await getRecommendations(
         params.userId, 
-        params.limit || 10, 
-        params.excludeIds || []
+        params.limit || 10
       );
     } catch (error) {
       console.error(`Error in profiling ${testName}:`, error);
