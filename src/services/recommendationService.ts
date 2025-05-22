@@ -177,7 +177,7 @@ export class RecommendationService {
       // Sort by score and remove score property
       const recommendations = scoredProducts
         .sort((a, b) => b.score - a.score)
-        .map(({ score, ...product }) => product);
+        .map(({ score: _score, ...product }) => product);
 
       return handleSupabaseSuccess(recommendations);
     } catch (error) {
