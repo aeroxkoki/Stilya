@@ -1,72 +1,62 @@
-# GitHub Secrets Setup Guide
+# GitHub Secrets 設定ガイド
 
-GitHub ActionsgEAS��ɒ��Y�_�k�n�����ȒGitHub�ݸ��k-�Y�ŁLB�~Y
+このプロジェクトでは、GitHub ActionsでEAS Buildを使用してAndroidアプリをビルドするために、以下のSecretsを設定する必要があります。
 
-## �������
+## 必要なSecrets
+
+GitHub リポジトリの Settings > Secrets and variables > Actions で以下のSecretsを設定してください：
 
 ### 1. EXPO_TOKEN
-- **�**: Expo EAS CLIg�<k(Y�����
-- **֗��**: 
-  1. [Expo.dev](https://expo.dev)k����
-  2. Settings � Access Tokens � Create Token
-- **$**: `expo_***` bn����
+- **値**: ExpoアカウントのAPIトークン
+- **取得方法**: 
+  1. https://expo.dev にログイン
+  2. Account Settings > Access Tokens
+  3. "Create Token" をクリック
+  4. 生成されたトークンをコピー
 
-### 2. SUPABASE_URL
-- **�**: Supabase������nURL
-- **֗��**: 
-  1. [Supabase Dashboard](https://supabase.com/dashboard)
-  2. ������-� � API � Project URL
-- **$**: `https://[project-id].supabase.co`
+### 2. ANDROID_KEYSTORE_BASE64
+- **値**: `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`
+- **説明**: Androidアプリ署名用のKeystoreファイルをBase64エンコードした値
 
-### 3. SUPABASE_ANON_KEY
-- **�**: Supabasen?��
-- **֗��**: 
-  1. Supabase Dashboard � ������-� � API � anon public
-- **$**: `eyJ***` bnJWT
+### 3. ANDROID_KEY_ALIAS
+- **値**: `stilya-key-alias`
+- **説明**: Keystoreで使用するキーのエイリアス名
 
-## �׷��������գꨤ�#:(	
+### 4. ANDROID_KEYSTORE_PASSWORD
+- **値**: `jpn3025Koki`
+- **説明**: Keystoreファイルのパスワード
 
-### 4. LINKSHARE_API_TOKEN
-- **�**: LinkShare API�<����
-- **֗��**: LinkShare����������g֗
+### 5. ANDROID_KEY_PASSWORD
+- **値**: `jpn3025Koki`
+- **説明**: Keystore内のキーのパスワード
 
-### 5. LINKSHARE_MERCHANT_ID
-- **�**: LinkShare������ID
+## 設定手順
 
-### 6. RAKUTEN_APP_ID
-- **�**: })�գꨤ�API(���ID
+1. GitHubリポジトリの**Settings**タブをクリック
+2. 左サイドバーの**Secrets and variables** > **Actions**をクリック
+3. **New repository secret**をクリック
+4. 上記の各Secretを一つずつ追加:
+   - **Name**フィールドにSecret名を入力
+   - **Secret**フィールドに対応する値を入力
+   - **Add secret**をクリック
 
-### 7. RAKUTEN_AFFILIATE_ID
-- **�**: })�գꨤ�ID
+## 確認方法
 
-## ������-�K
+すべてのSecretsが正しく設定されているかは、GitHub Actionsワークフローを実行して確認できます。設定が完了すると、次回のプッシュ時にビルドが成功するはずです。
 
-1. GitHub�ݸ�������O
-2. `Settings` �֒��ï
-3. 浤���n `Secrets and variables` � `Actions` �x�
-4. `New repository secret` ���ï
-5. ������h$�e�Wf `Add secret` ���ï
+## セキュリティ注意事項
 
-## -���
+- これらのSecretsは機密情報です。他の人と共有しないでください
+- 定期的にキーを更新することを推奨します
+- アクセス権限を適切に管理してください
 
-������LcWO-�U�fD�KoGitHub Actionsn�������L��g��gM~Y
+## トラブルシューティング
 
-## ����ƣ��
+ビルドが失敗する場合は、以下を確認してください：
 
-- ������ov�k���k���WjD
-- `.env`ա��o`.gitignore`k+�f�ݸ��k����WjD
-- ,j(h�z(g�����ȒQ�4o�����w���-�Y�
+1. すべてのSecretsが正しく設定されているか
+2. Secret名にタイポがないか
+3. 値に余分なスペースや改行が含まれていないか
+4. EXPO_TOKENが有効期限内か
 
-## ������ƣ�
-
-### EXPO_TOKEN���
-- ����n	�P���
-- Expo�����n)P���
-
-### Supabase���
-- URLh��LcWD������n�nK��
-- RLS���Lik-�U�fD�K��
-
-### ��ɨ��
-- EAS-�ա��eas.json	nˇ���
-- Node.js�����n��'���
+問題が解決しない場合は、GitHub ActionsのログでDetails エラーメッセージを確認してください。
