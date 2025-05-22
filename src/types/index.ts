@@ -45,6 +45,8 @@ export interface UserPreference {
   dislikedTags: string[];
   preferredCategories: string[];
   avgPriceRange: { min: number; max: number };
+  brands?: string[]; // 推薦サービスで使用
+  price_range?: { min: number; max: number }; // レガシー対応
   // 拡張分析プロパティ
   tagScores?: Record<string, number>;
   topTags?: string[];

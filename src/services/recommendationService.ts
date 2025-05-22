@@ -82,8 +82,9 @@ export class RecommendationService {
         likedTags,
         dislikedTags: [], // Would need additional analysis for disliked tags
         preferredCategories,
-        brands: preferredBrands,
-        price_range: avgPriceRange,
+        avgPriceRange,
+        brands: preferredBrands, // 追加
+        price_range: avgPriceRange, // レガシー対応
       };
     } catch (error) {
       console.error('Error analyzing user preferences:', error);
@@ -155,8 +156,9 @@ export class RecommendationService {
         }
 
         // Price range score
-        if (product.price >= preferences.price_range.min && 
-            product.price <= preferences.price_range.max) {
+        const priceRange = preferences.price_range || preferences.avgPriceRange;
+        if (product.price >= priceRange.min && 
+            product.price <= priceRange.max) {
           score += 1;
         }
 

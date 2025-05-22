@@ -1,0 +1,45 @@
+// 環境変数の管理
+// Expo の Constants.expoConfig を使用して環境変数を安全に取得
+
+import Constants from 'expo-constants';
+
+// Supabase設定
+export const SUPABASE_URL = Constants.expoConfig?.extra?.supabaseUrl || process.env.EXPO_PUBLIC_SUPABASE_URL || '';
+export const SUPABASE_ANON_KEY = Constants.expoConfig?.extra?.supabaseAnonKey || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
+
+// API設定
+export const LINKSHARE_API_KEY = Constants.expoConfig?.extra?.linkshareApiKey || process.env.EXPO_PUBLIC_LINKSHARE_API_KEY || '';
+export const A8_NET_API_KEY = Constants.expoConfig?.extra?.a8NetApiKey || process.env.EXPO_PUBLIC_A8_NET_API_KEY || '';
+
+// アプリ設定
+export const APP_VERSION = Constants.expoConfig?.version || '1.0.0';
+export const IS_DEV = __DEV__;
+
+// ログレベル設定
+export const LOG_LEVEL = IS_DEV ? 'debug' : 'error';
+
+// デバッグ用関数
+export const validateEnvVars = () => {
+  const requiredVars = [
+    { name: 'SUPABASE_URL', value: SUPABASE_URL },
+    { name: 'SUPABASE_ANON_KEY', value: SUPABASE_ANON_KEY }
+  ];
+
+  const missingVars = requiredVars.filter(({ value }) => !value);
+
+  if (missingVars.length > 0) {
+    console.error('Missing required environment variables:', missingVars.map(v => v.name));
+    return false;
+  }
+
+  return true;
+};
+
+// デバッグ用: 環境変数の確認（開発環境のみ）
+if (IS_DEV) {
+  console.log('Environment Variables Loaded:');
+  console.log('- SUPABASE_URL:', SUPABASE_URL ? 'Set' : 'Missing');
+  console.log('- SUPABASE_ANON_KEY:', SUPABASE_ANON_KEY ? 'Set' : 'Missing');
+  console.log('- APP_VERSION:', APP_VERSION);
+  console.log('- IS_DEV:', IS_DEV);
+}
