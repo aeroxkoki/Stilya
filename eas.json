@@ -13,7 +13,8 @@
       "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "node": "20.11.1"
     },
     "ci": {
       "android": {
@@ -26,7 +27,10 @@
         "NODE_ENV": "production"
       },
       "node": "20.11.1",
-      "autoIncrement": false
+      "autoIncrement": false,
+      "runtimeVersion": {
+        "policy": "appVersion"
+      }
     }
   },
   "submit": {
