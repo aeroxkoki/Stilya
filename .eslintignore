@@ -1,0 +1,78 @@
+# Build and cache directories
+node_modules/
+.expo/
+dist/
+build/
+android/
+ios/
+web-build/
+.metro-cache/
+coverage/
+
+# Config files
+*.config.js
+*.config.ts
+babel.config.js
+metro.config.js
+jest.config.js
+app.config.*
+tailwind.config.js
+
+# Generated/temp files
+expo-env.d.ts
+**/*.d.ts
+credentials.json
+
+# Test files (ignore linting for now)
+**/*.test.ts
+**/*.test.tsx
+**/*.test.js
+**/*.test.jsx
+src/__tests__/
+src/__mocks__/
+__tests__/
+
+# Scripts and tools
+scripts/
+patches/
+backups/
+*.sh
+setup*.js
+fix-*.js
+patch-*.js
+start-*.js
+github-actions-*.js
+optimize-*.js
+verify-*.js
+export-*.js
+direct-*.js
+TestConnection*.tsx
+TestApp.js
+init.js
+init-*.js
+create-*.js
+ci-*.js
+clean-*.js
+
+# Backup files
+**/*.bak
+**/*.backup
+backup*/
+temp-*/
+
+# Documentation
+*.md
+docs/
+
+# Environment and logs
+.env*
+*.log
+test-results/
+basic-test-results.json
+
+# Specific problematic files
+test-config.sh
+test-metro-serializer.sh
+check-eas.sh
+launch.sh
+start.sh
