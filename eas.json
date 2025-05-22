@@ -27,10 +27,7 @@
         "NODE_ENV": "production"
       },
       "node": "20.11.1",
-      "autoIncrement": false,
-      "runtimeVersion": {
-        "policy": "appVersion"
-      }
+      "autoIncrement": false
     }
   },
   "submit": {
