@@ -77,11 +77,18 @@ jobs:
           rm -rf ~/.expo ~/.cache/metro .expo .expo-shared
           npm run clean
 
+      - name: Login to Expo
+        run: npx eas login --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
       - name: Verify EAS configuration
-        run: eas config --platform android --profile ci
+        run: npx eas config --platform android --profile ci
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
       - name: Build with EAS
-        run: eas build --platform android --profile ci --non-interactive
+        run: npx eas build --platform android --profile ci --non-interactive
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
