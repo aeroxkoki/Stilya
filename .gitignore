@@ -1,16 +1,22 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
-
-# dependencies
+# Dependencies
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # Expo
 .expo/
 dist/
 web-build/
-expo-env.d.ts
 
-# Native
-.kotlin/
+# React Native
 *.orig.*
 *.jks
 *.p8
@@ -18,69 +24,79 @@ expo-env.d.ts
 *.key
 *.mobileprovision
 
-# Native folders for Prebuild
-/android/
-/ios/
-
-# Specifically for Stilya
-android/app/stilya-keystore.jks
-keystore-base64.txt
+# macOS
+.DS_Store
+*.DS_Store
 
 # Metro
 .metro-health-check*
-tmp/
-.tmp/
+.metro-cache/
 
-# debug
+# Debug
 npm-debug.*
 yarn-debug.*
 yarn-error.*
 
 # macOS
-.DS_Store
 *.pem
 
-# local env files
-.env*.local
-.env
-.env.development
-
-# typescript
+# TypeScript
 *.tsbuildinfo
-
-# test coverage
-coverage/
-test-results/
-*.json.snap
-basic-test-results.json
-auth-test-results.json
-other-test-results.json
-junit.xml
-
-# backup files
-*.bak
-
-# yarn
-.yarn/cache
-.yarn-integrity
-
-# EAS
-.eas-cache/
-.eas/
+typescript_errors.txt
 
 # Temporary files
-.metro-cache/
-.babel-cache/
-.jest/
-node_modules/.cache/
+*.tmp
+*.temp
+temp-backup-*/
+*.bak
+*.backup
 
-# utility scripts (開発補助用スクリプト)
-fix-dependencies-legacy.sh
-fix-nvm-conflict.sh
-fix-project.sh
-install-node-lts.sh
-launch.sh
-setup-all-in-one.sh
-setup-stilya.sh
-start-with-lts.sh
-start.sh
+# Logs
+logs
+*.log
+
+# Editor directories and files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Testing
+coverage/
+*.lcov
+test-results/
+junit*.xml
+test-ok.txt
+basic-test-results.json
+
+# Build outputs
+build/
+android/app/build/
+android/.gradle/
+ios/build/
+
+# Cache directories
+.cache/
+
+# Miscellaneous
+*.tgz
+*.tar.gz
+
+# EAS
+eas.json.bak
+credentials.json
+keystore-base64.txt
+
+# Scripts and patches (keeping them for now but not committing)
+# Uncomment these if you want to ignore all scripts
+# scripts/
+# patches.bak/
+# backup*/
+# *.sh
+# *.js.backup
+
+# Expo generated
+expo-env.d.ts

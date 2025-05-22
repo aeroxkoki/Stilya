@@ -1,20 +1,33 @@
-
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": [
+        "src/*"
+      ]
     },
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "jsx": "react-native",
     "noImplicitAny": false,
-    "lib": ["DOM", "ESNext"],
+    "lib": [
+      "DOM",
+      "ESNext"
+    ],
     "target": "ES2020"
   },
-  "include": ["src", "App.tsx"],
-  "exclude": ["node_modules", "src/__tests__/**/*"]
+  "include": [
+    "src",
+    "App.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "src/__tests__/**/*",
+    "src/__mocks__/**/*"
+  ]
 }

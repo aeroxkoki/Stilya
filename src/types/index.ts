@@ -41,9 +41,19 @@ export interface ClickLog {
 // ユーザー好み分析情報
 export interface UserPreference {
   userId: string;
-  tagScores: Record<string, number>;
-  topTags: string[];
-  lastUpdated: string;
+  likedTags: string[];
+  dislikedTags: string[];
+  preferredCategories: string[];
+  avgPriceRange: { min: number; max: number };
+  // 拡張分析プロパティ
+  tagScores?: Record<string, number>;
+  topTags?: string[];
+  styleProfile?: {
+    casual: number;
+    formal: number;
+    trendy: number;
+    classic: number;
+  };
 }
 
 // 認証状態
