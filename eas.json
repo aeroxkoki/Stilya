@@ -37,13 +37,12 @@
         }
       },
       "env": {
-        "NODE_ENV": "production",
-        "EAS_NO_VCS": "1"
+        "NODE_ENV": "production"
       },
       "node": "20.11.1",
       "autoIncrement": false,
       "cache": {
-        "disabled": true
+        "disabled": false
       }
     }
   },

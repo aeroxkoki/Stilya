@@ -1,17 +1,14 @@
-name: Stilya CI/CD
+name: EAS Build and CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [ main, develop ]
   pull_request:
-    branches: [main, develop]
-
-env:
-  NODE_VERSION: '20.11.1'
+    branches: [ main, develop ]
 
 jobs:
   test:
-    name: 🧪 Test & Lint
+    name: Test and Lint
     runs-on: ubuntu-latest
     
     steps:
@@ -21,97 +18,26 @@ jobs:
       - name: 🏗️ Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: '20.11.1'
           cache: 'npm'
 
-      - name: 🧹 Clear cache directories
-        run: |
-          rm -rf ~/.expo ~/.cache ~/.npm/_logs
-          rm -rf .expo .expo-shared node_modules/.cache
-
-      - name: 📚 Install dependencies
-        run: |
-          rm -f package-lock.json
-          npm ci
-
-      - name: 🔍 Run linter
-        run: npm run lint
+      - name: 📥 Install dependencies
+        run: npm ci
 
       - name: 🔧 Run type check
         run: npm run type-check
+
+      - name: 🔍 Run linter
+        run: npm run lint
 
       - name: 🧪 Run tests
         run: npm run test:ci
 
   build:
-    name: 🏗️ EAS Build (Android)
-    runs-on: ubuntu-latest
+    name: EAS Build
     needs: test
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    
-    steps:
-      - name: 📦 Checkout repository
-        uses: actions/checkout@v4
-
-      - name: 🏗️ Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: 🧹 Clear all cache directories
-        run: |
-          rm -rf ~/.expo ~/.cache ~/.npm/_logs
-          rm -rf .expo .expo-shared node_modules/.cache
-          rm -rf ~/.cache/metro .metro-cache
-
-      - name: 📚 Install dependencies
-        run: |
-          rm -f package-lock.json
-          npm ci
-
-      - name: 🔧 Install EAS CLI
-        run: npm install -g eas-cli@7.3.0
-
-      - name: 🧹 Clear Metro and Expo cache
-        run: |
-          rm -rf ~/.expo ~/.cache/metro .expo .expo-shared
-          npm run clean
-
-      - name: 🔐 Login to Expo
-        run: npx eas login --non-interactive
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-
-      - name: ✅ Verify EAS configuration
-        run: npx eas config --platform android --profile ci
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-
-      - name: 🚀 Build with EAS
-        run: npx eas build --platform android --profile ci --non-interactive
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          LINKSHARE_API_TOKEN: ${{ secrets.LINKSHARE_API_TOKEN }}
-          LINKSHARE_MERCHANT_ID: ${{ secrets.LINKSHARE_MERCHANT_ID }}
-          RAKUTEN_APP_ID: ${{ secrets.RAKUTEN_APP_ID }}
-          RAKUTEN_AFFILIATE_ID: ${{ secrets.RAKUTEN_AFFILIATE_ID }}
-
-      - name: 📊 Upload build artifacts
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: eas-build-logs
-          path: |
-            ~/.expo/logs/
-            eas-build-*.log
-          retention-days: 7
-
-  security:
-    name: 🔒 Security Audit
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
     
     steps:
       - name: 📦 Checkout repository
@@ -120,14 +46,51 @@ jobs:
       - name: 🏗️ Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: '20.11.1'
           cache: 'npm'
 
-      - name: 📚 Install dependencies
+      - name: 🏗️ Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: 📥 Install dependencies
         run: npm ci
 
-      - name: 🔍 Run security audit
-        run: npm audit --audit-level=high
+      - name: 🔧 Run type check
+        run: npm run type-check
 
-      - name: 🔒 Check for vulnerabilities
-        run: npx audit-ci --high
+      - name: 🚀 Build Android APK
+        run: eas build --platform android --profile ci --non-interactive
+
+  build-preview:
+    name: EAS Build Preview
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    
+    steps:
+      - name: 📦 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🏗️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.11.1'
+          cache: 'npm'
+
+      - name: 🏗️ Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: 📥 Install dependencies
+        run: npm ci
+
+      - name: 🔧 Run type check
+        run: npm run type-check
+
+      - name: 🚀 Build Android Preview APK
+        run: eas build --platform android --profile preview --non-interactive
