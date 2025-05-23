@@ -24,7 +24,26 @@ export default {
     ios: {
       supportsTablet: false,
       bundleIdentifier: "com.stilya.app",
-      buildNumber: "1"
+      buildNumber: "1",
+      // 権限設定
+      infoPlist: {
+        NSPhotoLibraryUsageDescription: "Stilyaでファッションアイテムの写真を保存するために、フォトライブラリへのアクセスが必要です。",
+        NSPhotoLibraryAddUsageDescription: "Stilyaでお気に入りのファッションアイテムを保存するために、フォトライブラリへの保存が必要です。",
+        NSCameraUsageDescription: "Stilyaで自分のコーディネートを撮影するために、カメラへのアクセスが必要です。",
+        NSUserTrackingUsageDescription: "あなたに最適なファッションアイテムを提案するために、パーソナライズされた広告を表示します。",
+        ITSAppUsesNonExemptEncryption: false,
+        // App Store 設定
+        CFBundleDisplayName: "Stilya",
+        CFBundleName: "Stilya",
+        LSApplicationQueriesSchemes: ["mailto", "tel"],
+        // ステータスバー設定
+        UIStatusBarStyle: "UIStatusBarStyleDefault",
+        UIViewControllerBasedStatusBarAppearance: false
+      },
+      // アプリアイコン設定
+      config: {
+        usesNonExemptEncryption: false
+      }
     },
     android: {
       adaptiveIcon: {
@@ -32,7 +51,12 @@ export default {
         backgroundColor: "#ffffff"
       },
       package: "com.stilya.app",
-      versionCode: 1
+      versionCode: 1,
+      permissions: [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
     },
     web: {
       favicon: "./assets/favicon.png"
@@ -40,7 +64,13 @@ export default {
     plugins: [
       "expo-secure-store",
       "expo-notifications",
-      "expo-localization"
+      "expo-localization",
+      [
+        "expo-image",
+        {
+          "photosPermission": "Stilyaでファッションアイテムの写真を保存・閲覧するために必要です。"
+        }
+      ]
     ],
     scheme: "stilya",
     jsEngine: "hermes",

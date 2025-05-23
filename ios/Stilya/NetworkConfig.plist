@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Supabase API Configuration -->
+    <key>SUPABASEApiUrl</key>
+    <string>$(SUPABASE_URL)</string>
+    <key>SUPABASEAnonKey</key>
+    <string>$(SUPABASE_ANON_KEY)</string>
+    
+    <!-- LinkShare API Configuration -->
+    <key>LINKSHAREApiToken</key>
+    <string>$(LINKSHARE_API_TOKEN)</string>
+    <key>LINKSHAREMerchantId</key>
+    <string>$(LINKSHARE_MERCHANT_ID)</string>
+    
+    <!-- Rakuten API Configuration -->
+    <key>RAKUTENAppId</key>
+    <string>$(RAKUTEN_APP_ID)</string>
+    <key>RAKUTENAffiliateId</key>
+    <string>$(RAKUTEN_AFFILIATE_ID)</string>
+    
+    <!-- App Transport Security Settings -->
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsArbitraryLoads</key>
+        <false/>
+        <key>NSExceptionDomains</key>
+        <dict>
+            <!-- Supabase Domain -->
+            <key>supabase.co</key>
+            <dict>
+                <key>NSIncludesSubdomains</key>
+                <true/>
+                <key>NSExceptionAllowsInsecureHTTPLoads</key>
+                <false/>
+                <key>NSExceptionRequiresForwardSecrecy</key>
+                <false/>
+            </dict>
+            <!-- LinkShare Domain -->
+            <key>linksynergy.com</key>
+            <dict>
+                <key>NSIncludesSubdomains</key>
+                <true/>
+                <key>NSExceptionAllowsInsecureHTTPLoads</key>
+                <false/>
+            </dict>
+            <!-- Rakuten Domain -->
+            <key>rakuten.co.jp</key>
+            <dict>
+                <key>NSIncludesSubdomains</key>
+                <true/>
+                <key>NSExceptionAllowsInsecureHTTPLoads</key>
+                <false/>
+            </dict>
+        </dict>
+    </dict>
+</dict>
+</plist>
