@@ -2,64 +2,6 @@
   "expo": {
     "name": "Stilya",
     "slug": "stilya",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "automatic",
-    "owner": "aeroxkoki",
-    "hooks": {
-      "disableEnvironmentLoad": true
-    },
-    "experiments": {
-      "tsconfigPaths": true,
-      "typedRoutes": true
-    },
-    "packagerOpts": {
-      "sourceExts": ["js", "jsx", "ts", "tsx", "cjs", "mjs"],
-      "config": "metro.config.js"
-    },
-    "runtimeVersion": {
-      "policy": "sdkVersion"
-    },
-    "updates": {
-      "url": "https://u.expo.dev/beb25e0f-344b-4f2f-8b64-20614b9744a3",
-      "fallbackToCacheTimeout": 0,
-      "enabled": true
-    },
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
-    "ios": {
-      "supportsTablet": false,
-      "bundleIdentifier": "com.stilya.app",
-      "buildNumber": "1"
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "package": "com.stilya.app"
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    },
-    "plugins": [
-      "expo-secure-store",
-      "expo-notifications",
-      "expo-localization"
-    ],
-    "scheme": "stilya",
-    "jsEngine": "hermes",
-    "extra": {
-      "eas": {
-        "projectId": "beb25e0f-344b-4f2f-8b64-20614b9744a3"
-      }
-    }
+    "owner": "aeroxkoki"
   }
 }

@@ -10,13 +10,15 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     icon: "./assets/icon.png",
     userInterfaceStyle: "automatic",
     owner: "aeroxkoki",
+    // Managed workflowでは、policyベースのruntimeVersionが使用可能
     runtimeVersion: {
-      policy: "sdkVersion"
+      policy: "appVersion"
     },
     updates: {
       url: "https://u.expo.dev/beb25e0f-344b-4f2f-8b64-20614b9744a3",
       fallbackToCacheTimeout: 0,
-      enabled: true
+      enabled: true,
+      checkAutomatically: "ON_LOAD"
     },
     splash: {
       image: "./assets/splash-icon.png",
@@ -35,10 +37,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
         backgroundColor: "#ffffff"
-      }
-    },
-    web: {
-      favicon: "./assets/favicon.png"
+      },
+      package: "com.stilya.app",
+      versionCode: 1
     },
     plugins: [
       "expo-secure-store",
@@ -51,12 +52,12 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       eas: {
         projectId: "beb25e0f-344b-4f2f-8b64-20614b9744a3"
       },
-      supabaseUrl: process.env.SUPABASE_URL,
-      supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
-      linkshareApiToken: process.env.LINKSHARE_API_TOKEN,
-      linkshareMerchantId: process.env.LINKSHARE_MERCHANT_ID,
-      rakutenAppId: process.env.RAKUTEN_APP_ID,
-      rakutenAffiliateId: process.env.RAKUTEN_AFFILIATE_ID
+      supabaseUrl: process.env.SUPABASE_URL || "",
+      supabaseAnonKey: process.env.SUPABASE_ANON_KEY || "",
+      linkshareApiToken: process.env.LINKSHARE_API_TOKEN || "",
+      linkshareMerchantId: process.env.LINKSHARE_MERCHANT_ID || "",
+      rakutenAppId: process.env.RAKUTEN_APP_ID || "",
+      rakutenAffiliateId: process.env.RAKUTEN_AFFILIATE_ID || ""
     }
   };
 };

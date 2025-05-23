@@ -5,8 +5,6 @@
   "description": "パーソナライズ型ファッション提案アプリ",
   "scripts": {
     "start": "expo start",
-    "android": "expo run:android",
-    "ios": "expo run:ios",
     "test": "jest",
     "test:ci": "jest --ci --coverage --passWithNoTests --silent",
     "test:watch": "jest --watch",
@@ -15,7 +13,6 @@
     "type-check": "tsc --noEmit",
     "clean": "rm -rf node_modules/.cache .expo/cache .metro-cache",
     "reset": "npm run clean && rm -rf node_modules && npm install",
-    "prebuild": "expo prebuild --clean",
     "eas:build:android": "eas build --platform android --profile preview",
     "eas:build:ios": "eas build --platform ios --profile preview",
     "eas:build:ci": "eas build --platform android --profile ci --non-interactive"
