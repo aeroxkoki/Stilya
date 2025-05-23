@@ -21,6 +21,7 @@ import { NetworkProvider } from './src/contexts/NetworkContext';
 
 // Services
 // import { initializeSupabase } from './src/services/supabase';
+import { DEMO_MODE, showDemoModeMessage } from './src/services/demoService';
 
 // Utils
 // import { registerForPushNotificationsAsync } from './src/utils/notifications';
@@ -69,8 +70,20 @@ export default function App() {
     // アプリ初期化
     const initializeApp = async () => {
       try {
-        // Supabaseクライアントの初期化
-        // await initializeSupabase();
+        // デモモードのチェック
+        if (DEMO_MODE) {
+          showDemoModeMessage();
+          Toast.show({
+            type: 'info',
+            text1: 'デモモード',
+            text2: 'モックデータで動作しています',
+            position: 'top',
+            visibilityTime: 4000,
+          });
+        } else {
+          // Supabaseクライアントの初期化
+          // await initializeSupabase();
+        }
         
         // プッシュ通知の初期化（本番環境のみ）
         // if (__DEV__ === false) {

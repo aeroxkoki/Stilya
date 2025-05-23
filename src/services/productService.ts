@@ -1,8 +1,14 @@
 import { supabase, handleSupabaseError, handleSupabaseSuccess, TABLES } from './supabase';
+import { DEMO_MODE, demoService } from './demoService';
 
 export class ProductService {
   // Fetch products for swiping
   static async fetchProducts(limit: number = 20, offset: number = 0) {
+    // デモモードの場合
+    if (DEMO_MODE) {
+      return demoService.getProducts(limit, offset);
+    }
+
     try {
       const { data, error } = await supabase
         .from(TABLES.PRODUCTS)
@@ -119,6 +125,11 @@ export class ProductService {
 
   // Record product swipe
   static async recordSwipe(userId: string, productId: string, result: 'yes' | 'no') {
+    // デモモードの場合
+    if (DEMO_MODE) {
+      return demoService.saveSwipe(userId, productId, result);
+    }
+
     try {
       const { data, error } = await supabase
         .from(TABLES.SWIPES)
