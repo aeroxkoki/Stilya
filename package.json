@@ -15,7 +15,9 @@
     "reset": "npm run clean && rm -rf node_modules && npm install",
     "eas:build:android": "eas build --platform android --profile preview",
     "eas:build:ios": "eas build --platform ios --profile preview",
-    "eas:build:ci": "eas build --platform android --profile ci --non-interactive"
+    "eas:build:ci": "eas build --platform android --profile ci --non-interactive",
+    "android": "expo run:android",
+    "ios": "expo run:ios"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.0",
