@@ -11,7 +11,8 @@ export default {
     updates: {
       url: "https://u.expo.dev/beb25e0f-344b-4f2f-8b64-20614b9744a3",
       fallbackToCacheTimeout: 0,
-      enabled: true
+      enabled: true,
+      checkAutomatically: "ON_LOAD"
     },
     splash: {
       image: "./assets/splash-icon.png",
