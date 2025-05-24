@@ -15,9 +15,7 @@
     "reset": "npm run clean && rm -rf node_modules && npm install",
     "eas:build:android": "eas build --platform android --profile preview",
     "eas:build:ios": "eas build --platform ios --profile preview",
-    "eas:build:ci": "eas build --platform android --profile ci --non-interactive",
-    "android": "expo run:android",
-    "ios": "expo run:ios"
+    "eas:build:ci": "eas build --platform android --profile ci --non-interactive"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.0",
@@ -32,7 +30,6 @@
     "expo": "~53.0.0",
     "expo-application": "~6.1.0",
     "expo-crypto": "14.1.4",
-    "expo-dev-client": "~5.1.8",
     "expo-device": "~7.1.0",
     "expo-file-system": "18.1.10",
     "expo-image": "~2.1.0",
