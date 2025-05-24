@@ -4,7 +4,16 @@
 
 ## 概要
 
-StiliyaはユーザーのファッションスタイルをスワイプUIで学習し、パーソナライズされたファッション提案を行うモバイルアプリです。Yes/Noスワイプで好みを収集し、タグベースの推薦エンジンと（将来的に）画像特徴量によるベクトル検索を組み合わせた提案を行います。
+StilyaはユーザーのファッションスタイルをスワイプUIで学習し、パーソナライズされたファッション提案を行うモバイルアプリです。Yes/Noスワイプで好みを収集し、タグベースの推薦エンジンと（将来的に）画像特徴量によるベクトル検索を組み合わせた提案を行います。
+
+## 技術スタック
+
+- **フレームワーク**: Expo SDK 53 (Managed Workflow)
+- **言語**: TypeScript
+- **モバイル**: React Native
+- **バックエンド**: Supabase
+- **ビルド**: EAS Build (クラウド)
+- **CI/CD**: GitHub Actions
 
 ## 機能概要
 
@@ -20,8 +29,8 @@ StiliyaはユーザーのファッションスタイルをスワイプUIで学�
 git clone https://github.com/aeroxkoki/Stilya.git
 cd Stilya
 
-# 依存関係のインストールと初期設定
-npm run setup
+# 依存関係のインストール
+npm install
 
 # 開発サーバーの起動
 npm start
