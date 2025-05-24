@@ -254,3 +254,8 @@ export class RecommendationService {
     }
   }
 }
+
+// Export individual functions for convenience
+export const getRecommendations = RecommendationService.getPersonalizedRecommendations;
+export const analyzeUserPreferences = RecommendationService.analyzeUserPreferences;
+export const getPopularProducts = RecommendationService.getPopularProducts;

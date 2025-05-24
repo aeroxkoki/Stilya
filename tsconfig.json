@@ -5,7 +5,7 @@
     "lib": [
       "ES2020"
     ],
-    "allowJs": true,
+    "allowJs": false,
     "skipLibCheck": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
@@ -53,9 +53,10 @@
     }
   },
   "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    "**/*.d.ts"
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "app.config.ts",
+    "types/**/*.d.ts"
   ],
   "exclude": [
     "node_modules",
@@ -64,6 +65,9 @@
     "jest.config.js",
     "src/__tests__/**/*",
     "**/*.test.ts",
-    "**/*.test.tsx"
+    "**/*.test.tsx",
+    "supabase/**/*",
+    "**/*.js",
+    "verify-serializer-patch.js"
   ]
 }

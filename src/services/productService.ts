@@ -262,3 +262,8 @@ export class ProductService {
     }
   }
 }
+
+// Export individual functions for convenience
+export const fetchProducts = ProductService.fetchProducts;
+export const fetchProductsByTags = ProductService.searchProductsByTags;
+export const fetchProductById = ProductService.fetchProductById;
