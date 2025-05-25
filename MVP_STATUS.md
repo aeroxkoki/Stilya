@@ -47,12 +47,28 @@
 - ✅ レコメンドサービス (`recommendationService.ts`)
 - ✅ アフィリエイトサービス (`affiliate.ts`)
 
+## 現在の問題と対応状況 🚨
+
+### iOS シミュレーターの問題
+- **問題**: iOSシミュレーターがインストールされていない
+- **エラー**: `CommandError: No iOS devices available in Simulator.app`
+- **解決方法**: [iOS_SIMULATOR_SETUP.md](./IOS_SIMULATOR_SETUP.md) を参照
+
+### 環境設定の確認事項
+- ✅ Xcodeプロジェクト生成完了
+- ✅ CocoaPods インストール完了
+- ✅ UTF-8エンコーディング設定済み (`export LANG=en_US.UTF-8`)
+- ❌ iOSシミュレーター未インストール
+
 ## セットアップ手順 🚀
 
 ### 1. 環境準備
 ```bash
 # リポジトリのクローン（既に完了済み）
 cd /Users/koki_air/Documents/GitHub/Stilya
+
+# 環境変数の設定
+export LANG=en_US.UTF-8
 
 # セットアップスクリプトの実行
 ./setup-dev.sh
@@ -68,15 +84,25 @@ cd /Users/koki_air/Documents/GitHub/Stilya
    ```
 
 ### 3. 開発サーバーの起動
+
+#### オプション1: Expo Go（推奨・最も簡単）
 ```bash
 # Expo開発サーバーを起動
 npm start
 
-# iOS シミュレーターで起動
-npm run ios
+# QRコードが表示されたら、iPhoneのExpo Goアプリでスキャン
+```
 
-# Android エミュレーターで起動
-npm run android
+#### オプション2: iOSシミュレーター（要インストール）
+```bash
+# シミュレーターのインストール後
+npm run ios
+```
+
+#### オプション3: 実機ビルド
+```bash
+# iPhoneを接続して
+npm run ios --device
 ```
 
 ## テスト手順 🧪

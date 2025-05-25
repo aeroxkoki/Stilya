@@ -1,10 +1,14 @@
-// ExpoのJSON解析エラーに対処するための修正版エントリーポイント
+// React Native/Expo エントリーポイント
 import { registerRootComponent } from 'expo';
-import './src/utils/polyfills'; // グローバルポリフィルを最初にロード
-import App from './App';
 
-// JSONパーサーパッチをロード（できるだけ早く）
-import './patches/expo-monkey-patch/json-serializer-patch';
+// Polyfillを最初にロード
+import './src/utils/polyfills';
+
+// NativeWindスタイルの初期化
+import './src/styles/global.css';
+
+// アプリコンポーネント
+import App from './App';
 
 // バンドル時間の初期化（一部の環境で必要）
 if (global.__BUNDLE_START_TIME__ === undefined) {

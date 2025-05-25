@@ -9,8 +9,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 // Polyfills for React Native
 import 'react-native-url-polyfill/auto';
 
-// NativeWind setup (暫定的にコメントアウト)
-// import './src/styles/global.css';
+// NativeWind setup
+import './src/styles/global.css';
 
 // Components and Navigation
 import AppNavigator from './src/navigation/AppNavigator';

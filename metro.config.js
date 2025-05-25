@@ -1,5 +1,7 @@
 // Learn more https://docs.expo.io/guides/customizing-metro
 const { getDefaultConfig } = require('expo/metro-config');
+const { withNativeWind } = require('nativewind/metro');
+const path = require('path');
 
 /** @type {import('expo/metro-config').MetroConfig} */
 const config = getDefaultConfig(__dirname);
@@ -7,18 +9,42 @@ const config = getDefaultConfig(__dirname);
 // Add TypeScript and module resolution optimizations
 config.resolver = {
   ...config.resolver,
+  sourceExts: [...config.resolver.sourceExts, 'mjs'],
   alias: {
-    '@': './src',
-    '@/components': './src/components',
-    '@/screens': './src/screens',
-    '@/hooks': './src/hooks',
-    '@/services': './src/services',
-    '@/utils': './src/utils',
-    '@/types': './src/types',
-    '@/store': './src/store',
-    '@/constants': './src/constants',
-    '@/assets': './assets',
+    '@': path.resolve(__dirname, 'src'),
+    '@/components': path.resolve(__dirname, 'src/components'),
+    '@/screens': path.resolve(__dirname, 'src/screens'),
+    '@/hooks': path.resolve(__dirname, 'src/hooks'),
+    '@/services': path.resolve(__dirname, 'src/services'),
+    '@/utils': path.resolve(__dirname, 'src/utils'),
+    '@/types': path.resolve(__dirname, 'src/types'),
+    '@/store': path.resolve(__dirname, 'src/store'),
+    '@/constants': path.resolve(__dirname, 'src/constants'),
+    '@/assets': path.resolve(__dirname, 'assets'),
   },
+  // Ensure CSS is handled properly
+  assetExts: [...(config.resolver?.assetExts || []), 'css'],
 };
 
-module.exports = config;
+// Configure transformer for better performance
+config.transformer = {
+  ...config.transformer,
+  getTransformOptions: async () => ({
+    transform: {
+      experimentalImportSupport: false,
+      inlineRequires: true,
+    },
+  }),
+};
+
+// Reset cache configuration for better stability
+config.resetCache = false;
+config.maxWorkers = 4;
+
+// Watchman configuration for better file watching
+config.watchFolders = [path.resolve(__dirname)];
+
+module.exports = withNativeWind(config, { 
+  input: './src/styles/global.css',
+  inlineRem: false,
+});
