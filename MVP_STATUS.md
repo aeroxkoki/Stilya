@@ -7,6 +7,7 @@
 - ✅ Supabase統合（認証・データベース・ストレージ）
 - ✅ 基本的なナビゲーション構造（React Navigation）
 - ✅ 状態管理（Zustand）
+- ✅ **Managed Workflow**（Expo推奨の構成）
 
 ### 実装済みの画面
 1. **認証画面** (`src/screens/auth/`)
@@ -47,19 +48,6 @@
 - ✅ レコメンドサービス (`recommendationService.ts`)
 - ✅ アフィリエイトサービス (`affiliate.ts`)
 
-## 現在の問題と対応状況 🚨
-
-### iOS シミュレーターの問題
-- **問題**: iOSシミュレーターがインストールされていない
-- **エラー**: `CommandError: No iOS devices available in Simulator.app`
-- **解決方法**: [iOS_SIMULATOR_SETUP.md](./IOS_SIMULATOR_SETUP.md) を参照
-
-### 環境設定の確認事項
-- ✅ Xcodeプロジェクト生成完了
-- ✅ CocoaPods インストール完了
-- ✅ UTF-8エンコーディング設定済み (`export LANG=en_US.UTF-8`)
-- ❌ iOSシミュレーター未インストール
-
 ## セットアップ手順 🚀
 
 ### 1. 環境準備
@@ -67,11 +55,8 @@
 # リポジトリのクローン（既に完了済み）
 cd /Users/koki_air/Documents/GitHub/Stilya
 
-# 環境変数の設定
-export LANG=en_US.UTF-8
-
-# セットアップスクリプトの実行
-./setup-dev.sh
+# 依存関係のインストール
+npm install
 ```
 
 ### 2. Supabaseの設定
@@ -85,24 +70,20 @@ export LANG=en_US.UTF-8
 
 ### 3. 開発サーバーの起動
 
-#### オプション1: Expo Go（推奨・最も簡単）
+#### Expo Go アプリで開発（推奨）
 ```bash
 # Expo開発サーバーを起動
 npm start
 
-# QRコードが表示されたら、iPhoneのExpo Goアプリでスキャン
+# 表示されるQRコードをExpo Goアプリでスキャン
 ```
 
-#### オプション2: iOSシミュレーター（要インストール）
+#### Web ブラウザで確認
 ```bash
-# シミュレーターのインストール後
-npm run ios
-```
+# Expo開発サーバーを起動
+npm start
 
-#### オプション3: 実機ビルド
-```bash
-# iPhoneを接続して
-npm run ios --device
+# ブラウザで開く（キーボードで 'w' を押す）
 ```
 
 ## テスト手順 🧪
@@ -134,6 +115,16 @@ npm run ios --device
 1. プロフィール画面でユーザー情報を確認
 2. スワイプ履歴が表示されることを確認
 3. お気に入り商品が表示されることを確認
+
+## 現在の開発環境 ⚡
+
+- **ワークフロー**: Managed Workflow（Expo推奨）
+- **開発方法**: Expo Go アプリ
+- **利点**:
+  - ネイティブコードの管理不要
+  - OTA（Over-The-Air）更新が可能
+  - 高速な開発サイクル
+  - QRコードで即座にテスト可能
 
 ## 既知の問題と対応 ⚠️
 

@@ -5,10 +5,6 @@
   "description": "パーソナライズ型ファッション提案アプリ",
   "scripts": {
     "start": "expo start",
-    "ios": "expo run:ios",
-    "android": "expo run:android",
-    "prebuild": "expo prebuild",
-    "prebuild:clean": "expo prebuild --clear",
     "test": "jest",
     "test:ci": "jest --ci --coverage --passWithNoTests --silent",
     "test:watch": "jest --watch",

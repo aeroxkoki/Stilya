@@ -100,3 +100,6 @@ keystore-base64.txt
 
 # Expo generated
 expo-env.d.ts
+# Native projects (managed workflow)
+ios/
+android/
