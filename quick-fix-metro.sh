@@ -23,7 +23,7 @@ fi
 echo "🚀 Starting Expo with optimized settings..."
 EXPO_USE_FAST_REFRESH=true \
 RCT_METRO_PORT=8081 \
-expo start --clear --localhost
+npx expo start --clear
 
 echo ""
 echo "📱 The Metro bundler is now running!"
