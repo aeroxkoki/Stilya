@@ -1,0 +1,112 @@
+開発仕様書（MVP対応）
+1. プロジェクト概要
+項目	内容
+アプリ名	Stilya
+タイプ	モバイルアプリ（iOS / Android）
+フレームワーク	React Native（Expo）
+使用言語	TypeScript
+バックエンド	Supabase（Auth / DB / Storage）
+目的	Yes/No スワイプでファッションの好みを学習・最適なアイテムを提案
+収益化	アフィリエイトリンク経由の報酬（LinkShare API活用）
+
+2. システム構成図
+css
+コピーする
+編集する
+[ユーザー端末]
+   ↓ React Native（Expo）
+[Stilya アプリ]
+   ↓ HTTPS API通信
+[Supabase（API / DB / Auth）] ← 商品登録用バッチ（LinkShare API）
+3. 使用技術詳細
+カテゴリ	技術
+UI	React Native + NativeWind (Tailwind互換)
+状態管理	Zustand or Redux Toolkit
+認証	Supabase Auth（メール認証）
+DB	Supabase Postgres
+デプロイ	Expo EASビルド（App Store / Google Play）
+外部API	LinkShare API（商品データ取得）
+分析	Expo Analytics / Supabaseログ保存
+
+4. 主要機能仕様
+🔐 認証機能
+項目	内容
+機能	メールリンク認証 or メール＋パスワードログイン
+使用サービス	Supabase Auth
+備考	ソーシャル認証はMVPでは未対応
+
+📦 商品データ取得
+項目	内容
+使用API	LinkShare（Rakuten, UNIQLO等）
+データ項目	商品名、画像、価格、カテゴリ、タグ、アフィリエイトリンク
+保存方法	Supabaseへの定期登録（nodeバッチ or cron）
+更新頻度	毎週1回程度（初期は手動更新可）
+
+🎴 スワイプ画面（UI/UX）
+項目	内容
+表示形式	Tinder風カードUI
+操作	左スワイプ：No、右スワイプ：Yes
+表示要素	商品画像、ブランド名、価格、簡単な説明文
+状態保存	スワイプごとにSupabaseへログ送信
+
+🎯 好み分析・推薦
+項目	内容
+初期アルゴリズム	タグ一致・ジャンルマッチングベース
+拡張案	CLIPによる画像特徴ベクトルマッチング
+推薦タイミング	スワイプ一定数以降にホームで推薦提示
+
+🔗 外部リンク遷移
+項目	内容
+操作	おすすめ商品詳細画面の「購入する」ボタン
+遷移先	アフィリエイトリンク経由の外部ECサイト
+備考	遷移ログはDBに記録（アナリティクス対応）
+
+5. データベース構成（Supabase）
+sql
+コピーする
+編集する
+users (
+  id uuid PK,
+  email text,
+  created_at timestamp
+)
+
+products (
+  id uuid PK,
+  title text,
+  image_url text,
+  tags text[],
+  price numeric,
+  affiliate_url text,
+  source text
+)
+
+swipes (
+  id uuid PK,
+  user_id uuid FK,
+  product_id uuid FK,
+  result text CHECK ('yes', 'no'),
+  created_at timestamp
+)
+
+favorites (
+  id uuid PK,
+  user_id uuid FK,
+  product_id uuid FK
+)
+6. スケジュール（目安）
+フェーズ	期間	内容
+設計・初期構築	1週目	Expo + Supabase接続、環境構築
+UI実装	2〜3週目	スワイプ画面・認証UI・商品表示
+データ連携	4週目	LinkShare API連携・DB登録処理
+好み分析	5週目	タグベース推薦ロジック組み込み
+テスト・修正	6週目	初期ユーザーテスト・修正・アプリ提出
+
+7. 補足事項・今後の拡張
+推薦ロジックの強化（画像ベクトル、行動データ解析）
+
+ユーザープロファイル入力機能（性別・体型・好み）
+
+スタイリスト連携型UI
+
+サステナブルブランドとの提携
