@@ -1,54 +1,57 @@
 #!/bin/bash
 
-echo "🚀 Stilya iOS Quick Test (Expo Go)"
+echo "=� Stilya iOS Quick Test (Expo Go)"
 echo "=================================="
 
 cd /Users/koki_air/Documents/GitHub/Stilya
 
-# 環境変数のチェック
+# ��	pn��ï
 if [ ! -f .env ]; then
-    echo "⚠️  .envファイルが見つかりません"
-    echo "📝 .env.exampleから.envを作成します..."
+    echo "�  .envա��L�dK�~[�"
+    echo "=� .env.exampleK�.env�\W~Y..."
     
     if [ -f .env.example ]; then
         cp .env.example .env
-        echo "✅ .envファイルを作成しました"
-        echo "   → 必要に応じて環境変数を設定してください"
+        echo " .envա��\W~W_"
+        echo "   � Łk�Xf��	p�-�WfO`UD"
     else
-        echo "❌ .env.exampleも見つかりません"
-        echo "   → デモモードで起動します"
+        echo "L .env.example��dK�~[�"
+        echo "   � �����gw�W~Y"
     fi
 fi
 
-# キャッシュクリア
+# ��÷��
 echo ""
-echo "🧹 キャッシュをクリア中..."
+echo ">� ��÷咯�-..."
 rm -rf node_modules/.cache
 rm -rf .expo/cache
 rm -rf .metro-cache
 
-# パッケージの確認
+# �ñ��n��
 echo ""
-echo "📦 依存関係を確認中..."
+echo "=� �X���-..."
 if [ ! -d "node_modules" ]; then
-    echo "📥 依存関係をインストール中..."
+    echo "=� �X������-..."
     npm install
 fi
 
-# Expo Goで起動
+# Expo Gogw�
 echo ""
-echo "📱 Expo Goで起動中..."
+echo "=� Expo Gogw�-..."
 echo ""
-echo "使い方:"
-echo "1. iPhoneでExpo Goアプリをダウンロード"
-echo "2. 下に表示されるQRコードをスキャン"
-echo "3. アプリが自動的に読み込まれます"
+echo "D�:"
+echo "1. iPhonegExpo Go���������"
+echo "2. kh:U��QR��ɒ����"
+echo "3. ���L�Մk��~�~Y"
 echo ""
-echo "ヒント:"
-echo "- 同じWi-Fiネットワークに接続してください"
-echo "- QRコードが表示されない場合は 'shift + q' を押す"
-echo "- 問題がある場合は 'r' でリロード"
+echo "���:"
+echo "- XWi-Fi������k��WfO`UD"
+echo "- QR���Lh:U�jD4o 'shift + q' ��Y"
+echo "- OLLB�4o 'r' g����"
 echo ""
 
-# Expo start with clear cache
-npx expo start --clear --tunnel
+# Expo start with clear cache (LAN mode)
+echo "< LAN���gw�W~Y����	"
+echo "   iPhonehMacLXWi-Fik��U�fD�Sh���WfO`UD"
+echo ""
+npx expo start --clear
