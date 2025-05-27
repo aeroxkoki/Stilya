@@ -2,6 +2,40 @@
   "expo": {
     "name": "Stilya",
     "slug": "stilya",
-    "owner": "aeroxkoki"
+    "owner": "aeroxkoki",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.aeroxkoki.stilya"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.aeroxkoki.stilya"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "packagerOpts": {
+      "sourceExts": ["js", "jsx", "ts", "tsx", "mjs"]
+    },
+    "extra": {
+      "eas": {
+        "projectId": "your-project-id"
+      }
+    }
   }
 }
