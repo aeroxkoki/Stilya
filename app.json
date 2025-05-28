@@ -26,12 +26,6 @@
       },
       "package": "com.aeroxkoki.stilya"
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    },
-    "packagerOpts": {
-      "sourceExts": ["js", "jsx", "ts", "tsx", "mjs"]
-    },
     "extra": {
       "eas": {
         "projectId": "your-project-id"
