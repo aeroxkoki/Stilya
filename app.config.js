@@ -7,11 +7,10 @@ export default {
     icon: "./assets/icon.png",
     userInterfaceStyle: "automatic",
     owner: "aeroxkoki",
-    runtimeVersion: "1.0.0",
     updates: {
       url: "https://u.expo.dev/beb25e0f-344b-4f2f-8b64-20614b9744a3",
       fallbackToCacheTimeout: 0,
-      enabled: true
+      enabled: false
     },
     splash: {
       image: "./assets/splash-icon.png",
@@ -65,13 +64,6 @@ export default {
       "expo-secure-store",
       "expo-notifications",
       "expo-localization"
-      // Temporarily commented out due to Node.js v23 compatibility issue
-      // [
-      //   "expo-image",
-      //   {
-      //     "photosPermission": "Stilyaでファッションアイテムの写真を保存・閲覧するために必要です。"
-      //   }
-      // ]
     ],
     scheme: "stilya",
     jsEngine: "hermes",
