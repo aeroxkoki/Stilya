@@ -51,6 +51,18 @@ temp-backup-*/
 *.bak
 *.backup
 
+# Backup files
+*.backup
+*.bak
+*~
+*.swp
+*.swo
+
+# Scripts backup
+scripts/backup/
+scripts/old/
+scripts/temp/
+
 # Logs
 logs
 *.log
