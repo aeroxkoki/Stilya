@@ -22,7 +22,7 @@ config.resolver = {
   },
 };
 
-// Fix for React Native 0.76.5 compatibility
+// Fix for React Native 0.74.5 compatibility
 config.watchFolders = [path.resolve(__dirname)];
 config.resetCache = true;
 
