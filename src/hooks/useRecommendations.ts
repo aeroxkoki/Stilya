@@ -7,6 +7,12 @@ import {
   getPopularProducts
 } from '@/services/recommendationService';
 
+interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
+
 interface UseRecommendationsReturn {
   recommendations: Product[];
   userPreference: UserPreference | null;
@@ -27,9 +33,13 @@ export const useRecommendations = (): UseRecommendationsReturn => {
       // ログインしていない場合は人気商品を表示
       setIsLoading(true);
       try {
-        const popularProducts = await getPopularProducts(20);
-        setRecommendations(popularProducts);
-        setError(null);
+        const result = await getPopularProducts(20) as ApiResponse<Product[]>;
+        if (result.success && result.data) {
+          setRecommendations(result.data);
+          setError(null);
+        } else {
+          setError(result.error || '商品の取得に失敗しました');
+        }
       } catch (err) {
         console.error('Error fetching popular products:', err);
         setError('商品の取得に失敗しました');
@@ -44,18 +54,22 @@ export const useRecommendations = (): UseRecommendationsReturn => {
 
     try {
       // ユーザーの好み分析
-      const preference = await analyzeUserPreferences(user.id);
-      setUserPreference(preference);
+      const preferenceResult = await analyzeUserPreferences(user.id) as ApiResponse<UserPreference>;
+      if (preferenceResult.success && preferenceResult.data) {
+        setUserPreference(preferenceResult.data);
+      }
 
       // 推薦商品取得
-      const recommendedProducts = await getRecommendations(user.id, 20);
+      const recommendResult = await getRecommendations(user.id, 20) as ApiResponse<Product[]>;
       
-      if (recommendedProducts.length === 0) {
-        // 推薦商品がない場合は人気商品を取得
-        const popularProducts = await getPopularProducts(20);
-        setRecommendations(popularProducts);
+      if (recommendResult.success && recommendResult.data && recommendResult.data.length > 0) {
+        setRecommendations(recommendResult.data);
       } else {
-        setRecommendations(recommendedProducts);
+        // 推薦商品がない場合は人気商品を取得
+        const popularResult = await getPopularProducts(20) as ApiResponse<Product[]>;
+        if (popularResult.success && popularResult.data) {
+          setRecommendations(popularResult.data);
+        }
       }
     } catch (err) {
       console.error('Error fetching recommendations:', err);
@@ -63,8 +77,10 @@ export const useRecommendations = (): UseRecommendationsReturn => {
       
       // エラー時は人気商品を取得
       try {
-        const popularProducts = await getPopularProducts(20);
-        setRecommendations(popularProducts);
+        const popularResult = await getPopularProducts(20) as ApiResponse<Product[]>;
+        if (popularResult.success && popularResult.data) {
+          setRecommendations(popularResult.data);
+        }
       } catch (fallbackErr) {
         console.error('Error fetching fallback products:', fallbackErr);
       }

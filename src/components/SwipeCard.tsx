@@ -30,8 +30,8 @@ interface SwipeCardProps {
   onPress?: () => void;
   yesIndicatorStyle?: any;
   noIndicatorStyle?: any;
-  index?: number;
   testID?: string;
+  index?: number;
 }
 
 const SwipeCard: React.FC<SwipeCardProps> = ({
@@ -209,7 +209,7 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
     <Animated.View
       style={[
         styles.container,
-        cardAnimStyle,
+        cardAnimStyle as any,
         { padding: 8 }
       ]}
       testID={testID}

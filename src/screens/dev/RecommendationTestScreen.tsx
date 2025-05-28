@@ -14,13 +14,11 @@ const RecommendationTestScreen: React.FC = () => {
   const { user } = useAuth();
   const {
     recommendations,
-    categoryRecommendations, 
     userPreference,
     isLoading,
     error,
     refreshRecommendations,
-    clearCache
-  } = useRecommendations(20);
+  } = useRecommendations();
   
   const [testResults, setTestResults] = useState<string[]>([]);
   const [showDetails, setShowDetails] = useState(false);
@@ -53,10 +51,10 @@ const RecommendationTestScreen: React.FC = () => {
   };
 
   // キャッシュクリアとリロード
-  const handleClearCacheAndRefresh = () => {
-    clearCache();
-    refreshRecommendations(true);
-    setTestResults(['キャッシュをクリアしました。データを再読み込みしています...']);
+  const handleClearCacheAndRefresh = async () => {
+    // キャッシュクリア機能は現在未実装
+    await refreshRecommendations();
+    setTestResults(['データを再読み込みしました。']);
   };
 
   // エッジケーステスト
@@ -71,24 +69,24 @@ const RecommendationTestScreen: React.FC = () => {
     const logs: string[] = [];
     
     try {
-      // テスト1: キャッシュ使用
+      // テスト1: 通常の更新
       const start1 = performance.now();
-      await refreshRecommendations(false);
+      await refreshRecommendations();
       const end1 = performance.now();
-      logs.push(`テスト1: キャッシュ使用 - ${(end1 - start1).toFixed(2)}ms`);
+      logs.push(`テスト1: 通常更新 - ${(end1 - start1).toFixed(2)}ms`);
       
-      // テスト2: キャッシュスキップ
+      // テスト2: 再度の更新
       const start2 = performance.now();
-      await refreshRecommendations(true);
+      await refreshRecommendations();
       const end2 = performance.now();
-      logs.push(`テスト2: キャッシュなし - ${(end2 - start2).toFixed(2)}ms`);
+      logs.push(`テスト2: 再更新 - ${(end2 - start2).toFixed(2)}ms`);
       
       // テスト3: 複数回呼び出し（並行処理テスト）
       const start3 = performance.now();
       await Promise.all([
-        refreshRecommendations(false),
-        refreshRecommendations(false),
-        refreshRecommendations(false)
+        refreshRecommendations(),
+        refreshRecommendations(),
+        refreshRecommendations()
       ]);
       const end3 = performance.now();
       logs.push(`テスト3: 並行処理テスト - ${(end3 - start3).toFixed(2)}ms`);
@@ -113,7 +111,6 @@ const RecommendationTestScreen: React.FC = () => {
         <Text>読み込み状態: {isLoading ? '読込中...' : '完了'}</Text>
         {error && <Text style={styles.error}>{error}</Text>}
         <Text>レコメンド商品数: {recommendations.length}</Text>
-        <Text>カテゴリ別商品: {Object.keys(categoryRecommendations).length} カテゴリ</Text>
         
         {userPreference && (
           <View style={styles.preferenceSection}>
@@ -169,8 +166,8 @@ const RecommendationTestScreen: React.FC = () => {
         
         <View style={styles.buttonContainer}>
           <Button 
-            title="手動更新（キャッシュ使用）" 
-            onPress={() => refreshRecommendations(false)}
+            title="手動更新" 
+            onPress={() => refreshRecommendations()}
             disabled={isLoading || !user}
           />
         </View>

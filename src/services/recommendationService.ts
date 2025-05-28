@@ -12,7 +12,7 @@ interface SwipeWithProduct {
 
 export class RecommendationService {
   // Analyze user preferences based on swipe history
-  static async analyzeUserPreferences(userId: string): Promise<UserPreference | null> {
+  static async analyzeUserPreferences(userId: string) {
     try {
       const { data, error } = await supabase
         .from(TABLES.SWIPES)
@@ -25,11 +25,11 @@ export class RecommendationService {
 
       if (error) {
         console.error('Error fetching user swipes:', error);
-        return null;
+        return handleSupabaseError(error);
       }
 
       if (!data || data.length === 0) {
-        return null;
+        return handleSupabaseSuccess(null);
       }
 
       // Analyze tags
@@ -86,7 +86,7 @@ export class RecommendationService {
         max: Math.max(...prices),
       } : { min: 0, max: 100000 };
 
-      return {
+      const userPreference: UserPreference = {
         userId,
         likedTags,
         dislikedTags: [], // Would need additional analysis for disliked tags
@@ -94,22 +94,28 @@ export class RecommendationService {
         avgPriceRange,
         brands: preferredBrands,
         price_range: avgPriceRange,
+        topTags: likedTags.slice(0, 5),
+        tagScores: tagFrequency,
       };
+
+      return handleSupabaseSuccess(userPreference);
     } catch (error) {
       console.error('Error analyzing user preferences:', error);
-      return null;
+      return handleSupabaseError(error);
     }
   }
 
   // Get personalized recommendations based on user preferences
   static async getPersonalizedRecommendations(userId: string, limit: number = 20) {
     try {
-      const preferences = await this.analyzeUserPreferences(userId);
+      const preferencesResult = await this.analyzeUserPreferences(userId);
       
-      if (!preferences) {
+      if (!preferencesResult.success || !preferencesResult.data) {
         // Fallback to popular products if no preferences found
         return await this.getPopularProducts(limit);
       }
+
+      const preferences = preferencesResult.data;
 
       // Get swiped product IDs to exclude
       const { data: swipedData } = await supabase
