@@ -7,6 +7,13 @@ import { Feather } from '@expo/vector-icons';
 // Context
 import { useAuth } from '../contexts/AuthContext';
 
+// Screens
+import SwipeScreen from '../screens/swipe/SwipeScreen';
+import RecommendScreen from '../screens/recommend/RecommendScreen';
+import ProfileScreen from '../screens/profile/ProfileScreen';
+import AuthScreen from '../screens/auth/AuthScreen';
+import ProductDetailScreen from '../screens/detail/ProductDetailScreen';
+
 // 型定義
 type RootStackParamList = {
   Main: undefined;
@@ -23,35 +30,6 @@ type MainTabParamList = {
 // スタックナビゲーター
 const Stack = createStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
-
-// 一時的なスクリーンコンポーネント
-const SwipeScreen = () => (
-  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-    <Text style={{ fontSize: 18, fontWeight: 'bold' }}>スワイプ画面</Text>
-    <Text style={{ marginTop: 10, color: '#666' }}>スワイプ機能を実装予定</Text>
-  </View>
-);
-
-const RecommendationsScreen = () => (
-  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-    <Text style={{ fontSize: 18, fontWeight: 'bold' }}>おすすめ画面</Text>
-    <Text style={{ marginTop: 10, color: '#666' }}>レコメンド機能を実装予定</Text>
-  </View>
-);
-
-const ProfileScreen = () => (
-  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-    <Text style={{ fontSize: 18, fontWeight: 'bold' }}>プロフィール画面</Text>
-    <Text style={{ marginTop: 10, color: '#666' }}>プロフィール機能を実装予定</Text>
-  </View>
-);
-
-const AuthScreen = () => (
-  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-    <Text style={{ fontSize: 18, fontWeight: 'bold' }}>認証画面</Text>
-    <Text style={{ marginTop: 10, color: '#666' }}>ログイン・サインアップ機能を実装予定</Text>
-  </View>
-);
 
 // メインのタブナビゲーション
 const MainTabNavigator = () => {
@@ -87,7 +65,7 @@ const MainTabNavigator = () => {
       />
       <Tab.Screen
         name="Recommendations"
-        component={RecommendationsScreen}
+        component={RecommendScreen}
         options={{
           tabBarLabel: 'おすすめ',
           tabBarIcon: ({ color, size }) => (

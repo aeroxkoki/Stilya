@@ -110,6 +110,10 @@ keystore-base64.txt
 # *.sh
 # *.js.backup
 
+# Cleanup scripts
+cleanup-*.sh
+fix-*.sh
+
 # Expo generated
 expo-env.d.ts
 # Native projects (managed workflow)
