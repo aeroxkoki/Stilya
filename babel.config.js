@@ -22,7 +22,6 @@ module.exports = function(api) {
         },
       ],
       'nativewind/babel',
-      'react-native-reanimated/plugin',
     ],
   };
 };
