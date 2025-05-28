@@ -63,12 +63,7 @@
     "node_modules",
     "babel.config.js",
     "metro.config.js",
-    "jest.config.js",
-    "src/__tests__/**/*",
-    "**/*.test.ts",
-    "**/*.test.tsx",
     "supabase/**/*",
-    "**/*.js",
-    "verify-serializer-patch.js"
+    "**/*.js"
   ]
 }
