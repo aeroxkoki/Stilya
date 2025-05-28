@@ -22,4 +22,13 @@ config.resolver = {
   },
 };
 
+// Fix for React Native 0.76.5 compatibility
+config.watchFolders = [path.resolve(__dirname)];
+config.resetCache = true;
+
+// Server configuration
+config.server = {
+  port: 8081,
+};
+
 module.exports = config;
