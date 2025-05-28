@@ -27,7 +27,6 @@
     "@react-navigation/stack": "^6.3.25",
     "@supabase/supabase-js": "^2.39.3",
     "axios": "^1.6.7",
-    "color-string": "2.0.1",
     "expo": "~53.0.0",
     "expo-application": "~6.1.0",
     "expo-crypto": "14.1.4",
@@ -41,7 +40,6 @@
     "expo-status-bar": "~2.2.0",
     "expo-updates": "~0.28.13",
     "nativewind": "^4.0.1",
-    "punycode": "2.3.1",
     "react": "18.3.1",
     "react-native": "0.79.2",
     "react-native-gesture-handler": "~2.24.0",
@@ -50,7 +48,6 @@
     "react-native-screens": "4.10.0",
     "react-native-toast-message": "^2.2.0",
     "react-native-url-polyfill": "^2.0.0",
-    "simple-swizzle": "0.2.2",
     "zustand": "^4.4.7"
   },
   "devDependencies": {
