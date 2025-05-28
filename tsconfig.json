@@ -55,7 +55,7 @@
   "include": [
     "src/**/*.ts",
     "src/**/*.tsx",
-    "app.config.ts",
+    "App.tsx",
     "types/**/*.d.ts",
     "nativewind-env.d.ts"
   ],

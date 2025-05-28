@@ -64,13 +64,14 @@ export default {
     plugins: [
       "expo-secure-store",
       "expo-notifications",
-      "expo-localization",
-      [
-        "expo-image",
-        {
-          "photosPermission": "Stilyaでファッションアイテムの写真を保存・閲覧するために必要です。"
-        }
-      ]
+      "expo-localization"
+      // Temporarily commented out due to Node.js v23 compatibility issue
+      // [
+      //   "expo-image",
+      //   {
+      //     "photosPermission": "Stilyaでファッションアイテムの写真を保存・閲覧するために必要です。"
+      //   }
+      // ]
     ],
     scheme: "stilya",
     jsEngine: "hermes",
