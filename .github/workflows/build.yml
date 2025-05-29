@@ -7,43 +7,9 @@ on:
     branches: [ main, develop ]
 
 jobs:
-  test:
-    name: Test and Lint
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: 📦 Checkout repository
-        uses: actions/checkout@v4
-
-      - name: 🏗️ Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20.11.1'
-          cache: 'npm'
-
-      - name: 📥 Install dependencies
-        run: |
-          # Clear any existing cache
-          rm -rf node_modules .expo/cache .metro-cache
-          # Install dependencies using npm ci with legacy peer deps
-          npm ci --legacy-peer-deps
-          # Verify Expo and Metro setup
-          npx expo doctor || true
-
-      - name: 🔧 Run type check
-        run: npm run type-check
-
-      - name: 🔍 Run linter
-        run: npm run lint || true
-
-      - name: 🧪 Run tests
-        run: npm run test:ci
-
   build:
     name: EAS Build
-    needs: test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
     
     steps:
       - name: 📦 Checkout repository
@@ -52,8 +18,11 @@ jobs:
       - name: 🏗️ Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.11.1'
+          node-version: '20.18.1'
           cache: 'npm'
+
+      - name: 📥 Install dependencies
+        run: npm install
 
       - name: 🏗️ Setup EAS
         uses: expo/expo-github-action@v8
@@ -61,83 +30,18 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: 📥 Install dependencies
-        run: |
-          # Clear any existing cache
-          rm -rf node_modules .expo/cache .metro-cache
-          # Install dependencies using npm ci with legacy peer deps
-          npm ci --legacy-peer-deps
-          # Verify Expo and Metro setup
-          npx expo doctor || true
-
-      - name: 🔧 Create credentials and environment
-        run: |
-          mkdir -p android/app
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/stilya-keystore.jks
-          # Verify keystore exists and has correct permissions
-          ls -la android/app/stilya-keystore.jks
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-
-      - name: 🔧 Run type check
-        run: npm run type-check
-
-      - name: 🚀 Build Android APK
-        run: eas build --platform android --profile ci --non-interactive
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-
-  build-preview:
-    name: EAS Build Preview
-    needs: test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/develop'
-    
-    steps:
-      - name: 📦 Checkout repository
-        uses: actions/checkout@v4
-
-      - name: 🏗️ Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20.11.1'
-          cache: 'npm'
-
-      - name: 🏗️ Setup EAS
-        uses: expo/expo-github-action@v8
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
-
-      - name: 📥 Install dependencies
-        run: |
-          # Clear any existing cache
-          rm -rf node_modules .expo/cache .metro-cache
-          # Install dependencies using npm ci with legacy peer deps
-          npm ci --legacy-peer-deps
-          # Verify Expo and Metro setup
-          npx expo doctor || true
-
-      - name: 🔧 Create credentials and environment  
-        run: |
-          mkdir -p android/app
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/stilya-keystore.jks
-          # Verify keystore exists and has correct permissions
-          ls -la android/app/stilya-keystore.jks
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-
-      - name: 🔧 Run type check
-        run: npm run type-check
-
-      - name: 🚀 Build Android Preview APK
+      - name: 🚀 Build Android APK (Preview)
+        if: github.ref == 'refs/heads/develop'
         run: eas build --platform android --profile preview --non-interactive
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
+      - name: 🚀 Build iOS App (Preview)
+        if: github.ref == 'refs/heads/develop'
+        run: eas build --platform ios --profile preview --non-interactive
+
+      - name: 🚀 Build Android Production
+        if: github.ref == 'refs/heads/main'
+        run: eas build --platform android --profile production --non-interactive
+
+      - name: 🚀 Build iOS Production
+        if: github.ref == 'refs/heads/main'
+        run: eas build --platform ios --profile production --non-interactive

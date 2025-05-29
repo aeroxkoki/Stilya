@@ -1,35 +1,37 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { View, Text, StyleSheet } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import Toast from 'react-native-toast-message';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-// 最小限のApp.tsxで動作確認
+// Polyfills for React Native
+import 'react-native-url-polyfill/auto';
+
+// Components and Navigation
+import AppNavigator from './src/navigation/AppNavigator';
+import { AuthProvider } from './src/contexts/AuthContext';
+import { NetworkProvider } from './src/contexts/NetworkContext';
+
 export default function App() {
+  useEffect(() => {
+    // アプリ初期化
+    console.log('🚀 Stilya MVP App initialized');
+  }, []);
+
   return (
-    <SafeAreaProvider>
-      <View style={styles.container}>
-        <Text style={styles.title}>Stilya MVP</Text>
-        <Text style={styles.subtitle}>最小構成テスト</Text>
-        <StatusBar style="auto" />
-      </View>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <NetworkProvider>
+          <AuthProvider>
+            <NavigationContainer>
+              <StatusBar style="auto" />
+              <AppNavigator />
+              <Toast />
+            </NavigationContainer>
+          </AuthProvider>
+        </NetworkProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-  },
-});

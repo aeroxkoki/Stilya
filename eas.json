@@ -3,9 +3,6 @@
     "version": ">=7.3.0",
     "appVersionSource": "local"
   },
-  "project": {
-    "id": "beb25e0f-344b-4f2f-8b64-20614b9744a3"
-  },
   "build": {
     "development": {
       "distribution": "internal",
@@ -19,8 +16,7 @@
     "preview": {
       "distribution": "internal",
       "android": {
-        "buildType": "apk",
-        "credentialsSource": "local"
+        "buildType": "apk"
       },
       "env": {
         "NODE_ENV": "development"
@@ -28,38 +24,12 @@
     },
     "production": {
       "distribution": "store",
-      "autoIncrement": true,
-      "android": {
-        "buildType": "app-bundle"
-      }
-    },
-    "ci": {
-      "distribution": "internal",
-      "android": {
-        "buildType": "apk",
-        "credentialsSource": "local"
-      },
       "env": {
-        "NODE_ENV": "development"
-      },
-      "node": "20.11.1",
-      "autoIncrement": false,
-      "cache": {
-        "disabled": false
+        "NODE_ENV": "production"
       }
     }
   },
   "submit": {
-    "production": {
-      "android": {
-        "serviceAccountKeyPath": "path/to/api-key.json",
-        "track": "internal"
-      },
-      "ios": {
-        "appleId": "your-apple-id@example.com",
-        "ascAppId": "1234567890",
-        "appleTeamId": "ABCDEF1234"
-      }
-    }
+    "production": {}
   }
 }
