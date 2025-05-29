@@ -1,5 +1,5 @@
 import React from 'react';
-import { createStackNavigator } from '@react-navigation/stack';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { ActivityIndicator, View, Text } from 'react-native';
 import { Feather } from '@expo/vector-icons';
@@ -28,7 +28,7 @@ type MainTabParamList = {
 };
 
 // スタックナビゲーター
-const Stack = createStackNavigator<RootStackParamList>();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 // メインのタブナビゲーション
@@ -110,13 +110,16 @@ const AppNavigator = () => {
     <Stack.Navigator 
       screenOptions={{ 
         headerShown: false,
-        cardStyle: {
+        contentStyle: {
           backgroundColor: '#ffffff',
         }
       }}
     >
       {user ? (
-        <Stack.Screen name="Main" component={MainTabNavigator} />
+        <>
+          <Stack.Screen name="Main" component={MainTabNavigator} />
+          <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
+        </>
       ) : (
         <Stack.Screen name="Auth" component={AuthScreen} />
       )}
