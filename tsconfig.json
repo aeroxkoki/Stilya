@@ -1,69 +1,16 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "target": "ES2020",
-    "lib": [
-      "ES2020"
-    ],
-    "allowJs": false,
-    "skipLibCheck": true,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "strict": false,
-    "forceConsistentCasingInFileNames": true,
-    "noFallthroughCasesInSwitch": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "noEmit": true,
-    "jsx": "react-jsx",
-    "baseUrl": "./",
-    "paths": {
-      "@/*": [
-        "src/*"
-      ],
-      "@/components/*": [
-        "src/components/*"
-      ],
-      "@/screens/*": [
-        "src/screens/*"
-      ],
-      "@/hooks/*": [
-        "src/hooks/*"
-      ],
-      "@/services/*": [
-        "src/services/*"
-      ],
-      "@/utils/*": [
-        "src/utils/*"
-      ],
-      "@/types/*": [
-        "src/types/*"
-      ],
-      "@/store/*": [
-        "src/store/*"
-      ],
-      "@/constants/*": [
-        "src/constants/*"
-      ],
-      "@/assets/*": [
-        "assets/*"
-      ]
-    }
+    "strict": true
   },
   "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx",
     "App.tsx",
-    "types/**/*.d.ts",
-    "nativewind-env.d.ts"
+    "src/**/*.ts",
+    "src/**/*.tsx"
   ],
   "exclude": [
     "node_modules",
     "babel.config.js",
-    "metro.config.js",
-    "supabase/**/*",
-    "**/*.js"
+    "metro.config.js"
   ]
 }
