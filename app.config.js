@@ -56,9 +56,7 @@ export default {
       favicon: "./assets/favicon.png"
     },
     plugins: [
-      "expo-secure-store",
-      "expo-notifications",
-      "expo-localization"
+      "expo-secure-store"
     ],
     scheme: "stilya",
     jsEngine: "hermes",
