@@ -120,6 +120,7 @@ keystore-base64.txt
 # Cleanup scripts
 cleanup-*.sh
 fix-*.sh
+start-*.sh
 
 # Expo generated
 expo-env.d.ts
