@@ -1,6 +1,5 @@
-import { Image as ExpoImage } from 'react-native';
+import { Image, ImageURISource, Platform, PixelRatio, InteractionManager } from 'react-native';
 import { useCallback, useState, useRef, useEffect } from 'react';
-import { Platform, PixelRatio, InteractionManager } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 import Toast from 'react-native-toast-message';
 
@@ -8,10 +7,10 @@ import Toast from 'react-native-toast-message';
 const CACHE_FOLDER = `${FileSystem.cacheDirectory}image_cache/`;
 
 // 最適化設定情報
-const IMAGE_QUALITY = 0.8;  // 画像品質（0.0～1.0）
-const CACHE_TIMEOUT = 7 * 24 * 60 * 60 * 1000; // 1週間キャッシュ保持
-const MAX_CACHE_SIZE = 300 * 1024 * 1024; // 300MB キャッシュサイズ上限
-const LOW_MEMORY_CACHE_SIZE = 100 * 1024 * 1024; // 100MB (低メモリデバイス用)
+export const IMAGE_QUALITY = 0.8;  // 画像品質（0.0～1.0）
+export const CACHE_TIMEOUT = 7 * 24 * 60 * 60 * 1000; // 1週間キャッシュ保持
+export const MAX_CACHE_SIZE = 300 * 1024 * 1024; // 300MB キャッシュサイズ上限
+export const LOW_MEMORY_CACHE_SIZE = 100 * 1024 * 1024; // 100MB (低メモリデバイス用)
 
 /**
  * 画像URLをキャッシュファイル名に変換する
@@ -152,167 +151,176 @@ export const getOptimizedImageUrl = (url: string, width?: number, height?: numbe
 };
 
 /**
- * キャッシュサイズを取得する
+ * メモリキャッシュをクリア
  */
-export const getImageCacheSize = async (): Promise<number> => {
+export const clearMemoryCache = (): void => {
+  // Image APIのメモリキャッシュクリア
+  if ((Image as any).clearMemoryCache) {
+    (Image as any).clearMemoryCache();
+  }
+  console.log('Memory cache cleared');
+};
+
+/**
+ * ディスクキャッシュをクリア
+ * @returns 削除されたファイルサイズ（バイト）
+ */
+export const clearDiskCache = async (): Promise<number> => {
   try {
-    const cacheExists = await FileSystem.getInfoAsync(CACHE_FOLDER);
-    if (!cacheExists.exists) return 0;
-    
-    const files = await FileSystem.readDirectoryAsync(CACHE_FOLDER);
+    const cacheDir = CACHE_FOLDER;
+    const cacheInfo = await FileSystem.getInfoAsync(cacheDir);
+    if (!cacheInfo.exists) return 0;
+
+    const files = await FileSystem.readDirectoryAsync(cacheDir);
     let totalSize = 0;
-    
-    // バッチサイズごとに処理（メモリ使用量を抑制）
-    const BATCH_SIZE = 20;
-    for (let i = 0; i < files.length; i += BATCH_SIZE) {
-      const batch = files.slice(i, i + BATCH_SIZE);
+
+    for (const file of files) {
+      const filePath = `${cacheDir}${file}`;
+      const fileInfo = await FileSystem.getInfoAsync(filePath);
       
-      // 並列処理でパフォーマンス改善
-      const sizePromises = batch.map(async (file) => {
-        const filePath = `${CACHE_FOLDER}${file}`;
-        const fileInfo = await FileSystem.getInfoAsync(filePath);
-        return fileInfo.exists && fileInfo.size ? fileInfo.size : 0;
-      });
-      
-      const sizes = await Promise.all(sizePromises);
-      totalSize += sizes.reduce((sum, size) => sum + size, 0);
-      
-      // バッチ間でUIスレッドをブロックしないようにする
-      if (i + BATCH_SIZE < files.length) {
-        await new Promise(resolve => setTimeout(resolve, 0));
+      if (fileInfo.exists && !fileInfo.isDirectory) {
+        totalSize += fileInfo.size || 0;
+        await FileSystem.deleteAsync(filePath, { idempotent: true });
       }
     }
-    
+
     return totalSize;
   } catch (error) {
-    console.error('Error getting cache size:', error);
+    console.error('Error clearing disk cache:', error);
     return 0;
   }
 };
 
 /**
- * キャッシュ期限切れの画像を削除する
+ * 全てのキャッシュをクリア
  */
-export const cleanImageCache = async (force = false): Promise<void> => {
+export const clearAllCache = async (): Promise<{
+  memoryCleared: boolean;
+  diskBytesCleared: number;
+}> => {
+  const memoryCleared = true;
+  clearMemoryCache();
+  
+  const diskBytesCleared = await clearDiskCache();
+  
+  return {
+    memoryCleared,
+    diskBytesCleared,
+  };
+};
+
+/**
+ * 画像のプリロード
+ * @param sources プリロードする画像ソースの配列
+ * @returns プリロード結果
+ */
+export const preloadImages = async (sources: ImageURISource[]): Promise<{
+  success: number;
+  failed: number;
+  results: boolean[];
+}> => {
+  const results = await Promise.allSettled(
+    sources.map(source => 
+      new Promise<void>((resolve, reject) => {
+        Image.prefetch(source.uri!)
+          .then(() => resolve())
+          .catch(reject);
+      })
+    )
+  );
+
+  const success = results.filter(result => result.status === 'fulfilled').length;
+  const failed = results.filter(result => result.status === 'rejected').length;
+  const boolResults = results.map(result => result.status === 'fulfilled');
+
+  return { success, failed, results: boolResults };
+};
+
+/**
+ * キャッシュサイズを取得する
+ * @returns キャッシュサイズ情報
+ */
+export const getCacheSize = async (): Promise<{
+  totalSize: number;
+  fileCount: number;
+}> => {
   try {
-    // オフロードタスクとして実行（UIスレッドをブロックしない）
-    InteractionManager.runAfterInteractions(async () => {
-      const cacheExists = await FileSystem.getInfoAsync(CACHE_FOLDER);
-      if (!cacheExists.exists) {
-        await FileSystem.makeDirectoryAsync(CACHE_FOLDER, { intermediates: true })
-          .catch(() => {});
-        return;
+    const cacheDir = CACHE_FOLDER;
+    const cacheInfo = await FileSystem.getInfoAsync(cacheDir);
+    if (!cacheInfo.exists) return { totalSize: 0, fileCount: 0 };
+
+    const files = await FileSystem.readDirectoryAsync(cacheDir);
+    let totalSize = 0;
+    let fileCount = 0;
+
+    for (const file of files) {
+      const filePath = `${cacheDir}${file}`;
+      const fileInfo = await FileSystem.getInfoAsync(filePath);
+      
+      if (fileInfo.exists && !fileInfo.isDirectory) {
+        totalSize += fileInfo.size || 0;
+        fileCount++;
       }
-      
-      const files = await FileSystem.readDirectoryAsync(CACHE_FOLDER);
-      const now = Date.now();
-      
-      if (files.length === 0) return;
-      
-      // ファイル情報を段階的に収集してメモリ使用量を抑制
-      let fileInfos: Array<{
-        path: string;
-        timestamp: number;
-        size: number;
-      }> = [];
-      
-      // バッチサイズごとに処理
-      const BATCH_SIZE = 20;
-      for (let i = 0; i < files.length; i += BATCH_SIZE) {
-        const batch = files.slice(i, i + BATCH_SIZE);
-        
-        // 並列処理
-        const batchInfos = await Promise.all(
-          batch.map(async (file) => {
-            const filePath = `${CACHE_FOLDER}${file}`;
-            const fileInfo = await FileSystem.getInfoAsync(filePath);
-            
-            if (fileInfo.exists && fileInfo.modificationTime) {
-              return {
-                path: filePath,
-                timestamp: fileInfo.modificationTime * 1000,
-                size: fileInfo.size || 0
-              };
-            }
-            return null;
-          })
-        );
-        
-        // null以外の結果をfileInfosに追加
-        fileInfos = fileInfos.concat(batchInfos.filter(Boolean) as any);
-        
-        // バッチ間でUIスレッドをブロックしないようにする
-        if (i + BATCH_SIZE < files.length) {
-          await new Promise(resolve => setTimeout(resolve, 0));
-        }
-      }
-      
-      // 期限切れのファイルまたは強制クリーンアップの場合は全ファイルを対象
-      const filesToDelete = force 
-        ? fileInfos 
-        : fileInfos.filter(file => now - file.timestamp > CACHE_TIMEOUT);
-      
-      // 削除処理もバッチで行う
-      for (let i = 0; i < filesToDelete.length; i += BATCH_SIZE) {
-        const deleteBatch = filesToDelete.slice(i, i + BATCH_SIZE);
-        
-        await Promise.all(
-          deleteBatch.map(file => 
-            FileSystem.deleteAsync(file.path, { idempotent: true }).catch(e => 
-              console.warn(`Failed to delete cache file ${file.path}:`, e)
-            )
-          )
-        );
-        
-        // バッチ間で処理を中断しないようにする
-        if (i + BATCH_SIZE < filesToDelete.length) {
-          await new Promise(resolve => setTimeout(resolve, 0));
-        }
-      }
-      
-      // 期限内のファイルのみを残す
-      const remainingFiles = force 
-        ? [] 
-        : fileInfos.filter(file => now - file.timestamp <= CACHE_TIMEOUT);
-      
-      // キャッシュサイズが上限を超えている場合、古いファイルから削除
-      const totalSize = remainingFiles.reduce((total, file) => total + file.size, 0);
-      const cacheLimit = await isLowMemoryDevice() ? LOW_MEMORY_CACHE_SIZE : MAX_CACHE_SIZE;
-      
-      if (totalSize > cacheLimit) {
-        // 最終アクセス日時の古い順にソート
-        remainingFiles.sort((a, b) => a.timestamp - b.timestamp);
-        
-        let sizeToFree = totalSize - cacheLimit;
-        for (const file of remainingFiles) {
-          if (sizeToFree <= 0) break;
-          
-          await FileSystem.deleteAsync(file.path, { idempotent: true })
-            .catch(e => console.warn(`Failed to delete cache file ${file.path}:`, e));
-          
-          sizeToFree -= file.size;
-          
-          // 処理が長時間になる場合はタイムスライシング
-          await new Promise(resolve => setTimeout(resolve, 0));
-        }
-      }
-      
-      if (__DEV__) {
-        console.log(`[CACHE] Cleaned up ${filesToDelete.length} files, ${remainingFiles.length} remaining`);
-      }
-    });
+    }
+
+    return { totalSize, fileCount };
   } catch (error) {
-    console.error('Error cleaning image cache:', error);
+    console.error('Error getting cache size:', error);
+    return { totalSize: 0, fileCount: 0 };
   }
 };
 
 /**
- * ローメモリデバイスの判定
+ * メモリ使用量を取得（プラットフォーム固有）
  */
-const isLowMemoryDevice = async (): Promise<boolean> => {
-  // 動的インポートでモジュール循環参照を回避
-  const { isLowEndDevice } = await import('./performance/memory');
-  return await isLowEndDevice();
+export const getMemoryUsage = (): {
+  used: number;
+  total: number;
+  percentage: number;
+} => {
+  try {
+    // パフォーマンス情報が利用可能な場合のみ
+    if (typeof performance !== 'undefined' && (performance as any).memory) {
+      const memory = (performance as any).memory;
+      return {
+        used: memory.usedJSHeapSize || 0,
+        total: memory.totalJSHeapSize || 0,
+        percentage: memory.totalJSHeapSize > 0 
+          ? (memory.usedJSHeapSize / memory.totalJSHeapSize) * 100 
+          : 0,
+      };
+    }
+    
+    return { used: 0, total: 0, percentage: 0 };
+  } catch (error) {
+    console.error('Error getting memory usage:', error);
+    return { used: 0, total: 0, percentage: 0 };
+  }
+};
+
+/**
+ * 画像最適化設定
+ */
+export interface ImageOptimizationConfig {
+  quality?: number; // 0.0 - 1.0
+  maxWidth?: number;
+  maxHeight?: number;
+  format?: 'jpeg' | 'png' | 'webp';
+}
+
+/**
+ * フォーマットされたサイズ文字列を取得
+ * @param bytes バイト数
+ * @returns フォーマットされた文字列
+ */
+export const formatBytes = (bytes: number): string => {
+  if (bytes === 0) return '0 Bytes';
+
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
 /**
@@ -353,7 +361,7 @@ export const useImagePrefetch = () => {
       // 高プライオリティ画像を即時プリフェッチ
       if (highPriorityUrls.length > 0) {
         const prefetchPromises = highPriorityUrls.map(url => 
-          ExpoImage.prefetch(url)
+          Image.prefetch(url)
             .catch(e => {
               prefetchErrorCount.current += 1;
               console.warn(`Failed to prefetch high priority image: ${url}`, e);
@@ -366,13 +374,13 @@ export const useImagePrefetch = () => {
         // エラーが多すぎる場合はユーザーに通知（オプション）
         if (prefetchErrorCount.current > 5 && prefetchErrorCount.current > highPriorityUrls.length / 2) {
           // ネットワーク接続の問題の可能性を示唆
-          Toast?.show?.(((({
+          Toast?.show?.({
             type: 'info',
             text1: '画像の読み込みに問題が発生しています',
             text2: 'ネットワーク接続を確認してください',
             position: 'bottom',
             visibilityTime: 3000,
-          }) as any)));
+          } as any);
           prefetchErrorCount.current = 0; // カウンターリセット
         }
       }
@@ -395,7 +403,7 @@ export const useImagePrefetch = () => {
               const batch = lowPriorityUrls.slice(start, end);
               
               batch.forEach(url => {
-                ExpoImage.prefetch(url).catch(e => {
+                Image.prefetch(url).catch(e => {
                   if (__DEV__) {
                     console.log(`Failed to prefetch low priority image: ${url}`, e);
                   }
@@ -440,19 +448,6 @@ export const useImagePrefetch = () => {
 };
 
 /**
- * メモリキャッシュをクリアする
- */
-export const clearMemoryCache = () => {
-  try {
-    // ExpoImage.clearMemoryCache();
-    // この機能は標準のReact Native Imageでは利用できないかもしれません
-    console.log('Memory cache cleared');
-  } catch (e) {
-    console.error('Failed to clear memory cache:', e);
-  }
-};
-
-/**
  * 画像読み込みエラー処理のための関数
  * @param url 画像URL
  * @param onError エラーコールバック
@@ -476,3 +471,46 @@ export const handleImageLoadError = (url: string, onError?: () => void) => {
     onError();
   }
 };
+
+/**
+ * キャッシュ期限切れの画像を削除する（簡易版）
+ */
+export const cleanImageCache = async (force = false): Promise<void> => {
+  try {
+    const cacheExists = await FileSystem.getInfoAsync(CACHE_FOLDER);
+    if (!cacheExists.exists) {
+      await FileSystem.makeDirectoryAsync(CACHE_FOLDER, { intermediates: true })
+        .catch(() => {});
+      return;
+    }
+    
+    const files = await FileSystem.readDirectoryAsync(CACHE_FOLDER);
+    const now = Date.now();
+    let deletedCount = 0;
+    
+    for (const file of files) {
+      const filePath = `${CACHE_FOLDER}${file}`;
+      const fileInfo = await FileSystem.getInfoAsync(filePath);
+      
+      if (fileInfo.exists && fileInfo.modificationTime) {
+        const fileTimestamp = fileInfo.modificationTime * 1000;
+        
+        // 期限切れまたは強制削除の場合
+        if (force || (now - fileTimestamp > CACHE_TIMEOUT)) {
+          await FileSystem.deleteAsync(filePath, { idempotent: true })
+            .catch(e => console.warn(`Failed to delete cache file ${file}:`, e));
+          deletedCount++;
+        }
+      }
+    }
+    
+    if (__DEV__) {
+      console.log(`[CACHE] Cleaned up ${deletedCount} files`);
+    }
+  } catch (error) {
+    console.error('Error cleaning image cache:', error);
+  }
+};
+
+// 互換性のためのエイリアス
+export const getImageCacheSize = getCacheSize;

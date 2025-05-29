@@ -7,11 +7,6 @@ export default {
     icon: "./assets/icon.png",
     userInterfaceStyle: "automatic",
     owner: "aeroxkoki",
-    updates: {
-      url: "https://u.expo.dev/beb25e0f-344b-4f2f-8b64-20614b9744a3",
-      fallbackToCacheTimeout: 0,
-      enabled: false
-    },
     splash: {
       image: "./assets/splash-icon.png",
       resizeMode: "contain",
@@ -76,7 +71,8 @@ export default {
       linkshareApiToken: process.env.EXPO_PUBLIC_LINKSHARE_API_TOKEN,
       linkshareMerchantId: process.env.EXPO_PUBLIC_LINKSHARE_MERCHANT_ID,
       rakutenAppId: process.env.EXPO_PUBLIC_RAKUTEN_APP_ID,
-      rakutenAffiliateId: process.env.EXPO_PUBLIC_RAKUTEN_AFFILIATE_ID
+      rakutenAffiliateId: process.env.EXPO_PUBLIC_RAKUTEN_AFFILIATE_ID,
+      enableDevFeatures: process.env.NODE_ENV === 'development' || process.env.EXPO_PUBLIC_DEV_MODE === 'true'
     }
   }
 };
