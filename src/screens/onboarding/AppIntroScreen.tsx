@@ -5,6 +5,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Button } from '@/components/common';
 import IntroSlide, { IntroSlideProps } from '@/components/onboarding/IntroSlide';
 import { OnboardingStackParamList } from '@/types';
+import { useTheme } from '@/contexts/ThemeContext';
 
 type Props = NativeStackScreenProps<OnboardingStackParamList, 'AppIntro'>;
 
@@ -32,6 +33,7 @@ const slides: IntroSlideProps[] = [
 const AppIntroScreen: React.FC<Props> = ({ navigation }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
+  const { theme } = useTheme();
 
   const handleNext = () => {
     if (currentIndex === slides.length - 1) {
@@ -79,14 +81,14 @@ const AppIntroScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <View >
-      <View >
+    <View style={styles.container}>
+      <View style={styles.header}>
         <TouchableOpacity onPress={handleBack}>
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
         
         <TouchableOpacity onPress={handleSkip}>
-          <Text >スキップ</Text>
+          <Text style={styles.skipText}>スキップ</Text>
         </TouchableOpacity>
       </View>
 
@@ -109,18 +111,21 @@ const AppIntroScreen: React.FC<Props> = ({ navigation }) => {
       />
 
       {/* インジケーター */}
-      <View >
+      <View style={styles.pagination}>
         {slides.map((_, index) => (
           <View
             key={index}
-            className={`h-2 w-2 rounded-full mx-1 ${
-              index === currentIndex ? 'bg-primary' : 'bg-gray-300'
-            }`}
+            style={[
+              styles.paginationDot,
+              {
+                backgroundColor: index === currentIndex ? theme.colors.primary : '#E5E5E5'
+              }
+            ]}
           />
         ))}
       </View>
 
-      <View >
+      <View style={styles.buttonContainer}>
         <Button isFullWidth onPress={handleNext}>
           {currentIndex === slides.length - 1 ? '始める' : '次へ'}
         </Button>
@@ -128,5 +133,38 @@ const AppIntroScreen: React.FC<Props> = ({ navigation }) => {
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    paddingTop: 48,
+  },
+  skipText: {
+    fontSize: 16,
+    color: '#666666',
+  },
+  pagination: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    paddingVertical: 20,
+  },
+  paginationDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginHorizontal: 4,
+  },
+  buttonContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 32,
+  },
+});
 
 export default AppIntroScreen;

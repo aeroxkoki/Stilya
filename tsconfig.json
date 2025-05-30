@@ -9,7 +9,6 @@
       ]
     },
     "jsx": "react-native",
-    "moduleResolution": "node",
     "skipLibCheck": true
   },
   "include": [

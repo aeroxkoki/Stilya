@@ -3,7 +3,7 @@ import { View, Text, SafeAreaView, TouchableOpacity, ScrollView, Image, StyleShe
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/common';
-import { useOnboardingStore } from '@/store/onboardingStore';
+import { useOnboarding } from '@/contexts/OnboardingContext';
 import { OnboardingStackParamList } from '@/types';
 
 type Props = NativeStackScreenProps<OnboardingStackParamList, 'Style'>;
@@ -59,7 +59,7 @@ const styleOptions: StyleOption[] = [
 ];
 
 const StyleScreen: React.FC<Props> = ({ navigation }) => {
-  const { stylePreference, setStylePreference, nextStep, prevStep } = useOnboardingStore();
+  const { stylePreference, setStylePreference, nextStep, prevStep } = useOnboarding();
   const [selectedStyles, setSelectedStyles] = useState<string[]>(stylePreference);
 
   const toggleStyle = (styleId: string) => {

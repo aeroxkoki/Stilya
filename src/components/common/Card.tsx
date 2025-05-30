@@ -81,14 +81,14 @@ const Card: React.FC<CardProps> = ({
         };
       case 'flat':
         return {
-          backgroundColor: theme.colors.background.card,
+          backgroundColor: theme.colors.card.background,
           borderWidth: 0,
           shadowOpacity: 0,
           elevation: 0,
         };
       case 'elevated':
         return {
-          backgroundColor: theme.colors.background.card,
+          backgroundColor: theme.colors.card.background,
           ...getElevationStyle(),
         };
       case 'filled':
@@ -105,7 +105,7 @@ const Card: React.FC<CardProps> = ({
   const cardStyle = [
     styles.card,
     {
-      backgroundColor: theme.colors.background.card,
+      backgroundColor: theme.colors.card.background,
       borderRadius: theme.radius.m,
       shadowColor: isDarkMode ? '#000' : '#222',
       ...(paddingValue !== undefined && { padding: paddingValue }),

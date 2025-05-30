@@ -66,11 +66,16 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
       setError(null);
       
       // 商品データを取得
-      const fetchedProducts = await fetchProducts(20, 0);
+      const result = await fetchProducts(20, 0);
       
-      setProducts(fetchedProducts);
-      setHasMoreProducts(true);
-      setTotalFetched(fetchedProducts.length);
+      if (result.success && result.data) {
+        setProducts(result.data);
+        setHasMoreProducts(true);
+        setTotalFetched(result.data.length);
+      } else {
+        setError(result.error || '商品の読み込みに失敗しました');
+        setProducts([]);
+      }
       setLoading(false);
     } catch (error: any) {
       console.error('Error loading products:', error);
@@ -87,12 +92,12 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
       setLoading(true);
       
       // 次のページを取得
-      const moreProducts = await fetchProducts(10, totalFetched);
+      const result = await fetchProducts(10, totalFetched);
       
-      if (moreProducts.length > 0) {
-        setProducts(prev => [...prev, ...moreProducts]);
-        setHasMoreProducts(moreProducts.length === 10); // 10件取得できた場合はまだページがある
-        setTotalFetched(prev => prev + moreProducts.length);
+      if (result.success && result.data && result.data.length > 0) {
+        setProducts(prev => [...prev, ...result.data]);
+        setHasMoreProducts(result.data.length === 10); // 10件取得できた場合はまだページがある
+        setTotalFetched(prev => prev + result.data.length);
       } else {
         setHasMoreProducts(false);
       }
@@ -141,9 +146,9 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
       // 商品データを取得
       const fetchedProducts: Product[] = [];
       for (const swipe of swipes) {
-        const product = await fetchProductById(swipe.productId);
-        if (product) {
-          fetchedProducts.push(product);
+        const result = await fetchProductById(swipe.productId);
+        if (result.success && result.data) {
+          fetchedProducts.push(result.data);
         }
       }
       
@@ -274,12 +279,16 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
       let recommended: Product[] = [];
       
       if (popularTags.length > 0) {
-        recommended = await fetchProductsByTags(popularTags, 20, 0)
-          .then(products => products.filter(p => !yesProductIds.includes(p.id)));
+        const result = await fetchProductsByTags(popularTags, 20, 0);
+        if (result.success && result.data) {
+          recommended = result.data.filter(p => !yesProductIds.includes(p.id));
+        }
       } else {
         // タグがない場合はランダムに20件取得
-        const result = await fetchProducts(20);
-        recommended = result.filter(p => !yesProductIds.includes(p.id));
+        const result = await fetchProducts(20, 0);
+        if (result.success && result.data) {
+          recommended = result.data.filter(p => !yesProductIds.includes(p.id));
+        }
       }
       
       setRecommendedProducts(recommended);

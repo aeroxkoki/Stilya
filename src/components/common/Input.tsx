@@ -88,11 +88,11 @@ const Input: React.FC<InputProps> = ({
           styles.inputContainer,
           {
             borderColor: error
-              ? theme.colors.status.error
+              ? theme.colors.error
               : isFocused
               ? theme.colors.primary
               : theme.colors.border,
-            backgroundColor: theme.colors.background.input,
+            backgroundColor: theme.colors.input.background,
             borderRadius: theme.radius.m,
           },
         ]}
@@ -144,7 +144,7 @@ const Input: React.FC<InputProps> = ({
         <Text
           style={[
             styles.error,
-            { color: theme.colors.status.error },
+            { color: theme.colors.error },
             errorStyle,
           ]}
         >

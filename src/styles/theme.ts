@@ -8,11 +8,32 @@ export interface Theme {
     error: string;
     success: string;
     warning: string;
+    status: {
+      error: string;
+      success: string;
+      warning: string;
+      info: string;
+    };
+    card: {
+      background: string;
+      border: string;
+      shadow: string;
+    };
+    main: {
+      background: string;
+      surface: string;
+    };
+    input: {
+      background: string;
+      border: string;
+      focused: string;
+    };
     text: {
       primary: string;
       secondary: string;
       hint: string;
       inverse: string;
+      disabled: string;
     };
     button: {
       primary: string;
@@ -85,11 +106,32 @@ export const lightTheme: Theme = {
     error: '#E53E3E',
     success: '#38A169',
     warning: '#D69E2E',
+    status: {
+      error: '#E53E3E',
+      success: '#38A169',
+      warning: '#D69E2E',
+      info: '#3182CE',
+    },
+    card: {
+      background: '#FFFFFF',
+      border: '#E5E5E5',
+      shadow: '#000000',
+    },
+    main: {
+      background: '#FFFFFF',
+      surface: '#F5F5F5',
+    },
+    input: {
+      background: '#FFFFFF',
+      border: '#E5E5E5',
+      focused: '#000000',
+    },
     text: {
       primary: '#1A1A1A',
       secondary: '#4A4A4A',
       hint: '#999999',
       inverse: '#FFFFFF',
+      disabled: '#CCCCCC',
     },
     button: {
       primary: '#000000',
@@ -162,11 +204,32 @@ export const darkTheme: Theme = {
     error: '#FC8181',
     success: '#68D391',
     warning: '#F6E05E',
+    status: {
+      error: '#FC8181',
+      success: '#68D391',
+      warning: '#F6E05E',
+      info: '#63B3ED',
+    },
+    card: {
+      background: '#1A1A1A',
+      border: '#2A2A2A',
+      shadow: '#FFFFFF',
+    },
+    main: {
+      background: '#000000',
+      surface: '#1A1A1A',
+    },
+    input: {
+      background: '#1A1A1A',
+      border: '#2A2A2A',
+      focused: '#FFFFFF',
+    },
     text: {
       primary: '#FFFFFF',
       secondary: '#CCCCCC',
       hint: '#888888',
       inverse: '#000000',
+      disabled: '#444444',
     },
     button: {
       primary: '#FFFFFF',

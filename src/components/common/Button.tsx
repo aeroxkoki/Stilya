@@ -50,7 +50,6 @@ const Button: React.FC<ButtonProps> = ({
   fullWidth = false,
   isFullWidth,
   testID,
-   // NativeWindを使用する場合（無視されます）
 }) => {
   // isFullWidthをfullWidthに統合（互換性のため）
   const useFullWidth = fullWidth || isFullWidth;
@@ -212,7 +211,6 @@ const Button: React.FC<ButtonProps> = ({
         activeOpacity={0.9}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
-        {...(className ? { className } : {})}
       >
         {isButtonLoading ? (
           <ActivityIndicator
