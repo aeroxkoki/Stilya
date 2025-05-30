@@ -69,39 +69,39 @@ const ProfileScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <ScrollView className="flex-1">
+    <SafeAreaView >
+      <ScrollView >
         {/* ヘッダー */}
-        <View className="px-6 pt-10 pb-6">
-          <Text className="text-2xl font-bold">マイページ</Text>
+        <View >
+          <Text >マイページ</Text>
         </View>
 
         {/* プロフィール情報 */}
-        <View className="px-6 mb-6">
-          <Card className="p-4">
-            <View className="items-center mb-4">
-              <View className="bg-primary h-20 w-20 rounded-full items-center justify-center mb-2">
-                <Text className="text-white text-2xl font-bold">
+        <View >
+          <Card >
+            <View >
+              <View >
+                <Text >
                   {user?.email?.charAt(0).toUpperCase() || 'U'}
                 </Text>
               </View>
-              <Text className="text-lg font-bold">{user?.email || 'ユーザー'}</Text>
+              <Text >{user?.email || 'ユーザー'}</Text>
             </View>
 
-            <View className="border-t border-gray-100 pt-4">
-              <View className="flex-row justify-between mb-2">
-                <Text className="text-gray-500">性別</Text>
-                <Text className="font-medium">
+            <View >
+              <View >
+                <Text >性別</Text>
+                <Text >
                   {user?.gender ? genderMap[user.gender] || user.gender : '未設定'}
                 </Text>
               </View>
-              <View className="flex-row justify-between mb-2">
-                <Text className="text-gray-500">年代</Text>
-                <Text className="font-medium">{user?.ageGroup || '未設定'}</Text>
+              <View >
+                <Text >年代</Text>
+                <Text >{user?.ageGroup || '未設定'}</Text>
               </View>
-              <View className="flex-row justify-between">
-                <Text className="text-gray-500">登録日</Text>
-                <Text className="font-medium">
+              <View >
+                <Text >登録日</Text>
+                <Text >
                   {user?.createdAt
                     ? new Date(user.createdAt).toLocaleDateString('ja-JP')
                     : '不明'}
@@ -112,29 +112,29 @@ const ProfileScreen: React.FC = () => {
         </View>
 
         {/* アクティビティ */}
-        <View className="px-6 mb-6">
-          <Text className="text-lg font-bold mb-3">アクティビティ</Text>
-          <Card variant="outlined" className="p-0 divide-y divide-gray-100">
+        <View >
+          <Text >アクティビティ</Text>
+          <Card variant="outlined" >
             <TouchableOpacity 
-              className="p-4 flex-row items-center"
+              
               onPress={handleNavigateToFavorites}
             >
               <Ionicons name="heart-outline" size={20} color="#6B7280" style={{ marginRight: 12 }} />
-              <View className="flex-1">
-                <Text className="text-base">お気に入り</Text>
-                <Text className="text-xs text-gray-500">{favorites.length}件の商品</Text>
+              <View >
+                <Text >お気に入り</Text>
+                <Text >{favorites.length}件の商品</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color="#6B7280" />
             </TouchableOpacity>
             
             <TouchableOpacity 
-              className="p-4 flex-row items-center"
+              
               onPress={handleNavigateToSwipeHistory}
             >
               <Ionicons name="time-outline" size={20} color="#6B7280" style={{ marginRight: 12 }} />
-              <View className="flex-1">
-                <Text className="text-base">スワイプ履歴</Text>
-                <Text className="text-xs text-gray-500">{swipeHistory.length}件のスワイプ</Text>
+              <View >
+                <Text >スワイプ履歴</Text>
+                <Text >{swipeHistory.length}件のスワイプ</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color="#6B7280" />
             </TouchableOpacity>
@@ -142,31 +142,31 @@ const ProfileScreen: React.FC = () => {
         </View>
 
         {/* 設定メニュー */}
-        <View className="px-6 mb-6">
-          <Text className="text-lg font-bold mb-3">設定</Text>
-          <Card variant="outlined" className="p-0 divide-y divide-gray-100">
+        <View >
+          <Text >設定</Text>
+          <Card variant="outlined" >
             <TouchableOpacity 
-              className="p-4 flex-row items-center"
+              
               onPress={handleNavigateToSettings}
             >
               <Ionicons name="settings-outline" size={20} color="#6B7280" style={{ marginRight: 12 }} />
-              <Text className="flex-1">アカウント設定</Text>
+              <Text >アカウント設定</Text>
               <Ionicons name="chevron-forward" size={20} color="#6B7280" />
             </TouchableOpacity>
             
             <TouchableOpacity 
-              className="p-4 flex-row items-center"
+              
               onPress={handleNavigateToHelp}
             >
               <Ionicons name="help-circle-outline" size={20} color="#6B7280" style={{ marginRight: 12 }} />
-              <Text className="flex-1">ヘルプ・サポート</Text>
+              <Text >ヘルプ・サポート</Text>
               <Ionicons name="chevron-forward" size={20} color="#6B7280" />
             </TouchableOpacity>
           </Card>
         </View>
 
         {/* ログアウトボタン */}
-        <View className="px-6 mb-10">
+        <View >
           <Button
             variant="outline"
             isFullWidth

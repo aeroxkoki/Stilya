@@ -95,27 +95,27 @@ const StyleTypeDisplay: React.FC<StyleTypeDisplayProps> = ({ userPreference }) =
   }
   
   return (
-    <View className="mb-6">
-      <Text className="text-lg font-bold mb-3 px-4">あなたのスタイルタイプ</Text>
+    <View >
+      <Text >あなたのスタイルタイプ</Text>
       <ScrollView 
         horizontal 
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
         {matchedStyles.map(style => (
-          <View key={style.id} className="bg-white rounded-lg shadow-sm mr-4 w-64 overflow-hidden">
+          <View key={style.id} >
             <Image 
               source={style.image} 
-              className="w-full h-32"
+              
               resizeMode="cover"
             />
-            <View className="p-3">
-              <Text className="text-base font-bold mb-1">{style.name}</Text>
-              <Text className="text-sm text-gray-600 mb-2">{style.description}</Text>
-              <View className="flex-row flex-wrap">
+            <View >
+              <Text >{style.name}</Text>
+              <Text >{style.description}</Text>
+              <View >
                 {style.tags.slice(0, 3).map(tag => (
-                  <View key={tag} className="bg-gray-100 rounded-full px-2 py-1 mr-1 mb-1">
-                    <Text className="text-xs text-gray-700">{tag}</Text>
+                  <View key={tag} >
+                    <Text >{tag}</Text>
                   </View>
                 ))}
               </View>

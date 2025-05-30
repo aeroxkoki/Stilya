@@ -10,37 +10,37 @@ const { width, height } = Dimensions.get('window');
 
 const WelcomeScreen: React.FC<Props> = ({ navigation }) => {
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <View className="flex-1 items-center justify-between py-10 px-6">
+    <SafeAreaView >
+      <View >
         {/* ヘッダー */}
-        <View className="w-full items-center mb-4">
+        <View >
           <Image
             source={require('@/assets/logo-placeholder.png')}
-            className="w-20 h-20"
+            
             resizeMode="contain"
           />
-          <Text className="text-2xl font-bold text-gray-800 mt-2">Stilya</Text>
+          <Text >Stilya</Text>
         </View>
 
         {/* メインコンテンツ */}
-        <View className="items-center px-4">
+        <View >
           <Image
             source={require('@/assets/welcome-illustration.png')}
             style={styles.illustration}
             resizeMode="contain"
           />
           
-          <Text className="text-2xl font-bold text-center mt-8 mb-2">
+          <Text >
             ファッションとの新しい出会い
           </Text>
           
-          <Text className="text-gray-600 text-center mb-8 leading-6">
+          <Text >
             あなたの好みを学習して、最適なファッションアイテムを提案します。スワイプするだけで、あなたの"好き"が見つかります。
           </Text>
         </View>
 
         {/* フッター */}
-        <View className="w-full">
+        <View >
           <Button
             isFullWidth
             onPress={() => navigation.navigate('AppIntro')}
@@ -48,7 +48,7 @@ const WelcomeScreen: React.FC<Props> = ({ navigation }) => {
             始める
           </Button>
           
-          <Text className="text-gray-400 text-xs text-center mt-6">
+          <Text >
             続行すると、利用規約とプライバシーポリシーに同意したことになります。
           </Text>
         </View>

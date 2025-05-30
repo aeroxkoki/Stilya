@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, SafeAreaView, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { View, Text, SafeAreaView, TouchableOpacity, ScrollView, Image, StyleSheet, Dimensions } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/common';
@@ -7,6 +7,9 @@ import { useOnboardingStore } from '@/store/onboardingStore';
 import { OnboardingStackParamList } from '@/types';
 
 type Props = NativeStackScreenProps<OnboardingStackParamList, 'Style'>;
+
+const { width } = Dimensions.get('window');
+const CARD_WIDTH = (width - 48) / 2; // 2列グリッドのカード幅
 
 // スタイルの選択肢
 interface StyleOption {
@@ -81,67 +84,71 @@ const StyleScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <View className="flex-1">
+    <SafeAreaView style={styles.container}>
+      <View style={styles.content}>
         {/* ヘッダー */}
-        <View className="flex-row items-center justify-between p-6 mb-2">
+        <View style={styles.header}>
           <TouchableOpacity onPress={handleBack}>
             <Ionicons name="arrow-back" size={24} color="#333" />
           </TouchableOpacity>
-          <Text className="text-lg font-medium">2/4</Text>
+          <Text style={styles.stepIndicator}>2/4</Text>
         </View>
 
         {/* タイトル */}
-        <View className="px-6 mb-4">
-          <Text className="text-2xl font-bold mb-2">好きなスタイルを選んでください</Text>
-          <Text className="text-gray-500">
+        <View style={styles.titleContainer}>
+          <Text style={styles.title}>好きなスタイルを選んでください</Text>
+          <Text style={styles.subtitle}>
             複数選択可能です。あなたの好みに合わせたアイテムを提案します。
           </Text>
         </View>
 
         {/* スタイル選択 */}
-        <ScrollView className="flex-1 px-6">
-          <View className="flex-row flex-wrap justify-between">
-            {styleOptions.map(style => (
-              <TouchableOpacity
-                key={style.id}
-                className="w-[48%] mb-4"
-                activeOpacity={0.7}
-                onPress={() => toggleStyle(style.id)}
-              >
-                <View
-                  className={`relative rounded-lg overflow-hidden ${
-                    selectedStyles.includes(style.id) ? 'border-2 border-primary' : 'border border-gray-200'
-                  }`}
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          <View style={styles.grid}>
+            {styleOptions.map(style => {
+              const isSelected = selectedStyles.includes(style.id);
+              return (
+                <TouchableOpacity
+                  key={style.id}
+                  style={styles.cardWrapper}
+                  activeOpacity={0.7}
+                  onPress={() => toggleStyle(style.id)}
                 >
-                  <Image 
-                    source={style.image} 
-                    className="w-full h-32"
-                    resizeMode="cover"
-                  />
-                  <View className="absolute top-0 right-0 m-2">
-                    {selectedStyles.includes(style.id) && (
-                      <View className="bg-primary rounded-full p-1">
-                        <Ionicons name="checkmark" size={16} color="#fff" />
+                  <View
+                    style={[
+                      styles.card,
+                      isSelected && styles.cardSelected
+                    ]}
+                  >
+                    <Image 
+                      source={style.image} 
+                      style={styles.image}
+                      resizeMode="cover"
+                    />
+                    {isSelected && (
+                      <View style={styles.checkmarkContainer}>
+                        <View style={styles.checkmarkBadge}>
+                          <Ionicons name="checkmark" size={16} color="#fff" />
+                        </View>
                       </View>
                     )}
+                    <View style={styles.cardContent}>
+                      <Text style={[styles.styleName, isSelected && styles.styleNameSelected]}>
+                        {style.name}
+                      </Text>
+                      <Text style={styles.styleDescription} numberOfLines={2}>
+                        {style.description}
+                      </Text>
+                    </View>
                   </View>
-                  <View className="p-3 bg-white">
-                    <Text className={`font-medium ${selectedStyles.includes(style.id) ? 'text-primary' : 'text-gray-800'}`}>
-                      {style.name}
-                    </Text>
-                    <Text className="text-xs text-gray-500 mt-1" numberOfLines={2}>
-                      {style.description}
-                    </Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            ))}
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </ScrollView>
 
         {/* 次へボタン */}
-        <View className="p-6">
+        <View style={styles.buttonContainer}>
           <Button
             isFullWidth
             onPress={handleNext}
@@ -154,5 +161,104 @@ const StyleScreen: React.FC<Props> = ({ navigation }) => {
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  content: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  stepIndicator: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  titleContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 24,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#6B7280',
+    lineHeight: 24,
+  },
+  scrollView: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  cardWrapper: {
+    width: CARD_WIDTH,
+    marginBottom: 16,
+  },
+  card: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+    backgroundColor: '#fff',
+  },
+  cardSelected: {
+    borderWidth: 2,
+    borderColor: '#3B82F6',
+  },
+  image: {
+    width: '100%',
+    height: 120,
+  },
+  checkmarkContainer: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+  },
+  checkmarkBadge: {
+    backgroundColor: '#3B82F6',
+    borderRadius: 12,
+    padding: 4,
+  },
+  cardContent: {
+    padding: 12,
+  },
+  styleName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  styleNameSelected: {
+    color: '#3B82F6',
+  },
+  styleDescription: {
+    fontSize: 12,
+    color: '#6B7280',
+    lineHeight: 16,
+  },
+  buttonContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5E5',
+  },
+});
 
 export default StyleScreen;

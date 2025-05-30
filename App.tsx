@@ -14,6 +14,7 @@ import { AuthProvider } from './src/contexts/AuthContext';
 import { ProductProvider } from './src/contexts/ProductContext';
 import { OnboardingProvider } from './src/contexts/OnboardingContext';
 import { NetworkProvider } from './src/contexts/NetworkContext';
+import { ThemeProvider } from './src/contexts/ThemeContext';
 
 export default function App() {
   useEffect(() => {
@@ -25,17 +26,19 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <NetworkProvider>
-          <AuthProvider>
-            <ProductProvider>
-              <OnboardingProvider>
-                <NavigationContainer>
-                  <StatusBar style="auto" />
-                  <AppNavigator />
-                  <Toast />
-                </NavigationContainer>
-              </OnboardingProvider>
-            </ProductProvider>
-          </AuthProvider>
+          <ThemeProvider>
+            <AuthProvider>
+              <ProductProvider>
+                <OnboardingProvider>
+                  <NavigationContainer>
+                    <StatusBar style="auto" />
+                    <AppNavigator />
+                    <Toast />
+                  </NavigationContainer>
+                </OnboardingProvider>
+              </ProductProvider>
+            </AuthProvider>
+          </ThemeProvider>
         </NetworkProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

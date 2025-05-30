@@ -62,42 +62,42 @@ const CompleteScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <View className="flex-1 px-6 py-10 justify-between">
+    <SafeAreaView >
+      <View >
         {/* タイトル */}
-        <View className="items-center">
-          <View className="bg-green-100 rounded-full p-4 mb-4">
+        <View >
+          <View >
             <Ionicons name="checkmark" size={48} color="#10B981" />
           </View>
-          <Text className="text-2xl font-bold text-center mb-2">
+          <Text >
             プロフィール設定完了！
           </Text>
-          <Text className="text-gray-600 text-center mb-8">
+          <Text >
             あなたの好みに合わせた商品をご提案します
           </Text>
         </View>
 
         {/* プロフィール概要 */}
-        <View className="bg-gray-50 rounded-lg p-6 mb-8">
-          <Text className="text-lg font-bold mb-4">プロフィール概要</Text>
+        <View >
+          <Text >プロフィール概要</Text>
           
-          <View className="mb-4">
-            <Text className="text-gray-500 mb-1">性別</Text>
-            <Text className="text-gray-800 font-medium">
+          <View >
+            <Text >性別</Text>
+            <Text >
               {gender ? genderMap[gender] || gender : '未設定'}
             </Text>
           </View>
           
-          <View className="mb-4">
-            <Text className="text-gray-500 mb-1">好きなスタイル</Text>
-            <Text className="text-gray-800 font-medium">
+          <View >
+            <Text >好きなスタイル</Text>
+            <Text >
               {stylePreference.length > 0 ? getStyleNames() : '未設定'}
             </Text>
           </View>
           
           <View>
-            <Text className="text-gray-500 mb-1">年代</Text>
-            <Text className="text-gray-800 font-medium">
+            <Text >年代</Text>
+            <Text >
               {ageGroup ? ageGroupMap[ageGroup] || ageGroup : '未設定'}
             </Text>
           </View>
@@ -105,8 +105,8 @@ const CompleteScreen: React.FC<Props> = ({ navigation }) => {
 
         {/* エラーメッセージ */}
         {error && (
-          <View className="mb-4 p-3 bg-red-50 rounded-md">
-            <Text className="text-red-500">{error}</Text>
+          <View >
+            <Text >{error}</Text>
           </View>
         )}
 

@@ -193,9 +193,9 @@ const FavoritesScreen: React.FC = () => {
     if (!loadingMore) return null;
     
     return (
-      <View className="py-4 justify-center items-center">
+      <View >
         <ActivityIndicator size="small" color="#3B82F6" />
-        <Text className="text-gray-500 text-sm mt-2">読み込み中...</Text>
+        <Text >読み込み中...</Text>
       </View>
     );
   };
@@ -203,35 +203,35 @@ const FavoritesScreen: React.FC = () => {
   // ローディング表示
   if (loading && !refreshing) {
     return (
-      <SafeAreaView className="flex-1 bg-white">
-        <View className="flex-row justify-between items-center px-6 pt-10 pb-4">
+      <SafeAreaView >
+        <View >
           <TouchableOpacity onPress={handleBackPress}>
             <Ionicons name="arrow-back" size={24} color="#000" />
           </TouchableOpacity>
-          <Text className="text-xl font-bold ml-2">お気に入り</Text>
+          <Text >お気に入り</Text>
           <View style={{ width: 24 }} /> {/* バランス用の空のビュー */}
         </View>
-        <View className="flex-1 items-center justify-center">
+        <View >
           <ActivityIndicator size="large" color="#3B82F6" />
-          <Text className="mt-4 text-gray-500">読み込み中...</Text>
+          <Text >読み込み中...</Text>
         </View>
       </SafeAreaView>
     );
   }
   
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView >
       {/* ヘッダー */}
-      <View className="flex-row justify-between items-center px-6 pt-10 pb-4">
+      <View >
         <TouchableOpacity onPress={handleBackPress}>
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <View className="flex-row items-center">
-          <Text className="text-xl font-bold ml-2">お気に入り</Text>
-          <Text className="text-gray-500 ml-2">({favorites.length})</Text>
+        <View >
+          <Text >お気に入り</Text>
+          <Text >({favorites.length})</Text>
         </View>
-        <View className="flex-row">
-          <TouchableOpacity onPress={handleShowSortOptions} className="mr-4">
+        <View >
+          <TouchableOpacity onPress={handleShowSortOptions} >
             <Ionicons name="filter-outline" size={24} color="#6B7280" />
           </TouchableOpacity>
           <TouchableOpacity onPress={handleClearAll}>
@@ -241,8 +241,8 @@ const FavoritesScreen: React.FC = () => {
       </View>
       
       {/* ソート状態表示 */}
-      <View className="px-6 mb-2">
-        <Text className="text-xs text-gray-500">
+      <View >
+        <Text >
           {sortOrder === 'recent' ? '最新順' : 
            sortOrder === 'price_high' ? '価格が高い順' : '価格が低い順'}
            で表示中
@@ -250,12 +250,12 @@ const FavoritesScreen: React.FC = () => {
       </View>
       
       {/* 商品リスト */}
-      <View className="flex-1 px-4">
+      <View >
         {favorites.length === 0 ? (
-          <View className="flex-1 items-center justify-center">
+          <View >
             <Ionicons name="heart-outline" size={64} color="#E5E7EB" />
-            <Text className="mt-4 text-gray-400 text-lg">お気に入りはまだありません</Text>
-            <Text className="mt-2 text-gray-400 text-sm text-center px-10">
+            <Text >お気に入りはまだありません</Text>
+            <Text >
               スワイプ画面で「いいね」した商品や詳細画面でお気に入り登録した商品がここに表示されます
             </Text>
           </View>
@@ -273,7 +273,7 @@ const FavoritesScreen: React.FC = () => {
             ListFooterComponent={renderFooter}
             renderItem={({ item }) => (
               <View style={styles.cardContainer}>
-                <View className="relative">
+                <View >
                   <ProductCard
                     product={item}
                     onPress={() => handleProductPress(item)}

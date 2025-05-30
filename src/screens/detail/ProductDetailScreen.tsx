@@ -188,10 +188,10 @@ const ProductDetailScreen: React.FC = () => {
   // ローディング表示
   if (loading && !product) {
     return (
-      <SafeAreaView className="flex-1 bg-white">
-        <View className="flex-1 items-center justify-center">
+      <SafeAreaView >
+        <View >
           <ActivityIndicator size="large" color="#3B82F6" />
-          <Text className="mt-4 text-gray-500">商品情報を読み込み中...</Text>
+          <Text >商品情報を読み込み中...</Text>
         </View>
       </SafeAreaView>
     );
@@ -200,10 +200,10 @@ const ProductDetailScreen: React.FC = () => {
   // エラー表示
   if (error && !product) {
     return (
-      <SafeAreaView className="flex-1 bg-white">
-        <View className="flex-1 items-center justify-center p-6">
-          <Text className="text-red-500 mb-4">エラーが発生しました</Text>
-          <Text className="text-gray-700 mb-8 text-center">{error}</Text>
+      <SafeAreaView >
+        <View >
+          <Text >エラーが発生しました</Text>
+          <Text >{error}</Text>
           <Button onPress={handleBackPress}>戻る</Button>
         </View>
       </SafeAreaView>
@@ -213,10 +213,10 @@ const ProductDetailScreen: React.FC = () => {
   // 商品が見つからない場合
   if (!product) {
     return (
-      <SafeAreaView className="flex-1 bg-white">
-        <View className="flex-1 items-center justify-center p-6">
-          <Text className="text-2xl font-bold mb-4">商品が見つかりません</Text>
-          <Text className="text-gray-500 text-center mb-8">
+      <SafeAreaView >
+        <View >
+          <Text >商品が見つかりません</Text>
+          <Text >
             この商品は利用できないか、削除された可能性があります。
           </Text>
           <Button onPress={handleBackPress}>戻る</Button>
@@ -226,10 +226,10 @@ const ProductDetailScreen: React.FC = () => {
   }
   
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <ScrollView className="flex-1">
+    <SafeAreaView >
+      <ScrollView >
         {/* 画像部分 */}
-        <View className="relative">
+        <View >
           <Image 
             source={{ uri: product.imageUrl ? product.imageUrl : '' }} 
             style={styles.image} 
@@ -238,7 +238,7 @@ const ProductDetailScreen: React.FC = () => {
           
           {/* 戻るボタン */}
           <TouchableOpacity 
-            className="absolute top-4 left-4 bg-black/30 rounded-full p-2"
+            
             onPress={handleBackPress}
           >
             <Ionicons name="arrow-back" size={24} color="white" />
@@ -246,7 +246,7 @@ const ProductDetailScreen: React.FC = () => {
           
           {/* シェアボタン */}
           <TouchableOpacity 
-            className="absolute top-4 right-4 bg-black/30 rounded-full p-2"
+            
             onPress={handleShare}
           >
             <Ionicons name="share-outline" size={24} color="white" />
@@ -254,20 +254,20 @@ const ProductDetailScreen: React.FC = () => {
         </View>
         
         {/* 商品情報 */}
-        <View className="p-4">
+        <View >
           {/* 商品タイトルと価格 */}
-          <View className="flex-row justify-between items-start mb-3">
-            <View className="flex-1 mr-2">
-              <Text className="text-2xl font-bold" numberOfLines={2}>
+          <View >
+            <View >
+              <Text  numberOfLines={2}>
                 {product.title}
               </Text>
               {product.brand && (
-                <Text className="text-gray-600 text-lg">
+                <Text >
                   {product.brand}
                 </Text>
               )}
             </View>
-            <Text className="text-2xl font-bold text-blue-600">
+            <Text >
               {formatPrice(product.price)}
             </Text>
           </View>
@@ -282,13 +282,13 @@ const ProductDetailScreen: React.FC = () => {
           
           {/* タグ */}
           {product.tags && product.tags.length > 0 && (
-            <View className="flex-row flex-wrap mb-4">
+            <View >
               {product.tags.map((tag, index) => (
                 <View 
                   key={index} 
-                  className="bg-gray-100 px-3 py-1 rounded-full mr-2 mb-2"
+                  
                 >
-                  <Text className="text-gray-800 text-sm">
+                  <Text >
                     {tag}
                   </Text>
                 </View>
@@ -299,18 +299,18 @@ const ProductDetailScreen: React.FC = () => {
           {/* 購入ボタン */}
           <Button 
             onPress={handleBuyPress}
-            className="bg-blue-600 mt-2 mb-6"
+            
           >
-            <View className="flex-row items-center justify-center">
+            <View >
               <Ionicons name="cart-outline" size={20} color="white" style={{ marginRight: 8 }} />
-              <Text className="text-white font-bold text-lg">購入する</Text>
+              <Text >購入する</Text>
             </View>
           </Button>
           
           {/* 商品説明（ここでは仮のテキスト） */}
-          <View className="mb-6">
-            <Text className="text-lg font-bold mb-2">商品情報</Text>
-            <Text className="text-gray-700 leading-6">
+          <View >
+            <Text >商品情報</Text>
+            <Text >
               この商品の詳細情報を確認するには、「購入する」ボタンをタップして販売サイトをご覧ください。
               {'\n\n'}
               ※ 価格や送料、在庫状況などは販売サイトにて最新の情報をご確認ください。
@@ -328,8 +328,8 @@ const ProductDetailScreen: React.FC = () => {
           
           {/* 出典情報 */}
           {product.source && (
-            <View className="mb-4">
-              <Text className="text-xs text-gray-400">
+            <View >
+              <Text >
                 出典: {product.source}
               </Text>
             </View>
@@ -338,11 +338,11 @@ const ProductDetailScreen: React.FC = () => {
       </ScrollView>
       
       {/* 下部の購入ボタン（スクロール時も常に表示） */}
-      <View className="bg-white border-t border-gray-200 px-4 py-3">
-        <Button onPress={handleBuyPress} className="bg-blue-600">
-          <View className="flex-row items-center justify-center">
+      <View >
+        <Button onPress={handleBuyPress} >
+          <View >
             <Ionicons name="cart-outline" size={20} color="white" style={{ marginRight: 8 }} />
-            <Text className="text-white font-bold text-lg">購入する</Text>
+            <Text >購入する</Text>
           </View>
         </Button>
       </View>

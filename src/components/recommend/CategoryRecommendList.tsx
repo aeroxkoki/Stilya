@@ -41,11 +41,11 @@ const CategoryRecommendList: React.FC<CategoryRecommendListProps> = ({
   // ローディング表示
   if (loading) {
     return (
-      <View className="py-4">
-        <Text className="text-lg font-bold mb-3 px-4">カテゴリ別おすすめ</Text>
-        <View className="items-center justify-center py-12">
+      <View >
+        <Text >カテゴリ別おすすめ</Text>
+        <View >
           <ActivityIndicator size="large" color="#3B82F6" />
-          <Text className="mt-4 text-gray-500">商品を読み込み中...</Text>
+          <Text >商品を読み込み中...</Text>
         </View>
       </View>
     );
@@ -54,11 +54,11 @@ const CategoryRecommendList: React.FC<CategoryRecommendListProps> = ({
   // エラー表示
   if (error) {
     return (
-      <View className="py-4">
-        <Text className="text-lg font-bold mb-3 px-4">カテゴリ別おすすめ</Text>
-        <View className="items-center justify-center py-12">
-          <Text className="text-red-500 mb-2">エラーが発生しました</Text>
-          <Text className="text-gray-700 text-center">{error}</Text>
+      <View >
+        <Text >カテゴリ別おすすめ</Text>
+        <View >
+          <Text >エラーが発生しました</Text>
+          <Text >{error}</Text>
         </View>
       </View>
     );
@@ -67,25 +67,25 @@ const CategoryRecommendList: React.FC<CategoryRecommendListProps> = ({
   // カテゴリがない場合
   if (Object.keys(categories).length === 0) {
     return (
-      <View className="py-4">
-        <Text className="text-lg font-bold mb-3 px-4">カテゴリ別おすすめ</Text>
-        <View className="items-center justify-center py-12">
-          <Text className="text-gray-500">おすすめアイテムがありません</Text>
+      <View >
+        <Text >カテゴリ別おすすめ</Text>
+        <View >
+          <Text >おすすめアイテムがありません</Text>
         </View>
       </View>
     );
   }
   
   return (
-    <View className="py-4">
-      <Text className="text-lg font-bold mb-3 px-4">カテゴリ別おすすめ</Text>
+    <View >
+      <Text >カテゴリ別おすすめ</Text>
       <ScrollView>
         {Object.entries(categories).map(([category, products]) => {
           if (products.length === 0) return null;
           
           return (
-            <View key={category} className="mb-6">
-              <Text className="text-base font-medium mb-2 px-4">
+            <View key={category} >
+              <Text >
                 {categoryNameMap[category] || category}
               </Text>
               <FlatList

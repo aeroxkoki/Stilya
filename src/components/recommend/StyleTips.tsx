@@ -87,12 +87,12 @@ const StyleTips: React.FC<StyleTipsProps> = ({
   // コンパクト表示の場合
   if (compact) {
     return (
-      <View className="mb-4">
-        <Text className="text-lg font-bold mb-2">スタイリングTips</Text>
+      <View >
+        <Text >スタイリングTips</Text>
         {styleTips.map((tip, index) => (
-          <View key={index} className="flex-row items-start mb-2">
+          <View key={index} >
             <Ionicons name={tip.icon as any} size={16} color="#4B5563" style={{ marginTop: 2, marginRight: 8 }} />
-            <Text className="text-sm text-gray-700 flex-1">{tip.title}</Text>
+            <Text >{tip.title}</Text>
           </View>
         ))}
       </View>
@@ -101,18 +101,18 @@ const StyleTips: React.FC<StyleTipsProps> = ({
 
   // 通常表示の場合
   return (
-    <View className="mb-6">
-      <Text className="text-lg font-bold mb-3 px-4">あなたにぴったりなスタイリングTips</Text>
-      <View className="px-4">
+    <View >
+      <Text >あなたにぴったりなスタイリングTips</Text>
+      <View >
         {styleTips.map((tip, index) => (
-          <View key={index} className="bg-white border border-gray-100 rounded-lg p-4 mb-3 shadow-sm">
-            <View className="flex-row items-center mb-2">
-              <View className="bg-blue-100 p-2 rounded-full mr-3">
+          <View key={index} >
+            <View >
+              <View >
                 <Ionicons name={tip.icon as any} size={20} color="#3B82F6" />
               </View>
-              <Text className="text-base font-bold text-gray-800">{tip.title}</Text>
+              <Text >{tip.title}</Text>
             </View>
-            <Text className="text-sm text-gray-600">{tip.description}</Text>
+            <Text >{tip.description}</Text>
           </View>
         ))}
       </View>

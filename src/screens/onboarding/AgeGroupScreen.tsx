@@ -33,26 +33,26 @@ const AgeGroupScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <View className="flex-1">
+    <SafeAreaView >
+      <View >
         {/* ヘッダー */}
-        <View className="flex-row items-center justify-between p-6 mb-2">
+        <View >
           <TouchableOpacity onPress={handleBack}>
             <Ionicons name="arrow-back" size={24} color="#333" />
           </TouchableOpacity>
-          <Text className="text-lg font-medium">3/4</Text>
+          <Text >3/4</Text>
         </View>
 
         {/* タイトル */}
-        <View className="px-6 mb-6">
-          <Text className="text-2xl font-bold mb-2">あなたの年代を教えてください</Text>
-          <Text className="text-gray-500">
+        <View >
+          <Text >あなたの年代を教えてください</Text>
+          <Text >
             年代に合わせたスタイル提案のために使用されます
           </Text>
         </View>
 
         {/* 年代選択 */}
-        <ScrollView className="flex-1 px-6">
+        <ScrollView >
           {ageGroups.map(age => (
             <SelectionButton
               key={age.id}
@@ -64,7 +64,7 @@ const AgeGroupScreen: React.FC<Props> = ({ navigation }) => {
         </ScrollView>
 
         {/* 次へボタン */}
-        <View className="p-6">
+        <View >
           <Button
             isFullWidth
             onPress={handleNext}

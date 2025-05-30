@@ -18,24 +18,24 @@ const GenderScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <View className="p-6 flex-1">
+    <SafeAreaView >
+      <View >
         {/* ヘッダー */}
-        <View className="flex-row items-center justify-between mb-8">
+        <View >
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={24} color="#333" />
           </TouchableOpacity>
-          <Text className="text-lg font-medium">1/4</Text>
+          <Text >1/4</Text>
         </View>
 
         {/* タイトル */}
-        <Text className="text-2xl font-bold mb-2">あなたの性別を教えてください</Text>
-        <Text className="text-gray-500 mb-8">
+        <Text >あなたの性別を教えてください</Text>
+        <Text >
           より適切なスタイル提案のために使用されます
         </Text>
 
         {/* 選択肢 */}
-        <View className="mb-8">
+        <View >
           <SelectionButton
             title="男性"
             subtitle="メンズスタイル"
@@ -63,7 +63,7 @@ const GenderScreen: React.FC<Props> = ({ navigation }) => {
           isFullWidth
           onPress={handleNext}
           disabled={!gender}
-          className="mt-auto"
+          
         >
           次へ
         </Button>

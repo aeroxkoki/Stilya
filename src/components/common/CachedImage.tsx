@@ -18,7 +18,7 @@ interface ExpoImageProps {
 const MockExpoImage: React.FC<ExpoImageProps> = ({ 
   source, 
   style, 
-  className, 
+   
   contentFit, 
   ...restProps 
 }) => {

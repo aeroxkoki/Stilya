@@ -50,7 +50,7 @@ const Button: React.FC<ButtonProps> = ({
   fullWidth = false,
   isFullWidth,
   testID,
-  className, // NativeWindを使用する場合（無視されます）
+   // NativeWindを使用する場合（無視されます）
 }) => {
   // isFullWidthをfullWidthに統合（互換性のため）
   const useFullWidth = fullWidth || isFullWidth;

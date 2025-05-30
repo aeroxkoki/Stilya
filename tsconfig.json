@@ -4,8 +4,13 @@
     "strict": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
-    }
+      "@/*": [
+        "src/*"
+      ]
+    },
+    "jsx": "react-native",
+    "moduleResolution": "node",
+    "skipLibCheck": true
   },
   "include": [
     "App.tsx",

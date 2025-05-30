@@ -1,94 +1,103 @@
-// 基本的なテーマ設定
-
-export interface ThemeColors {
-  primary: string;
-  secondary: string;
-  border: string;
-  background: {
-    main: string;
-    secondary: string;
-    card: string;
-    input: string;
-  };
-  text: {
-    primary: string;
-    secondary: string;
-    hint: string;
-    inverse: string;
-  };
-  accent: {
-    primary: string;
-    secondary: string;
-  };
-  button: {
-    disabled: string;
-  };
-  status: {
-    success: string;
-    error: string;
-    warning: string;
-    info: string;
-  };
-}
-
+// テーマカラーの定義
 export interface Theme {
-  colors: ThemeColors;
+  colors: {
+    primary: string;
+    secondary: string;
+    background: string;
+    surface: string;
+    error: string;
+    success: string;
+    warning: string;
+    text: {
+      primary: string;
+      secondary: string;
+      hint: string;
+      inverse: string;
+    };
+    button: {
+      primary: string;
+      secondary: string;
+      disabled: string;
+    };
+    border: string;
+    divider: string;
+  };
   spacing: {
     xs: number;
     s: number;
     m: number;
     l: number;
     xl: number;
+    xxl: number;
   };
-  radius: {
+  fontSizes: {
+    xs: number;
     s: number;
     m: number;
     l: number;
+    xl: number;
+    xxl: number;
   };
   fontWeights: {
     regular: string;
     medium: string;
+    semibold: string;
     bold: string;
   };
-  fontSizes: {
-    xs: number;
+  radius: {
     s: number;
     m: number;
     l: number;
     xl: number;
   };
+  shadows: {
+    small: {
+      shadowColor: string;
+      shadowOffset: { width: number; height: number };
+      shadowOpacity: number;
+      shadowRadius: number;
+      elevation: number;
+    };
+    medium: {
+      shadowColor: string;
+      shadowOffset: { width: number; height: number };
+      shadowOpacity: number;
+      shadowRadius: number;
+      elevation: number;
+    };
+    large: {
+      shadowColor: string;
+      shadowOffset: { width: number; height: number };
+      shadowOpacity: number;
+      shadowRadius: number;
+      elevation: number;
+    };
+  };
 }
 
+// ライトテーマ
 export const lightTheme: Theme = {
   colors: {
-    primary: '#3b82f6',
-    secondary: '#10b981',
-    border: '#e5e7eb',
-    background: {
-      main: '#ffffff',
-      secondary: '#f8f9fa',
-      card: '#ffffff',
-      input: '#f9fafb',
-    },
+    primary: '#000000',
+    secondary: '#666666',
+    background: '#FFFFFF',
+    surface: '#F5F5F5',
+    error: '#E53E3E',
+    success: '#38A169',
+    warning: '#D69E2E',
     text: {
-      primary: '#000000',
-      secondary: '#6b7280',
-      hint: '#9ca3af',
-      inverse: '#ffffff',
-    },
-    accent: {
-      primary: '#3b82f6',
-      secondary: '#10b981',
+      primary: '#1A1A1A',
+      secondary: '#4A4A4A',
+      hint: '#999999',
+      inverse: '#FFFFFF',
     },
     button: {
-      disabled: '#e5e7eb',
+      primary: '#000000',
+      secondary: '#666666',
+      disabled: '#CCCCCC',
     },
-    status: {
-      success: '#10b981',
-      error: '#ef4444',
-      warning: '#f59e0b',
-      info: '#3b82f6',
-    },
+    border: '#E5E5E5',
+    divider: '#EEEEEE',
   },
   spacing: {
     xs: 4,
@@ -96,86 +105,105 @@ export const lightTheme: Theme = {
     m: 16,
     l: 24,
     xl: 32,
+    xxl: 48,
+  },
+  fontSizes: {
+    xs: 10,
+    s: 12,
+    m: 16,
+    l: 18,
+    xl: 24,
+    xxl: 32,
+  },
+  fontWeights: {
+    regular: '400',
+    medium: '500',
+    semibold: '600',
+    bold: '700',
   },
   radius: {
     s: 4,
     m: 8,
     l: 16,
-  },
-  fontWeights: {
-    regular: '400',
-    medium: '500',
-    bold: '700',
-  },
-  fontSizes: {
-    xs: 12,
-    s: 14,
-    m: 16,
-    l: 18,
     xl: 24,
+  },
+  shadows: {
+    small: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 2,
+      elevation: 2,
+    },
+    medium: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.15,
+      shadowRadius: 4,
+      elevation: 4,
+    },
+    large: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+      elevation: 8,
+    },
   },
 };
 
+// ダークテーマ
 export const darkTheme: Theme = {
   colors: {
-    primary: '#60a5fa',
-    secondary: '#34d399',
-    border: '#374151',
-    background: {
-      main: '#1f2937',
-      secondary: '#374151',
-      card: '#111827',
-      input: '#374151',
-    },
+    primary: '#FFFFFF',
+    secondary: '#AAAAAA',
+    background: '#000000',
+    surface: '#1A1A1A',
+    error: '#FC8181',
+    success: '#68D391',
+    warning: '#F6E05E',
     text: {
-      primary: '#ffffff',
-      secondary: '#d1d5db',
-      hint: '#9ca3af',
+      primary: '#FFFFFF',
+      secondary: '#CCCCCC',
+      hint: '#888888',
       inverse: '#000000',
     },
-    accent: {
-      primary: '#60a5fa',
-      secondary: '#34d399',
-    },
     button: {
-      disabled: '#4b5563',
+      primary: '#FFFFFF',
+      secondary: '#AAAAAA',
+      disabled: '#444444',
     },
-    status: {
-      success: '#34d399',
-      error: '#f87171',
-      warning: '#fbbf24',
-      info: '#60a5fa',
+    border: '#2A2A2A',
+    divider: '#333333',
+  },
+  spacing: lightTheme.spacing,
+  fontSizes: lightTheme.fontSizes,
+  fontWeights: lightTheme.fontWeights,
+  radius: lightTheme.radius,
+  shadows: {
+    small: {
+      shadowColor: '#FFF',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
+      elevation: 2,
     },
-  },
-  spacing: {
-    xs: 4,
-    s: 8,
-    m: 16,
-    l: 24,
-    xl: 32,
-  },
-  radius: {
-    s: 4,
-    m: 8,
-    l: 16,
-  },
-  fontWeights: {
-    regular: '400',
-    medium: '500',
-    bold: '700',
-  },
-  fontSizes: {
-    xs: 12,
-    s: 14,
-    m: 16,
-    l: 18,
-    xl: 24,
+    medium: {
+      shadowColor: '#FFF',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.08,
+      shadowRadius: 4,
+      elevation: 4,
+    },
+    large: {
+      shadowColor: '#FFF',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 8,
+    },
   },
 };
 
-export const getThemeByUserPreferences = (
-  gender?: 'male' | 'female' | 'other',
-  isDarkMode: boolean = false
-): Theme => {
-  return isDarkMode ? darkTheme : lightTheme;
-};
+// デフォルトテーマをエクスポート
+export default lightTheme;

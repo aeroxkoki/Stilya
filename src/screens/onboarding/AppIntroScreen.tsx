@@ -79,14 +79,14 @@ const AppIntroScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <View className="flex-1 bg-white">
-      <View className="flex-row justify-between items-center p-6">
+    <View >
+      <View >
         <TouchableOpacity onPress={handleBack}>
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
         
         <TouchableOpacity onPress={handleSkip}>
-          <Text className="text-gray-500 font-medium">スキップ</Text>
+          <Text >スキップ</Text>
         </TouchableOpacity>
       </View>
 
@@ -109,7 +109,7 @@ const AppIntroScreen: React.FC<Props> = ({ navigation }) => {
       />
 
       {/* インジケーター */}
-      <View className="flex-row justify-center mb-8">
+      <View >
         {slides.map((_, index) => (
           <View
             key={index}
@@ -120,7 +120,7 @@ const AppIntroScreen: React.FC<Props> = ({ navigation }) => {
         ))}
       </View>
 
-      <View className="px-6 mb-10">
+      <View >
         <Button isFullWidth onPress={handleNext}>
           {currentIndex === slides.length - 1 ? '始める' : '次へ'}
         </Button>

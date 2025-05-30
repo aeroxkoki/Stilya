@@ -139,24 +139,24 @@ const SwipeHistoryScreen: React.FC = () => {
   
   // フィルターボタン
   const renderFilterButtons = () => (
-    <View className="flex-row justify-center my-3">
+    <View style={styles.filterContainer}>
       <TouchableOpacity
-        className={`px-4 py-2 mx-1 rounded-full ${filter === 'all' ? 'bg-gray-200' : 'bg-gray-50'}`}
+        style={[styles.filterButton, filter === 'all' && styles.filterButtonActive]}
         onPress={() => setFilter('all')}
       >
-        <Text className={`${filter === 'all' ? 'font-bold' : 'text-gray-500'}`}>すべて</Text>
+        <Text style={[styles.filterButtonText, filter === 'all' && styles.filterButtonTextActive]}>すべて</Text>
       </TouchableOpacity>
       <TouchableOpacity
-        className={`px-4 py-2 mx-1 rounded-full ${filter === 'yes' ? 'bg-blue-100' : 'bg-gray-50'}`}
+        style={[styles.filterButton, filter === 'yes' && styles.filterButtonActive]}
         onPress={() => setFilter('yes')}
       >
-        <Text className={`${filter === 'yes' ? 'font-bold text-blue-600' : 'text-gray-500'}`}>Yes</Text>
+        <Text style={[styles.filterButtonText, filter === 'yes' && styles.filterButtonTextActive]}>Yes</Text>
       </TouchableOpacity>
       <TouchableOpacity
-        className={`px-4 py-2 mx-1 rounded-full ${filter === 'no' ? 'bg-red-100' : 'bg-gray-50'}`}
+        style={[styles.filterButton, filter === 'no' && styles.filterButtonActive]}
         onPress={() => setFilter('no')}
       >
-        <Text className={`${filter === 'no' ? 'font-bold text-red-600' : 'text-gray-500'}`}>No</Text>
+        <Text style={[styles.filterButtonText, filter === 'no' && styles.filterButtonTextActive]}>No</Text>
       </TouchableOpacity>
     </View>
   );
@@ -166,9 +166,9 @@ const SwipeHistoryScreen: React.FC = () => {
     if (!loadingMore) return null;
     
     return (
-      <View className="py-4 justify-center items-center">
+      <View style={styles.footerContainer}>
         <ActivityIndicator size="small" color="#3B82F6" />
-        <Text className="text-gray-500 text-sm mt-2">読み込み中...</Text>
+        <Text style={styles.footerText}>読み込み中...</Text>
       </View>
     );
   };
@@ -176,32 +176,32 @@ const SwipeHistoryScreen: React.FC = () => {
   // ローディング表示
   if (loading && !refreshing) {
     return (
-      <SafeAreaView className="flex-1 bg-white">
-        <View className="flex-row justify-between items-center px-6 pt-10 pb-4">
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
           <TouchableOpacity onPress={handleBackPress}>
             <Ionicons name="arrow-back" size={24} color="#000" />
           </TouchableOpacity>
-          <Text className="text-xl font-bold ml-2">スワイプ履歴</Text>
+          <Text style={styles.headerTitle}>スワイプ履歴</Text>
           <View style={{ width: 24 }} /> {/* バランス用の空のビュー */}
         </View>
-        <View className="flex-1 items-center justify-center">
+        <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#3B82F6" />
-          <Text className="mt-4 text-gray-500">読み込み中...</Text>
+          <Text style={styles.loadingText}>読み込み中...</Text>
         </View>
       </SafeAreaView>
     );
   }
   
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView style={styles.container}>
       {/* ヘッダー */}
-      <View className="flex-row justify-between items-center px-6 pt-10 pb-2">
+      <View style={styles.header}>
         <TouchableOpacity onPress={handleBackPress}>
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <View className="flex-row items-center">
-          <Text className="text-xl font-bold ml-2">スワイプ履歴</Text>
-          <Text className="text-gray-500 ml-2">({swipeHistory.length})</Text>
+        <View style={styles.headerTitleContainer}>
+          <Text style={styles.headerTitle}>スワイプ履歴</Text>
+          <Text style={styles.headerCount}>({swipeHistory.length})</Text>
         </View>
         <TouchableOpacity onPress={handleClearHistory}>
           <Ionicons name="trash-outline" size={24} color="#6B7280" />
@@ -212,12 +212,12 @@ const SwipeHistoryScreen: React.FC = () => {
       {renderFilterButtons()}
       
       {/* 商品リスト */}
-      <View className="flex-1 px-4">
+      <View style={styles.contentContainer}>
         {swipeHistory.length === 0 ? (
-          <View className="flex-1 items-center justify-center">
+          <View style={styles.emptyContainer}>
             <Ionicons name="time-outline" size={64} color="#E5E7EB" />
-            <Text className="mt-4 text-gray-400 text-lg">スワイプ履歴はまだありません</Text>
-            <Text className="mt-2 text-gray-400 text-sm text-center px-10">
+            <Text style={styles.emptyTitle}>スワイプ履歴はまだありません</Text>
+            <Text style={styles.emptySubtitle}>
               スワイプ画面でYes/Noで評価した商品がここに表示されます
             </Text>
           </View>
@@ -235,7 +235,7 @@ const SwipeHistoryScreen: React.FC = () => {
             ListFooterComponent={renderFooter}
             renderItem={({ item, index }) => (
               <View style={styles.cardContainer}>
-                <View className="relative">
+                <View>
                   <ProductCard
                     product={item}
                     onPress={() => handleProductPress(item)}
@@ -248,7 +248,7 @@ const SwipeHistoryScreen: React.FC = () => {
                         { backgroundColor: index % 2 === 0 ? '#3B82F6' : '#F87171' } // 偶数番目はYes
                       ]}
                     >
-                      <Text className="text-white text-xs font-bold">
+                      <Text style={styles.resultBadgeText}>
                         {index % 2 === 0 ? 'Yes' : 'No'}
                       </Text>
                     </View>
@@ -276,6 +276,89 @@ const SwipeHistoryScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  headerTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1F2937',
+  },
+  headerCount: {
+    fontSize: 16,
+    color: '#6B7280',
+    marginLeft: 8,
+  },
+  filterContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    gap: 8,
+  },
+  filterButton: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+  },
+  filterButtonActive: {
+    backgroundColor: '#3B82F6',
+  },
+  filterButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+  filterButtonTextActive: {
+    color: '#FFFFFF',
+  },
+  contentContainer: {
+    flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#6B7280',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginTop: 16,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginTop: 8,
+  },
   listContainer: {
     paddingVertical: 8,
   },
@@ -309,6 +392,20 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  resultBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  footerContainer: {
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  footerText: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#6B7280',
   },
 });
 

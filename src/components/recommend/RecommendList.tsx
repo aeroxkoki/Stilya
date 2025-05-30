@@ -27,11 +27,11 @@ const RecommendList: React.FC<RecommendListProps> = ({
   // ローディング表示
   if (loading) {
     return (
-      <View className="py-4">
-        <Text className="text-lg font-bold mb-3 px-4">{title}</Text>
-        <View className="items-center justify-center py-12">
+      <View >
+        <Text >{title}</Text>
+        <View >
           <ActivityIndicator size="large" color="#3B82F6" />
-          <Text className="mt-4 text-gray-500">商品を読み込み中...</Text>
+          <Text >商品を読み込み中...</Text>
         </View>
       </View>
     );
@@ -40,11 +40,11 @@ const RecommendList: React.FC<RecommendListProps> = ({
   // エラー表示
   if (error) {
     return (
-      <View className="py-4">
-        <Text className="text-lg font-bold mb-3 px-4">{title}</Text>
-        <View className="items-center justify-center py-12">
-          <Text className="text-red-500 mb-2">エラーが発生しました</Text>
-          <Text className="text-gray-700 text-center">{error}</Text>
+      <View >
+        <Text >{title}</Text>
+        <View >
+          <Text >エラーが発生しました</Text>
+          <Text >{error}</Text>
         </View>
       </View>
     );
@@ -53,18 +53,18 @@ const RecommendList: React.FC<RecommendListProps> = ({
   // 商品がない場合
   if (products.length === 0) {
     return (
-      <View className="py-4">
-        <Text className="text-lg font-bold mb-3 px-4">{title}</Text>
-        <View className="items-center justify-center py-12">
-          <Text className="text-gray-500">{emptyMessage}</Text>
+      <View >
+        <Text >{title}</Text>
+        <View >
+          <Text >{emptyMessage}</Text>
         </View>
       </View>
     );
   }
   
   return (
-    <View className="py-4">
-      <Text className="text-lg font-bold mb-3 px-4">{title}</Text>
+    <View >
+      <Text >{title}</Text>
       <FlatList
         data={products}
         keyExtractor={(item) => item.id}

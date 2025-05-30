@@ -23,18 +23,22 @@ const SelectionButton: React.FC<SelectionButtonProps> = ({
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.7}
-      className="mb-4"
+      style={styles.touchable}
     >
       <Card
-        className={`p-6 ${isSelected ? 'border-2 border-primary' : ''}`}
+        variant={isSelected ? 'elevated' : 'outlined'}
+        style={[
+          styles.card,
+          isSelected && styles.cardSelected
+        ]}
       >
-        <View className="flex-row items-center justify-between">
-          <View className="flex-row items-center">
-            {icon && <View className="mr-3">{icon}</View>}
+        <View style={styles.container}>
+          <View style={styles.content}>
+            {icon && <View style={styles.iconContainer}>{icon}</View>}
             <View>
-              <Text className="text-lg font-medium">{title}</Text>
+              <Text style={[styles.title, isSelected && styles.titleSelected]}>{title}</Text>
               {subtitle && (
-                <Text className="text-gray-500">{subtitle}</Text>
+                <Text style={[styles.subtitle, isSelected && styles.subtitleSelected]}>{subtitle}</Text>
               )}
             </View>
           </View>
@@ -46,5 +50,49 @@ const SelectionButton: React.FC<SelectionButtonProps> = ({
     </TouchableOpacity>
   );
 };
+
+const styles = StyleSheet.create({
+  touchable: {
+    marginBottom: 12,
+  },
+  card: {
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+    backgroundColor: '#FFFFFF',
+  },
+  cardSelected: {
+    borderColor: '#3B82F6',
+    backgroundColor: '#EFF6FF',
+  },
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  content: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  iconContainer: {
+    marginRight: 12,
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  titleSelected: {
+    color: '#3B82F6',
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  subtitleSelected: {
+    color: '#60A5FA',
+  },
+});
 
 export default SelectionButton;

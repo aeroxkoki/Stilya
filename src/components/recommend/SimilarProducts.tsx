@@ -33,8 +33,8 @@ const SimilarProducts: React.FC<SimilarProductsProps> = ({
   }
   
   return (
-    <View className="mb-6">
-      <Text className="text-lg font-bold mb-3 px-4">{title}</Text>
+    <View >
+      <Text >{title}</Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -44,7 +44,7 @@ const SimilarProducts: React.FC<SimilarProductsProps> = ({
           <TouchableOpacity
             key={product.id}
             style={styles.card}
-            className="mr-4 bg-white rounded-lg shadow-sm overflow-hidden"
+            
             onPress={() => onProductPress(product)}
           >
             <Image
@@ -52,16 +52,16 @@ const SimilarProducts: React.FC<SimilarProductsProps> = ({
               style={styles.image}
               resizeMode="cover"
             />
-            <View className="p-2">
+            <View >
               {product.brand && (
-                <Text className="text-xs text-gray-600" numberOfLines={1}>
+                <Text  numberOfLines={1}>
                   {product.brand}
                 </Text>
               )}
-              <Text className="text-sm font-medium mt-1" numberOfLines={2}>
+              <Text  numberOfLines={2}>
                 {product.title}
               </Text>
-              <Text className="text-sm font-bold text-blue-600 mt-1">
+              <Text >
                 {formatPrice(product.price)}
               </Text>
             </View>

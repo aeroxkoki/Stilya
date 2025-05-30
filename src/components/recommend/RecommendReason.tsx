@@ -42,9 +42,9 @@ const RecommendReason: React.FC<RecommendReasonProps> = ({
   // コンパクト表示の場合（リスト内など）
   if (compact) {
     return (
-      <View className="mt-1 mb-2 flex-row items-center">
+      <View >
         <Ionicons name="checkmark-circle" size={14} color="#4CAF50" />
-        <Text className="text-xs text-green-700 ml-1" numberOfLines={1}>
+        <Text  numberOfLines={1}>
           {reasonMessage}
         </Text>
       </View>
@@ -53,21 +53,21 @@ const RecommendReason: React.FC<RecommendReasonProps> = ({
 
   // 詳細表示の場合（商品詳細画面など）
   return (
-    <View className="bg-green-50 p-3 rounded-lg mb-4">
-      <Text className="text-sm font-bold text-green-800 mb-1">
+    <View >
+      <Text >
         あなたにおすすめの理由
       </Text>
-      <Text className="text-sm text-green-700">
+      <Text >
         {reasonMessage}
       </Text>
       {matchingTags.length > 0 && (
-        <View className="flex-row flex-wrap mt-2">
+        <View >
           {matchingTags.map(tag => (
             <View 
               key={tag} 
-              className="bg-green-100 rounded-full px-2 py-1 mr-2 mb-1"
+              
             >
-              <Text className="text-xs text-green-800">
+              <Text >
                 {tag}
               </Text>
             </View>

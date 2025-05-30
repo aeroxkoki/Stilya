@@ -35,9 +35,9 @@ const PreferenceTrendsGraph: React.FC<PreferenceTrendsGraphProps> = ({
   const maxScore = topTags[0][1];
 
   return (
-    <View className="mb-6">
-      <Text className="text-lg font-bold mb-3 px-4">あなたの嗜好傾向</Text>
-      <View className="px-4">
+    <View style={styles.container}>
+      <Text style={styles.title}>あなたの嗜好傾向</Text>
+      <View style={styles.chartContainer}>
         {topTags.map(([tag, score], index) => {
           // スコアの相対値に基づいて幅を計算
           const relativeScore = score / maxScore;
@@ -45,31 +45,84 @@ const PreferenceTrendsGraph: React.FC<PreferenceTrendsGraphProps> = ({
           
           // 交互に異なる色を適用
           const isEven = index % 2 === 0;
-          const barColor = isEven ? 'bg-blue-500' : 'bg-indigo-500';
+          const barColor = isEven ? '#3B82F6' : '#6366F1';
           
           return (
-            <View key={tag} className="mb-3">
-              <View className="flex-row justify-between mb-1">
-                <Text className="text-sm text-gray-700">{tag}</Text>
-                <Text className="text-xs text-gray-500">
+            <View key={tag} style={styles.barRow}>
+              <View style={styles.labelContainer}>
+                <Text style={styles.tagLabel}>{tag}</Text>
+                <Text style={styles.scoreLabel}>
                   {score.toFixed(1)}
                 </Text>
               </View>
-              <View className="h-4 w-full bg-gray-100 rounded-full overflow-hidden">
+              <View style={styles.barContainer}>
                 <View
-                  className={`h-full ${barColor} rounded-full`}
-                  style={{ width: barWidth }}
+                  style={[
+                    styles.bar,
+                    { width: barWidth, backgroundColor: barColor }
+                  ]}
                 />
               </View>
             </View>
           );
         })}
       </View>
-      <Text className="text-xs text-gray-500 mt-2 px-4">
+      <Text style={styles.footnote}>
         ※ スワイプの履歴からあなたの好みを分析しています
       </Text>
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: '#F9FAFB',
+    padding: 16,
+    borderRadius: 12,
+    marginVertical: 12,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: 16,
+  },
+  chartContainer: {
+    marginVertical: 8,
+  },
+  barRow: {
+    marginBottom: 12,
+  },
+  labelContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  tagLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  scoreLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  barContainer: {
+    height: 24,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  bar: {
+    height: '100%',
+    borderRadius: 12,
+  },
+  footnote: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginTop: 12,
+    textAlign: 'center',
+  },
+});
 
 export default PreferenceTrendsGraph;

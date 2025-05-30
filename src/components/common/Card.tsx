@@ -17,7 +17,6 @@ export interface CardProps {
   variant?: 'filled' | 'outlined' | 'flat' | 'elevated';
   padding?: number | string; // カスタムパディングのサポート
   testID?: string;
-  className?: string; // NativeWindとの互換性のため
 }
 
 const Card: React.FC<CardProps> = ({
@@ -29,7 +28,6 @@ const Card: React.FC<CardProps> = ({
   variant = 'filled',
   padding,
   testID,
-  className,
 }) => {
   const { theme, isDarkMode } = useTheme();
 
@@ -132,14 +130,13 @@ const Card: React.FC<CardProps> = ({
         activeOpacity={0.8}
         disabled={disabled}
         testID={testID}
-        className={className}
       >
         {children}
       </TouchableOpacity>
     );
   }
 
-  return <View style={cardStyle} testID={testID} className={className}>{children}</View>;
+  return <View style={cardStyle} testID={testID}>{children}</View>;
 };
 
 const styles = StyleSheet.create({

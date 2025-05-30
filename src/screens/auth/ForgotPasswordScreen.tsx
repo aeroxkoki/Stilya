@@ -51,42 +51,42 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1"
+        
       >
         <ScrollView
           contentContainerStyle={{ flexGrow: 1 }}
           keyboardShouldPersistTaps="handled"
         >
-          <View className="px-6 py-10 flex-1 justify-center">
+          <View >
             {/* ヘッダー */}
             <TouchableOpacity 
-              className="absolute top-12 left-4 z-10" 
+               
               onPress={() => navigation.goBack()}
             >
               <Ionicons name="arrow-back" size={24} color="#333" />
             </TouchableOpacity>
             
             {/* タイトル */}
-            <View className="items-center mb-8">
-              <Text className="text-2xl font-bold text-gray-800">パスワードをリセット</Text>
-              <Text className="text-sm text-gray-500 mt-1 text-center px-4">
+            <View >
+              <Text >パスワードをリセット</Text>
+              <Text >
                 アカウントに登録されているメールアドレスを入力してください。パスワードリセット用のリンクを送信します。
               </Text>
             </View>
 
             {emailSent ? (
               // メール送信済み画面
-              <View className="items-center">
-                <View className="bg-green-100 p-4 rounded-full mb-4">
+              <View >
+                <View >
                   <Ionicons name="checkmark" size={40} color="#10B981" />
                 </View>
-                <Text className="text-lg font-medium text-center mb-2">
+                <Text >
                   リセット用メールを送信しました
                 </Text>
-                <Text className="text-gray-500 text-center mb-8">
+                <Text >
                   {email} にパスワードリセット用のリンクを送信しました。メールをご確認ください。
                 </Text>
                 <Button
@@ -101,13 +101,13 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
               <>
                 {/* エラーメッセージ */}
                 {validationError && (
-                  <View className="mb-4 p-3 bg-red-50 rounded-md">
-                    <Text className="text-red-500">{formatErrorMessage(validationError)}</Text>
+                  <View >
+                    <Text >{formatErrorMessage(validationError)}</Text>
                   </View>
                 )}
 
                 {/* 入力フォーム */}
-                <View className="space-y-4">
+                <View >
                   <Input
                     label="メールアドレス"
                     placeholder="example@email.com"
@@ -124,16 +124,16 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
                   isFullWidth
                   onPress={handleResetPassword}
                   isLoading={loading}
-                  className="mt-6"
+                  
                 >
                   リセットリンクを送信
                 </Button>
 
                 {/* ログインリンク */}
-                <View className="flex-row justify-center mt-8">
-                  <Text className="text-gray-600">パスワードを思い出しましたか？</Text>
+                <View >
+                  <Text >パスワードを思い出しましたか？</Text>
                   <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-                    <Text className="text-primary-dark font-medium ml-1">
+                    <Text >
                       ログイン
                     </Text>
                   </TouchableOpacity>
