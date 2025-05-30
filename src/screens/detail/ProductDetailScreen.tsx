@@ -18,7 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/common';
 import { RecommendReason, SimilarProducts } from '@/components/recommend';
 import { useProductStore } from '@/store/productStore';
-import { useAuthStore } from '@/store/authStore';
+import { useAuth } from '@/contexts/AuthContext';
 import { formatPrice, getSimilarProducts } from '@/utils';
 import { useRecommendations } from '@/hooks/useRecommendations';
 import { useRecordClick } from '@/hooks/useRecordClick';
@@ -35,7 +35,7 @@ const ProductDetailScreen: React.FC = () => {
   const route = useRoute<ProductDetailScreenRouteProp>();
   const navigation = useNavigation();
   const { productId } = route.params;
-  const { user } = useAuthStore();
+  const { user } = useAuth();
   const { 
     products, 
     loading, 
@@ -59,29 +59,33 @@ const ProductDetailScreen: React.FC = () => {
   useEffect(() => {
     const loadProduct = async () => {
       try {
-        // 新しい変数を作成して関数を呼び出す
-        const fetchProduct = async (id: string) => {
-          if (products && products.length > 0) {
-            // 既存の商品データから検索
-            const existingProduct = products.find(p => p.id === id);
-            if (existingProduct) return existingProduct;
+        // まず既存の商品データから検索
+        if (products && products.length > 0) {
+          const existingProduct = products.find(p => p.id === productId);
+          if (existingProduct) {
+            setProduct(existingProduct);
+            
+            // 類似商品を取得
+            const similar = getSimilarProducts(existingProduct, products, 5);
+            setSimilarProducts(similar);
           }
-          // 商品データを取得（getState経由でstore内のメソッドにアクセス）
-          const productStore = useProductStore.getState();
-          // productStore内にfetchProductByIdメソッドがあることを確認
-          if (typeof productStore.loadProducts === 'function') {
-            await productStore.loadProducts();
-            const foundProduct = productStore.products.find(p => p.id === id);
-            if (foundProduct) return foundProduct;
-          }
-        };
+        }
         
-        const productData = await fetchProduct(productId);
+        // 商品データがない場合は、fetchProductByIdを使用
+        const productStore = useProductStore.getState();
+        const productData = await productStore.fetchProductById(productId);
+        
         if (productData) {
           setProduct(productData);
           
+          // productsが空の場合は商品データをロード
+          if (products.length === 0) {
+            await productStore.loadProducts();
+          }
+          
           // 類似商品を取得
-          const similar = getSimilarProducts(productData, products, 5);
+          const allProducts = useProductStore.getState().products;
+          const similar = getSimilarProducts(productData, allProducts, 5);
           setSimilarProducts(similar);
           
           // 閲覧履歴に記録（ログインしている場合のみ）
