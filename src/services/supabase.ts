@@ -6,7 +6,7 @@ const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 
 // 環境変数が設定されていない場合の警告
-if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes('your-project')) {
+if (!supabaseUrl || !supabaseAnonKey) {
   console.warn(
     '⚠️ Supabase環境変数が設定されていません。',
     '\n.envファイルを作成し、EXPO_PUBLIC_SUPABASE_URLとEXPO_PUBLIC_SUPABASE_ANON_KEYを設定してください。',

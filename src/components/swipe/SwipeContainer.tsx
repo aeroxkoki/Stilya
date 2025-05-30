@@ -9,10 +9,10 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { useSwipe } from '@/hooks/useSwipe';
-import { Product } from '@/types';
-import { useAuth } from '@/hooks/useAuth';
-import { useNetwork } from '@/contexts/NetworkContext';
+import { useSwipe } from '../../hooks/useSwipe';
+import { Product } from '../../types';
+import { useAuth } from '../../hooks/useAuth';
+import { useNetwork } from '../../contexts/NetworkContext';
 import SwipeCard from './SwipeCard';
 
 interface SwipeContainerProps {

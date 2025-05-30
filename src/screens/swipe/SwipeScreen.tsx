@@ -9,7 +9,7 @@ import { EmptyState } from '../../components/common';
 import { useProducts } from '../../hooks/useProducts';
 import { useSwipe } from '../../hooks/useSwipe';
 import SwipeContainer from '../../components/swipe/SwipeContainer';
-import ActionButtons from '../../components/ActionButtons';
+import ActionButtons from '../../components/swipe/ActionButtons';
 
 // ナビゲーションの型定義
 type SwipeScreenNavigationProp = StackNavigationProp<MainStackParamList>;
