@@ -11,6 +11,8 @@ import 'react-native-url-polyfill/auto';
 // Components and Navigation
 import AppNavigator from './src/navigation/AppNavigator';
 import { AuthProvider } from './src/contexts/AuthContext';
+import { ProductProvider } from './src/contexts/ProductContext';
+import { OnboardingProvider } from './src/contexts/OnboardingContext';
 import { NetworkProvider } from './src/contexts/NetworkContext';
 
 export default function App() {
@@ -24,11 +26,15 @@ export default function App() {
       <SafeAreaProvider>
         <NetworkProvider>
           <AuthProvider>
-            <NavigationContainer>
-              <StatusBar style="auto" />
-              <AppNavigator />
-              <Toast />
-            </NavigationContainer>
+            <ProductProvider>
+              <OnboardingProvider>
+                <NavigationContainer>
+                  <StatusBar style="auto" />
+                  <AppNavigator />
+                  <Toast />
+                </NavigationContainer>
+              </OnboardingProvider>
+            </ProductProvider>
           </AuthProvider>
         </NetworkProvider>
       </SafeAreaProvider>

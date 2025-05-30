@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { Input, Button, Card } from '../../components/common';
-import { useAuthStore } from '../../store/authStore';
+import { useAuth } from '../../contexts/AuthContext';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList, AuthStackParamList } from '../../navigation/types';
 import { StatusBar } from 'react-native';
@@ -18,7 +18,7 @@ interface AuthScreenProps {
 const AuthScreen: React.FC<AuthScreenProps> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { login, register, loading, error, clearError } = useAuthStore();
+  const { login, register, loading, error, clearError } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const theme = useTheme();
   const insets = useSafeAreaInsets();

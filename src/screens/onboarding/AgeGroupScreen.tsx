@@ -4,7 +4,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/common';
 import { SelectionButton } from '@/components/onboarding';
-import { useOnboardingStore } from '@/store/onboardingStore';
+import { useOnboarding } from '@/contexts/OnboardingContext';
 import { OnboardingStackParamList } from '@/types';
 
 type Props = NativeStackScreenProps<OnboardingStackParamList, 'AgeGroup'>;
@@ -20,7 +20,7 @@ const ageGroups = [
 ];
 
 const AgeGroupScreen: React.FC<Props> = ({ navigation }) => {
-  const { ageGroup, setAgeGroup, nextStep, prevStep } = useOnboardingStore();
+  const { ageGroup, setAgeGroup, nextStep, prevStep } = useOnboarding();
 
   const handleNext = () => {
     nextStep();

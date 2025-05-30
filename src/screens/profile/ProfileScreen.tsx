@@ -3,18 +3,18 @@ import { View, Text, SafeAreaView, TouchableOpacity, ScrollView, Alert } from 'r
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Button, Card } from '@/components/common';
-import { useAuthStore } from '@/store/authStore';
-import { useProductStore } from '@/store/productStore';
+import { useAuth } from '@/contexts/AuthContext';
+import { useProducts } from '@/contexts/ProductContext';
 
 const ProfileScreen: React.FC = () => {
   const navigation = useNavigation();
-  const { user, logout, loading } = useAuthStore();
+  const { user, logout, loading } = useAuth();
   const { 
     favorites,
     swipeHistory,
     getFavorites,
     getSwipeHistory
-  } = useProductStore();
+  } = useProducts();
 
   // 初回表示時にデータを取得
   useEffect(() => {

@@ -89,10 +89,10 @@ const MainTabNavigator = () => {
 
 // ルートナビゲーター
 const AppNavigator = () => {
-  const { user, isLoading } = useAuth();
+  const { user, loading } = useAuth();
 
   // ローディング中はローディング画面を表示
-  if (isLoading) {
+  if (loading) {
     return (
       <View style={{ 
         flex: 1, 

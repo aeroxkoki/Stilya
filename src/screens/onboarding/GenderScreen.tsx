@@ -4,13 +4,13 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/common';
 import { SelectionButton } from '@/components/onboarding';
-import { useOnboardingStore } from '@/store/onboardingStore';
+import { useOnboarding } from '@/contexts/OnboardingContext';
 import { OnboardingStackParamList } from '@/types';
 
 type Props = NativeStackScreenProps<OnboardingStackParamList, 'Gender'>;
 
 const GenderScreen: React.FC<Props> = ({ navigation }) => {
-  const { gender, setGender, nextStep } = useOnboardingStore();
+  const { gender, setGender, nextStep } = useOnboarding();
 
   const handleNext = () => {
     nextStep();
