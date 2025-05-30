@@ -1,5 +1,7 @@
-import React, { createContext, useState, useContext, ReactNode } from 'react';
-import { DEMO_MODE, demoService, mockUser } from '../services/demoService';
+import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import { AuthService } from '../services/authService';
+import { supabase } from '../services/supabase';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 interface User {
   id: string;
@@ -35,67 +37,162 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const login = async (email: string, password?: string) => {
+  // Supabaseのユーザーデータをアプリ用のUser型に変換
+  const convertSupabaseUser = (supabaseUser: SupabaseUser): User => {
+    return {
+      id: supabaseUser.id,
+      email: supabaseUser.email || '',
+      createdAt: supabaseUser.created_at,
+    };
+  };
+
+  // セッションチェックとユーザー情報の取得
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        setIsLoading(true);
+        const sessionResult = await AuthService.getSession();
+        
+        if (sessionResult.success && sessionResult.data?.user) {
+          const convertedUser = convertSupabaseUser(sessionResult.data.user);
+          
+          // ユーザープロファイルを取得（存在する場合）
+          const { data: profile } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', convertedUser.id)
+            .single();
+          
+          if (profile) {
+            setUser({
+              ...convertedUser,
+              nickname: profile.nickname,
+              gender: profile.gender,
+              ageGroup: profile.age_group,
+              stylePreferences: profile.style_preferences,
+            });
+          } else {
+            setUser(convertedUser);
+          }
+        }
+      } catch (error) {
+        console.error('Session check error:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkSession();
+
+    // 認証状態の変更を監視
+    const { data: { subscription } } = AuthService.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        const convertedUser = convertSupabaseUser(session.user);
+        
+        // ユーザープロファイルを取得
+        const { data: profile } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', convertedUser.id)
+          .single();
+        
+        if (profile) {
+          setUser({
+            ...convertedUser,
+            nickname: profile.nickname,
+            gender: profile.gender,
+            ageGroup: profile.age_group,
+            stylePreferences: profile.style_preferences,
+          });
+        } else {
+          setUser(convertedUser);
+        }
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);
       
-      if (DEMO_MODE) {
-        // デモモードの認証
-        const result = await demoService.signIn(email, password || '');
-        if (result.data?.user) {
-          setUser(result.data.user);
-          return { success: true };
+      const result = await AuthService.signIn(email, password);
+      
+      if (result.success && result.data?.user) {
+        const convertedUser = convertSupabaseUser(result.data.user);
+        
+        // ユーザープロファイルを取得
+        const { data: profile } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', convertedUser.id)
+          .single();
+        
+        if (profile) {
+          setUser({
+            ...convertedUser,
+            nickname: profile.nickname,
+            gender: profile.gender,
+            ageGroup: profile.age_group,
+            stylePreferences: profile.style_preferences,
+          });
+        } else {
+          // プロファイルが存在しない場合は作成
+          await AuthService.createUserProfile(convertedUser.id, convertedUser.email);
+          setUser(convertedUser);
         }
-        return { success: false, message: 'ログインに失敗しました' };
-      } else {
-        // TODO: Supabaseの実際の認証ロジックを実装
         
-        // 一時的なモック認証
-        const tempUser: User = {
-          id: '1',
-          email,
-          createdAt: new Date().toISOString(),
-        };
-        
-        setUser(tempUser);
         return { success: true };
       }
+      
+      return { 
+        success: false, 
+        message: result.error || 'ログインに失敗しました' 
+      };
     } catch (error) {
-      return { success: false, message: 'ログインに失敗しました' };
+      console.error('Login error:', error);
+      return { 
+        success: false, 
+        message: 'ログインに失敗しました' 
+      };
     } finally {
       setIsLoading(false);
     }
   };
 
-  const register = async (email: string, password?: string) => {
+  const register = async (email: string, password: string) => {
     try {
       setIsLoading(true);
       
-      if (DEMO_MODE) {
-        // デモモードの登録
-        const result = await demoService.signUp(email, password || '');
-        if (result.data?.user) {
-          setUser(result.data.user);
-          return { success: true };
-        }
-        return { success: false, message: '登録に失敗しました' };
-      } else {
-        // TODO: Supabaseの実際の登録ロジックを実装
+      const result = await AuthService.signUp(email, password);
+      
+      if (result.success && result.data?.user) {
+        const convertedUser = convertSupabaseUser(result.data.user);
         
-        // 一時的なモック登録
-        const tempUser: User = {
-          id: '1',
-          email,
-          createdAt: new Date().toISOString(),
-        };
+        // ユーザープロファイルを作成
+        await AuthService.createUserProfile(convertedUser.id, convertedUser.email);
+        setUser(convertedUser);
         
-        setUser(tempUser);
         return { success: true };
       }
+      
+      return { 
+        success: false, 
+        message: result.error || '登録に失敗しました' 
+      };
     } catch (error) {
-      return { success: false, message: '登録に失敗しました' };
+      console.error('Register error:', error);
+      return { 
+        success: false, 
+        message: '登録に失敗しました' 
+      };
     } finally {
       setIsLoading(false);
     }
@@ -105,14 +202,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
       
-      if (DEMO_MODE) {
-        // デモモードのログアウト
-        await demoService.signOut();
-      } else {
-        // TODO: Supabaseの実際のログアウトロジックを実装
-      }
+      const result = await AuthService.signOut();
       
-      setUser(null);
+      if (result.success) {
+        setUser(null);
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
     } finally {
       setIsLoading(false);
     }
