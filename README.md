@@ -32,9 +32,31 @@ cd Stilya
 # 依存関係のインストール
 npm install
 
+# 環境変数の設定
+cp .env.example .env
+# .envファイルを編集してSupabaseの接続情報を設定
+
 # 開発サーバーの起動
 npm start
 ```
+
+## 環境変数の設定
+
+アプリケーションを実行するには、以下の環境変数を設定する必要があります：
+
+1. `.env.example`をコピーして`.env`ファイルを作成
+```bash
+cp .env.example .env
+```
+
+2. `.env`ファイルを編集して、実際の値を設定
+```
+EXPO_PUBLIC_SUPABASE_URL=your_supabase_project_url
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+**重要**: Supabaseプロジェクトを作成し、URLとanon keyを取得する必要があります。
+詳細は[Supabaseドキュメント](https://supabase.com/docs)を参照してください。
 
 ## プロジェクト構成
 
