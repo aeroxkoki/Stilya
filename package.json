@@ -8,6 +8,8 @@
     "android": "expo start --android",
     "clean": "rm -rf node_modules .expo",
     "reset": "npm run clean && npm install",
+    "test": "node scripts/run-tests.js",
+    "test:expo": "echo 'Run tests in Expo by importing runLocalTests in App.tsx'",
     "eas-build-preview": "eas build --platform all --profile preview",
     "eas-build-production": "eas build --platform all --profile production"
   },
