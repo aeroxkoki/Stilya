@@ -91,7 +91,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
           compact && styles.compactContainer,
           { 
             borderRadius: theme.radius.m, 
-            backgroundColor: theme.colors.background.card,
+            backgroundColor: theme.colors.card.background,
             shadowColor: isDarkMode ? '#000' : '#222',
             borderColor: theme.colors.border,
             borderWidth: isDarkMode ? 1 : 0,
@@ -182,7 +182,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                     { 
                       backgroundColor: isDarkMode 
                         ? 'rgba(255, 255, 255, 0.1)' 
-                        : theme.colors.background.input
+                        : theme.colors.input.background
                     },
                   ]}
                 >

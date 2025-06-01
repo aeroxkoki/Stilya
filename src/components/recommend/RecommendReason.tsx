@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Product, UserPreference } from '@/types';
+import { Product, UserPreference } from '../../types';
 
 interface RecommendReasonProps {
   product: Product;
@@ -19,10 +19,12 @@ const RecommendReason: React.FC<RecommendReasonProps> = ({
     return null;
   }
 
+  const tagScores = userPreference.tagScores;
+
   // 商品の各タグがユーザーの好みとどれだけ一致しているか計算
   const matchingTags = product.tags
-    .filter(tag => userPreference.tagScores[tag] && userPreference.tagScores[tag] > 0)
-    .sort((a, b) => userPreference.tagScores[b] - userPreference.tagScores[a])
+    .filter(tag => tagScores[tag] && tagScores[tag] > 0)
+    .sort((a, b) => tagScores[b] - tagScores[a])
     .slice(0, 3); // 上位3つのタグのみ
 
   // マッチしたタグがない場合

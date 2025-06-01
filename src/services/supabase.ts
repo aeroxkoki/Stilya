@@ -122,8 +122,7 @@ export const refreshSession = async () => {
   }
 };
 
-export const isSessionExpired = async () => {
-  const { data: { session } } = await supabase.auth.getSession();
+export const isSessionExpired = (session: any) => {
   if (!session) return true;
   
   const expiresAt = session.expires_at;

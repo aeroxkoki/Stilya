@@ -72,7 +72,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
             styles.button,
             styles.noButton,
             {
-              backgroundColor: theme.colors.background.card,
+              backgroundColor: theme.colors.card.background,
               borderColor: theme.colors.error,
             },
             disabled && styles.disabledButton,
@@ -103,7 +103,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
             styles.button,
             styles.yesButton,
             {
-              backgroundColor: theme.colors.background.card,
+              backgroundColor: theme.colors.card.background,
               borderColor: theme.colors.success,
             },
             disabled && styles.disabledButton,

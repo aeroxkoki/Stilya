@@ -22,7 +22,7 @@ export class ProductService {
 
       return handleSupabaseSuccess(data || []);
     } catch (error) {
-      return handleSupabaseError(error);
+      return handleSupabaseError(error as Error | { message: string });
     }
   }
 
@@ -60,7 +60,7 @@ export class ProductService {
 
       return handleSupabaseSuccess(data || []);
     } catch (error) {
-      return handleSupabaseError(error);
+      return handleSupabaseError(error as Error | { message: string });
     }
   }
 
@@ -79,7 +79,7 @@ export class ProductService {
 
       return handleSupabaseSuccess(data);
     } catch (error) {
-      return handleSupabaseError(error);
+      return handleSupabaseError(error as Error | { message: string });
     }
   }
 
@@ -99,7 +99,7 @@ export class ProductService {
 
       return handleSupabaseSuccess(data || []);
     } catch (error) {
-      return handleSupabaseError(error);
+      return handleSupabaseError(error as Error | { message: string });
     }
   }
 
@@ -119,7 +119,7 @@ export class ProductService {
 
       return handleSupabaseSuccess(data || []);
     } catch (error) {
-      return handleSupabaseError(error);
+      return handleSupabaseError(error as Error | { message: string });
     }
   }
 
@@ -148,7 +148,7 @@ export class ProductService {
 
       return handleSupabaseSuccess(data);
     } catch (error) {
-      return handleSupabaseError(error);
+      return handleSupabaseError(error as Error | { message: string });
     }
   }
 
@@ -171,7 +171,7 @@ export class ProductService {
 
       return handleSupabaseSuccess(data || []);
     } catch (error) {
-      return handleSupabaseError(error);
+      return handleSupabaseError(error as Error | { message: string });
     }
   }
 
@@ -194,7 +194,7 @@ export class ProductService {
 
       return handleSupabaseSuccess(data);
     } catch (error) {
-      return handleSupabaseError(error);
+      return handleSupabaseError(error as Error | { message: string });
     }
   }
 
@@ -213,7 +213,7 @@ export class ProductService {
 
       return handleSupabaseSuccess(null);
     } catch (error) {
-      return handleSupabaseError(error);
+      return handleSupabaseError(error as Error | { message: string });
     }
   }
 
@@ -235,7 +235,7 @@ export class ProductService {
 
       return handleSupabaseSuccess(data || []);
     } catch (error) {
-      return handleSupabaseError(error);
+      return handleSupabaseError(error as Error | { message: string });
     }
   }
 
@@ -258,7 +258,7 @@ export class ProductService {
 
       return handleSupabaseSuccess(data);
     } catch (error) {
-      return handleSupabaseError(error);
+      return handleSupabaseError(error as Error | { message: string });
     }
   }
 }

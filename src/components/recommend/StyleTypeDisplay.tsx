@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, ImageSourcePropType } from 'react-native';
-import { UserPreference } from '@/types';
+import { UserPreference } from '../../types';
 
 interface StyleTypeDisplayProps {
   userPreference: UserPreference;
@@ -20,42 +20,42 @@ const STYLE_TYPES: StyleType[] = [
     id: 'casual',
     name: 'カジュアル',
     description: '日常的で着心地のよい、リラックスしたスタイル',
-    image: require('@/assets/style-casual.png'),
+    image: require('../../assets/style-casual.png'),
     tags: ['カジュアル', 'デイリー', 'シンプル', 'ベーシック', 'ナチュラル']
   },
   {
     id: 'mode',
     name: 'モード',
     description: '洗練されたシルエットと都会的なエッセンスを持つスタイル',
-    image: require('@/assets/style-mode.png'),
+    image: require('../../assets/style-mode.png'),
     tags: ['モード', 'モノトーン', '都会的', 'ミニマル', 'クール']
   },
   {
     id: 'classic',
     name: 'クラシック',
     description: '時代を超えた普遍的なデザインと上品さを備えたスタイル',
-    image: require('@/assets/style-classic.png'),
+    image: require('../../assets/style-classic.png'),
     tags: ['クラシック', 'エレガント', 'フォーマル', '上品', 'トラッド']
   },
   {
     id: 'natural',
     name: 'ナチュラル',
     description: '素材感を活かした自然体で優しい印象のスタイル',
-    image: require('@/assets/style-natural.png'),
+    image: require('../../assets/style-natural.png'),
     tags: ['ナチュラル', 'オーガニック', '優しい', 'リラックス', 'コットン']
   },
   {
     id: 'street',
     name: 'ストリート',
     description: '都市文化やスポーツの要素を取り入れた個性的なスタイル',
-    image: require('@/assets/style-street.png'),
+    image: require('../../assets/style-street.png'),
     tags: ['ストリート', 'スポーティ', '個性的', 'カジュアル', 'ワイド']
   },
   {
     id: 'feminine',
     name: 'フェミニン',
     description: '女性らしさや柔らかさを強調した優美なスタイル',
-    image: require('@/assets/style-feminine.png'),
+    image: require('../../assets/style-feminine.png'),
     tags: ['フェミニン', 'ガーリー', 'ロマンティック', 'スウィート', '華やか']
   }
 ];
@@ -65,19 +65,22 @@ const StyleTypeDisplay: React.FC<StyleTypeDisplayProps> = ({ userPreference }) =
     return null;
   }
   
+  const topTags = userPreference.topTags;
+  const tagScores = userPreference.tagScores || {};
+  
   // ユーザーの好みのタグから、最も合致するスタイルタイプを計算
   const matchedStyles = STYLE_TYPES.map(style => {
     let matchScore = 0;
     
     // スタイルタイプのタグがユーザーの好みのタグに含まれているかチェック
     style.tags.forEach(tag => {
-      if (userPreference.topTags.includes(tag)) {
+      if (topTags.includes(tag)) {
         matchScore += 1;
       }
       
       // タグスコアも考慮（タグスコアが高いものはより高いスコアを加算）
-      if (userPreference.tagScores[tag]) {
-        matchScore += userPreference.tagScores[tag] * 0.5;
+      if (tagScores[tag]) {
+        matchScore += tagScores[tag] * 0.5;
       }
     });
     

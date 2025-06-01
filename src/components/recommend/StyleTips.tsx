@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { UserPreference } from '@/types';
+import { UserPreference } from '../../types';
 
 interface StyleTipsProps {
   userPreference: UserPreference;
@@ -17,27 +17,29 @@ const StyleTips: React.FC<StyleTipsProps> = ({
     return null;
   }
 
+  const topTags = userPreference.topTags;
+
   // ユーザーの好みタグから、おすすめのスタイリングTipsを生成
   const styleTips = useMemo(() => {
     const tips: { title: string; description: string; icon: string }[] = [];
 
     // カジュアル系のタグがあるかチェック
-    const hasCasualStyle = userPreference.topTags.some(
+    const hasCasualStyle = topTags.some(
       tag => ['カジュアル', 'ナチュラル', 'デイリー', 'シンプル'].includes(tag)
     );
 
     // モード系のタグがあるかチェック
-    const hasModeStyle = userPreference.topTags.some(
+    const hasModeStyle = topTags.some(
       tag => ['モード', 'モノトーン', '都会的', 'ミニマル', 'クール'].includes(tag)
     );
 
     // フェミニン系のタグがあるかチェック
-    const hasFeminineStyle = userPreference.topTags.some(
+    const hasFeminineStyle = topTags.some(
       tag => ['フェミニン', 'ガーリー', 'ロマンティック', 'スウィート'].includes(tag)
     );
 
     // ストリート系のタグがあるかチェック
-    const hasStreetStyle = userPreference.topTags.some(
+    const hasStreetStyle = topTags.some(
       tag => ['ストリート', 'スポーティ', '個性的', 'ワイド'].includes(tag)
     );
 
@@ -82,7 +84,7 @@ const StyleTips: React.FC<StyleTipsProps> = ({
     });
 
     return tips.slice(0, 3); // 最大3つまで表示
-  }, [userPreference.topTags]);
+  }, [topTags]);
 
   // コンパクト表示の場合
   if (compact) {

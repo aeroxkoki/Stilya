@@ -18,14 +18,26 @@ import { NetworkProvider } from './src/contexts/NetworkContext';
 import { ThemeProvider } from './src/contexts/ThemeContext';
 import { DevMenu } from './src/components/dev/DevMenu';
 
+// テスト実行用インポート（開発時のみ）
+import { runLocalTests } from './src/tests/localTests';
+
 export default function App() {
   const [showDevMenu, setShowDevMenu] = useState(false);
   const isDev = __DEV__ && process.env.EXPO_PUBLIC_DEBUG_MODE === 'true';
+  
+  // テスト実行フラグ（開発時のみ）
+  const runTests = false; // true に変更してテストを実行
 
   useEffect(() => {
     // アプリ初期化
     console.log('🚀 Stilya MVP App initialized');
     console.log('📱 開発モード:', isDev ? 'ON' : 'OFF');
+    
+    // 開発時のテスト実行
+    if (isDev && runTests) {
+      console.log('🧪 ローカルテストを実行中...');
+      runLocalTests().catch(console.error);
+    }
   }, []);
 
   return (

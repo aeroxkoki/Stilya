@@ -68,7 +68,7 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
       // 商品データを取得
       const result = await fetchProducts(20, 0);
       
-      if (result.success && result.data) {
+      if (result.success && 'data' in result && result.data) {
         setProducts(result.data);
         setHasMoreProducts(true);
         setTotalFetched(result.data.length);
@@ -94,7 +94,7 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
       // 次のページを取得
       const result = await fetchProducts(10, totalFetched);
       
-      if (result.success && result.data && result.data.length > 0) {
+      if (result.success && 'data' in result && result.data && result.data.length > 0) {
         setProducts(prev => [...prev, ...result.data]);
         setHasMoreProducts(result.data.length === 10); // 10件取得できた場合はまだページがある
         setTotalFetched(prev => prev + result.data.length);
@@ -147,7 +147,7 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
       const fetchedProducts: Product[] = [];
       for (const swipe of swipes) {
         const result = await fetchProductById(swipe.productId);
-        if (result.success && result.data) {
+        if (result.success && 'data' in result && result.data) {
           fetchedProducts.push(result.data);
         }
       }
@@ -280,13 +280,13 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
       
       if (popularTags.length > 0) {
         const result = await fetchProductsByTags(popularTags, 20, 0);
-        if (result.success && result.data) {
+        if (result.success && 'data' in result && result.data) {
           recommended = result.data.filter(p => !yesProductIds.includes(p.id));
         }
       } else {
         // タグがない場合はランダムに20件取得
         const result = await fetchProducts(20, 0);
-        if (result.success && result.data) {
+        if (result.success && 'data' in result && result.data) {
           recommended = result.data.filter(p => !yesProductIds.includes(p.id));
         }
       }

@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
-import { UserPreference } from '@/types';
+import { UserPreference } from '../../types';
 
 interface PreferenceTrendsGraphProps {
   userPreference: UserPreference;
@@ -20,6 +20,7 @@ const PreferenceTrendsGraph: React.FC<PreferenceTrendsGraphProps> = ({
 
   // タグスコアを降順にソートして上位7つを取得
   const topTags = useMemo(() => {
+    if (!userPreference.tagScores) return [];
     return Object.entries(userPreference.tagScores)
       .filter(([_, score]) => score >= MIN_SCORE_DISPLAY) // 最小スコア以上のみ表示
       .sort((a, b) => b[1] - a[1]) // スコアの高い順にソート

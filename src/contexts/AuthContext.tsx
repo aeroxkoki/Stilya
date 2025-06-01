@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { AuthState, User } from '@/types';
+import { AuthState, User } from '../types';
 import {
   supabase,
   signIn,
@@ -12,7 +12,7 @@ import {
   createUserProfile,
   getUserProfile,
   updateUserProfile
-} from '@/services/supabase';
+} from '../services/supabase';
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
@@ -52,29 +52,33 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (isSessionExpired(session)) {
           // セッションの更新が必要な場合
           const refreshResult = await refreshSession();
-          const { session: refreshedSession } = refreshResult;
           
-          if (refreshedSession) {
-            const { data: { user } } = await supabase.auth.getUser();
+          if (refreshResult.success && 'data' in refreshResult && refreshResult.data) {
+            const refreshedSession = refreshResult.data.session;
             
-            if (user) {
-              // ユーザープロファイルを取得
-              const profile = await getUserProfile(user.id);
+            if (refreshedSession) {
+              const { data: { user } } = await supabase.auth.getUser();
               
-              setUser({
-                id: user.id,
-                email: user.email,
-                ...profile
-              });
-              setSession(refreshedSession);
+              if (user) {
+                // ユーザープロファイルを取得
+                const profileResult = await getUserProfile(user.id);
+                const profileData = profileResult.success && 'data' in profileResult ? profileResult.data : {};
+                
+                setUser({
+                  id: user.id,
+                  email: user.email || '',
+                  ...profileData
+                });
+                setSession(refreshedSession);
+                setLoading(false);
+              }
+            } else {
+              // 更新に失敗した場合はログアウト状態
+              setUser(null);
+              setSession(null);
               setLoading(false);
+              return;
             }
-          } else {
-            // 更新に失敗した場合はログアウト状態
-            setUser(null);
-            setSession(null);
-            setLoading(false);
-            return;
           }
         } else {
           // 有効なセッションがある場合はユーザー情報を取得
@@ -82,12 +86,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           
           if (user) {
             // ユーザープロファイルを取得
-            const profile = await getUserProfile(user.id);
+            const profileResult = await getUserProfile(user.id);
+            const profileData = profileResult.success && 'data' in profileResult ? profileResult.data : {};
             
             setUser({
               id: user.id,
-              email: user.email,
-              ...profile
+              email: user.email || '',
+              ...profileData
             });
             setSession(session);
             setLoading(false);
@@ -112,8 +117,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       if (isSessionExpired(session)) {
         const refreshResult = await refreshSession();
-        if (refreshResult.session) {
-          setSession(refreshResult.session);
+        if (refreshResult.success && refreshResult.data?.session) {
+          setSession(refreshResult.data.session);
           return true;
         }
         return false;
@@ -130,27 +135,34 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       setLoading(true);
       setError(null);
-      const data = await signIn(email, password);
+      const result = await signIn(email, password);
       
-      if (data.user) {
-        // ユーザープロファイルを取得
-        const profile = await getUserProfile(data.user.id);
+      if (result.success && 'data' in result && result.data) {
+        const { user, session } = result.data;
         
-        // プロファイルがない場合は作成
-        if (!profile) {
-          await createUserProfile({
-            id: data.user.id,
-            email: data.user.email,
+        if (user) {
+          // ユーザープロファイルを取得
+          const profileResult = await getUserProfile(user.id);
+          
+          // プロファイルがない場合は作成
+          if (!profileResult.success || !profileResult.data) {
+            await createUserProfile(user.id, {
+              email: user.email || '',
+            });
+          }
+          
+          const profileData = profileResult.success && 'data' in profileResult ? profileResult.data : {};
+          
+          setUser({
+            id: user.id,
+            email: user.email || '',
+            ...profileData
           });
+          setSession(session);
+          setLoading(false);
         }
-        
-        setUser({
-          id: data.user.id,
-          email: data.user.email,
-          ...profile
-        });
-        setSession(data.session);
-        setLoading(false);
+      } else {
+        throw new Error(result.error || 'ログインに失敗しました');
       }
     } catch (error: any) {
       console.error('Error logging in:', error);
@@ -177,27 +189,32 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       setLoading(true);
       setError(null);
-      const data = await signUp(email, password);
+      const result = await signUp(email, password);
       
-      // サインアップ後、ユーザーが存在する場合はプロファイルを作成
-      if (data.user) {
-        await createUserProfile({
-          id: data.user.id,
-          email: data.user.email,
-        });
+      if (result.success && 'data' in result && result.data) {
+        const { user, session } = result.data;
         
-        setUser({
-          id: data.user.id,
-          email: data.user.email,
-        });
-        setSession(data.session);
-        setLoading(false);
+        // サインアップ後、ユーザーが存在する場合はプロファイルを作成
+        if (user) {
+          await createUserProfile(user.id, {
+            email: user.email || '',
+          });
+          
+          setUser({
+            id: user.id,
+            email: user.email || '',
+          });
+          setSession(session);
+          setLoading(false);
+        } else {
+          // メール確認が必要な場合
+          setUser(null);
+          setSession(null);
+          setLoading(false);
+          setError('アカウント登録が完了しました。確認メールをご確認ください。');
+        }
       } else {
-        // メール確認が必要な場合
-        setUser(null);
-        setSession(null);
-        setLoading(false);
-        setError('アカウント登録が完了しました。確認メールをご確認ください。');
+        throw new Error(result.error || 'アカウント登録に失敗しました');
       }
     } catch (error: any) {
       console.error('Error registering:', error);
@@ -274,12 +291,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       setLoading(true);
       setError(null);
-      const profile = await getUserProfile(user.id);
+      const profileResult = await getUserProfile(user.id);
       
-      setUser({
-        ...user,
-        ...profile,
-      });
+      if (profileResult.success && 'data' in profileResult && profileResult.data) {
+        setUser({
+          ...user,
+          ...profileResult.data,
+        });
+      }
       setLoading(false);
     } catch (error: any) {
       console.error('Error fetching user profile:', error);
@@ -296,15 +315,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       setLoading(true);
       setError(null);
-      await createUserProfile({
-        id: user.id,
-        ...profile,
-      });
+      const result = await createUserProfile(user.id, profile);
       
-      setUser({
-        ...user,
-        ...profile,
-      });
+      if (result.success) {
+        setUser({
+          ...user,
+          ...profile,
+        });
+      }
       setLoading(false);
     } catch (error: any) {
       console.error('Error creating user profile:', error);

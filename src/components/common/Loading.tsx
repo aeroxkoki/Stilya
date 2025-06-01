@@ -33,7 +33,7 @@ const Loading: React.FC<LoadingProps> = ({
         overlay && styles.overlay,
         { backgroundColor: overlay 
             ? (isDarkMode ? 'rgba(0, 0, 0, 0.7)' : 'rgba(255, 255, 255, 0.7)')
-            : (fullscreen ? theme.colors.background.main : 'transparent') 
+            : (fullscreen ? theme.colors.main.background : 'transparent') 
         }
       ]}
     >
@@ -42,8 +42,8 @@ const Loading: React.FC<LoadingProps> = ({
           styles.loaderContainer,
           { 
             backgroundColor: isDarkMode 
-              ? theme.colors.background.card 
-              : theme.colors.background.main,
+              ? theme.colors.card.background 
+              : theme.colors.main.background,
             shadowColor: isDarkMode ? '#000' : '#222',
             borderColor: theme.colors.border,
             borderWidth: isDarkMode ? 1 : 0,

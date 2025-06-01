@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
-import { runLocalTests } from '@/tests/localTests';
+import { runLocalTests } from '../../tests/localTests';
 
 interface DevMenuProps {
   onClose: () => void;
@@ -31,7 +31,8 @@ export const DevMenu: React.FC<DevMenuProps> = ({ onClose }) => {
       await runLocalTests();
       setTestResults(logs);
     } catch (error) {
-      setTestResults([...logs, `エラー: ${error.message}`]);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      setTestResults([...logs, `エラー: ${errorMessage}`]);
     } finally {
       console.log = originalLog;
       setIsRunning(false);

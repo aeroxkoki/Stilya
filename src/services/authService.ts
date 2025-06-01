@@ -17,7 +17,7 @@ export class AuthService {
 
       return handleSupabaseSuccess(data);
     } catch (error) {
-      return handleSupabaseError(error);
+      return handleSupabaseError(error as Error | { message: string });
     }
   }
 
@@ -35,7 +35,7 @@ export class AuthService {
 
       return handleSupabaseSuccess(data);
     } catch (error) {
-      return handleSupabaseError(error);
+      return handleSupabaseError(error as Error | { message: string });
     }
   }
 
@@ -50,7 +50,7 @@ export class AuthService {
 
       return handleSupabaseSuccess(null);
     } catch (error) {
-      return handleSupabaseError(error);
+      return handleSupabaseError(error as Error | { message: string });
     }
   }
 
@@ -65,7 +65,7 @@ export class AuthService {
 
       return handleSupabaseSuccess(user);
     } catch (error) {
-      return handleSupabaseError(error);
+      return handleSupabaseError(error as Error | { message: string });
     }
   }
 
@@ -80,7 +80,7 @@ export class AuthService {
 
       return handleSupabaseSuccess(session);
     } catch (error) {
-      return handleSupabaseError(error);
+      return handleSupabaseError(error as Error | { message: string });
     }
   }
 
@@ -100,7 +100,7 @@ export class AuthService {
 
       return handleSupabaseSuccess(data);
     } catch (error) {
-      return handleSupabaseError(error);
+      return handleSupabaseError(error as Error | { message: string });
     }
   }
 
@@ -124,7 +124,7 @@ export class AuthService {
 
       return handleSupabaseSuccess(data);
     } catch (error) {
-      return handleSupabaseError(error);
+      return handleSupabaseError(error as Error | { message: string });
     }
   }
 
