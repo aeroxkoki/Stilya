@@ -14,9 +14,6 @@ import Toast from 'react-native-toast-message';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { TouchableOpacity, Text, View, LogBox } from 'react-native';
 
-// グローバルエラーハンドラー設定
-import * as ErrorUtils from 'react-native/Libraries/Core/ErrorUtils';
-
 console.log('[App.tsx] 4. 基本インポート完了');
 
 // Components and Navigation
@@ -37,14 +34,21 @@ import { runLocalTests } from './src/tests/localTests';
 if (__DEV__) {
   console.log('[App.tsx] 7. 開発モード - エラーハンドラー設定開始');
   
-  ErrorUtils.setGlobalHandler((error: Error, isFatal?: boolean) => {
-    console.log('==================== グローバルエラー発生 ====================');
-    console.log('エラー名:', error.name);
-    console.log('エラーメッセージ:', error.message);
-    console.log('スタックトレース:', error.stack);
-    console.log('Fatal:', isFatal);
-    console.log('=============================================================');
-  });
+  // グローバルエラーハンドラーの設定（利用可能な場合）
+  // @ts-ignore
+  if (global.ErrorUtils && typeof global.ErrorUtils.setGlobalHandler === 'function') {
+    // @ts-ignore
+    global.ErrorUtils.setGlobalHandler((error: Error, isFatal?: boolean) => {
+      console.log('==================== グローバルエラー発生 ====================');
+      console.log('エラー名:', error.name);
+      console.log('エラーメッセージ:', error.message);
+      console.log('スタックトレース:', error.stack);
+      console.log('Fatal:', isFatal);
+      console.log('=============================================================');
+    });
+  } else {
+    console.log('[App.tsx] グローバルエラーハンドラーは利用できません');
+  }
 
   // 未処理のPromiseエラーをキャッチ
   const originalReject = Promise.reject;
