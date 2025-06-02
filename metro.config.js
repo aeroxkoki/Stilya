@@ -42,6 +42,17 @@ config.resolver = {
 // Watchmanの監視フォルダ設定
 config.watchFolders = [__dirname];
 
+// トランスフォーマー設定（react-native-reanimated用）
+config.transformer = {
+  ...config.transformer,
+  getTransformOptions: async () => ({
+    transform: {
+      experimentalImportSupport: false,
+      inlineRequires: true,
+    },
+  }),
+};
+
 // キャッシュをクリア
 config.resetCache = true;
 

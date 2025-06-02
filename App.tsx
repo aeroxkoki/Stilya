@@ -48,112 +48,83 @@ if (__DEV__) {
   // @ts-ignore
   if (global.ErrorUtils && typeof global.ErrorUtils.setGlobalHandler === 'function') {
     // @ts-ignore
-    global.ErrorUtils.setGlobalHandler((error: Error, isFatal?: boolean) => {
-      console.log('==================== グローバルエラー発生 ====================');
-      console.log('エラー名:', error.name);
-      console.log('エラーメッセージ:', error.message);
-      console.log('スタックトレース:', error.stack);
-      console.log('Fatal:', isFatal);
-      console.log('=============================================================');
+    global.ErrorUtils.setGlobalHandler((error: Error, isFatal: boolean) => {
+      console.error('[GlobalError]', error.message);
+      console.error('[GlobalError Stack]', error.stack);
+      console.error('[GlobalError Fatal]', isFatal);
     });
-  } else {
-    console.log('[App.tsx] グローバルエラーハンドラーは利用できません');
+    console.log('[App.tsx] グローバルエラーハンドラー設定完了');
   }
 
-  // 未処理のPromiseエラーをキャッチ
-  const originalReject = Promise.reject;
-  Promise.reject = function(...args) {
-    console.log('==================== Promise Rejection ====================');
-    console.log('引数:', args);
-    console.log('=========================================================');
-    return originalReject.apply(Promise, args);
-  };
-  
-  console.log('[App.tsx] 8. エラーハンドラー設定完了');
+  // LogBoxの警告を無視
+  LogBox.ignoreLogs([
+    'Non-serializable values were found in the navigation state',
+    'Require cycle',
+  ]);
+  console.log('[App.tsx] 8. LogBox設定完了');
 }
 
-export default function App() {
-  console.log('[App.tsx] 9. App関数開始');
+console.log('[App.tsx] 9. トップレベル設定完了');
+
+const App: React.FC = () => {
+  console.log('[App.tsx] 10. App関数コンポーネント開始');
   
   const [showDevMenu, setShowDevMenu] = useState(false);
-  const isDev = __DEV__ && process.env.EXPO_PUBLIC_DEBUG_MODE === 'true';
-  
-  // テスト実行フラグ（開発時のみ）
-  const runTests = false; // true に変更してテストを実行
+  const [testMode] = useState(false); // MVPではテストモードは無効
 
   useEffect(() => {
-    console.log('[App.tsx] 10. useEffect実行開始');
+    console.log('[App.tsx] 11. App useEffect実行');
     
-    // アプリ初期化
-    console.log('🚀 Stilya MVP App initialized');
-    console.log('📱 開発モード:', isDev ? 'ON' : 'OFF');
-    console.log('📱 環境変数 EXPO_PUBLIC_DEBUG_MODE:', process.env.EXPO_PUBLIC_DEBUG_MODE);
-    
-    // 開発時のテスト実行
-    if (isDev && runTests) {
-      console.log('🧪 ローカルテストを実行中...');
-      runLocalTests().catch((error) => {
-        console.error('[App.tsx] テスト実行エラー:', error);
+    // 開発モードでのみテスト実行（現在は無効）
+    if (__DEV__ && testMode) {
+      console.log('=== ローカルテスト実行開始 ===');
+      runLocalTests().then(() => {
+        console.log('=== ローカルテスト完了 ===');
+      }).catch((error) => {
+        console.error('=== ローカルテストエラー ===', error);
       });
     }
-    
-    console.log('[App.tsx] 11. useEffect実行完了');
-  }, []);
+  }, [testMode]);
 
-  console.log('[App.tsx] 12. レンダリング開始');
-  
   try {
+    console.log('[App.tsx] 12. レンダリング開始');
+    
     return (
       <GestureHandlerRootView style={{ flex: 1 }}>
-        {console.log('[App.tsx] 13. GestureHandlerRootView レンダリング')}
         <SafeAreaProvider>
-          {console.log('[App.tsx] 14. SafeAreaProvider レンダリング')}
           <NetworkProvider>
-            {console.log('[App.tsx] 15. NetworkProvider レンダリング')}
             <ThemeProvider>
-              {console.log('[App.tsx] 16. ThemeProvider レンダリング')}
               <AuthProvider>
-                {console.log('[App.tsx] 17. AuthProvider レンダリング')}
                 <ProductProvider>
-                  {console.log('[App.tsx] 18. ProductProvider レンダリング')}
                   <OnboardingProvider>
-                    {console.log('[App.tsx] 19. OnboardingProvider レンダリング')}
                     <NavigationContainer>
-                      {console.log('[App.tsx] 20. NavigationContainer レンダリング')}
                       <StatusBar style="auto" />
                       <AppNavigator />
-                      {console.log('[App.tsx] 21. AppNavigator レンダリング完了')}
-                      <Toast />
-                      
-                      {/* 開発モードボタン */}
-                      {isDev && (
-                        <TouchableOpacity
-                          style={{
-                            position: 'absolute',
-                            bottom: 30,
-                            right: 20,
-                            backgroundColor: '#FF6B6B',
-                            width: 60,
-                            height: 60,
-                            borderRadius: 30,
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            shadowColor: '#000',
-                            shadowOffset: { width: 0, height: 2 },
-                            shadowOpacity: 0.25,
-                            shadowRadius: 3.84,
-                            elevation: 5,
-                          }}
-                          onPress={() => setShowDevMenu(true)}
-                        >
-                          <Text style={{ fontSize: 24 }}>🛠️</Text>
-                        </TouchableOpacity>
-                      )}
                       
                       {/* 開発メニュー */}
-                      {showDevMenu && (
-                        <DevMenu onClose={() => setShowDevMenu(false)} />
+                      {__DEV__ && !testMode && (
+                        <>
+                          <TouchableOpacity
+                            style={{
+                              position: 'absolute',
+                              bottom: 100,
+                              right: 20,
+                              backgroundColor: 'rgba(0,0,0,0.7)',
+                              padding: 10,
+                              borderRadius: 25,
+                              zIndex: 999,
+                            }}
+                            onPress={() => setShowDevMenu(!showDevMenu)}
+                          >
+                            <Text style={{ color: 'white', fontSize: 20 }}>🛠</Text>
+                          </TouchableOpacity>
+                          {showDevMenu && (
+                            <DevMenu onClose={() => setShowDevMenu(false)} />
+                          )}
+                        </>
                       )}
+                      
+                      <Toast />
                     </NavigationContainer>
                   </OnboardingProvider>
                 </ProductProvider>
@@ -164,10 +135,19 @@ export default function App() {
       </GestureHandlerRootView>
     );
   } catch (error) {
-    console.error('[App.tsx] =========== レンダリングエラー ===========');
-    console.error('エラー:', error);
-    console.error('スタック:', error.stack);
-    console.error('==========================================');
-    throw error;
+    console.error('[App.tsx] レンダリングエラー:', error);
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text>エラーが発生しました</Text>
+        <Text>{String(error)}</Text>
+      </View>
+    );
   }
-}
+};
+
+console.log('[App.tsx] 13. App関数定義完了');
+
+// ========== デバッグログ終了 ==========
+console.log('[App.tsx] ファイル読み込み完了');
+
+export default App;
