@@ -14,6 +14,14 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
+// React Native環境用のWebSocketアダプター
+class ReactNativeWebSocketAdapter {
+  constructor(url: string, protocols?: string | string[]) {
+    // React NativeのWebSocketはグローバルに存在
+    return new WebSocket(url, protocols);
+  }
+}
+
 // Create Supabase client with AsyncStorage for session persistence
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
@@ -21,6 +29,20 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 10,
+    },
+    // React Native環境でのWebSocket設定
+    WebSocket: ReactNativeWebSocketAdapter as any,
+  },
+  // React Native環境ではfetchはグローバルに存在
+  global: {
+    fetch: fetch.bind(globalThis),
+    headers: {
+      'X-Client-Info': 'stilya-app/1.0.0',
+    },
   },
 });
 

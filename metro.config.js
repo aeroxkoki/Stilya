@@ -3,7 +3,7 @@ const { getDefaultConfig } = require('expo/metro-config');
 
 const config = getDefaultConfig(__dirname);
 
-// ã‚«ã‚¹ã‚¿ãƒ è¨­å®šã‚’è¿½åŠ 
+// «¹¿à-š’ı 
 config.server = {
   ...config.server,
   port: 8081,
@@ -18,7 +18,31 @@ config.server = {
   },
 };
 
-// Watchmanã®è¨­å®šã‚’è¿½åŠ ï¼ˆã‚ªãƒ—ã‚·ãƒ§ãƒ³ï¼‰
+// Node.js³¢â¸åüënİêÕ£ë-š
+config.resolver = {
+  ...config.resolver,
+  // wsÑÃ±ü¸’¹­Ã×WReact NativenÍ¤Æ£ÖWebSocket’(
+  resolveRequest: (context, moduleName, platform) => {
+    // wsâ¸åüë’¹­Ã×
+    if (moduleName === 'ws') {
+      return { type: 'empty' };
+    }
+    
+    // ÇÕ©ëÈnãz’(
+    return context.resolveRequest(context, moduleName, platform);
+  },
+  // Node.js³¢â¸åüën¨¤ê¢¹-š
+  extraNodeModules: {
+    ...config.resolver.extraNodeModules,
+    stream: require.resolve('stream-browserify'),
+    buffer: require.resolve('buffer/'),
+  },
+};
+
+// Watchmann-š’ı ª×·çó	
 config.watchFolders = [__dirname];
+
+// ­ãÃ·å’¯ê¢Y‹_n-š
+config.resetCache = true;
 
 module.exports = config;

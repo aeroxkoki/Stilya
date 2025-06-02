@@ -1,3 +1,6 @@
+// Polyfills must be imported first
+import './src/lib/polyfills';
+
 import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
@@ -5,9 +8,6 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { TouchableOpacity, Text, View } from 'react-native';
-
-// Polyfills for React Native
-import 'react-native-url-polyfill/auto';
 
 // Components and Navigation
 import AppNavigator from './src/navigation/AppNavigator';
