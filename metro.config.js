@@ -3,7 +3,7 @@ const { getDefaultConfig } = require('expo/metro-config');
 
 const config = getDefaultConfig(__dirname);
 
-// «¹¿à-š’ı 
+// ã‚µãƒ¼ãƒãƒ¼è¨­å®š
 config.server = {
   ...config.server,
   port: 8081,
@@ -18,20 +18,20 @@ config.server = {
   },
 };
 
-// Node.js³¢â¸åüënİêÕ£ë-š
+// Node.jsãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«ã®è§£æ±ºè¨­å®š
 config.resolver = {
   ...config.resolver,
-  // wsÑÃ±ü¸’¹­Ã×WReact NativenÍ¤Æ£ÖWebSocket’(
+  // wsãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«ã¯React Nativeã§ã¯ä½¿ç”¨ã—ãªã„ï¼ˆWebSocketã¯çµ„ã¿è¾¼ã¿ï¼‰
   resolveRequest: (context, moduleName, platform) => {
-    // wsâ¸åüë’¹­Ã×
+    // wsãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«ã‚’ç„¡è¦–
     if (moduleName === 'ws') {
       return { type: 'empty' };
     }
     
-    // ÇÕ©ëÈnãz’(
+    // ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆã®è§£æ±ºã‚’ä½¿ç”¨
     return context.resolveRequest(context, moduleName, platform);
   },
-  // Node.js³¢â¸åüën¨¤ê¢¹-š
+  // Node.jsãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«ã®ãƒãƒªãƒ•ã‚£ãƒ«è¨­å®š
   extraNodeModules: {
     ...config.resolver.extraNodeModules,
     stream: require.resolve('stream-browserify'),
@@ -39,10 +39,10 @@ config.resolver = {
   },
 };
 
-// Watchmann-š’ı ª×·çó	
+// Watchmanã®ç›£è¦–ãƒ•ã‚©ãƒ«ãƒ€è¨­å®š
 config.watchFolders = [__dirname];
 
-// ­ãÃ·å’¯ê¢Y‹_n-š
+// ã‚­ãƒ£ãƒƒã‚·ãƒ¥ã‚’ã‚¯ãƒªã‚¢
 config.resetCache = true;
 
 module.exports = config;

@@ -11,7 +11,9 @@
     "test": "node scripts/run-tests.js",
     "test:expo": "echo 'Run tests in Expo by importing runLocalTests in App.tsx'",
     "eas-build-preview": "eas build --platform all --profile preview",
-    "eas-build-production": "eas build --platform all --profile production"
+    "eas-build-production": "eas build --platform all --profile production",
+    "clear-cache": "npx expo start --clear",
+    "check-env": "node -e \"console.log('SUPABASE_URL:', process.env.EXPO_PUBLIC_SUPABASE_URL ? 'Set' : 'Not set')\""
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.0",
@@ -43,6 +45,7 @@
     "babel-plugin-module-resolver": "5.0.2",
     "babel-preset-expo": "13.1.11",
     "buffer": "6.0.3",
+    "dotenv": "16.5.0",
     "metro": "0.82.4",
     "metro-config": "0.82.4",
     "metro-core": "0.82.4",

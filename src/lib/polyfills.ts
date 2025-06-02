@@ -6,27 +6,33 @@ import { Buffer } from 'buffer';
 
 console.log('[polyfills.ts] 2. インポート完了');
 
-// グローバル設定
-if (typeof global.Buffer === 'undefined') {
-  console.log('[polyfills.ts] 3. Buffer設定');
-  global.Buffer = Buffer;
-}
+try {
+  // グローバル設定
+  if (typeof global.Buffer === 'undefined') {
+    console.log('[polyfills.ts] 3. Buffer設定');
+    global.Buffer = Buffer;
+  }
 
-// WebSocketの明示的な設定（React Nativeのグローバルを使用）
-if (typeof global.WebSocket === 'undefined' && typeof WebSocket !== 'undefined') {
-  console.log('[polyfills.ts] 4. WebSocket設定');
-  global.WebSocket = WebSocket;
-}
+  // WebSocketの明示的な設定（React Nativeのグローバルを使用）
+  if (typeof global.WebSocket === 'undefined' && typeof WebSocket !== 'undefined') {
+    console.log('[polyfills.ts] 4. WebSocket設定');
+    global.WebSocket = WebSocket;
+  }
 
-// Node.jsのprocess.browserをエミュレート
-if (typeof process === 'undefined') {
-  console.log('[polyfills.ts] 5. process設定');
-  (global as any).process = { browser: false };
-}
+  // Node.jsのprocess.browserをエミュレート
+  if (typeof global.process === 'undefined') {
+    console.log('[polyfills.ts] 5. process設定');
+    (global as any).process = { browser: false };
+  } else if (!global.process.browser) {
+    global.process.browser = false;
+  }
 
-console.log('[polyfills.ts] 6. React Native polyfills loaded');
-console.log('[polyfills.ts] グローバル確認:', {
-  Buffer: typeof global.Buffer,
-  WebSocket: typeof global.WebSocket,
-  process: typeof process
-});
+  console.log('[polyfills.ts] 6. React Native polyfills loaded');
+  console.log('[polyfills.ts] グローバル確認:', {
+    Buffer: typeof global.Buffer,
+    WebSocket: typeof global.WebSocket,
+    process: typeof global.process
+  });
+} catch (error) {
+  console.error('[polyfills.ts] ポリフィルの設定中にエラー:', error);
+}

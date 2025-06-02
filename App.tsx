@@ -1,10 +1,20 @@
 // ========== デバッグログ開始 ==========
-console.log('[App.tsx] 1. ファイル読み込み開始');
+try {
+  console.log('[App.tsx] 1. ファイル読み込み開始');
+} catch (e) {
+  // console自体が利用できない場合のフォールバック
+}
 
 // Polyfills must be imported first
-console.log('[App.tsx] 2. Polyfills インポート開始');
+try {
+  console.log('[App.tsx] 2. Polyfills インポート開始');
+} catch (e) {}
+
 import './src/lib/polyfills';
-console.log('[App.tsx] 3. Polyfills インポート完了');
+
+try {
+  console.log('[App.tsx] 3. Polyfills インポート完了');
+} catch (e) {}
 
 import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
