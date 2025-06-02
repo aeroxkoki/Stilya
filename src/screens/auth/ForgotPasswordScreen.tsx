@@ -3,14 +3,14 @@ import { View, Text, SafeAreaView, TouchableOpacity, KeyboardAvoidingView, Platf
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Button, Input } from '@/components/common';
-import { useAuthStore } from '@/store/authStore';
+import { useAuth } from '@/contexts/AuthContext';
 import { AuthStackParamList } from '@/types';
 import { formatErrorMessage } from '@/utils';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'ForgotPassword'>;
 
 const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
-  const { resetUserPassword, error: storeError, loading, clearError } = useAuthStore();
+  const { resetUserPassword, error: storeError, loading, clearError } = useAuth();
   const [email, setEmail] = useState('');
   const [emailSent, setEmailSent] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);

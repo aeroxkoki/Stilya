@@ -25,7 +25,7 @@ export const getEnhancedRecommendations = async (
 }> => {
   try {
     // 並列でデータを取得
-    const [internalRecs, externalRecs, userPrefs] = await Promise.all([
+    const [internalRecsResult, externalRecs, userPrefs] = await Promise.all([
       // 内部DBからの推薦
       getRecommendations(userId, Math.floor(limit / 2)),
       // 楽天APIからの商品取得（トレンド）
@@ -34,12 +34,15 @@ export const getEnhancedRecommendations = async (
       analyzeUserPreferences(userId)
     ]);
 
+    // 内部レコメンドの結果を取得
+    const internalRecs = internalRecsResult.success && internalRecsResult.data ? internalRecsResult.data : [];
+
     // ユーザーの好みに基づく楽天商品
     let forYouProducts: Product[] = [];
-    if (userPrefs && userPrefs.likedTags && userPrefs.likedTags.length > 0) {
+    if (userPrefs.success && userPrefs.data && userPrefs.data.likedTags && userPrefs.data.likedTags.length > 0) {
       // タグベースで関連商品を取得
       forYouProducts = await fetchRelatedProducts(
-        userPrefs.likedTags,
+        userPrefs.data.likedTags,
         excludeIds,
         Math.floor(limit / 2)
       );
@@ -89,7 +92,8 @@ export const getEnhancedCategoryRecommendations = async (
 }> => {
   try {
     // 内部DBからカテゴリ別のレコメンド（簡易版）
-    const internalRecsArray = await getRecommendations(userId, limit * categories.length);
+    const internalRecsResult = await getRecommendations(userId, limit * categories.length);
+    const internalRecsArray = internalRecsResult.success && internalRecsResult.data ? internalRecsResult.data : [];
     
     // カテゴリごとに分割
     const internalRecs: Record<string, Product[]> = {};

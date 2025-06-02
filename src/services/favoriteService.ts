@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { mockProducts } from '@/mocks/mockProducts';
+import { generateDummyProducts } from '@/utils/dummyData';
 
 // モック使用フラグ
 const USE_MOCK = true; // 本番環境では必ず false にすること
@@ -33,6 +33,7 @@ export const getFavorites = async (userId: string) => {
     if (USE_MOCK || __DEV__) {
       // 開発用：ランダムなお気に入りを生成
       console.log('Using mock favorites data');
+      const mockProducts = generateDummyProducts(10);
       const favorites = mockProducts
         .slice(0, 5) // 最初の5つだけを選択
         .map(product => product.id);

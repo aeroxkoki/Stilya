@@ -132,7 +132,7 @@ const SwipeScreen: React.FC = () => {
   
   return (
     <SafeAreaView 
-      style={[styles.container, { backgroundColor: theme.colors.background.main }]}
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
       testID="swipe-screen"
     >
       {renderContent()}

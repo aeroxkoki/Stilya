@@ -6,7 +6,7 @@ import { RootStackParamList } from '../../navigation/types';
 import { useTheme } from '../../contexts/ThemeContext';
 import IntroSlide from '../../components/onboarding/IntroSlide';
 import { Button } from '../../components/common';
-import { useAuthStore } from '../../store/authStore';
+import { useAuth } from '../../contexts/AuthContext';
 
 // ナビゲーションの型
 type OnboardingScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Onboarding'>;
@@ -68,7 +68,7 @@ const OnboardingScreen: React.FC = () => {
   const navigation = useNavigation<OnboardingScreenNavigationProp>();
   const [currentIndex, setCurrentIndex] = useState(0);
   const theme = useTheme();
-  const { user, setUser } = useAuthStore();
+  const { user, setUser } = useAuth();
   
   // ユーザープロファイルの初期値
   const [gender, setGender] = useState<'male' | 'female' | 'other' | undefined>(undefined);
@@ -243,7 +243,7 @@ const OnboardingScreen: React.FC = () => {
 
   return (
     <SafeAreaView 
-      style={[styles.container, { backgroundColor: theme.colors.background.main }]}
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
       testID="onboarding-screen"
     >
       <FlatList

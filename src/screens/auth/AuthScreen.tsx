@@ -49,16 +49,16 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ navigation }) => {
 
   return (
     <ScrollView 
-      style={[styles.container, { backgroundColor: theme.theme.colors.background.main }]}
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
       contentContainerStyle={styles.contentContainer}
       keyboardShouldPersistTaps="handled"
       testID="auth-screen"
     >
       <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
-        <Text style={[styles.title, { color: theme.theme.colors.text.primary }]}>
+        <Text style={[styles.title, { color: theme.colors.text.primary }]}>
           {isLogin ? 'ログイン' : 'アカウント登録'}
         </Text>
-        <Text style={[styles.subtitle, { color: theme.theme.colors.text.secondary }]}>
+        <Text style={[styles.subtitle, { color: theme.colors.text.secondary }]}>
           {isLogin 
             ? 'スタイル提案アプリ「Stilya」へようこそ' 
             : '新規アカウントを作成して、あなた好みのスタイルを見つけましょう'}
@@ -88,7 +88,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ navigation }) => {
         />
 
         {error && (
-          <Text style={[styles.errorText, { color: theme.theme.colors.status.error }]}>
+          <Text style={[styles.errorText, { color: theme.colors.status.error }]}>
             {error}
           </Text>
         )}

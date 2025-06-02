@@ -12,11 +12,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { useAuthStore } from '@/store/authStore';
+import { useAuth } from '@/contexts/AuthContext';
 
 const SettingsScreen: React.FC = () => {
   const navigation = useNavigation();
-  const { user, logout } = useAuthStore();
+  const { user, logout } = useAuth();
   const [darkMode, setDarkMode] = useState(false);
   const [pushNotifications, setPushNotifications] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(true);

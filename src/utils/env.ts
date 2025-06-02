@@ -11,8 +11,12 @@ export const SUPABASE_URL = Constants.expoConfig?.extra?.supabaseUrl || process.
 export const SUPABASE_ANON_KEY = Constants.expoConfig?.extra?.supabaseAnonKey || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 
 // API設定
-export const LINKSHARE_API_KEY = Constants.expoConfig?.extra?.linkshareApiKey || process.env.EXPO_PUBLIC_LINKSHARE_API_KEY || '';
+export const LINKSHARE_API_KEY = Constants.expoConfig?.extra?.linkshareApiToken || process.env.EXPO_PUBLIC_LINKSHARE_API_TOKEN || '';
+export const LINKSHARE_API_TOKEN = LINKSHARE_API_KEY; // エイリアス for backward compatibility
+export const LINKSHARE_MERCHANT_ID = Constants.expoConfig?.extra?.linkshareMerchantId || process.env.EXPO_PUBLIC_LINKSHARE_MERCHANT_ID || '';
 export const A8_NET_API_KEY = Constants.expoConfig?.extra?.a8NetApiKey || process.env.EXPO_PUBLIC_A8_NET_API_KEY || '';
+export const RAKUTEN_APP_ID = Constants.expoConfig?.extra?.rakutenAppId || process.env.EXPO_PUBLIC_RAKUTEN_APP_ID || '';
+export const RAKUTEN_AFFILIATE_ID = Constants.expoConfig?.extra?.rakutenAffiliateId || process.env.EXPO_PUBLIC_RAKUTEN_AFFILIATE_ID || '';
 
 // アプリ設定
 export const APP_VERSION = Constants.expoConfig?.version || '1.0.0';

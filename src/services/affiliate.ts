@@ -1,5 +1,5 @@
 import { apiGet } from '@/utils/api';
-import { LINKSHARE_API_KEY } from '@/utils/env';
+import { LINKSHARE_API_TOKEN, RAKUTEN_APP_ID, RAKUTEN_AFFILIATE_ID } from '@/utils/env';
 import { Product } from '@/types';
 import { supabase } from './supabase';
 
