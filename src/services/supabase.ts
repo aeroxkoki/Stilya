@@ -1,9 +1,17 @@
+console.log('[supabase.ts] 1. ファイル読み込み開始');
+
 import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+console.log('[supabase.ts] 2. インポート完了');
 
 // Supabase configuration from environment variables
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
+
+console.log('[supabase.ts] 3. 環境変数確認');
+console.log('SUPABASE_URL:', supabaseUrl ? '設定済み' : '未設定');
+console.log('SUPABASE_ANON_KEY:', supabaseAnonKey ? '設定済み' : '未設定');
 
 // 環境変数が設定されていない場合の警告
 if (!supabaseUrl || !supabaseAnonKey) {
@@ -17,10 +25,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
 // React Native環境用のWebSocketアダプター
 class ReactNativeWebSocketAdapter {
   constructor(url: string, protocols?: string | string[]) {
+    console.log('[supabase.ts] WebSocketAdapter 作成:', url);
     // React NativeのWebSocketはグローバルに存在
     return new WebSocket(url, protocols);
   }
 }
+
+console.log('[supabase.ts] 4. Supabaseクライアント作成開始');
 
 // Create Supabase client with AsyncStorage for session persistence
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -45,6 +56,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     },
   },
 });
+
+console.log('[supabase.ts] 5. Supabaseクライアント作成完了');
 
 // Database table definitions for type safety
 export const TABLES = {

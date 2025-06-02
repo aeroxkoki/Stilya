@@ -1,3 +1,5 @@
+console.log('[AuthContext.tsx] 1. ファイル読み込み開始');
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { AuthState, User } from '../types';
 import {
@@ -13,6 +15,8 @@ import {
   getUserProfile,
   updateUserProfile
 } from '../services/supabase';
+
+console.log('[AuthContext.tsx] 2. インポート完了');
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
@@ -31,7 +35,11 @@ interface AuthContextType extends AuthState {
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+console.log('[AuthContext.tsx] 3. AuthContext作成完了');
+
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  console.log('[AuthContext.tsx] 4. AuthProvider関数実行開始');
+  
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -40,6 +48,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const clearError = () => setError(null);
 
   const initialize = async () => {
+    console.log('[AuthContext.tsx] 5. initialize関数実行開始');
     try {
       setLoading(true);
       setError(null);
