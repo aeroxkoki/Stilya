@@ -13,7 +13,8 @@
     "eas-build-preview": "eas build --platform all --profile preview",
     "eas-build-production": "eas build --platform all --profile production",
     "clear-cache": "npx expo start --clear",
-    "check-env": "node -e \"console.log('SUPABASE_URL:', process.env.EXPO_PUBLIC_SUPABASE_URL ? 'Set' : 'Not set')\""
+    "check-env": "node -e \"console.log('SUPABASE_URL:', process.env.EXPO_PUBLIC_SUPABASE_URL ? 'Set' : 'Not set')\"",
+    "full-reset": "./scripts/full-reset.sh"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.0",
