@@ -1,30 +1,26 @@
-// Learn more https://docs.expo.io/guides/customizing-metro
 const { getDefaultConfig } = require('expo/metro-config');
 
+/** @type {import('expo/metro-config').MetroConfig} */
 const config = getDefaultConfig(__dirname);
 
-// WebSocketエラーを解消するための設定
-config.resolver = {
-  ...config.resolver,
-  resolveRequest: (context, moduleName, platform) => {
-    // wsモジュールを空モジュールとして解決
-    if (moduleName === 'ws') {
-      return { type: 'empty' };
-    }
-    // デフォルトの解決方法を使用
-    return context.resolveRequest(context, moduleName, platform);
-  },
+// 開発サーバーの設定を明示的に指定
+config.server = {
+  ...config.server,
+  port: 8081,
 };
 
-// React Native Reanimated用の設定
-config.transformer = {
-  ...config.transformer,
-  getTransformOptions: async () => ({
-    transform: {
-      experimentalImportSupport: false,
-      inlineRequires: true,
-    },
-  }),
+// watchmanの設定（ファイル監視の安定化）
+config.watchFolders = [__dirname];
+config.resolver.nodeModulesPaths = [__dirname];
+
+// React Native 0.74.xの互換性のための設定
+config.resolver = {
+  ...config.resolver,
+  unstable_enablePackageExports: true,
+  unstable_enableSymlinks: true,
 };
+
+// Metroのデフォルトキャッシュ設定を使用（カスタムキャッシュストアを削除）
+// config.cacheStores は設定しない（デフォルトを使用）
 
 module.exports = config;
