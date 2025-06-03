@@ -9,11 +9,34 @@ React Native/Expo環境では、Node.js のコアモジュール（`stream`, `bu
 Unable to resolve module stream from node_modules/ws/lib/stream.js
 ```
 
-## 解決策
+## 解決済み
 
-### 1. Supabase クライアントの設定更新
+このエラーは `metro.config.js` の設定により解決されています。
 
-`src/services/supabase.ts` でReact Native用のWebSocketアダプターを実装：
+### 実装済みの解決策
+
+#### 1. Metro設定でwsモジュールをスキップ ✅
+
+`metro.config.js` でwsモジュールを空モジュールとして解決：
+
+```javascript
+// WebSocketエラーを解消するための設定
+config.resolver = {
+  ...config.resolver,
+  resolveRequest: (context, moduleName, platform) => {
+    // wsモジュールを空モジュールとして解決
+    if (moduleName === 'ws') {
+      return { type: 'empty' };
+    }
+    // デフォルトの解決方法を使用
+    return context.resolveRequest(context, moduleName, platform);
+  },
+};
+```
+
+#### 2. Supabase クライアントの設定 ✅
+
+`src/services/supabase.ts` でReact Native用のWebSocketアダプターを実装済み：
 
 ```typescript
 // React Native環境用のWebSocketアダプター
@@ -29,33 +52,15 @@ realtime: {
 }
 ```
 
-### 2. Metro設定の更新
+#### 3. ポリフィルの設定 ✅
 
-`metro.config.js` でwsモジュールをスキップ：
-
-```javascript
-resolveRequest: (context, moduleName, platform) => {
-  if (moduleName === 'ws') {
-    return { type: 'empty' };
-  }
-  return context.resolveRequest(context, moduleName, platform);
-}
-```
-
-### 3. ポリフィルの設定
-
-`src/lib/polyfills.ts` でグローバル設定：
+`src/lib/polyfills.ts` でURL polyfillを適用：
 
 ```typescript
 import 'react-native-url-polyfill/auto';
-import { Buffer } from 'buffer';
-
-if (typeof global.Buffer === 'undefined') {
-  global.Buffer = Buffer;
-}
 ```
 
-### 4. App.tsx での初期化
+#### 4. App.tsx での初期化 ✅
 
 ポリフィルは必ず最初にインポート：
 
@@ -93,3 +98,7 @@ npm install stream-browserify buffer --save-dev
 - Expo Managed Workflow の互換性を維持するため、ネイティブモジュールの直接使用は避ける
 - React Native のグローバルWebSocket実装を優先的に使用
 - Node.js専用パッケージの使用は最小限に抑える
+
+## 更新履歴
+
+- 2025年6月3日: metro.config.js に resolver 設定を追加し、WebSocketエラーを解決
