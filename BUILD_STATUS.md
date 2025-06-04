@@ -1,5 +1,19 @@
 # Stilya ビルド環境整備状況
 
+## 最新アップデート（2025/06/04）
+
+### 🎉 Expo SDK 53.0.9 アップグレード完了
+- **実施日**: 2025年6月4日
+- **変更内容**:
+  - app.config.js から `jsEngine: "jsc"` フィールドを削除（SDK 53で廃止）
+  - 全依存関係を SDK 53.0.9 互換バージョンに更新
+  - .npmrc に `legacy-peer-deps=true` を追加（Node.js 23対応）
+- **診断結果**: `npx expo-doctor` で15項目すべて合格 ✅
+- **主な変更点**:
+  - New Architecture がデフォルトで有効
+  - package.json exports フィールドのサポート強化
+  - React Native 0.79.2 / React 19.0.0 対応
+
 ## 修正内容（2025/06/03）
 
 ### 1. 🔧 eas.json の修正

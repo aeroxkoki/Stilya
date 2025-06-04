@@ -1,5 +1,17 @@
 # Stilya プロジェクト - エラー修正状況
 
+## 最新の修正（2025/06/04）
+
+### ✅ Expo SDK 53.0.9 アップグレード完了
+- **実施内容**:
+  - Expo: 53.0.7 → 53.0.9
+  - app.config.js から `jsEngine: "jsc"` を削除（SDK 53で廃止）
+  - .npmrc に `legacy-peer-deps=true` を追加
+  - すべての依存関係を SDK 53.0.9 互換バージョンに更新
+- **結果**: 
+  - `npx expo-doctor` で15項目すべて合格
+  - PlatformConstants エラーなども含めて完全に解決
+
 ## 修正完了内容
 
 ### 1. PlatformConstants エラー対策
