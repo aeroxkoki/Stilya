@@ -57,8 +57,6 @@ export default {
     },
     plugins: [],
     scheme: "stilya",
-    // jsEngineをjscに変更（Expo Goとの互換性向上）
-    jsEngine: "jsc",
     extra: {
       eas: {
         projectId: "beb25e0f-344b-4f2f-8b64-20614b9744a3"
