@@ -1,6 +1,7 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Modal } from 'react-native';
 import { runLocalTests } from '../../tests/localTests';
+import { NetworkDiagnostics } from './NetworkDiagnostics';
 
 interface DevMenuProps {
   onClose: () => void;
@@ -8,11 +9,12 @@ interface DevMenuProps {
 
 /**
  * 開発メニューコンポーネント
- * MVPテストを実行するためのUIを提供
+ * MVPテストとネットワーク診断を実行するためのUIを提供
  */
 export const DevMenu: React.FC<DevMenuProps> = ({ onClose }) => {
   const [testResults, setTestResults] = React.useState<string[]>([]);
   const [isRunning, setIsRunning] = React.useState(false);
+  const [showNetworkDiagnostics, setShowNetworkDiagnostics] = React.useState(false);
 
   const handleRunTests = async () => {
     setIsRunning(true);
@@ -40,34 +42,61 @@ export const DevMenu: React.FC<DevMenuProps> = ({ onClose }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>🛠️ 開発メニュー</Text>
-        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-          <Text style={styles.closeText}>✕</Text>
-        </TouchableOpacity>
-      </View>
+    <>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>🛠️ 開発メニュー</Text>
+          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <Text style={styles.closeText}>✕</Text>
+          </TouchableOpacity>
+        </View>
 
-      <View style={styles.content}>
-        <TouchableOpacity
-          style={[styles.button, isRunning && styles.buttonDisabled]}
-          onPress={handleRunTests}
-          disabled={isRunning}
-        >
-          <Text style={styles.buttonText}>
-            {isRunning ? '⏳ テスト実行中...' : '🧪 MVPテストを実行'}
-          </Text>
-        </TouchableOpacity>
-
-        <ScrollView style={styles.results}>
-          {testResults.map((result, index) => (
-            <Text key={index} style={styles.resultText}>
-              {result}
+        <View style={styles.content}>
+          <TouchableOpacity
+            style={[styles.button, isRunning && styles.buttonDisabled]}
+            onPress={handleRunTests}
+            disabled={isRunning}
+          >
+            <Text style={styles.buttonText}>
+              {isRunning ? '⏳ テスト実行中...' : '🧪 MVPテストを実行'}
             </Text>
-          ))}
-        </ScrollView>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => setShowNetworkDiagnostics(true)}
+          >
+            <Text style={styles.buttonText}>
+              🌐 ネットワーク診断
+            </Text>
+          </TouchableOpacity>
+
+          <ScrollView style={styles.results}>
+            {testResults.map((result, index) => (
+              <Text key={index} style={styles.resultText}>
+                {result}
+              </Text>
+            ))}
+          </ScrollView>
+        </View>
       </View>
-    </View>
+
+      <Modal
+        visible={showNetworkDiagnostics}
+        animationType="slide"
+        onRequestClose={() => setShowNetworkDiagnostics(false)}
+      >
+        <View style={styles.modalContainer}>
+          <TouchableOpacity
+            style={styles.modalCloseButton}
+            onPress={() => setShowNetworkDiagnostics(false)}
+          >
+            <Text style={styles.modalCloseText}>閉じる</Text>
+          </TouchableOpacity>
+          <NetworkDiagnostics />
+        </View>
+      </Modal>
+    </>
   );
 };
 
@@ -108,31 +137,51 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   button: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#007AFF',
     paddingVertical: 15,
-    paddingHorizontal: 30,
+    paddingHorizontal: 20,
     borderRadius: 8,
+    marginBottom: 10,
     alignItems: 'center',
-    marginBottom: 20,
   },
   buttonDisabled: {
-    backgroundColor: '#666',
+    opacity: 0.6,
   },
   buttonText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
   },
   results: {
     flex: 1,
+    marginTop: 20,
+    padding: 10,
     backgroundColor: '#1a1a1a',
     borderRadius: 8,
-    padding: 15,
   },
   resultText: {
-    color: '#fff',
-    fontSize: 14,
-    lineHeight: 20,
+    color: '#0f0',
     fontFamily: 'monospace',
+    fontSize: 12,
+    marginBottom: 5,
+  },
+  modalContainer: {
+    flex: 1,
+    paddingTop: 40,
+    backgroundColor: '#fff',
+  },
+  modalCloseButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 1,
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  modalCloseText: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
 });

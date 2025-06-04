@@ -7,6 +7,7 @@ import { RootStackParamList, AuthStackParamList } from '../../navigation/types';
 import { StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../contexts/ThemeContext';
+import { Feather } from '@expo/vector-icons';
 
 // ナビゲーションプロパティの型定義
 type AuthScreenNavigationProp = StackNavigationProp<AuthStackParamList>;
@@ -73,7 +74,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ navigation }) => {
           onChangeText={setEmail}
           autoCapitalize="none"
           keyboardType="email-address"
-          leftIcon="mail"
+          leftIcon={<Feather name="mail" size={20} color={theme.colors.text.secondary} />}
           testID="email-input"
         />
 
@@ -82,8 +83,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ navigation }) => {
           placeholder="パスワード"
           value={password}
           onChangeText={setPassword}
-          secureTextEntry
-          leftIcon="lock"
+          isPassword
+          leftIcon={<Feather name="lock" size={20} color={theme.colors.text.secondary} />}
           testID="password-input"
         />
 
