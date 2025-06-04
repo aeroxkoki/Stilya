@@ -9,15 +9,17 @@
 ### 修正内容
 1. **Supabase接続エラーの対応**
    - `src/services/supabase.ts`を修正
-   - ネットワークエラーのデバッグ機能を追加
+   - 重複したauth設定を削除
+   - デバッグログを最小限に削減
    - エラーハンドリングの改善
 
 2. **UIコンポーネントの修正**
    - `src/screens/auth/AuthScreen.tsx`のアイコン表示エラーを修正
    - TextInputのleftIconプロパティにReact要素を渡すように変更
 
-3. **開発用モックサービス**
-   - `src/services/devSupabase.ts`を作成（使用していません）
+3. **開発ツール**
+   - `src/components/dev/NetworkDiagnostics.tsx`を作成（ネットワーク診断用）
+   - 開発メニューにネットワーク診断機能を追加
 
 ## 2. 本番環境への移行手順
 
@@ -31,59 +33,40 @@ EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-### 2.2 デバッグコードの削除
+### 2.2 コードの調整
 
-1. **supabase.tsのデバッグコードを削除**
+1. **supabase.tsのdebugフラグを確認**
 ```typescript
-// 以下のコンソールログを削除またはコメントアウト
-console.log('[supabase.ts] 1. ファイル読み込み開始');
-console.log('[supabase.ts] 2. インポート完了');
-// ... その他のデバッグログ
-
-// fetchインターセプトのコードを削除（66-88行目）
-if (__DEV__) {
-  // このブロック全体を削除
-}
+// src/services/supabase.ts (33行目)
+debug: false, // 本番環境ではfalse
 ```
 
-2. **本番用のSupabaseクライアント設定**
+必要に応じて以下に変更：
 ```typescript
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    storage: AsyncStorage,
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false,
-    flowType: 'pkce',
-    debug: false, // 本番環境ではfalseに設定
-  },
-  realtime: {
-    enabled: true, // 必要に応じてRealtimeを有効化
-  },
-  global: {
-    headers: {
-      'X-Client-Info': 'stilya-app/1.0.0',
-    },
-  },
-  db: {
-    schema: 'public',
-  },
-});
+debug: __DEV__, // 開発環境でのみデバッグ有効
 ```
 
-### 2.3 不要なファイルの削除
-```bash
-# 開発用モックサービスを削除
-rm src/services/devSupabase.ts
+2. **Realtimeの有効化（必要な場合）**
+```typescript
+// src/services/supabase.ts (36行目)
+realtime: {
+  enabled: true, // 必要に応じてtrue
+},
 ```
+
+### 2.3 開発専用ファイルの取り扱い
+
+以下のファイルは開発専用です。本番ビルドでは自動的に除外されますが、必要に応じて削除できます：
+- `src/components/dev/NetworkDiagnostics.tsx`
+- `src/components/dev/DevMenu.tsx`
 
 ### 2.4 ビルド前のチェックリスト
 
-- [ ] すべてのデバッグログを削除
 - [ ] 環境変数が本番用に設定されている
-- [ ] `__DEV__`に依存するコードが適切に処理されている
+- [ ] `supabase.ts`のdebugフラグがfalseまたは__DEV__
 - [ ] TypeScriptのエラーがない
 - [ ] ESLintのエラーがない
+- [ ] 不要なconsole.logが削除されている
 
 ## 3. ネットワーク接続問題の解決
 
@@ -100,29 +83,30 @@ Expo開発環境では、以下の理由でSupabaseへの接続が失敗する�
 npx expo start -c
 ```
 
-2. **ネットワーク設定の確認**
-- VPNを無効化
-- ファイアウォールの設定を確認
-- プロキシ設定を確認
-
-3. **代替の開発方法**
+2. **実機でのテスト**
 ```bash
-# Expo Goの代わりに開発ビルドを使用
+# QRコードをスキャンして実機でテスト
+npx expo start
+```
+
+3. **開発ビルドの使用（推奨）**
+```bash
+# 開発ビルドを作成
 npx expo prebuild
 npx expo run:ios  # または run:android
 ```
 
 ## 4. 本番ビルドの作成
 
-### 4.1 EAS Buildの設定
+### 4.1 EAS Buildの設定確認
 ```json
 // eas.json
 {
   "build": {
     "production": {
+      "channel": "production",
       "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "https://your-project.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "your-anon-key"
+        "NODE_ENV": "production"
       }
     }
   }
@@ -137,44 +121,45 @@ eas build --platform all --profile production
 
 ## 5. テスト手順
 
-### 5.1 ローカルテスト
-```bash
-# テストスクリプトの実行
-npm run test:local
-```
-
-### 5.2 本番環境でのテスト項目
+### 5.1 実機テスト項目
 - [ ] ユーザー登録・ログイン機能
 - [ ] 商品データの取得
 - [ ] スワイプ機能
 - [ ] 推薦機能
 - [ ] アフィリエイトリンクの動作
 
+### 5.2 ネットワーク診断（開発時）
+1. 開発メニューを開く
+2. 「ネットワーク診断」をタップ
+3. すべてのテストが成功することを確認
+
 ## 6. トラブルシューティング
 
 ### 問題: Network request failed
-**原因**: Expo開発環境でのネットワーク制限
-**解決策**: 
-1. 開発ビルドを使用
-2. 実機でのテスト
-3. VPN/プロキシの無効化
+**原因**: 
+- Expo開発環境でのネットワーク制限
+- 環境変数の設定ミス
 
-### 問題: AsyncStorage errors
-**原因**: AsyncStorageの初期化問題
-**解決策**: アプリを完全に再起動
+**解決策**: 
+1. 環境変数を確認
+2. 開発ビルドを使用
+3. 実機でのテスト
 
 ### 問題: 認証エラー
-**原因**: Supabaseの設定ミス
+**原因**: 
+- Supabaseの設定ミス
+- APIキーの期限切れ
+
 **解決策**: 
 1. Supabaseダッシュボードで認証設定を確認
 2. URLとAPIキーが正しいか確認
+3. Supabaseプロジェクトの設定を確認
 
-## 7. 連絡先
+## 7. 本番環境の監視
 
-問題が発生した場合は、以下の情報と共に開発チームに連絡してください：
-- エラーログ
-- 再現手順
-- 環境情報（OS、Expoバージョンなど）
+- Supabaseダッシュボードでエラーログを監視
+- アプリのクラッシュレポートを確認
+- ユーザーフィードバックを収集
 
 ---
 最終更新日: 2025年1月
