@@ -1,19 +1,23 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, StyleSheet, ActivityIndicator, Text, TouchableOpacity } from 'react-native';
-import { PanGestureHandler } from 'react-native-gesture-handler';
-import Animated, {
-  useAnimatedGestureHandler,
-  useAnimatedStyle,
-  interpolate,
-  Extrapolate,
-  runOnJS,
-} from 'react-native-reanimated';
+import { 
+  View, 
+  StyleSheet, 
+  ActivityIndicator, 
+  Text, 
+  TouchableOpacity,
+  Animated,
+  PanResponder,
+  Dimensions
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSwipe } from '../../hooks/useSwipe';
 import { Product } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 import { useNetwork } from '../../contexts/NetworkContext';
 import SwipeCard from './SwipeCard';
+
+const { width } = Dimensions.get('window');
+const SWIPE_THRESHOLD = 120;
 
 interface SwipeContainerProps {
   products: Product[];
@@ -42,6 +46,10 @@ const SwipeContainer: React.FC<SwipeContainerProps> = ({
   const [loadingMore, setLoadingMore] = useState(false);
   const loadMoreThreshold = useRef(5); // あと5枚になったら追加読み込み
   const currentProduct = products[currentIndex];
+
+  // アニメーション値
+  const position = useRef(new Animated.ValueXY()).current;
+  const swipeIndicatorOpacity = useRef(new Animated.Value(0)).current;
 
   // 商品が少なくなってきたら追加読み込み
   useEffect(() => {
@@ -74,109 +82,104 @@ const SwipeContainer: React.FC<SwipeContainerProps> = ({
     }
   }, [currentIndex, products.length, onEmptyProducts]);
 
-  // スワイプ完了時の処理
-  const handleSwipeComplete = useCallback((direction: 'left' | 'right', product: Product) => {
-    // スワイプイベントを親コンポーネントに通知
-    if (onSwipe) {
-      onSwipe(product, direction);
-    }
-    
-    // 一定時間後に次のカードへ
-    setTimeout(() => {
-      setCurrentIndex(prevIndex => prevIndex + 1);
-    }, 300); // アニメーション完了まで少し待つ
-  }, [onSwipe]);
-
   // スワイプロジックを取得
   const { 
-    translateX, 
-    translateY, 
-    scale, 
-    rotation,
     handleSwipeLeft,
     handleSwipeRight,
-    handleSwipeStart,
-    resetPosition,
-    SWIPE_THRESHOLD
   } = useSwipe({
     userId: user?.id,
-    onSwipeComplete: handleSwipeComplete,
-  });
-
-  // パンジェスチャーハンドラー
-  const gestureHandler = useAnimatedGestureHandler({
-    onStart: () => {
-      runOnJS(handleSwipeStart)();
-    },
-    onActive: (event) => {
-      translateX.value = event.translationX;
-      translateY.value = event.translationY;
-      rotation.value = interpolate(
-        event.translationX,
-        [-200, 0, 200],
-        [-15, 0, 15],
-        Extrapolate.CLAMP
-      );
-    },
-    onEnd: (event) => {
-      if (event.translationX > SWIPE_THRESHOLD && currentProduct) {
-        runOnJS(handleSwipeRight)(currentProduct);
-      } else if (event.translationX < -SWIPE_THRESHOLD && currentProduct) {
-        runOnJS(handleSwipeLeft)(currentProduct);
-      } else {
-        runOnJS(resetPosition)();
+    onSwipeComplete: (direction, product) => {
+      if (onSwipe) {
+        onSwipe(product, direction);
       }
+      // 次のカードへ
+      setCurrentIndex(prevIndex => prevIndex + 1);
+      // ポジションをリセット
+      position.setValue({ x: 0, y: 0 });
+      swipeIndicatorOpacity.setValue(0);
     },
   });
 
-  // カードのアニメーションスタイル
-  const animatedCardStyle = useAnimatedStyle(() => {
-    'worklet';
-    return {
-      transform: [
-        { translateX: translateX.value },
-        { translateY: translateY.value },
-        { rotate: `${rotation.value}deg` },
-        { scale: scale.value },
-      ] as any,
-    } as any;
-  });
+  // PanResponderの設定
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        position.setOffset({
+          x: position.x._value,
+          y: position.y._value,
+        });
+        position.setValue({ x: 0, y: 0 });
+      },
+      onPanResponderMove: (_, gestureState) => {
+        position.setValue({ x: gestureState.dx, y: gestureState.dy });
+        
+        // スワイプインジケーターのopacityを更新
+        const opacity = Math.min(Math.abs(gestureState.dx) / SWIPE_THRESHOLD, 1);
+        swipeIndicatorOpacity.setValue(opacity);
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        position.flattenOffset();
 
-  // Yes/Noインジケーターのアニメーションスタイル
-  const yesIndicatorStyle = useAnimatedStyle(() => {
-    return {
-      opacity: interpolate(
-        translateX.value,
-        [0, SWIPE_THRESHOLD / 2, SWIPE_THRESHOLD],
-        [0, 0.5, 1],
-        Extrapolate.CLAMP
-      ),
-    };
-  });
-
-  const noIndicatorStyle = useAnimatedStyle(() => {
-    return {
-      opacity: interpolate(
-        translateX.value,
-        [-SWIPE_THRESHOLD, -SWIPE_THRESHOLD / 2, 0],
-        [1, 0.5, 0],
-        Extrapolate.CLAMP
-      ),
-    };
-  });
+        if (gestureState.dx > SWIPE_THRESHOLD && currentProduct) {
+          // 右スワイプ（Yes）
+          Animated.timing(position, {
+            toValue: { x: width + 100, y: gestureState.dy },
+            duration: 250,
+            useNativeDriver: false,
+          }).start(() => {
+            handleSwipeRight(currentProduct);
+          });
+        } else if (gestureState.dx < -SWIPE_THRESHOLD && currentProduct) {
+          // 左スワイプ（No）
+          Animated.timing(position, {
+            toValue: { x: -width - 100, y: gestureState.dy },
+            duration: 250,
+            useNativeDriver: false,
+          }).start(() => {
+            handleSwipeLeft(currentProduct);
+          });
+        } else {
+          // 元の位置に戻す
+          Animated.spring(position, {
+            toValue: { x: 0, y: 0 },
+            useNativeDriver: false,
+          }).start();
+          Animated.timing(swipeIndicatorOpacity, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: false,
+          }).start();
+        }
+      },
+    })
+  ).current;
 
   // ボタンによるスワイプ操作ハンドラー
   const handleNoButtonPress = useCallback(() => {
     if (currentProduct) {
-      handleSwipeLeft(currentProduct);
+      Animated.timing(position, {
+        toValue: { x: -width - 100, y: 0 },
+        duration: 250,
+        useNativeDriver: false,
+      }).start(() => {
+        handleSwipeLeft(currentProduct);
+      });
     }
-  }, [currentProduct, handleSwipeLeft]);
+  }, [currentProduct, handleSwipeLeft, position]);
 
   const handleYesButtonPress = useCallback(() => {
     if (currentProduct) {
-      handleSwipeRight(currentProduct);
+      Animated.timing(position, {
+        toValue: { x: width + 100, y: 0 },
+        duration: 250,
+        useNativeDriver: false,
+      }).start(() => {
+        handleSwipeRight(currentProduct);
+      });
     }
-  }, [currentProduct, handleSwipeRight]);
+  }, [currentProduct, handleSwipeRight, position]);
 
   // 商品カードのタップイベント
   const handleCardPress = useCallback(() => {
@@ -212,6 +215,22 @@ const SwipeContainer: React.FC<SwipeContainerProps> = ({
     );
   }
 
+  // カードの回転角度を計算
+  const rotate = position.x.interpolate({
+    inputRange: [-width / 2, 0, width / 2],
+    outputRange: ['-10deg', '0deg', '10deg'],
+    extrapolate: 'clamp',
+  });
+
+  // カードのアニメーションスタイル
+  const animatedCardStyle = {
+    transform: [
+      { translateX: position.x },
+      { translateY: position.y },
+      { rotate: rotate },
+    ],
+  };
+
   return (
     <View style={styles.container} testID={testID || 'swipe-container'}>
       {/* オフライン通知 */}
@@ -230,19 +249,50 @@ const SwipeContainer: React.FC<SwipeContainerProps> = ({
         </View>
       )}
       
-      <PanGestureHandler onGestureEvent={gestureHandler} enabled={!!onSwipe} testID="pan-handler">
-        <Animated.View style={[styles.cardContainer, animatedCardStyle]} testID="animated-card-container">
-          {currentProduct && (
-            <SwipeCard
-              product={currentProduct}
-              onPress={handleCardPress}
-              onSwipeLeft={isConnected === false ? undefined : handleNoButtonPress}
-              onSwipeRight={isConnected === false ? undefined : handleYesButtonPress}
-              testID="current-swipe-card"
-            />
-          )}
+      <Animated.View
+        style={[styles.cardContainer, animatedCardStyle]}
+        {...panResponder.panHandlers}
+        testID="animated-card-container"
+      >
+        {currentProduct && (
+          <SwipeCard
+            product={currentProduct}
+            onPress={handleCardPress}
+            onSwipeLeft={isConnected === false ? undefined : handleNoButtonPress}
+            onSwipeRight={isConnected === false ? undefined : handleYesButtonPress}
+            testID="current-swipe-card"
+          />
+        )}
+        
+        {/* スワイプインジケーター */}
+        <Animated.View
+          style={[
+            styles.swipeIndicator,
+            styles.yesIndicator,
+            { opacity: position.x.interpolate({
+              inputRange: [0, SWIPE_THRESHOLD],
+              outputRange: [0, 1],
+              extrapolate: 'clamp',
+            }) }
+          ]}
+        >
+          <Text style={styles.indicatorText}>YES</Text>
         </Animated.View>
-      </PanGestureHandler>
+        
+        <Animated.View
+          style={[
+            styles.swipeIndicator,
+            styles.noIndicator,
+            { opacity: position.x.interpolate({
+              inputRange: [-SWIPE_THRESHOLD, 0],
+              outputRange: [1, 0],
+              extrapolate: 'clamp',
+            }) }
+          ]}
+        >
+          <Text style={styles.indicatorText}>NO</Text>
+        </Animated.View>
+      </Animated.View>
       
       {/* 残りカード数表示 */}
       <View style={styles.remainingContainer} testID="remaining-counter">
@@ -359,6 +409,26 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     textAlign: 'center',
     marginTop: 4,
+  },
+  swipeIndicator: {
+    position: 'absolute',
+    padding: 10,
+    borderRadius: 4,
+  },
+  yesIndicator: {
+    top: 20,
+    right: 20,
+    backgroundColor: '#10B981',
+  },
+  noIndicator: {
+    top: 20,
+    left: 20,
+    backgroundColor: '#EF4444',
+  },
+  indicatorText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 24,
   },
 });
 

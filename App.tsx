@@ -5,8 +5,7 @@ import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import Toast from 'react-native-toast-message';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+// import Toast from 'react-native-toast-message';
 import { TouchableOpacity, Text, View, LogBox } from 'react-native';
 
 // Components and Navigation
@@ -46,7 +45,7 @@ const App: React.FC = () => {
   }, [testMode]);
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <View style={{ flex: 1 }}>
       <SafeAreaProvider>
         <NetworkProvider>
           <ThemeProvider>
@@ -80,7 +79,7 @@ const App: React.FC = () => {
                       </>
                     )}
                     
-                    <Toast />
+                    {/* <Toast /> */}
                   </NavigationContainer>
                 </OnboardingProvider>
               </ProductProvider>
@@ -88,7 +87,7 @@ const App: React.FC = () => {
           </ThemeProvider>
         </NetworkProvider>
       </SafeAreaProvider>
-    </GestureHandlerRootView>
+    </View>
   );
 };
 

@@ -12,8 +12,6 @@ module.exports = function(api) {
           },
         },
       ],
-      // React Native Reanimatedプラグイン（最後に配置する必要がある）
-      'react-native-reanimated/plugin',
     ],
   };
 };

@@ -1,5 +1,3 @@
-import 'dotenv/config';
-
 export default {
   expo: {
     name: "Stilya",
@@ -59,18 +57,20 @@ export default {
     },
     plugins: [],
     scheme: "stilya",
-    jsEngine: "hermes",
+    // jsEngineをjscに変更（Expo Goとの互換性向上）
+    jsEngine: "jsc",
     extra: {
       eas: {
         projectId: "beb25e0f-344b-4f2f-8b64-20614b9744a3"
       },
-      supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
-      supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
-      linkshareApiToken: process.env.EXPO_PUBLIC_LINKSHARE_API_TOKEN,
-      linkshareMerchantId: process.env.EXPO_PUBLIC_LINKSHARE_MERCHANT_ID,
-      rakutenAppId: process.env.EXPO_PUBLIC_RAKUTEN_APP_ID,
-      rakutenAffiliateId: process.env.EXPO_PUBLIC_RAKUTEN_AFFILIATE_ID,
-      enableDevFeatures: process.env.NODE_ENV === 'development' || process.env.EXPO_PUBLIC_DEV_MODE === 'true'
+      // 環境変数は直接設定（dotenvを使わない）
+      supabaseUrl: "https://ddypgpljprljqrblpuli.supabase.co",
+      supabaseAnonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkeXBncGxqcHJsanFyYmxwdWxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcxMDMwOTcsImV4cCI6MjA2MjY3OTA5N30.u4310NL9FYdxcMSrGxEzEXP0M5y5pDuG3_mz7IRAhMU",
+      linkshareApiToken: "your_linkshare_token_here",
+      linkshareMerchantId: "your_merchant_id_here",
+      rakutenAppId: "your_rakuten_app_id_here",
+      rakutenAffiliateId: "your_rakuten_affiliate_id_here",
+      enableDevFeatures: true
     }
   }
 };

@@ -13,11 +13,14 @@ config.server = {
 config.watchFolders = [__dirname];
 config.resolver.nodeModulesPaths = [__dirname];
 
-// React Native 0.74.xの互換性のための設定
+// Expo SDK 53.0.7の推奨設定
 config.resolver = {
   ...config.resolver,
-  unstable_enablePackageExports: true,
+  // ESモジュール解決を無効化（Hermesエラー対策）
+  unstable_enablePackageExports: false,
   unstable_enableSymlinks: true,
+  // CommonJSサポートを追加
+  sourceExts: [...config.resolver.sourceExts, 'cjs'],
 };
 
 // Metroのデフォルトキャッシュ設定を使用（カスタムキャッシュストアを削除）
