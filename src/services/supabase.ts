@@ -1,10 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../utils/env';
 
-// Supabase configuration from environment variables
-const supabaseUrl = (process.env.EXPO_PUBLIC_SUPABASE_URL || '').trim();
-const supabaseAnonKey = (process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '').trim();
+// Supabase configuration from centralized environment variables
+const supabaseUrl = SUPABASE_URL.trim();
+const supabaseAnonKey = SUPABASE_ANON_KEY.trim();
 
 // 開発環境でのみデバッグ情報を表示
 if (__DEV__) {
@@ -18,7 +19,8 @@ if (__DEV__) {
 if (!supabaseUrl || !supabaseAnonKey) {
   console.warn(
     '⚠️ Supabase環境変数が設定されていません。',
-    '\n.envファイルを作成し、EXPO_PUBLIC_SUPABASE_URLとEXPO_PUBLIC_SUPABASE_ANON_KEYを設定してください。'
+    '\n1. .envファイルにEXPO_PUBLIC_SUPABASE_URLとEXPO_PUBLIC_SUPABASE_ANON_KEYを設定',
+    '\n2. または app.config.js の extra フィールドに supabaseUrl と supabaseAnonKey を設定してください。'
   );
 }
 

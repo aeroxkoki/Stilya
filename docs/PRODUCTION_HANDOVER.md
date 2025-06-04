@@ -6,7 +6,19 @@
 
 ## 1. 現在の開発環境の状況
 
-### 修正内容
+### 最新の修正内容（2025年6月4日）
+1. **環境変数読み込みの統一化**
+   - `src/services/supabase.ts`を修正
+   - `process.env`の直接使用を廃止し、`src/utils/env.ts`から環境変数をインポート
+   - Expo Goでの動作を確保しつつ、本番環境への移行もスムーズに
+   - `src/components/dev/NetworkDiagnostics.tsx`も同様に修正
+
+2. **環境変数の管理方法**
+   - `.env`ファイル：開発時の環境変数（dotenvで読み込み）
+   - `app.config.js`の`extra`フィールド：本番ビルド時の環境変数
+   - `src/utils/env.ts`：両方から読み込む統一インターフェース
+
+### 修正前の内容
 1. **Supabase接続エラーの対応**
    - `src/services/supabase.ts`を修正
    - 重複したauth設定を削除
@@ -23,14 +35,28 @@
 
 ## 2. 本番環境への移行手順
 
-### 2.1 環境変数の確認
-```bash
-# .envファイルの内容を確認
-cat .env
+### 2.1 環境変数の設定方法
 
-# 以下の環境変数が正しく設定されていることを確認
+#### 開発環境（Expo Go）
+```bash
+# .envファイルを作成
 EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
+
+#### 本番環境（EAS Build）
+```javascript
+// app.config.js
+export default {
+  expo: {
+    // ...
+    extra: {
+      supabaseUrl: "https://your-project.supabase.co",
+      supabaseAnonKey: "your-anon-key",
+      // その他の環境変数
+    }
+  }
+};
 ```
 
 ### 2.2 コードの調整

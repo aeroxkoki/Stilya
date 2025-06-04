@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { supabase, testSupabaseConnection } from '../../services/supabase';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/env';
 
 export const NetworkDiagnostics: React.FC = () => {
   const [results, setResults] = React.useState<string[]>([]);
@@ -25,10 +26,9 @@ export const NetworkDiagnostics: React.FC = () => {
     // Test 2: Fetch Supabase URL directly
     try {
       addResult('Test 2: Testing Supabase URL directly...');
-      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-      const response = await fetch(`${supabaseUrl}/rest/v1/`, {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/`, {
         headers: {
-          'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
+          'apikey': SUPABASE_ANON_KEY,
         },
       });
       addResult(`Test 2 Success: Supabase responded with status ${response.status}`);
