@@ -35,6 +35,9 @@ npm install
 # 環境変数の設定
 cp .env.example .env
 # .envファイルを編集してSupabase情報を設定
+
+# データベースの初期化（初回のみ）
+# 詳細は docs/DATABASE_INITIALIZATION_GUIDE.md を参照
 ```
 
 ### 起動方法
