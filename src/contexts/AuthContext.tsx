@@ -190,7 +190,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       setError(errorMessage);
       setLoading(false);
-      setSession({ id: 'test-session' }); // テスト用のモックセッションを設定
     }
   };
 
@@ -242,7 +241,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       setError(errorMessage);
       setLoading(false);
-      setSession({ id: 'test-session' }); // テスト用のモックセッションを設定
     }
   };
 
