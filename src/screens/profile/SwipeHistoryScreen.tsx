@@ -14,8 +14,8 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { ProductCard, Button } from '@/components/common';
-import { useProductStore } from '@/store/productStore';
-import { useAuthStore } from '@/store/authStore';
+import { useProducts } from '@/contexts/ProductContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Product } from '@/types';
 
 const { width } = Dimensions.get('window');
@@ -24,7 +24,7 @@ const CARD_WIDTH = (width - 32 - 8 * (COLUMN_NUM - 1)) / COLUMN_NUM; // Padding 
 
 const SwipeHistoryScreen: React.FC = () => {
   const navigation = useNavigation();
-  const { user } = useAuthStore();
+  const { user } = useAuth();
   const { 
     swipeHistory, 
     getSwipeHistory, 
@@ -32,7 +32,7 @@ const SwipeHistoryScreen: React.FC = () => {
     addToFavorites,
     isFavorite,
     removeFromFavorites
-  } = useProductStore();
+  } = useProducts();
   
   // フィルタリング用の状態
   const [filter, setFilter] = useState<'all' | 'yes' | 'no'>('all');

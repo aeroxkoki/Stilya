@@ -279,7 +279,7 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
       let recommended: Product[] = [];
       
       if (popularTags.length > 0) {
-        const result = await fetchProductsByTags(popularTags, 20, 0);
+        const result = await fetchProductsByTags(popularTags, 20);
         if (result.success && 'data' in result && result.data) {
           recommended = result.data.filter(p => !yesProductIds.includes(p.id));
         }

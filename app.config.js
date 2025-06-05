@@ -15,6 +15,13 @@ export default {
     assetBundlePatterns: [
       "**/*"
     ],
+    // 開発ビルド用の設定を追加
+    developmentClient: {
+      silentLaunch: false
+    },
+    updates: {
+      enabled: false // 開発ビルドではOTA更新を無効化
+    },
     ios: {
       supportsTablet: false,
       bundleIdentifier: "com.stilya.app",
@@ -26,10 +33,19 @@ export default {
         NSCameraUsageDescription: "Stilyaで自分のコーディネートを撮影するために、カメラへのアクセスが必要です。",
         NSUserTrackingUsageDescription: "あなたに最適なファッションアイテムを提案するために、パーソナライズされた広告を表示します。",
         ITSAppUsesNonExemptEncryption: false,
+        // 開発ビルド用のネットワーク設定
+        NSAppTransportSecurity: {
+          NSAllowsArbitraryLoads: true, // 開発時のみ
+          NSExceptionDomains: {
+            "localhost": {
+              NSTemporaryExceptionAllowsInsecureHTTPLoads: true
+            }
+          }
+        },
         // App Store 設定
         CFBundleDisplayName: "Stilya",
         CFBundleName: "Stilya",
-        LSApplicationQueriesSchemes: ["mailto", "tel"],
+        LSApplicationQueriesSchemes: ["mailto", "tel", "stilya"],
         // ステータスバー設定
         UIStatusBarStyle: "UIStatusBarStyleDefault",
         UIViewControllerBasedStatusBarAppearance: false

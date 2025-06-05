@@ -161,7 +161,7 @@ export class RecommendationService {
         }
 
         // Category matching score
-        if (preferences.preferredCategories.includes(product.category)) {
+        if (product.category && preferences.preferredCategories.includes(product.category)) {
           productScore += 2;
         }
 

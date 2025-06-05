@@ -17,6 +17,9 @@ import { NetworkProvider } from './src/contexts/NetworkContext';
 import { ThemeProvider } from './src/contexts/ThemeContext';
 import { DevMenu } from './src/components/dev/DevMenu';
 
+// Supabase listeners
+import { initializeSupabaseListeners, cleanupSupabaseListeners } from './src/services/supabase';
+
 // テスト実行用インポート（開発時のみ）
 import { runLocalTests } from './src/tests/localTests';
 
@@ -33,6 +36,9 @@ const App: React.FC = () => {
   const [testMode] = useState(false); // MVPではテストモードは無効
 
   useEffect(() => {
+    // Initialize Supabase listeners
+    initializeSupabaseListeners();
+    
     // 開発モードでのみテスト実行（現在は無効）
     if (__DEV__ && testMode) {
       console.log('=== ローカルテスト実行開始 ===');
@@ -42,6 +48,11 @@ const App: React.FC = () => {
         console.error('=== ローカルテストエラー ===', error);
       });
     }
+    
+    // Cleanup on unmount
+    return () => {
+      cleanupSupabaseListeners();
+    };
   }, [testMode]);
 
   return (

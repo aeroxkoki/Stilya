@@ -62,7 +62,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           // セッションの更新が必要な場合
           const refreshResult = await refreshSession();
           
-          if (refreshResult.success && refreshResult.data) {
+          if (refreshResult.success && 'data' in refreshResult && refreshResult.data) {
             const refreshedSession = refreshResult.data.session;
             
             if (refreshedSession) {
@@ -71,7 +71,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               if (user) {
                 // ユーザープロファイルを取得
                 const profileResult = await getUserProfile(user.id);
-                const profileData = profileResult.success && profileResult.data ? profileResult.data : {};
+                const profileData = profileResult.success && 'data' in profileResult && profileResult.data ? profileResult.data : {};
                 
                 setUser({
                   id: user.id,
@@ -96,7 +96,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           if (user) {
             // ユーザープロファイルを取得
             const profileResult = await getUserProfile(user.id);
-            const profileData = profileResult.success && profileResult.data ? profileResult.data : {};
+            const profileData = profileResult.success && 'data' in profileResult && profileResult.data ? profileResult.data : {};
             
             setUser({
               id: user.id,
@@ -126,7 +126,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       if (isSessionExpired(session)) {
         const refreshResult = await refreshSession();
-        if (refreshResult.success && refreshResult.data?.session) {
+        if (refreshResult.success && 'data' in refreshResult && refreshResult.data?.session) {
           setSession(refreshResult.data.session);
           return true;
         }
@@ -146,7 +146,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setError(null);
       const result = await signIn(email, password);
       
-      if (result.success && result.data) {
+      if (result.success && 'data' in result && result.data) {
         const { user, session } = result.data;
         
         if (user) {
@@ -160,7 +160,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             });
           }
           
-          const profileData = profileResult.success && profileResult.data ? profileResult.data : {};
+          const profileData = profileResult.success && 'data' in profileResult && profileResult.data ? profileResult.data : {};
           
           setUser({
             id: user.id,
@@ -200,7 +200,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setError(null);
       const result = await signUp(email, password);
       
-      if (result.success && result.data) {
+      if (result.success && 'data' in result && result.data) {
         const { user, session } = result.data;
         
         // サインアップ後、ユーザーが存在する場合はプロファイルを作成
@@ -302,7 +302,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setError(null);
       const profileResult = await getUserProfile(user.id);
       
-      if (profileResult.success && profileResult.data) {
+      if (profileResult.success && 'data' in profileResult && profileResult.data) {
         setUser({
           ...user,
           ...profileResult.data,

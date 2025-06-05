@@ -106,11 +106,7 @@ const SwipeContainer: React.FC<SwipeContainerProps> = ({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: () => {
-        position.setOffset({
-          x: position.x._value,
-          y: position.y._value,
-        });
-        position.setValue({ x: 0, y: 0 });
+        position.extractOffset();
       },
       onPanResponderMove: (_, gestureState) => {
         position.setValue({ x: gestureState.dx, y: gestureState.dy });

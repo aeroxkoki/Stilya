@@ -21,6 +21,8 @@ config.resolver = {
   unstable_enableSymlinks: true,
   // CommonJSサポートを追加
   sourceExts: [...config.resolver.sourceExts, 'cjs'],
+  // 開発ビルド用のフィールド解決順序
+  resolverMainFields: ['react-native', 'browser', 'main'],
 };
 
 // Metroのデフォルトキャッシュ設定を使用（カスタムキャッシュストアを削除）

@@ -35,11 +35,11 @@ export const getEnhancedRecommendations = async (
     ]);
 
     // 内部レコメンドの結果を取得
-    const internalRecs = internalRecsResult.success && internalRecsResult.data ? internalRecsResult.data : [];
+    const internalRecs = internalRecsResult.success && 'data' in internalRecsResult && internalRecsResult.data ? internalRecsResult.data : [];
 
     // ユーザーの好みに基づく楽天商品
     let forYouProducts: Product[] = [];
-    if (userPrefs.success && userPrefs.data && userPrefs.data.likedTags && userPrefs.data.likedTags.length > 0) {
+    if (userPrefs.success && 'data' in userPrefs && userPrefs.data && userPrefs.data.likedTags && userPrefs.data.likedTags.length > 0) {
       // タグベースで関連商品を取得
       forYouProducts = await fetchRelatedProducts(
         userPrefs.data.likedTags,
@@ -93,7 +93,7 @@ export const getEnhancedCategoryRecommendations = async (
   try {
     // 内部DBからカテゴリ別のレコメンド（簡易版）
     const internalRecsResult = await getRecommendations(userId, limit * categories.length);
-    const internalRecsArray = internalRecsResult.success && internalRecsResult.data ? internalRecsResult.data : [];
+    const internalRecsArray = internalRecsResult.success && 'data' in internalRecsResult && internalRecsResult.data ? internalRecsResult.data : [];
     
     // カテゴリごとに分割
     const internalRecs: Record<string, Product[]> = {};
