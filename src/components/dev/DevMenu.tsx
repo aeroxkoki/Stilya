@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Modal } from 'react-native';
 import { runLocalTests } from '../../tests/localTests';
 import { NetworkDiagnostics } from './NetworkDiagnostics';
+import { SupabaseConnectionTest } from '../SupabaseConnectionTest';
 
 interface DevMenuProps {
   onClose: () => void;
@@ -15,6 +16,7 @@ export const DevMenu: React.FC<DevMenuProps> = ({ onClose }) => {
   const [testResults, setTestResults] = React.useState<string[]>([]);
   const [isRunning, setIsRunning] = React.useState(false);
   const [showNetworkDiagnostics, setShowNetworkDiagnostics] = React.useState(false);
+  const [showSupabaseTest, setShowSupabaseTest] = React.useState(false);
 
   const handleRunTests = async () => {
     setIsRunning(true);
@@ -71,6 +73,15 @@ export const DevMenu: React.FC<DevMenuProps> = ({ onClose }) => {
             </Text>
           </TouchableOpacity>
 
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => setShowSupabaseTest(true)}
+          >
+            <Text style={styles.buttonText}>
+              🔌 Supabase接続テスト
+            </Text>
+          </TouchableOpacity>
+
           <ScrollView style={styles.results}>
             {testResults.map((result, index) => (
               <Text key={index} style={styles.resultText}>
@@ -94,6 +105,22 @@ export const DevMenu: React.FC<DevMenuProps> = ({ onClose }) => {
             <Text style={styles.modalCloseText}>閉じる</Text>
           </TouchableOpacity>
           <NetworkDiagnostics />
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showSupabaseTest}
+        animationType="slide"
+        onRequestClose={() => setShowSupabaseTest(false)}
+      >
+        <View style={styles.modalContainer}>
+          <TouchableOpacity
+            style={styles.modalCloseButton}
+            onPress={() => setShowSupabaseTest(false)}
+          >
+            <Text style={styles.modalCloseText}>閉じる</Text>
+          </TouchableOpacity>
+          <SupabaseConnectionTest />
         </View>
       </Modal>
     </>
