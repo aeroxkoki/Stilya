@@ -1,7 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
+import { Platform, AppState } from 'react-native';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../utils/env';
+
+// Force URL polyfill loading before Supabase initialization
+if (typeof globalThis.URL === 'undefined') {
+  require('react-native-url-polyfill/auto');
+}
 
 // Supabase configuration from centralized environment variables
 const supabaseUrl = SUPABASE_URL.trim();
@@ -24,6 +29,19 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
+// Custom fetch with timeout and retry logic for production
+const customFetch = (url: RequestInfo | URL, options: RequestInit = {}) => {
+  const timeout = 30000; // 30 seconds
+  const controller = new AbortController();
+  
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  
+  return fetch(url, {
+    ...options,
+    signal: controller.signal,
+  }).finally(() => clearTimeout(timeoutId));
+};
+
 // Create Supabase client with proper configuration for React Native
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
@@ -32,20 +50,46 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     detectSessionInUrl: false,
     flowType: 'pkce',
-    debug: false, // 本番環境ではfalse、必要に応じて__DEV__に変更
-  },
-  realtime: {
-    enabled: false, // MVP段階ではRealtimeを無効化
+    debug: __DEV__, // 開発環境でのみデバッグを有効化
   },
   global: {
+    fetch: customFetch,
     headers: {
       'X-Client-Info': 'stilya-app/1.0.0',
     },
   },
+  // Disable realtime for MVP
+  realtime: {} as any, // realtimeを無効化（MVPでは使用しない）
   db: {
     schema: 'public',
   },
 });
+
+// Proper AppState listener registration
+let appStateSubscription: any;
+
+export const initializeSupabaseListeners = () => {
+  // Remove existing listener if any
+  if (appStateSubscription) {
+    appStateSubscription.remove();
+  }
+  
+  // Register new listener
+  appStateSubscription = AppState.addEventListener('change', (state) => {
+    if (state === 'active') {
+      supabase.auth.startAutoRefresh();
+    } else {
+      supabase.auth.stopAutoRefresh();
+    }
+  });
+};
+
+// Call this in App.tsx useEffect
+export const cleanupSupabaseListeners = () => {
+  if (appStateSubscription) {
+    appStateSubscription.remove();
+  }
+};
 
 // Database table definitions for type safety
 export const TABLES = {
@@ -56,8 +100,22 @@ export const TABLES = {
   CLICK_LOGS: 'click_logs',
 } as const;
 
+// Type-safe error handling
+interface SupabaseError {
+  success: false;
+  error: string;
+}
+
+interface SupabaseSuccess<T> {
+  success: true;
+  data: T;
+  error: null;
+}
+
+type SupabaseResult<T> = SupabaseSuccess<T> | SupabaseError;
+
 // Helper function to handle Supabase errors
-export const handleSupabaseError = (error: Error | { message: string } | any) => {
+export const handleSupabaseError = (error: Error | { message: string } | any): SupabaseError => {
   if (__DEV__) {
     console.error('Supabase error:', error);
   }
@@ -75,7 +133,7 @@ export const handleSupabaseError = (error: Error | { message: string } | any) =>
   }
   
   // ネットワークエラーの場合、より親切なメッセージを表示
-  if (errorMessage.includes('Network request failed')) {
+  if (errorMessage.includes('Network request failed') || errorMessage.includes('fetch failed')) {
     errorMessage = 'ネットワーク接続エラーが発生しました。インターネット接続を確認してください。';
   }
   
@@ -86,7 +144,7 @@ export const handleSupabaseError = (error: Error | { message: string } | any) =>
 };
 
 // Helper function for successful responses
-export const handleSupabaseSuccess = <T>(data: T) => {
+export const handleSupabaseSuccess = <T>(data: T): SupabaseSuccess<T> => {
   return {
     success: true,
     data,
@@ -95,7 +153,7 @@ export const handleSupabaseSuccess = <T>(data: T) => {
 };
 
 // Auth functions with better error handling
-export const signIn = async (email: string, password: string) => {
+export const signIn = async (email: string, password: string): Promise<SupabaseResult<any>> => {
   try {
     const { data, error } = await supabase.auth.signInWithPassword({
       email: email.trim().toLowerCase(),
@@ -109,7 +167,7 @@ export const signIn = async (email: string, password: string) => {
   }
 };
 
-export const signUp = async (email: string, password: string) => {
+export const signUp = async (email: string, password: string): Promise<SupabaseResult<any>> => {
   try {
     const { data, error } = await supabase.auth.signUp({
       email: email.trim().toLowerCase(),
@@ -128,7 +186,7 @@ export const signUp = async (email: string, password: string) => {
   }
 };
 
-export const signOut = async () => {
+export const signOut = async (): Promise<SupabaseResult<null>> => {
   try {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
@@ -138,7 +196,7 @@ export const signOut = async () => {
   }
 };
 
-export const resetPassword = async (email: string) => {
+export const resetPassword = async (email: string): Promise<SupabaseResult<any>> => {
   try {
     const { data, error } = await supabase.auth.resetPasswordForEmail(email);
     if (error) throw error;
@@ -148,7 +206,7 @@ export const resetPassword = async (email: string) => {
   }
 };
 
-export const updatePassword = async (newPassword: string) => {
+export const updatePassword = async (newPassword: string): Promise<SupabaseResult<any>> => {
   try {
     const { data, error } = await supabase.auth.updateUser({
       password: newPassword,
@@ -160,7 +218,7 @@ export const updatePassword = async (newPassword: string) => {
   }
 };
 
-export const refreshSession = async () => {
+export const refreshSession = async (): Promise<SupabaseResult<any>> => {
   try {
     const { data, error } = await supabase.auth.refreshSession();
     if (error) throw error;
@@ -170,7 +228,7 @@ export const refreshSession = async () => {
   }
 };
 
-export const isSessionExpired = (session: any) => {
+export const isSessionExpired = (session: any): boolean => {
   if (!session) return true;
   
   const expiresAt = session.expires_at;
@@ -181,7 +239,7 @@ export const isSessionExpired = (session: any) => {
 };
 
 // User profile functions
-export const createUserProfile = async (userId: string, profile: any) => {
+export const createUserProfile = async (userId: string, profile: any): Promise<SupabaseResult<any>> => {
   try {
     const { data, error } = await supabase
       .from(TABLES.USERS)
@@ -196,7 +254,7 @@ export const createUserProfile = async (userId: string, profile: any) => {
   }
 };
 
-export const getUserProfile = async (userId: string) => {
+export const getUserProfile = async (userId: string): Promise<SupabaseResult<any>> => {
   try {
     const { data, error } = await supabase
       .from(TABLES.USERS)
@@ -211,7 +269,7 @@ export const getUserProfile = async (userId: string) => {
   }
 };
 
-export const updateUserProfile = async (userId: string, updates: any) => {
+export const updateUserProfile = async (userId: string, updates: any): Promise<SupabaseResult<any>> => {
   try {
     const { data, error } = await supabase
       .from(TABLES.USERS)
@@ -228,7 +286,7 @@ export const updateUserProfile = async (userId: string, updates: any) => {
 };
 
 // ネットワーク接続テスト関数（開発用）
-export const testSupabaseConnection = async () => {
+export const testSupabaseConnection = async (): Promise<boolean> => {
   try {
     const { data, error } = await supabase.auth.getSession();
     if (error) throw error;

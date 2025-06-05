@@ -10,6 +10,20 @@ import { demoService } from '../services/demoService';
 import { supabase } from '../services/supabase';
 import * as swipeService from '../services/swipeService';
 
+// エラーメッセージを安全に取得するヘルパー関数
+const getErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === 'string') {
+    return error;
+  }
+  if (error && typeof error === 'object' && 'message' in error) {
+    return String(error.message);
+  }
+  return '不明なエラーが発生しました';
+};
+
 // テスト結果を格納する型
 interface TestResult {
   name: string;
@@ -59,7 +73,7 @@ class LocalTestRunner {
       return {
         name: '環境変数チェック',
         status: 'FAIL',
-        message: error.message,
+        message: getErrorMessage(error),
         duration: Date.now() - start
       };
     }
@@ -96,7 +110,7 @@ class LocalTestRunner {
       return {
         name: 'Supabase接続テスト',
         status: 'FAIL',
-        message: `接続エラー: ${error.message}`,
+        message: `接続エラー: ${getErrorMessage(error)}`,
         duration: Date.now() - start
       };
     }
@@ -127,14 +141,14 @@ class LocalTestRunner {
       const signInResult = await AuthService.signIn(this.testUser.email, this.testUser.password);
       
       if (!signInResult.success) {
-        throw new Error(signInResult.error);
+        throw new Error(signInResult.error || 'Unknown error');
       }
 
       // 現在のユーザー取得テスト
       const userResult = await AuthService.getCurrentUser();
       
       if (!userResult.success) {
-        throw new Error(userResult.error);
+        throw new Error(userResult.error || 'Unknown error');
       }
 
       return {
@@ -147,7 +161,7 @@ class LocalTestRunner {
       return {
         name: '認証機能テスト',
         status: 'FAIL',
-        message: `認証エラー: ${error.message}`,
+        message: `認証エラー: ${getErrorMessage(error)}`,
         duration: Date.now() - start
       };
     }
@@ -179,7 +193,7 @@ class LocalTestRunner {
         const result = await ProductService.fetchProducts(10);
         
         if (!result.success) {
-          throw new Error(result.error);
+          throw new Error(result.error || 'Unknown error');
         }
 
         return {
@@ -193,7 +207,7 @@ class LocalTestRunner {
       return {
         name: '商品データ取得テスト',
         status: 'FAIL',
-        message: `商品取得エラー: ${error.message}`,
+        message: `商品取得エラー: ${getErrorMessage(error)}`,
         duration: Date.now() - start
       };
     }
@@ -243,7 +257,7 @@ class LocalTestRunner {
       return {
         name: 'スワイプ機能テスト',
         status: 'FAIL',
-        message: `スワイプエラー: ${error.message}`,
+        message: `スワイプエラー: ${getErrorMessage(error)}`,
         duration: Date.now() - start
       };
     }
@@ -276,7 +290,7 @@ class LocalTestRunner {
       const recommendations = await RecommendationService.getPersonalizedRecommendations(testUserId, 5);
       
       if (!recommendations.success) {
-        throw new Error(recommendations.error);
+        throw new Error(recommendations.error || 'Unknown error');
       }
 
       return {
@@ -289,7 +303,7 @@ class LocalTestRunner {
       return {
         name: '推薦ロジックテスト',
         status: 'FAIL',
-        message: `推薦エラー: ${error.message}`,
+        message: `推薦エラー: ${getErrorMessage(error)}`,
         duration: Date.now() - start
       };
     }
@@ -325,7 +339,7 @@ class LocalTestRunner {
       return {
         name: 'UIコンポーネント確認',
         status: 'FAIL',
-        message: error.message,
+        message: getErrorMessage(error),
         duration: Date.now() - start
       };
     }
@@ -355,7 +369,7 @@ class LocalTestRunner {
       return {
         name: '外部リンク遷移テスト',
         status: 'FAIL',
-        message: error.message,
+        message: getErrorMessage(error),
         duration: Date.now() - start
       };
     }
@@ -366,8 +380,8 @@ class LocalTestRunner {
     const start = Date.now();
     try {
       // 基本的なパフォーマンスチェック
-      const memoryUsage = performance.memory ? 
-        `${Math.round(performance.memory.usedJSHeapSize / 1048576)}MB` : 
+      const memoryUsage = (performance as any).memory ? 
+        `${Math.round((performance as any).memory.usedJSHeapSize / 1048576)}MB` : 
         'N/A';
 
       return {
@@ -380,7 +394,7 @@ class LocalTestRunner {
       return {
         name: 'パフォーマンステスト',
         status: 'FAIL',
-        message: error.message,
+        message: getErrorMessage(error),
         duration: Date.now() - start
       };
     }

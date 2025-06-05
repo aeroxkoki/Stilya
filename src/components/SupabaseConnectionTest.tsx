@@ -8,8 +8,8 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { supabase, testSupabaseConnection } from '../../services/supabase';
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/env';
+import { supabase, testSupabaseConnection } from '../services/supabase';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../utils/env';
 
 interface TestResult {
   name: string;

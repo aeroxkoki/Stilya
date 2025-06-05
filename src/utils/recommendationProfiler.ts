@@ -1,5 +1,5 @@
 import { Product, UserPreference } from '@/types';
-import { getRecommendations } from '@/services/recommendationService';
+import { RecommendationService } from '@/services/recommendationService';
 
 /**
  * レコメンデーションサービスのパフォーマンス測定ツール
@@ -37,10 +37,14 @@ export class RecommendationProfiler {
 
     try {
       // レコメンデーションAPI実行
-      result = await getRecommendations(
+      const response = await RecommendationService.getPersonalizedRecommendations(
         params.userId, 
         params.limit || 10
       );
+      
+      if (response.success && response.data) {
+        result = response.data;
+      }
     } catch (error) {
       console.error(`Error in profiling ${testName}:`, error);
     }
