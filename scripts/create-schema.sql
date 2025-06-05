@@ -2,6 +2,29 @@
 -- このスクリプトを実行する前に、Supabaseダッシュボードで接続してください
 
 -- ========================================
+-- 0. 既存のポリシーを削除（エラー回避のため）
+-- ========================================
+-- Users table policies
+DROP POLICY IF EXISTS "Users can view own profile" ON public.users;
+DROP POLICY IF EXISTS "Users can update own profile" ON public.users;
+DROP POLICY IF EXISTS "Users can insert own profile" ON public.users;
+
+-- Products table policies
+DROP POLICY IF EXISTS "Products are viewable by everyone" ON public.products;
+
+-- Swipes table policies
+DROP POLICY IF EXISTS "Users can view own swipes" ON public.swipes;
+DROP POLICY IF EXISTS "Users can insert own swipes" ON public.swipes;
+
+-- Favorites table policies
+DROP POLICY IF EXISTS "Users can view own favorites" ON public.favorites;
+DROP POLICY IF EXISTS "Users can insert own favorites" ON public.favorites;
+DROP POLICY IF EXISTS "Users can delete own favorites" ON public.favorites;
+
+-- Click logs table policies
+DROP POLICY IF EXISTS "Users can insert own click logs" ON public.click_logs;
+
+-- ========================================
 -- 1. ユーザープロファイルテーブル
 -- ========================================
 -- auth.usersテーブルを参照する公開プロファイルテーブル
@@ -130,6 +153,11 @@ CREATE POLICY "Users can insert own click logs" ON public.click_logs
 -- ========================================
 -- 9. トリガー関数の作成（updated_atの自動更新）
 -- ========================================
+-- 既存の関数を削除してから再作成
+DROP TRIGGER IF EXISTS update_users_updated_at ON public.users;
+DROP TRIGGER IF EXISTS update_products_updated_at ON public.products;
+DROP FUNCTION IF EXISTS update_updated_at_column();
+
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -148,11 +176,16 @@ CREATE TRIGGER update_products_updated_at BEFORE UPDATE ON public.products
 -- ========================================
 -- 10. 新規ユーザー作成時の自動プロファイル作成
 -- ========================================
+-- 既存のトリガーと関数を削除
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+DROP FUNCTION IF EXISTS public.handle_new_user();
+
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO public.users (id, email)
-  VALUES (new.id, new.email);
+  VALUES (new.id, new.email)
+  ON CONFLICT (id) DO NOTHING;  -- 既存のユーザーがいる場合はスキップ
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -174,3 +207,9 @@ ORDER BY table_name;
 SELECT tablename, rowsecurity 
 FROM pg_tables 
 WHERE schemaname = 'public';
+
+-- ポリシーが正しく作成されたか確認
+SELECT schemaname, tablename, policyname, cmd, roles 
+FROM pg_policies 
+WHERE schemaname = 'public'
+ORDER BY tablename, policyname;
