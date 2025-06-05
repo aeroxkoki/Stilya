@@ -71,13 +71,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               if (user) {
                 // ユーザープロファイルを取得
                 const profileResult = await getUserProfile(user.id);
-                const profileData = profileResult.success && 'data' in profileResult && profileResult.data ? profileResult.data : {};
                 
-                setUser({
-                  id: user.id,
-                  email: user.email || '',
-                  ...profileData
-                });
+                // プロファイルが存在しない場合は作成
+                if (!profileResult.success || !profileResult.data) {
+                  await createUserProfile(user.id, {
+                    email: user.email || '',
+                  });
+                  // 作成後、再度取得
+                  const newProfileResult = await getUserProfile(user.id);
+                  const profileData = newProfileResult.success && 'data' in newProfileResult && newProfileResult.data ? newProfileResult.data : {};
+                  
+                  setUser({
+                    id: user.id,
+                    email: user.email || '',
+                    ...profileData
+                  });
+                } else {
+                  const profileData = profileResult.success && 'data' in profileResult && profileResult.data ? profileResult.data : {};
+                  
+                  setUser({
+                    id: user.id,
+                    email: user.email || '',
+                    ...profileData
+                  });
+                }
                 setSession(refreshedSession);
                 setLoading(false);
               }
@@ -96,13 +113,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           if (user) {
             // ユーザープロファイルを取得
             const profileResult = await getUserProfile(user.id);
-            const profileData = profileResult.success && 'data' in profileResult && profileResult.data ? profileResult.data : {};
             
-            setUser({
-              id: user.id,
-              email: user.email || '',
-              ...profileData
-            });
+            // プロファイルが存在しない場合は作成
+            if (!profileResult.success || !profileResult.data) {
+              await createUserProfile(user.id, {
+                email: user.email || '',
+              });
+              // 作成後、再度取得
+              const newProfileResult = await getUserProfile(user.id);
+              const profileData = newProfileResult.success && 'data' in newProfileResult && newProfileResult.data ? newProfileResult.data : {};
+              
+              setUser({
+                id: user.id,
+                email: user.email || '',
+                ...profileData
+              });
+            } else {
+              const profileData = profileResult.success && 'data' in profileResult && profileResult.data ? profileResult.data : {};
+              
+              setUser({
+                id: user.id,
+                email: user.email || '',
+                ...profileData
+              });
+            }
             setSession(session);
             setLoading(false);
           }

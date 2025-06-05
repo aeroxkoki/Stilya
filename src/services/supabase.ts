@@ -260,7 +260,7 @@ export const getUserProfile = async (userId: string): Promise<SupabaseResult<any
       .from(TABLES.USERS)
       .select('*')
       .eq('id', userId)
-      .single();
+      .maybeSingle(); // .single()から.maybeSingle()に変更
       
     if (error) throw error;
     return handleSupabaseSuccess(data);
