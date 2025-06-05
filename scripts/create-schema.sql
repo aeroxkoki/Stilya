@@ -2,32 +2,10 @@
 -- このスクリプトを実行する前に、Supabaseダッシュボードで接続してください
 
 -- ========================================
--- 0. 既存のポリシーを削除（エラー回避のため）
+-- STEP 1: テーブルの作成
 -- ========================================
--- Users table policies
-DROP POLICY IF EXISTS "Users can view own profile" ON public.users;
-DROP POLICY IF EXISTS "Users can update own profile" ON public.users;
-DROP POLICY IF EXISTS "Users can insert own profile" ON public.users;
 
--- Products table policies
-DROP POLICY IF EXISTS "Products are viewable by everyone" ON public.products;
-
--- Swipes table policies
-DROP POLICY IF EXISTS "Users can view own swipes" ON public.swipes;
-DROP POLICY IF EXISTS "Users can insert own swipes" ON public.swipes;
-
--- Favorites table policies
-DROP POLICY IF EXISTS "Users can view own favorites" ON public.favorites;
-DROP POLICY IF EXISTS "Users can insert own favorites" ON public.favorites;
-DROP POLICY IF EXISTS "Users can delete own favorites" ON public.favorites;
-
--- Click logs table policies
-DROP POLICY IF EXISTS "Users can insert own click logs" ON public.click_logs;
-
--- ========================================
 -- 1. ユーザープロファイルテーブル
--- ========================================
--- auth.usersテーブルを参照する公開プロファイルテーブル
 CREATE TABLE IF NOT EXISTS public.users (
   id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
   email TEXT,
@@ -39,9 +17,7 @@ CREATE TABLE IF NOT EXISTS public.users (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- ========================================
--- 2. 商品テーブル（既存のものを更新）
--- ========================================
+-- 2. 商品テーブル
 CREATE TABLE IF NOT EXISTS public.products (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   title TEXT NOT NULL,
@@ -55,32 +31,26 @@ CREATE TABLE IF NOT EXISTS public.products (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- ========================================
 -- 3. スワイプ履歴テーブル
--- ========================================
 CREATE TABLE IF NOT EXISTS public.swipes (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES public.users(id) ON DELETE CASCADE NOT NULL,
   product_id UUID REFERENCES public.products(id) ON DELETE CASCADE NOT NULL,
   result TEXT NOT NULL CHECK (result IN ('yes', 'no')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-  UNIQUE(user_id, product_id) -- 同じ商品に対して複数回スワイプできないようにする
+  UNIQUE(user_id, product_id)
 );
 
--- ========================================
 -- 4. お気に入りテーブル
--- ========================================
 CREATE TABLE IF NOT EXISTS public.favorites (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES public.users(id) ON DELETE CASCADE NOT NULL,
   product_id UUID REFERENCES public.products(id) ON DELETE CASCADE NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-  UNIQUE(user_id, product_id) -- 同じ商品を複数回お気に入りにできないようにする
+  UNIQUE(user_id, product_id)
 );
 
--- ========================================
 -- 5. クリックログテーブル
--- ========================================
 CREATE TABLE IF NOT EXISTS public.click_logs (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
@@ -90,7 +60,7 @@ CREATE TABLE IF NOT EXISTS public.click_logs (
 );
 
 -- ========================================
--- 6. インデックスの作成（パフォーマンス最適化）
+-- STEP 2: インデックスの作成
 -- ========================================
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
 CREATE INDEX IF NOT EXISTS idx_products_tags ON products USING GIN(tags);
@@ -103,7 +73,39 @@ CREATE INDEX IF NOT EXISTS idx_click_logs_user_id ON click_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_click_logs_product_id ON click_logs(product_id);
 
 -- ========================================
--- 7. Row Level Security (RLS) の有効化
+-- STEP 3: 既存のポリシーを削除（テーブルが存在する場合のみ）
+-- ========================================
+DO $$ 
+BEGIN
+    -- テーブルが存在する場合のみポリシーを削除
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'users') THEN
+        DROP POLICY IF EXISTS "Users can view own profile" ON public.users;
+        DROP POLICY IF EXISTS "Users can update own profile" ON public.users;
+        DROP POLICY IF EXISTS "Users can insert own profile" ON public.users;
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'products') THEN
+        DROP POLICY IF EXISTS "Products are viewable by everyone" ON public.products;
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'swipes') THEN
+        DROP POLICY IF EXISTS "Users can view own swipes" ON public.swipes;
+        DROP POLICY IF EXISTS "Users can insert own swipes" ON public.swipes;
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'favorites') THEN
+        DROP POLICY IF EXISTS "Users can view own favorites" ON public.favorites;
+        DROP POLICY IF EXISTS "Users can insert own favorites" ON public.favorites;
+        DROP POLICY IF EXISTS "Users can delete own favorites" ON public.favorites;
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'click_logs') THEN
+        DROP POLICY IF EXISTS "Users can insert own click logs" ON public.click_logs;
+    END IF;
+END $$;
+
+-- ========================================
+-- STEP 4: Row Level Security (RLS) の有効化
 -- ========================================
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
@@ -112,7 +114,7 @@ ALTER TABLE public.favorites ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.click_logs ENABLE ROW LEVEL SECURITY;
 
 -- ========================================
--- 8. RLS ポリシーの作成
+-- STEP 5: RLS ポリシーの作成
 -- ========================================
 
 -- Users table policies
@@ -151,7 +153,7 @@ CREATE POLICY "Users can insert own click logs" ON public.click_logs
   FOR INSERT WITH CHECK (auth.uid() = user_id OR user_id IS NULL);
 
 -- ========================================
--- 9. トリガー関数の作成（updated_atの自動更新）
+-- STEP 6: トリガー関数の作成
 -- ========================================
 -- 既存の関数を削除してから再作成
 DROP TRIGGER IF EXISTS update_users_updated_at ON public.users;
@@ -174,7 +176,7 @@ CREATE TRIGGER update_products_updated_at BEFORE UPDATE ON public.products
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- ========================================
--- 10. 新規ユーザー作成時の自動プロファイル作成
+-- STEP 7: 新規ユーザー作成時の自動プロファイル作成
 -- ========================================
 -- 既存のトリガーと関数を削除
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
@@ -185,7 +187,7 @@ RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO public.users (id, email)
   VALUES (new.id, new.email)
-  ON CONFLICT (id) DO NOTHING;  -- 既存のユーザーがいる場合はスキップ
+  ON CONFLICT (id) DO NOTHING;
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -199,17 +201,23 @@ CREATE TRIGGER on_auth_user_created
 -- 確認用クエリ
 -- ========================================
 -- テーブルが作成されたか確認
+SELECT 'Tables created:' as info;
 SELECT table_name FROM information_schema.tables 
 WHERE table_schema = 'public' 
 ORDER BY table_name;
 
 -- RLSが有効になっているか確認
+SELECT 'RLS status:' as info;
 SELECT tablename, rowsecurity 
 FROM pg_tables 
 WHERE schemaname = 'public';
 
 -- ポリシーが正しく作成されたか確認
-SELECT schemaname, tablename, policyname, cmd, roles 
+SELECT 'Policies created:' as info;
+SELECT tablename, policyname, cmd 
 FROM pg_policies 
 WHERE schemaname = 'public'
 ORDER BY tablename, policyname;
+
+-- 実行完了メッセージ
+SELECT 'Database schema initialization completed successfully!' as message;
