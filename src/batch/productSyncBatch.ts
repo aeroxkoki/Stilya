@@ -3,7 +3,7 @@
  * 
  * このスクリプトは以下の処理を行います：
  * 1. LinkShareやA8.netなどのアフィリエイトAPIから商品データを取得
- * 2. 取得したデータを加工して、Supabaseのproductsテーブルに保存
+ * 2. 取得したデータを加工して、Supabaseのexternal_productsテーブルに保存
  * 3. 一定期間で古くなったデータを削除
  * 
  * 使用方法：
@@ -127,7 +127,7 @@ function normalizeProduct(product: any, source: string): NormalizedProduct {
 async function saveProductsToSupabase(products: NormalizedProduct[]) {
   try {
     const { data, error } = await supabase
-      .from('products')
+      .from('external_products')
       .upsert(products, { onConflict: 'affiliate_url' });
 
     if (error) {
@@ -153,7 +153,7 @@ async function deleteOldProducts(daysOld: number = 30) {
     const dateString = date.toISOString();
 
     const { data, error } = await supabase
-      .from('products')
+      .from('external_products')
       .delete()
       .lt('created_at', dateString);
 

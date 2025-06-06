@@ -30,7 +30,26 @@ const normalizeCategory = (category: string): string => {
 };
 
 /**
- * Supabaseから商品を取得
+ * DBの商品データをアプリ用の形式に正規化
+ */
+const normalizeProduct = (dbProduct: any): Product => {
+  return {
+    id: dbProduct.id,
+    title: dbProduct.title,
+    brand: dbProduct.brand,
+    price: dbProduct.price,
+    imageUrl: dbProduct.image_url, // DB形式からアプリ形式に変換
+    description: dbProduct.description,
+    tags: dbProduct.tags || [],
+    category: dbProduct.category,
+    affiliateUrl: dbProduct.affiliate_url, // DB形式からアプリ形式に変換
+    source: dbProduct.source,
+    createdAt: dbProduct.created_at, // DB形式からアプリ形式に変換
+  };
+};
+
+/**
+ * Supabaseから商品を取得（external_productsテーブルを使用）
  */
 export const fetchProductsFromSupabase = async (
   options: {

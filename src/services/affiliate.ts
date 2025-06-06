@@ -190,7 +190,7 @@ export const saveProductsToSupabase = async (products: Product[]): Promise<void>
 
     // upsert (insert or update)
     const { error } = await supabase
-      .from('products')
+      .from('external_products')
       .upsert(supabaseProducts, { onConflict: 'id' });
 
     if (error) throw error;

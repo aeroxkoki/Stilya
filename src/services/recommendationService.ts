@@ -196,7 +196,7 @@ export class RecommendationService {
     try {
       // Get products with most "yes" swipes
       const { data, error } = await supabase
-        .from('products')
+        .from('external_products')
         .select(`
           *,
           swipes!inner(result)

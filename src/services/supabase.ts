@@ -94,7 +94,7 @@ export const cleanupSupabaseListeners = () => {
 // Database table definitions for type safety
 export const TABLES = {
   USERS: 'users',
-  PRODUCTS: 'products',
+  PRODUCTS: 'external_products',
   SWIPES: 'swipes',
   FAVORITES: 'favorites',
   CLICK_LOGS: 'click_logs',

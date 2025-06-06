@@ -10,7 +10,7 @@ export const fetchProducts = async (
   filters: Record<string, any> = {}
 ): Promise<Product[]> => {
   try {
-    let query = supabase.from('products').select('*');
+    let query = supabase.from('external_products').select('*');
 
     // フィルター適用
     Object.entries(filters).forEach(([key, value]) => {
@@ -30,7 +30,7 @@ export const fetchProducts = async (
     query = query.range(offset, offset + limit - 1);
 
     // 並び替え（最新順）
-    query = query.order('createdAt', { ascending: false });
+    query = query.order('created_at', { ascending: false });
 
     const { data, error } = await query;
 
@@ -69,7 +69,7 @@ export const fetchProducts = async (
 export const fetchProductById = async (id: string): Promise<Product | null> => {
   try {
     const { data, error } = await supabase
-      .from('products')
+      .from('external_products')
       .select('*')
       .eq('id', id)
       .single();
@@ -134,7 +134,7 @@ export const fetchRecommendedProducts = async (
 
     // 3. それらの商品のタグを取得
     const { data: products, error: productError } = await supabase
-      .from('products')
+      .from('external_products')
       .select('tags')
       .in('id', productIds);
 
@@ -158,7 +158,7 @@ export const fetchRecommendedProducts = async (
 
     // 6. 人気タグを含む、まだスワイプしていない商品を取得
     const { data: recommendations, error: recError } = await supabase
-      .from('products')
+      .from('external_products')
       .select('*')
       .not('id', 'in', productIds)
       .overlaps('tags', popularTags)
@@ -199,7 +199,7 @@ export const searchProducts = async (
 ): Promise<Product[]> => {
   try {
     const { data, error } = await supabase
-      .from('products')
+      .from('external_products')
       .select('*')
       .or(`title.ilike.%${query}%, brand.ilike.%${query}%, category.ilike.%${query}%`)
       .limit(limit);

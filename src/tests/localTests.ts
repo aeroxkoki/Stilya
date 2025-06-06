@@ -94,7 +94,7 @@ class LocalTestRunner {
     }
     
     try {
-      const { data, error } = await supabase.from('products').select('count').limit(1);
+      const { data, error } = await supabase.from('external_products').select('count').limit(1);
       
       if (error) {
         throw error;
