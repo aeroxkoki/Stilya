@@ -1,0 +1,44 @@
+name: Sync Rakuten Products
+
+on:
+  schedule:
+    # 毎日午前3時（JST）に実行
+    - cron: '0 18 * * *'  # UTC 18:00 = JST 3:00
+  workflow_dispatch: # 手動実行も可能
+
+jobs:
+  sync-products:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run product sync
+      env:
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        RAKUTEN_APP_ID: ${{ secrets.RAKUTEN_APP_ID }}
+        RAKUTEN_AFFILIATE_ID: ${{ secrets.RAKUTEN_AFFILIATE_ID }}
+      run: npm run sync-products
+    
+    - name: Notify on failure
+      if: failure()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          github.rest.issues.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: 'Product Sync Failed',
+            body: `The product sync workflow failed at ${new Date().toISOString()}. Please check the logs.`
+          })
