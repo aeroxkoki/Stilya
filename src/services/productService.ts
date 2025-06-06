@@ -66,6 +66,8 @@ export const fetchProductsFromSupabase = async (
   pageCount: number;
 }> => {
   try {
+    console.log('[ProductService] Fetching products with options:', options);
+    
     const { 
       category, 
       tags = [], 
@@ -115,12 +117,15 @@ export const fetchProductsFromSupabase = async (
     // ページネーション
     query = query.range(offset, offset + limit - 1);
     
+    console.log('[ProductService] Executing Supabase query...');
     const { data, error, count } = await query;
     
     if (error) {
-      console.error('Supabase fetch error:', error);
+      console.error('[ProductService] Supabase error:', error);
       throw error;
     }
+    
+    console.log(`[ProductService] Retrieved ${data?.length || 0} products, total count: ${count}`);
     
     // データ形式の変換
     const products: Product[] = (data || []).map(item => ({
@@ -146,11 +151,11 @@ export const fetchProductsFromSupabase = async (
       pageCount,
     };
   } catch (error) {
-    console.error('Error fetching products from Supabase:', error);
+    console.error('[ProductService] Error in fetchProductsFromSupabase:', error);
     
     // フォールバック：開発環境ではモックデータを返す
     if (IS_DEV) {
-      console.log('Using mock data as fallback');
+      console.log('[ProductService] Using mock data as fallback');
       const mockProducts = generateMockProducts(options.keyword || 'general', options.limit || 30);
       return {
         products: mockProducts,
