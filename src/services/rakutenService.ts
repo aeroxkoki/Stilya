@@ -2,10 +2,7 @@ import axios from 'axios';
 import { Product } from '@/types';
 import { Image } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-// 楽天APIキー（.envファイルから読み込む想定）
-const RAKUTEN_APP_ID = process.env.RAKUTEN_APP_ID || 'YOUR_RAKUTEN_APP_ID';
-const RAKUTEN_AFFILIATE_ID = process.env.RAKUTEN_AFFILIATE_ID || 'YOUR_RAKUTEN_AFFILIATE_ID';
+import { RAKUTEN_APP_ID, RAKUTEN_AFFILIATE_ID } from '@/utils/env';
 
 // キャッシュキー
 const RAKUTEN_CACHE_KEY_PREFIX = 'rakuten_products_cache_';
@@ -72,6 +69,14 @@ export const fetchRakutenFashionProducts = async (
       }
     }
     
+    // APIキーの確認（デバッグ用）
+    if (!RAKUTEN_APP_ID || !RAKUTEN_AFFILIATE_ID) {
+      console.error('楽天APIキーが設定されていません');
+      console.log('RAKUTEN_APP_ID:', RAKUTEN_APP_ID);
+      console.log('RAKUTEN_AFFILIATE_ID:', RAKUTEN_AFFILIATE_ID);
+      throw new Error('楽天APIキーが設定されていません');
+    }
+    
     // リクエストパラメータ
     const params: any = {
       applicationId: RAKUTEN_APP_ID,
@@ -134,8 +139,20 @@ export const fetchRakutenFashionProducts = async (
     await saveToCache(cacheKey, result);
     
     return result;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching Rakuten products:', error);
+    
+    // Axiosエラーの詳細情報を出力
+    if (error.response) {
+      console.error('Response status:', error.response.status);
+      console.error('Response data:', error.response.data);
+      console.error('Response headers:', error.response.headers);
+    } else if (error.request) {
+      console.error('Request data:', error.request);
+    } else {
+      console.error('Error message:', error.message);
+    }
+    
     throw error;
   }
 };
@@ -180,7 +197,7 @@ export const fetchRelatedProducts = async (
     
     const { products } = await fetchRakutenFashionProducts(
       tagKeyword,
-      undefined,
+      100371, // genreIdがundefinedの場合のデフォルト値
       1,
       limit * 2 // 多めに取得して除外IDをフィルタリング
     );

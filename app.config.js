@@ -82,8 +82,8 @@ export default {
       supabaseAnonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkeXBncGxqcHJsanFyYmxwdWxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcxMDMwOTcsImV4cCI6MjA2MjY3OTA5N30.u4310NL9FYdxcMSrGxEzEXP0M5y5pDuG3_mz7IRAhMU",
       linkshareApiToken: "your_linkshare_token_here",
       linkshareMerchantId: "your_merchant_id_here",
-      rakutenAppId: "your_rakuten_app_id_here",
-      rakutenAffiliateId: "your_rakuten_affiliate_id_here",
+      rakutenAppId: "1070253780037975195",
+      rakutenAffiliateId: "3ad7bc23.8866b306.3ad7bc24.393c3977",
       enableDevFeatures: true
     }
   }

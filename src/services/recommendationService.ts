@@ -108,11 +108,11 @@ export class RecommendationService {
   // Get personalized recommendations based on user preferences
   static async getPersonalizedRecommendations(userId: string, limit: number = 20) {
     try {
-      const preferencesResult = await this.analyzeUserPreferences(userId);
+      const preferencesResult = await RecommendationService.analyzeUserPreferences(userId);
       
       if (!preferencesResult.success || !preferencesResult.data) {
         // Fallback to popular products if no preferences found
-        return await this.getPopularProducts(limit);
+        return await RecommendationService.getPopularProducts(limit);
       }
 
       const preferences = preferencesResult.data;
