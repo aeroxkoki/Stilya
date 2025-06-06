@@ -12,18 +12,13 @@
  * - 本番環境：GitHub Actionsで定期実行
  */
 
-import { createClient } from '@supabase/supabase-js';
-import axios from 'axios';
-import * as dotenv from 'dotenv';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-
-// ESModuleでの__dirnameの取得
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const { createClient } = require('@supabase/supabase-js');
+const axios = require('axios');
+const dotenv = require('dotenv');
+const path = require('path');
 
 // 環境変数の読み込み
-dotenv.config({ path: join(__dirname, '..', '.env') });
+dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 // Supabaseクライアントの作成
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -51,7 +46,7 @@ const MAX_RETRIES = 3;
 const RETRY_DELAY = 10000; // 10秒
 
 // 遅延処理
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 // カテゴリ設定
 const CATEGORIES = [
@@ -64,43 +59,15 @@ const CATEGORIES = [
   { genreId: 216131, name: 'アクセサリー' },
 ];
 
-interface RakutenProduct {
-  itemCode: string;
-  itemName: string;
-  itemPrice: number;
-  shopName: string;
-  mediumImageUrls: Array<{ imageUrl: string }>;
-  itemCaption: string;
-  genreId: string;
-  affiliateUrl: string;
-  tagIds?: number[];
-}
-
-interface ExternalProduct {
-  id: string;
-  title: string;
-  price: number;
-  brand: string;
-  image_url: string;
-  description: string;
-  tags: string[];
-  category: string;
-  genre_id: number;
-  affiliate_url: string;
-  source: string;
-  is_active: boolean;
-  last_synced: string;
-}
-
 /**
  * 楽天APIから商品を取得
  */
 async function fetchRakutenProducts(
-  genreId: number,
-  page: number = 1,
-  hits: number = 30,
-  retryCount: number = 0
-): Promise<RakutenProduct[]> {
+  genreId,
+  page = 1,
+  hits = 30,
+  retryCount = 0
+) {
   try {
     const params = {
       applicationId: RAKUTEN_APP_ID,
@@ -125,8 +92,8 @@ async function fetchRakutenProducts(
       return [];
     }
 
-    return Items.map((item: any) => item.Item);
-  } catch (error: any) {
+    return Items.map((item) => item.Item);
+  } catch (error) {
     if (error.response?.status === 429 && retryCount < MAX_RETRIES) {
       console.log(`レート制限に達しました。${RETRY_DELAY / 1000}秒後にリトライします... (${retryCount + 1}/${MAX_RETRIES})`);
       await sleep(RETRY_DELAY);
@@ -141,8 +108,8 @@ async function fetchRakutenProducts(
 /**
  * タグを抽出
  */
-function extractTags(product: RakutenProduct): string[] {
-  const tags: string[] = [];
+function extractTags(product) {
+  const tags = [];
   
   // ジャンルベースのタグ
   const genreId = parseInt(product.genreId);
@@ -155,7 +122,7 @@ function extractTags(product: RakutenProduct): string[] {
   
   // 商品名からタグを抽出
   const itemName = product.itemName;
-  const tagKeywords: { [key: string]: string } = {
+  const tagKeywords = {
     'シャツ': 'シャツ',
     'ブラウス': 'ブラウス',
     'Tシャツ': 'Tシャツ',
@@ -210,7 +177,7 @@ function extractTags(product: RakutenProduct): string[] {
 /**
  * 楽天商品をアプリの形式に変換
  */
-function normalizeProduct(product: RakutenProduct, category: string): ExternalProduct {
+function normalizeProduct(product, category) {
   return {
     id: product.itemCode,
     title: product.itemName,
@@ -231,7 +198,7 @@ function normalizeProduct(product: RakutenProduct, category: string): ExternalPr
 /**
  * Supabaseに商品を保存
  */
-async function saveProductsToSupabase(products: ExternalProduct[]): Promise<number> {
+async function saveProductsToSupabase(products) {
   try {
     if (products.length === 0) return 0;
 
@@ -268,7 +235,7 @@ async function saveProductsToSupabase(products: ExternalProduct[]): Promise<numb
 /**
  * 古い商品を非アクティブ化
  */
-async function deactivateOldProducts(daysOld: number = 7): Promise<number> {
+async function deactivateOldProducts(daysOld = 7) {
   try {
     const date = new Date();
     date.setDate(date.getDate() - daysOld);
@@ -307,7 +274,7 @@ async function main() {
     for (const category of CATEGORIES) {
       console.log(`\n【${category.name}】の取得開始`);
       
-      const allProducts: ExternalProduct[] = [];
+      const allProducts = [];
       const maxPages = 3; // 各カテゴリ最大3ページ（90商品）まで
       
       for (let page = 1; page <= maxPages; page++) {
@@ -365,7 +332,7 @@ async function main() {
 }
 
 // スクリプト実行
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (require.main === module) {
   main().then(() => {
     console.log('\n処理が完了しました');
     process.exit(0);
@@ -375,4 +342,4 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   });
 }
 
-export { main as syncRakutenProducts };
+module.exports = { syncRakutenProducts: main };

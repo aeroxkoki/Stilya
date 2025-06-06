@@ -10,7 +10,7 @@
    - 楽天APIから取得した商品データを保存
    - アプリはこのテーブルから商品を取得（楽天APIを直接呼ばない）
 
-2. **バッチ処理（scripts/sync-products.ts）**
+2. **バッチ処理（scripts/sync-products.js）**
    - 定期的に楽天APIから商品を取得
    - Supabaseのexternal_productsテーブルに保存
    - レート制限を考慮した安全な実装
@@ -26,15 +26,18 @@
 `.env`ファイルに以下の環境変数を設定：
 
 ```bash
-# Supabase
-SUPABASE_URL=your_supabase_url
-SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_KEY=your_supabase_service_key  # バッチ処理用
+# Supabase（既存の設定に追加）
+SUPABASE_URL=your_supabase_url  # EXPO_PUBLIC_SUPABASE_URLと同じ値
+SUPABASE_SERVICE_KEY=your_supabase_service_key  # Supabaseダッシュボードから取得
 
-# 楽天API
-RAKUTEN_APP_ID=your_rakuten_app_id
-RAKUTEN_AFFILIATE_ID=your_rakuten_affiliate_id
+# 楽天API（実際の値に置き換える）
+RAKUTEN_APP_ID=your_actual_rakuten_app_id
+RAKUTEN_AFFILIATE_ID=your_actual_rakuten_affiliate_id
 ```
+
+**重要**: 
+- `SUPABASE_SERVICE_KEY`はSupabaseダッシュボードの「Settings > API > Service Role」から取得
+- 楽天APIのキーは[楽天ウェブサービス](https://webservice.rakuten.co.jp/)で取得
 
 ### 2. データベースのセットアップ
 
@@ -118,7 +121,7 @@ npm start
 
 ### バッチ処理の調整
 
-`scripts/sync-products.ts`で以下を調整可能：
+`scripts/sync-products.js`で以下を調整可能：
 
 - `CATEGORIES`: 取得するカテゴリ
 - `maxPages`: 各カテゴリの最大ページ数
