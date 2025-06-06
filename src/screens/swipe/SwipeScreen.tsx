@@ -104,7 +104,7 @@ const SwipeScreen: React.FC = () => {
       return (
         <EmptyState
           message="表示できるアイテムがありません"
-          icon="shopping-bag"
+          icon="bag"
           buttonText="もっと見る"
           onButtonPress={handleReload}
         />

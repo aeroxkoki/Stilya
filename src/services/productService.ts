@@ -1,6 +1,37 @@
 import { supabase, handleSupabaseError, handleSupabaseSuccess, TABLES } from './supabase';
 import { DEMO_MODE, demoService } from './demoService';
 
+// リトライ設定
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // 1秒
+
+// 指数バックオフでリトライする関数
+const retryWithBackoff = async <T>(
+  fn: () => Promise<T>,
+  retries = MAX_RETRIES,
+  delay = RETRY_DELAY
+): Promise<T> => {
+  try {
+    return await fn();
+  } catch (error: any) {
+    if (retries > 0) {
+      // 認証エラーの場合はセッションをリフレッシュ
+      if (error?.message?.includes('Invalid login credentials') || 
+          error?.message?.includes('JWT')) {
+        const { data: { session } } = await supabase.auth.refreshSession();
+        if (!session) {
+          throw error; // リフレッシュに失敗したらエラーを投げる
+        }
+      }
+      
+      // 指数バックオフで待機
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return retryWithBackoff(fn, retries - 1, delay * 2);
+    }
+    throw error;
+  }
+};
+
 export class ProductService {
   // Fetch products for swiping
   static async fetchProducts(limit: number = 20, offset: number = 0) {
@@ -10,16 +41,25 @@ export class ProductService {
     }
 
     try {
-      const { data, error } = await supabase
-        .from(TABLES.PRODUCTS)
-        .select('*')
-        .range(offset, offset + limit - 1)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        return handleSupabaseError(error);
+      // セッションを確認
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        return handleSupabaseError({ message: 'Not authenticated' });
       }
 
+      // リトライ機構付きでデータ取得
+      const fetchWithRetry = async () => {
+        const { data, error } = await supabase
+          .from(TABLES.PRODUCTS)
+          .select('*')
+          .range(offset, offset + limit - 1)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data;
+      };
+
+      const data = await retryWithBackoff(fetchWithRetry);
       return handleSupabaseSuccess(data || []);
     } catch (error) {
       return handleSupabaseError(error as Error | { message: string });

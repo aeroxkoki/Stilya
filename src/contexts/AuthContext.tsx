@@ -31,6 +31,7 @@ interface AuthContextType extends AuthState {
   fetchUserProfile: () => Promise<void>;
   updateProfile: (updates: Partial<User>) => Promise<void>;
   clearError: () => void;
+  isInitialized: boolean;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -44,6 +45,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const clearError = () => setError(null);
 
@@ -97,12 +99,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 }
                 setSession(refreshedSession);
                 setLoading(false);
+                setIsInitialized(true);
               }
             } else {
               // 更新に失敗した場合はログアウト状態
               setUser(null);
               setSession(null);
               setLoading(false);
+              setIsInitialized(true);
               return;
             }
           }
@@ -139,6 +143,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             }
             setSession(session);
             setLoading(false);
+            setIsInitialized(true);
           }
         }
       } else {
@@ -146,11 +151,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUser(null);
         setSession(null);
         setLoading(false);
+        setIsInitialized(true);
       }
     } catch (error) {
       console.error('Error initializing auth:', error);
       setError('セッションの初期化に失敗しました');
       setLoading(false);
+      setIsInitialized(true);
     }
   };
 
@@ -415,6 +422,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     fetchUserProfile,
     createProfile,
     updateProfile,
+    isInitialized,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

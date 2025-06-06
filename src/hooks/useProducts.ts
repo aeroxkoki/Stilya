@@ -32,7 +32,7 @@ interface UseProductsReturn {
  * パフォーマンス最適化済み
  */
 export const useProducts = (): UseProductsReturn => {
-  const { user } = useAuth();
+  const { user, isInitialized } = useAuth();
   const [productsData, setProductsData] = useState<ProductsState>({
     products: [],
     hasMore: true,
@@ -152,10 +152,12 @@ export const useProducts = (): UseProductsReturn => {
     }
   }, [user, page, pageSize, productsData.hasMore, prefetchImages]);
 
-  // 初回マウント時に商品データを取得
+  // 初回マウント時に商品データを取得（認証初期化完了後）
   useEffect(() => {
-    loadProducts(true);
-  }, [loadProducts]);
+    if (isInitialized) {
+      loadProducts(true);
+    }
+  }, [isInitialized]);
 
   // 追加データ読み込み
   const loadMore = useCallback(async (reset = false) => {
