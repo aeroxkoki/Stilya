@@ -1,34 +1,41 @@
 import { supabase, handleSupabaseError, handleSupabaseSuccess, TABLES } from './supabase';
 import { Product, UserPreference } from '../types';
 
-interface SwipeWithProduct {
-  products: {
-    tags?: string[];
-    category?: string;
-    price?: number;
-    brand?: string;
-  };
-}
-
 export class RecommendationService {
   // Analyze user preferences based on swipe history
   static async analyzeUserPreferences(userId: string) {
     try {
-      const { data, error } = await supabase
+      // スワイプ履歴を取得
+      const { data: swipes, error: swipeError } = await supabase
         .from(TABLES.SWIPES)
-        .select(`
-          *,
-          products:product_id (tags, category, price, brand)
-        `)
+        .select('product_id')
         .eq('user_id', userId)
         .eq('result', 'yes');
 
-      if (error) {
-        console.error('Error fetching user swipes:', error);
-        return handleSupabaseError(error);
+      if (swipeError) {
+        console.error('Error fetching user swipes:', swipeError);
+        return handleSupabaseError(swipeError);
       }
 
-      if (!data || data.length === 0) {
+      if (!swipes || swipes.length === 0) {
+        return handleSupabaseSuccess(null);
+      }
+
+      // 商品IDのリストを取得
+      const productIds = swipes.map(s => s.product_id);
+
+      // 商品情報を個別に取得
+      const { data: products, error: productError } = await supabase
+        .from(TABLES.EXTERNAL_PRODUCTS)
+        .select('tags, category, price, brand')
+        .in('id', productIds);
+
+      if (productError) {
+        console.error('Error fetching products:', productError);
+        return handleSupabaseError(productError);
+      }
+
+      if (!products || products.length === 0) {
         return handleSupabaseSuccess(null);
       }
 
@@ -38,30 +45,27 @@ export class RecommendationService {
       const brandFrequency: Record<string, number> = {};
       const prices: number[] = [];
 
-      data.forEach((swipe: SwipeWithProduct) => {
-        const product = swipe.products;
-        if (product) {
-          // Count tags
-          if (product.tags && Array.isArray(product.tags)) {
-            product.tags.forEach((tag: string) => {
-              tagFrequency[tag] = (tagFrequency[tag] || 0) + 1;
-            });
-          }
+      products.forEach((product) => {
+        // Count tags
+        if (product.tags && Array.isArray(product.tags)) {
+          product.tags.forEach((tag: string) => {
+            tagFrequency[tag] = (tagFrequency[tag] || 0) + 1;
+          });
+        }
 
-          // Count categories
-          if (product.category) {
-            categoryFrequency[product.category] = (categoryFrequency[product.category] || 0) + 1;
-          }
+        // Count categories
+        if (product.category) {
+          categoryFrequency[product.category] = (categoryFrequency[product.category] || 0) + 1;
+        }
 
-          // Count brands
-          if (product.brand) {
-            brandFrequency[product.brand] = (brandFrequency[product.brand] || 0) + 1;
-          }
+        // Count brands
+        if (product.brand) {
+          brandFrequency[product.brand] = (brandFrequency[product.brand] || 0) + 1;
+        }
 
-          // Collect prices
-          if (product.price) {
-            prices.push(product.price);
-          }
+        // Collect prices
+        if (product.price) {
+          prices.push(product.price);
         }
       });
 
@@ -127,7 +131,7 @@ export class RecommendationService {
 
       // Query products matching user preferences
       let query = supabase
-        .from(TABLES.PRODUCTS)
+        .from(TABLES.EXTERNAL_PRODUCTS)
         .select('*')
         .limit(limit)
         .order('created_at', { ascending: false });
@@ -194,21 +198,69 @@ export class RecommendationService {
   // Get popular products as fallback
   static async getPopularProducts(limit: number = 20) {
     try {
-      // Get products with most "yes" swipes
-      const { data, error } = await supabase
-        .from('external_products')
-        .select(`
-          *,
-          swipes!inner(result)
-        `)
-        .eq('swipes.result', 'yes')
-        .limit(limit);
+      // まずスワイプデータからYesが多い商品IDを取得
+      const { data: popularSwipes, error: swipeError } = await supabase
+        .from(TABLES.SWIPES)
+        .select('product_id')
+        .eq('result', 'yes')
+        .order('created_at', { ascending: false })
+        .limit(limit * 3); // 重複を考慮して多めに取得
 
-      if (error) {
-        return handleSupabaseError(error);
+      if (swipeError) {
+        console.error('Error fetching popular swipes:', swipeError);
+        // スワイプデータが取得できない場合は、最新の商品を返す
+        const { data: latestProducts, error: productError } = await supabase
+          .from(TABLES.EXTERNAL_PRODUCTS)
+          .select('*')
+          .eq('is_active', true)
+          .order('created_at', { ascending: false })
+          .limit(limit);
+
+        if (productError) {
+          return handleSupabaseError(productError);
+        }
+        return handleSupabaseSuccess(latestProducts || []);
       }
 
-      return handleSupabaseSuccess(data || []);
+      if (!popularSwipes || popularSwipes.length === 0) {
+        // スワイプがない場合は最新商品を返す
+        const { data: latestProducts, error: productError } = await supabase
+          .from(TABLES.EXTERNAL_PRODUCTS)
+          .select('*')
+          .eq('is_active', true)
+          .order('created_at', { ascending: false })
+          .limit(limit);
+
+        if (productError) {
+          return handleSupabaseError(productError);
+        }
+        return handleSupabaseSuccess(latestProducts || []);
+      }
+
+      // 人気商品のIDをカウント
+      const productIdCounts: Record<string, number> = {};
+      popularSwipes.forEach(swipe => {
+        productIdCounts[swipe.product_id] = (productIdCounts[swipe.product_id] || 0) + 1;
+      });
+
+      // 上位の商品IDを取得
+      const topProductIds = Object.entries(productIdCounts)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, limit)
+        .map(([id]) => id);
+
+      // 商品情報を取得
+      const { data: products, error: productError } = await supabase
+        .from(TABLES.EXTERNAL_PRODUCTS)
+        .select('*')
+        .in('id', topProductIds)
+        .eq('is_active', true);
+
+      if (productError) {
+        return handleSupabaseError(productError);
+      }
+
+      return handleSupabaseSuccess(products || []);
     } catch (error) {
       return handleSupabaseError(error);
     }
@@ -220,21 +272,69 @@ export class RecommendationService {
       const oneWeekAgo = new Date();
       oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
-      const { data, error } = await supabase
-        .from(TABLES.PRODUCTS)
-        .select(`
-          *,
-          swipes!inner(created_at, result)
-        `)
-        .eq('swipes.result', 'yes')
-        .gte('swipes.created_at', oneWeekAgo.toISOString())
-        .limit(limit);
+      // 最近のスワイプデータを取得
+      const { data: recentSwipes, error: swipeError } = await supabase
+        .from(TABLES.SWIPES)
+        .select('product_id')
+        .eq('result', 'yes')
+        .gte('created_at', oneWeekAgo.toISOString())
+        .order('created_at', { ascending: false });
 
-      if (error) {
-        return handleSupabaseError(error);
+      if (swipeError) {
+        console.error('Error fetching recent swipes:', swipeError);
+        // エラー時は最新商品を返す
+        const { data: latestProducts, error: productError } = await supabase
+          .from(TABLES.EXTERNAL_PRODUCTS)
+          .select('*')
+          .eq('is_active', true)
+          .order('created_at', { ascending: false })
+          .limit(limit);
+
+        if (productError) {
+          return handleSupabaseError(productError);
+        }
+        return handleSupabaseSuccess(latestProducts || []);
       }
 
-      return handleSupabaseSuccess(data || []);
+      if (!recentSwipes || recentSwipes.length === 0) {
+        // 最近のスワイプがない場合は最新商品を返す
+        const { data: latestProducts, error: productError } = await supabase
+          .from(TABLES.EXTERNAL_PRODUCTS)
+          .select('*')
+          .eq('is_active', true)
+          .order('created_at', { ascending: false })
+          .limit(limit);
+
+        if (productError) {
+          return handleSupabaseError(productError);
+        }
+        return handleSupabaseSuccess(latestProducts || []);
+      }
+
+      // トレンド商品のIDをカウント
+      const trendingIdCounts: Record<string, number> = {};
+      recentSwipes.forEach(swipe => {
+        trendingIdCounts[swipe.product_id] = (trendingIdCounts[swipe.product_id] || 0) + 1;
+      });
+
+      // 上位のトレンド商品IDを取得
+      const trendingProductIds = Object.entries(trendingIdCounts)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, limit)
+        .map(([id]) => id);
+
+      // 商品情報を取得
+      const { data: products, error: productError } = await supabase
+        .from(TABLES.EXTERNAL_PRODUCTS)
+        .select('*')
+        .in('id', trendingProductIds)
+        .eq('is_active', true);
+
+      if (productError) {
+        return handleSupabaseError(productError);
+      }
+
+      return handleSupabaseSuccess(products || []);
     } catch (error) {
       return handleSupabaseError(error);
     }
@@ -244,9 +344,10 @@ export class RecommendationService {
   static async getProductsByStyle(style: string, limit: number = 20) {
     try {
       const { data, error } = await supabase
-        .from(TABLES.PRODUCTS)
+        .from(TABLES.EXTERNAL_PRODUCTS)
         .select('*')
         .contains('tags', [style])
+        .eq('is_active', true)
         .limit(limit)
         .order('created_at', { ascending: false });
 

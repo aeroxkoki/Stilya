@@ -3,7 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import ReportScreen from '../screens/report/ReportScreen';
 
 export type ReportStackParamList = {
-  Report: undefined;
+  ReportMain: undefined;
   // 必要に応じて詳細画面などを追加
 };
 
@@ -16,7 +16,7 @@ const ReportNavigator: React.FC = () => {
         headerShown: false,
       }}
     >
-      <Stack.Screen name="Report" component={ReportScreen} />
+      <Stack.Screen name="ReportMain" component={ReportScreen} />
       {/* 必要に応じて詳細画面などを追加 */}
     </Stack.Navigator>
   );

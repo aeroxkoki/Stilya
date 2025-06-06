@@ -94,7 +94,8 @@ export const cleanupSupabaseListeners = () => {
 // Database table definitions for type safety
 export const TABLES = {
   USERS: 'users',
-  PRODUCTS: 'external_products',
+  PRODUCTS: 'external_products', // 統一: external_productsを使用
+  EXTERNAL_PRODUCTS: 'external_products', // 互換性のため両方定義
   SWIPES: 'swipes',
   FAVORITES: 'favorites',
   CLICK_LOGS: 'click_logs',
