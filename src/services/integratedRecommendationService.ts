@@ -111,30 +111,30 @@ export const getEnhancedCategoryRecommendations = async (
       'accessories': 215783, // アクセサリー（例）
     };
 
-    // 各カテゴリで並列処理
-    const externalRecsPromises = categories.map(async (category) => {
+    // 各カテゴリで順次処理（レート制限対策）
+    const externalRecs: Record<string, Product[]> = {};
+    
+    for (const category of categories) {
       const genreId = categoryMappings[category] || 100371; // デフォルト
       try {
+        console.log(`Fetching ${category} products...`);
         const { products } = await fetchRakutenFashionProducts(
           category, // カテゴリ名をキーワードとして使用
           genreId,
           1,
           limit
         );
-        return { category, products };
+        externalRecs[category] = products;
+        
+        // 次のAPI呼び出しまで少し待機（レート制限対策）
+        if (categories.indexOf(category) < categories.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
       } catch (error) {
         console.error(`Error fetching external products for category ${category}:`, error);
-        return { category, products: [] };
+        externalRecs[category] = [];
       }
-    });
-
-    const externalRecsResults = await Promise.all(externalRecsPromises);
-    
-    // 結果をオブジェクトに変換
-    const externalRecs: Record<string, Product[]> = {};
-    externalRecsResults.forEach(({ category, products }) => {
-      externalRecs[category] = products;
-    });
+    }
 
     return {
       internalRecs,

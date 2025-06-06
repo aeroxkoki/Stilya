@@ -2,11 +2,20 @@ import axios from 'axios';
 import { Product } from '@/types';
 import { Image } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { RAKUTEN_APP_ID, RAKUTEN_AFFILIATE_ID } from '@/utils/env';
+import { RAKUTEN_APP_ID, RAKUTEN_AFFILIATE_ID, IS_DEV } from '@/utils/env';
+import { generateMockProducts } from './mockDataService';
 
 // キャッシュキー
 const RAKUTEN_CACHE_KEY_PREFIX = 'rakuten_products_cache_';
 const CACHE_EXPIRY = 60 * 60 * 1000; // 1時間
+
+// レート制限対策
+const RATE_LIMIT_DELAY = 1000; // 1秒の遅延
+const MAX_RETRIES = 3; // 最大リトライ回数
+const RETRY_DELAY = 5000; // リトライ時の待機時間（5秒）
+
+// APIコールの間隔を管理
+let lastApiCallTime = 0;
 
 // キャッシュからデータを取得
 const getFromCache = async (cacheKey: string) => {
@@ -42,6 +51,35 @@ const saveToCache = async (cacheKey: string, data: any) => {
   }
 };
 
+// 遅延処理のヘルパー関数
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// レート制限を考慮したAPIコール
+const rateLimitedApiCall = async (url: string, params: any, retryCount = 0): Promise<any> => {
+  // API呼び出し間隔の制御
+  const now = Date.now();
+  const timeSinceLastCall = now - lastApiCallTime;
+  
+  if (timeSinceLastCall < RATE_LIMIT_DELAY) {
+    await sleep(RATE_LIMIT_DELAY - timeSinceLastCall);
+  }
+  
+  lastApiCallTime = Date.now();
+  
+  try {
+    const response = await axios.get(url, { params });
+    return response;
+  } catch (error: any) {
+    // 429エラー（レート制限）の場合、リトライ
+    if (error.response?.status === 429 && retryCount < MAX_RETRIES) {
+      console.log(`楽天APIレート制限に達しました。${RETRY_DELAY / 1000}秒後にリトライします... (${retryCount + 1}/${MAX_RETRIES})`);
+      await sleep(RETRY_DELAY);
+      return rateLimitedApiCall(url, params, retryCount + 1);
+    }
+    throw error;
+  }
+};
+
 /**
  * 楽天商品検索APIからファッション商品を取得
  */
@@ -56,10 +94,10 @@ export const fetchRakutenFashionProducts = async (
   totalProducts: number;
   pageCount: number;
 }> => {
+  // キャッシュキーの生成
+  const cacheKey = `fashion_${genreId}_${keyword || 'all'}_${page}_${hits}`;
+  
   try {
-    // キャッシュキーの生成
-    const cacheKey = `fashion_${genreId}_${keyword || 'all'}_${page}_${hits}`;
-    
     // 強制更新でなければキャッシュをチェック
     if (!forceRefresh) {
       const cachedData = await getFromCache(cacheKey);
@@ -92,10 +130,10 @@ export const fetchRakutenFashionProducts = async (
       params.keyword = keyword;
     }
     
-    // 楽天APIにリクエスト
-    const response = await axios.get(
+    // 楽天APIにリクエスト（レート制限対策付き）
+    const response = await rateLimitedApiCall(
       'https://app.rakuten.co.jp/services/api/IchibaItem/Search/20170706',
-      { params }
+      params
     );
     
     const { Items, count, pageCount } = response.data;
@@ -147,6 +185,21 @@ export const fetchRakutenFashionProducts = async (
       console.error('Response status:', error.response.status);
       console.error('Response data:', error.response.data);
       console.error('Response headers:', error.response.headers);
+      
+      // レート制限エラー（429）の場合、開発環境ではモックデータを返す
+      if (error.response.status === 429 && IS_DEV) {
+        console.log('⚠️ レート制限により、開発用モックデータを返します');
+        const mockProducts = generateMockProducts(keyword || 'general', hits);
+        const mockResult = {
+          products: mockProducts,
+          totalProducts: mockProducts.length,
+          pageCount: 1,
+        };
+        
+        // モックデータもキャッシュに保存
+        await saveToCache(cacheKey, mockResult);
+        return mockResult;
+      }
     } else if (error.request) {
       console.error('Request data:', error.request);
     } else {
