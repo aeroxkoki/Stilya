@@ -29,6 +29,9 @@ if (!supabaseUrl || !supabaseKey) {
   process.exit(1);
 }
 
+console.log('Supabase URL:', supabaseUrl);
+console.log('Using service key:', supabaseKey.startsWith('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkeXBncGxqcHJsanFyYmxwdWxpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSI') ? 'Yes' : 'No');
+
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // 楽天API設定
@@ -48,15 +51,14 @@ const RETRY_DELAY = 10000; // 10秒
 // 遅延処理
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// カテゴリ設定
+// カテゴリ設定（楽天APIの正しいジャンルIDに修正）
 const CATEGORIES = [
   { genreId: 100371, name: 'レディースファッション' },
   { genreId: 551177, name: 'メンズファッション' },
-  { genreId: 110729, name: 'レディースバッグ' },
-  { genreId: 551169, name: 'メンズバッグ' },
-  { genreId: 110727, name: 'レディース靴' },
-  { genreId: 551176, name: 'メンズ靴' },
-  { genreId: 216131, name: 'アクセサリー' },
+  { genreId: 216129, name: 'レディースバッグ・小物・ブランド雑貨' },
+  { genreId: 558885, name: 'メンズバッグ・小物・ブランド雑貨' },
+  { genreId: 558885, name: '靴' },  // 靴は男女共通カテゴリ
+  { genreId: 216131, name: 'ジュエリー・アクセサリー' },
 ];
 
 /**
@@ -113,10 +115,10 @@ function extractTags(product) {
   
   // ジャンルベースのタグ
   const genreId = parseInt(product.genreId);
-  if (genreId === 100371 || genreId === 110729 || genreId === 110727) {
+  if (genreId === 100371 || genreId === 216129) {
     tags.push('レディース');
   }
-  if (genreId === 551177 || genreId === 551169 || genreId === 551176) {
+  if (genreId === 551177 || genreId === 558885) {
     tags.push('メンズ');
   }
   
@@ -209,16 +211,33 @@ async function saveProductsToSupabase(products) {
     for (let i = 0; i < products.length; i += batchSize) {
       const batch = products.slice(i, i + batchSize);
       
+      // デバッグ: 最初の商品データを確認
+      if (i === 0 && batch.length > 0) {
+        console.log('デバッグ: 保存する商品データのサンプル:');
+        console.log(JSON.stringify(batch[0], null, 2));
+      }
+      
       const { data, error } = await supabase
         .from('external_products')
         .upsert(batch, {
           onConflict: 'id',
           ignoreDuplicates: false,
-        });
+        })
+        .select();  // 追加: .select()を明示的に呼び出す
 
       if (error) {
-        console.error('Supabase保存エラー:', error);
+        console.error('Supabase保存エラー:');
+        console.error('  Code:', error.code);
+        console.error('  Message:', error.message);
+        console.error('  Details:', error.details);
+        console.error('  Hint:', error.hint);
+        console.error('  Full error:', JSON.stringify(error, null, 2));
         continue;
+      }
+
+      // デバッグ: 返されたデータを確認
+      if (i === 0) {
+        console.log('Upsert response data:', data ? `${data.length} items` : 'null');
       }
 
       savedCount += batch.length;
@@ -248,7 +267,7 @@ async function deactivateOldProducts(daysOld = 7) {
       .eq('is_active', true);
 
     if (error) {
-      console.error('古いデータの非アクティブ化エラー:', error);
+      console.error('古いデータの非アクティブ化エラー:', JSON.stringify(error, null, 2));
       return 0;
     }
 
