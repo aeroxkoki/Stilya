@@ -2,12 +2,16 @@ import React, { useEffect } from 'react';
 import { View, Text, SafeAreaView, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import { Button, Card } from '@/components/common';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProducts } from '@/contexts/ProductContext';
+import { ProfileStackParamList } from '@/types';
+
+type ProfileScreenNavigationProp = StackNavigationProp<ProfileStackParamList, 'ProfileHome'>;
 
 const ProfileScreen: React.FC = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<ProfileScreenNavigationProp>();
   const { user, logout, loading } = useAuth();
   const { 
     favorites,
@@ -48,15 +52,15 @@ const ProfileScreen: React.FC = () => {
   
   // 各画面への遷移
   const handleNavigateToFavorites = () => {
-    navigation.navigate('Favorites' as never);
+    navigation.navigate('Favorites');
   };
   
   const handleNavigateToSwipeHistory = () => {
-    navigation.navigate('SwipeHistory' as never);
+    navigation.navigate('SwipeHistory');
   };
   
   const handleNavigateToSettings = () => {
-    navigation.navigate('Settings' as never);
+    navigation.navigate('Settings');
   };
   
   const handleNavigateToHelp = () => {

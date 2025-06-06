@@ -6,7 +6,7 @@ import { MainTabParamList } from '@/types';
 // ナビゲーター
 import SwipeNavigator from './SwipeNavigator';
 import RecommendNavigator from './RecommendNavigator';
-import ProfileScreen from '@/screens/profile/ProfileScreen';
+import ProfileNavigator from './ProfileNavigator';
 import ReportNavigator from './ReportNavigator';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -62,7 +62,7 @@ const MainNavigator: React.FC = () => {
       />
       <Tab.Screen
         name="Profile"
-        component={ProfileScreen}
+        component={ProfileNavigator}
         options={{ title: 'マイページ' }}
       />
     </Tab.Navigator>
