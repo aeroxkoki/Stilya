@@ -166,7 +166,7 @@ export const SupabaseConnectionTest: React.FC = () => {
       }
 
       // 6. テーブルアクセステスト
-      const tables = ['users', 'products', 'swipes', 'favorites', 'click_logs'];
+      const tables = ['users', 'external_products', 'swipes', 'favorites', 'click_logs'];
       
       for (const table of tables) {
         addResult({

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * 既存のproductsテーブルへの接続テスト
+ * 既存のexternal_productsテーブルへの接続テスト
  */
 
 const { createClient } = require('@supabase/supabase-js');
@@ -28,16 +28,16 @@ async function testExistingTables() {
   console.log('=== Supabase接続テスト ===');
   
   try {
-    // 1. productsテーブルの存在確認
-    console.log('\n1. productsテーブルの確認:');
+    // 1. external_productsテーブルの存在確認
+    console.log('\n1. external_productsテーブルの確認:');
     const { data: productsData, error: productsError, count: productsCount } = await supabase
-      .from('products')
+      .from('external_products')
       .select('*', { count: 'exact', head: true });
     
     if (productsError) {
-      console.error('productsテーブルエラー:', productsError);
+      console.error('external_productsテーブルエラー:', productsError);
     } else {
-      console.log('✅ productsテーブル: OK, 件数:', productsCount);
+      console.log('✅ external_productsテーブル: OK, 件数:', productsCount);
     }
 
     // 2. usersテーブルの存在確認
