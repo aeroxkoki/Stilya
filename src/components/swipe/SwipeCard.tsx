@@ -24,7 +24,17 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
   onPress,
   testID
 }) => {
-  const imageUrl = product.image_url || 'https://via.placeholder.com/350x500?text=No+Image';
+  // imageUrlとimage_urlの両方の形式に対応
+  const imageUrl = product.imageUrl || product.image_url || 'https://via.placeholder.com/350x500?text=No+Image';
+  
+  // デバッグ情報
+  console.log('[SwipeCard] Product:', {
+    id: product.id,
+    title: product.title,
+    imageUrl: imageUrl,
+    originalImageUrl: product.imageUrl,
+    originalImageUrl2: product.image_url
+  });
 
   return (
     <View style={styles.card} testID={testID || 'swipe-card'}>

@@ -1,7 +1,7 @@
 import { supabase } from './supabase';
 import { Product } from '@/types';
 import { fetchRakutenFashionProducts, fetchRakutenGenreProducts } from './rakutenService';
-import { generateMockProducts } from './mockDataService';
+import { generateMockProducts, USE_MOCK_DATA } from './mockDataService';
 import { IS_DEV } from '@/utils/env';
 
 // カテゴリ別ジャンルIDのマッピング
@@ -186,6 +186,17 @@ export const fetchProducts = async (
   pageCount: number;
 }> => {
   try {
+    // 開発環境では常にモックデータを使用
+    if (IS_DEV || USE_MOCK_DATA) {
+      console.log('[ProductService] Using mock data for development');
+      const mockProducts = generateMockProducts(options.keyword || 'general', options.limit || 30);
+      return {
+        products: mockProducts,
+        totalProducts: mockProducts.length,
+        pageCount: 1,
+      };
+    }
+    
     // まずSupabaseから取得を試みる
     const result = await fetchProductsFromSupabase({
       category: options.category,
@@ -213,30 +224,14 @@ export const fetchProducts = async (
   } catch (error) {
     console.error('Error in fetchProducts:', error);
     
-    // 最終フォールバック：楽天APIを直接呼び出す
-    try {
-      return await fetchRakutenFashionProducts(
-        options.keyword,
-        options.genreId || 100371,
-        options.page || 1,
-        options.limit || 30,
-        false
-      );
-    } catch (rakutenError) {
-      console.error('Rakuten API also failed:', rakutenError);
-      
-      // 開発環境ではモックデータを返す
-      if (IS_DEV) {
-        const mockProducts = generateMockProducts(options.keyword || 'general', options.limit || 30);
-        return {
-          products: mockProducts,
-          totalProducts: mockProducts.length,
-          pageCount: 1,
-        };
-      }
-      
-      throw rakutenError;
-    }
+    // 最終フォールバック：モックデータを返す
+    console.log('[ProductService] Using mock data as fallback');
+    const mockProducts = generateMockProducts(options.keyword || 'general', options.limit || 30);
+    return {
+      products: mockProducts,
+      totalProducts: mockProducts.length,
+      pageCount: 1,
+    };
   }
 };
 

@@ -38,24 +38,42 @@ const SwipeScreen: React.FC = () => {
   
   // スワイプ関数を定義
   const handleSwipe = useCallback(async (product: Product, direction: 'left' | 'right') => {
-    // 現在の商品
-    const currentProduct = products[currentIndex];
-    
-    if (!currentProduct) return;
-    
-    // スワイプ方向に応じた処理
-    if (direction === 'right') {
-      await swipeUtils.handleSwipeRight(currentProduct);
-    } else {
-      await swipeUtils.handleSwipeLeft(currentProduct);
-    }
-    
-    // 次のカードへ
-    setCurrentIndex(prevIndex => prevIndex + 1);
-    
-    // 残りが少なくなったら追加で取得
-    if (currentIndex >= products.length - 3) {
-      loadMore();
+    try {
+      // 現在の商品
+      const currentProduct = products[currentIndex];
+      
+      if (!currentProduct) {
+        console.error('[SwipeScreen] No current product found');
+        return;
+      }
+      
+      // デバッグ情報
+      console.log('[SwipeScreen] Handling swipe:', {
+        direction,
+        productId: currentProduct.id,
+        currentIndex,
+        totalProducts: products.length
+      });
+      
+      // スワイプ方向に応じた処理
+      if (direction === 'right') {
+        await swipeUtils.handleSwipeRight(currentProduct);
+      } else {
+        await swipeUtils.handleSwipeLeft(currentProduct);
+      }
+      
+      // 次のカードへ
+      setCurrentIndex(prevIndex => prevIndex + 1);
+      
+      // 残りが少なくなったら追加で取得
+      if (currentIndex >= products.length - 3 && products.length > 0) {
+        console.log('[SwipeScreen] Loading more products...');
+        loadMore();
+      }
+    } catch (error) {
+      console.error('[SwipeScreen] Error during swipe:', error);
+      // エラーが発生してもUIを止めない
+      setCurrentIndex(prevIndex => prevIndex + 1);
     }
   }, [currentIndex, products, swipeUtils, loadMore]);
   
