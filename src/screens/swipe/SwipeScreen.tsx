@@ -2,9 +2,10 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList, MainStackParamList } from '../../navigation/types';
+import { RootStackParamList, MainStackParamList, SwipeStackParamList } from '../../navigation/types';
 import { Product } from '../../types/product';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { EmptyState } from '../../components/common';
 import { useProducts } from '../../hooks/useProducts';
 import { useSwipe } from '../../hooks/useSwipe';
@@ -12,12 +13,13 @@ import SwipeContainer from '../../components/swipe/SwipeContainer';
 import ActionButtons from '../../components/swipe/ActionButtons';
 
 // ナビゲーションの型定義
-type SwipeScreenNavigationProp = StackNavigationProp<MainStackParamList>;
+type SwipeScreenNavigationProp = StackNavigationProp<SwipeStackParamList, 'SwipeHome'>;
 
 // スワイプ画面コンポーネント
 const SwipeScreen: React.FC = () => {
   const navigation = useNavigation<SwipeScreenNavigationProp>();
   const theme = useTheme();
+  const { user } = useAuth();
   
   // 商品データの取得
   const { products, isLoading: loading, error, loadMore, resetProducts } = useProducts();
@@ -27,7 +29,7 @@ const SwipeScreen: React.FC = () => {
   
   // スワイプ機能の利用
   const swipeUtils = useSwipe({ 
-    userId: 'user123', // ここで適切なユーザーIDを渡す
+    userId: user?.id || 'guest', // 実際のユーザーIDを使用
     onSwipeComplete: (direction, product) => {
       // スワイプ完了時の処理
       console.log(`Swiped ${direction} on product ${product.id}`);

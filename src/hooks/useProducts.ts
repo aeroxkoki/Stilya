@@ -96,15 +96,21 @@ export const useProducts = (): UseProductsReturn => {
       setIsLoading(prevState => reset ? true : prevState);
       
       // 商品データを取得
-      const newProducts = await fetchProducts(pageSize, page * pageSize);
+      const response = await fetchProducts({
+        page: page + 1, // fetchProductsは1-indexedページを期待
+        limit: pageSize,
+      });
+      
+      // レスポンスの検証
+      const newProducts = response?.products || [];
       
       // スワイプ済みの商品を除外
-      const filteredProducts = Array.isArray(newProducts) ? newProducts.filter(
+      const filteredProducts = newProducts.filter(
         product => !swipedProductsRef.current.has(product.id)
-      ) : [];
+      );
 
       // 結果が十分でない場合の処理
-      if (filteredProducts.length === 0 && (Array.isArray(newProducts) ? newProducts.length > 0 : false)) {
+      if (filteredProducts.length === 0 && newProducts.length > 0) {
         // スワイプ済みを除外した結果、商品がない場合は次のページを試みる
         setPage(prevPage => prevPage + 1);
         loadingRef.current = false;
@@ -115,7 +121,7 @@ export const useProducts = (): UseProductsReturn => {
       }
 
       // 商品が取得できなかった場合
-      const hasMoreProducts = Array.isArray(newProducts) ? newProducts.length >= pageSize : false;
+      const hasMoreProducts = newProducts.length >= pageSize;
 
       // 商品データを更新
       setProductsData(prev => {

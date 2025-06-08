@@ -359,9 +359,56 @@ export const refreshProductData = async (): Promise<void> => {
   }
 };
 
+/**
+ * 商品IDから商品情報を取得
+ */
+export const fetchProductById = async (productId: string): Promise<Product | null> => {
+  try {
+    console.log(`[ProductService] Fetching product by ID: ${productId}`);
+    
+    const { data, error } = await supabase
+      .from('external_products')
+      .select('*')
+      .eq('id', productId)
+      .eq('is_active', true)
+      .single();
+    
+    if (error) {
+      console.error('[ProductService] Error fetching product by ID:', error);
+      throw error;
+    }
+    
+    if (!data) {
+      console.log('[ProductService] Product not found');
+      return null;
+    }
+    
+    // データ形式の変換
+    const product: Product = {
+      id: data.id,
+      title: data.title,
+      price: data.price,
+      brand: data.brand || '',
+      imageUrl: data.image_url || '',
+      description: data.description || '',
+      tags: data.tags || [],
+      category: data.category || '',
+      affiliateUrl: data.affiliate_url || '',
+      source: data.source || 'rakuten',
+      createdAt: data.created_at || new Date().toISOString(),
+    };
+    
+    return product;
+  } catch (error) {
+    console.error('[ProductService] Error in fetchProductById:', error);
+    return null;
+  }
+};
+
 // エクスポート
 export default {
   fetchProducts,
+  fetchProductById,
   fetchProductsByCategories,
   fetchRelatedProducts,
   fetchFavoriteProducts,
