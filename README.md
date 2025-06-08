@@ -147,6 +147,13 @@ RAKUTEN_APP_ID=your_app_id
 - ✅ お気に入り機能
 - ✅ スワイプ履歴
 - ✅ プロフィール設定
+- ✅ Supabase接続診断ツール（開発メニューから実行可能）
+
+### 最新の修正 (2025-06-08)
+- ✅ すべての`products`テーブル参照を`external_products`に統一
+- ✅ Supabase接続エラーハンドリングの改善
+- ✅ 開発ツールの整備（接続テスト、エラーチェック）
+- 詳細は [SUPABASE_ERROR_CHECK_RESULT.md](./SUPABASE_ERROR_CHECK_RESULT.md) を参照
 - ✅ オフライン対応
 
 ### 今後の実装予定
