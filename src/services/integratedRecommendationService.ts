@@ -1,6 +1,6 @@
 import { Product } from '@/types';
 import { getRecommendations, analyzeUserPreferences } from './recommendationService';
-import { fetchRakutenFashionProducts, fetchRelatedProducts } from './rakutenService';
+import { fetchProducts, fetchRelatedProducts } from './productService';
 
 interface OutfitRecommendation {
   top: Product | null;
@@ -10,8 +10,8 @@ interface OutfitRecommendation {
 }
 
 /**
- * 複数ソースから統合的なレコメンド結果を取得
- * 内部DB + 楽天API
+ * 統一されたデータソースから推薦結果を取得
+ * external_productsテーブルをメインソースとして使用
  */
 export const getEnhancedRecommendations = async (
   userId: string,
@@ -25,11 +25,14 @@ export const getEnhancedRecommendations = async (
 }> => {
   try {
     // 並列でデータを取得
-    const [internalRecsResult, externalRecs, userPrefs] = await Promise.all([
-      // 内部DBからの推薦
+    const [internalRecsResult, trendingProducts, userPrefs] = await Promise.all([
+      // 内部DBからの推薦（ユーザーのスワイプ履歴に基づく）
       getRecommendations(userId, Math.floor(limit / 2)),
-      // 楽天APIからの商品取得（トレンド）
-      fetchRakutenFashionProducts(undefined, 100371, 1, Math.floor(limit / 2)),
+      // トレンド商品（external_productsから最新の商品を取得）
+      fetchProducts({
+        limit: Math.floor(limit / 2),
+        page: 1,
+      }),
       // ユーザーの好み分析
       analyzeUserPreferences(userId)
     ]);
@@ -37,10 +40,10 @@ export const getEnhancedRecommendations = async (
     // 内部レコメンドの結果を取得
     const internalRecs = internalRecsResult.success && 'data' in internalRecsResult && internalRecsResult.data ? internalRecsResult.data : [];
 
-    // ユーザーの好みに基づく楽天商品
+    // ユーザーの好みに基づく商品
     let forYouProducts: Product[] = [];
     if (userPrefs.success && 'data' in userPrefs && userPrefs.data && userPrefs.data.likedTags && userPrefs.data.likedTags.length > 0) {
-      // タグベースで関連商品を取得
+      // タグベースで関連商品を取得（external_productsから）
       forYouProducts = await fetchRelatedProducts(
         userPrefs.data.likedTags,
         excludeIds,
@@ -48,20 +51,19 @@ export const getEnhancedRecommendations = async (
       );
     }
 
-    // データが少ない場合は補完
+    // データが少ない場合は補完（external_productsから）
     if (forYouProducts.length < Math.floor(limit / 4)) {
-      const additionalProducts = await fetchRakutenFashionProducts(
-        'おすすめ',
-        100371,
-        1,
-        Math.floor(limit / 4)
-      );
+      const additionalProducts = await fetchProducts({
+        keyword: 'おすすめ',
+        limit: Math.floor(limit / 4),
+        page: 1,
+      });
       forYouProducts = [...forYouProducts, ...additionalProducts.products].slice(0, Math.floor(limit / 2));
     }
 
     return {
       recommended: internalRecs,
-      trending: externalRecs.products || [],
+      trending: trendingProducts.products || [],
       forYou: forYouProducts,
       isLoading: false
     };
@@ -78,74 +80,43 @@ export const getEnhancedRecommendations = async (
 };
 
 /**
- * カテゴリ別のマルチソースレコメンド
- * 内部DB + 楽天API
+ * カテゴリ別の統一データソースレコメンド
+ * external_productsテーブルから取得
  */
 export const getEnhancedCategoryRecommendations = async (
   userId: string,
-  categories: string[] = ['tops', 'bottoms', 'outerwear', 'accessories'],
+  categories: string[] = ['メンズファッション', 'レディースファッション', 'バッグ', 'シューズ'],
   limit: number = 5
 ): Promise<{
-  internalRecs: Record<string, Product[]>;
-  externalRecs: Record<string, Product[]>;
+  categoryProducts: Record<string, Product[]>;
   isLoading: boolean;
 }> => {
   try {
-    // 内部DBからカテゴリ別のレコメンド（簡易版）
-    const internalRecsResult = await getRecommendations(userId, limit * categories.length);
-    const internalRecsArray = internalRecsResult.success && 'data' in internalRecsResult && internalRecsResult.data ? internalRecsResult.data : [];
+    const categoryProducts: Record<string, Product[]> = {};
     
-    // カテゴリごとに分割
-    const internalRecs: Record<string, Product[]> = {};
-    categories.forEach((category, index) => {
-      const start = index * limit;
-      const end = start + limit;
-      internalRecs[category] = internalRecsArray.slice(start, end);
-    });
-
-    // 楽天APIからのカテゴリデータ (カテゴリIDマッピング)
-    const categoryMappings: Record<string, number> = {
-      'tops': 100371,     // レディーストップス（例）
-      'bottoms': 565990,  // レディースボトムス（例）
-      'outerwear': 566092, // レディースアウター（例）
-      'accessories': 215783, // アクセサリー（例）
-    };
-
-    // 各カテゴリで順次処理（レート制限対策）
-    const externalRecs: Record<string, Product[]> = {};
-    
+    // 各カテゴリから商品を取得
     for (const category of categories) {
-      const genreId = categoryMappings[category] || 100371; // デフォルト
       try {
-        console.log(`Fetching ${category} products...`);
-        const { products } = await fetchRakutenFashionProducts(
-          category, // カテゴリ名をキーワードとして使用
-          genreId,
-          1,
-          limit
-        );
-        externalRecs[category] = products;
-        
-        // 次のAPI呼び出しまで少し待機（レート制限対策）
-        if (categories.indexOf(category) < categories.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
+        const { products } = await fetchProducts({
+          category,
+          limit,
+          page: 1,
+        });
+        categoryProducts[category] = products;
       } catch (error) {
-        console.error(`Error fetching external products for category ${category}:`, error);
-        externalRecs[category] = [];
+        console.error(`Error fetching products for category ${category}:`, error);
+        categoryProducts[category] = [];
       }
     }
 
     return {
-      internalRecs,
-      externalRecs,
+      categoryProducts,
       isLoading: false
     };
   } catch (error) {
     console.error('Error getting enhanced category recommendations:', error);
     return {
-      internalRecs: {},
-      externalRecs: {},
+      categoryProducts: {},
       isLoading: false
     };
   }
@@ -153,7 +124,7 @@ export const getEnhancedCategoryRecommendations = async (
 
 /**
  * コーディネート提案
- * 上下アイテムの組み合わせを提案
+ * external_productsテーブルから商品を組み合わせて提案
  */
 export const getOutfitRecommendations = async (
   userId: string,
@@ -162,33 +133,17 @@ export const getOutfitRecommendations = async (
   outfits: OutfitRecommendation[]
 }> => {
   try {
-    // カテゴリ別レコメンドを取得
-    const { internalRecs, externalRecs } = await getEnhancedCategoryRecommendations(
+    // カテゴリ別商品を取得
+    const { categoryProducts } = await getEnhancedCategoryRecommendations(
       userId,
-      ['tops', 'bottoms', 'outerwear', 'accessories'],
-      limit * 2 // 組み合わせの多様性を確保するため多めに取得
+      ['トップス', 'ボトムス', 'アウター', 'アクセサリー'],
+      limit * 2
     );
 
-    // 内部・外部のレコメンドを統合
-    const tops = [
-      ...(internalRecs['tops'] || []),
-      ...(externalRecs['tops'] || [])
-    ];
-
-    const bottoms = [
-      ...(internalRecs['bottoms'] || []),
-      ...(externalRecs['bottoms'] || [])
-    ];
-
-    const outerwear = [
-      ...(internalRecs['outerwear'] || []),
-      ...(externalRecs['outerwear'] || [])
-    ];
-
-    const accessories = [
-      ...(internalRecs['accessories'] || []),
-      ...(externalRecs['accessories'] || [])
-    ];
+    const tops = categoryProducts['トップス'] || [];
+    const bottoms = categoryProducts['ボトムス'] || [];
+    const outerwear = categoryProducts['アウター'] || [];
+    const accessories = categoryProducts['アクセサリー'] || [];
 
     // コーディネートを作成
     const outfits: OutfitRecommendation[] = [];
@@ -198,8 +153,8 @@ export const getOutfitRecommendations = async (
       const outfit = {
         top: tops[i % tops.length] || null,
         bottom: bottoms[i % bottoms.length] || null,
-        outerwear: i % 2 === 0 ? outerwear[i % outerwear.length] || null : null, // 半分のコーデのみアウターを追加
-        accessories: i % 3 === 0 ? accessories[i % accessories.length] || null : null, // 1/3のコーデにアクセサリー
+        outerwear: i % 2 === 0 ? outerwear[i % outerwear.length] || null : null,
+        accessories: i % 3 === 0 ? accessories[i % accessories.length] || null : null,
       } as OutfitRecommendation;
       
       // 最低限トップスまたはボトムスがあるものだけ追加
