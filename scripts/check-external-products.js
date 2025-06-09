@@ -10,12 +10,15 @@ const path = require('path');
 // 環境変数の読み込み
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
-// Supabaseクライアントの作成
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
+// Supabaseクライアントの作成（EXPO_PUBLIC_プレフィックス付きの環境変数も使用）
+const supabaseUrl = process.env.SUPABASE_URL || process.env.EXPO_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
   console.error('環境変数が設定されていません: SUPABASE_URL, SUPABASE_SERVICE_KEY');
+  console.error('利用可能な環境変数:');
+  console.error('- EXPO_PUBLIC_SUPABASE_URL:', process.env.EXPO_PUBLIC_SUPABASE_URL ? '設定済み' : '未設定');
+  console.error('- EXPO_PUBLIC_SUPABASE_ANON_KEY:', process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ? '設定済み' : '未設定');
   process.exit(1);
 }
 
@@ -70,6 +73,14 @@ async function checkTable() {
       .eq('is_active', true);
 
     console.log(`\nアクティブな商品数: ${activeCount || 0}件`);
+
+    // 楽天商品の件数を確認
+    const { count: rakutenCount } = await supabase
+      .from('external_products')
+      .select('*', { count: 'exact', head: true })
+      .eq('source', 'rakuten');
+
+    console.log(`楽天商品数: ${rakutenCount || 0}件`);
 
   } catch (error) {
     console.error('エラー:', error);

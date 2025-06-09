@@ -51,6 +51,12 @@ export const saveSwipeResult = async (
   result: SwipeResult
 ): Promise<boolean> => {
   try {
+    // ユーザーIDが空の場合は保存しない（ゲストユーザー対応）
+    if (!userId || userId === '') {
+      console.warn('Cannot save swipe result without valid user ID');
+      return false;
+    }
+    
     const swipeData: SwipeData = {
       userId,
       productId,

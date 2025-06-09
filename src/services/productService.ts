@@ -186,8 +186,8 @@ export const fetchProducts = async (
   pageCount: number;
 }> => {
   try {
-    // 開発環境では常にモックデータを使用
-    if (IS_DEV || USE_MOCK_DATA) {
+    // モックデータの使用は無効化（実データを使用）
+    if (USE_MOCK_DATA) {
       console.log('[ProductService] Using mock data for development');
       const mockProducts = generateMockProducts(options.keyword || 'general', options.limit || 30);
       return {

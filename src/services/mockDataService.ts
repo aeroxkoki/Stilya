@@ -72,5 +72,5 @@ export const generateMockProducts = (
 };
 
 // モックデータを使用するかどうかのフラグ
-// 開発時は一時的にtrueにしているが、本番環境やデータベースが準備できたらfalseに変更
-export const USE_MOCK_DATA = process.env.NODE_ENV === 'development' && !process.env.EXPO_PUBLIC_USE_REAL_DATA;
+// 本番環境では実データを使用するため、falseに設定
+export const USE_MOCK_DATA = false;

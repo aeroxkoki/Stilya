@@ -29,7 +29,7 @@ const SwipeScreen: React.FC = () => {
   
   // スワイプ機能の利用
   const swipeUtils = useSwipe({ 
-    userId: user?.id || 'guest', // 実際のユーザーIDを使用
+    userId: user?.id || '', // 空文字列を使用（guestではなく）
     onSwipeComplete: (direction, product) => {
       // スワイプ完了時の処理
       console.log(`Swiped ${direction} on product ${product.id}`);
