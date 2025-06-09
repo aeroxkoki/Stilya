@@ -1,43 +1,80 @@
-name: Sync Products
+name: Sync Products from Rakuten
 
 on:
   schedule:
-    # 毎日日本時間の午前3時に実行（UTCでは前日の18時）
-    - cron: '0 18 * * *'
-  workflow_dispatch: # 手動実行も可能
+    # 毎日午前3時と午後3時（JST）に実行
+    - cron: '0 18,6 * * *'  # UTC時間で18:00と6:00 = JST 3:00と15:00
+  workflow_dispatch:  # 手動実行も可能
+    inputs:
+      dry_run:
+        description: 'Dry run (no database changes)'
+        required: false
+        default: 'false'
 
 jobs:
   sync-products:
+    name: Sync Products
     runs-on: ubuntu-latest
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18.x'
-        cache: 'npm'
-    
-    - name: Install dependencies
-      run: npm ci
-    
-    - name: Run product sync
-      env:
-        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-        SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-        RAKUTEN_APP_ID: ${{ secrets.RAKUTEN_APP_ID }}
-        RAKUTEN_AFFILIATE_ID: ${{ secrets.RAKUTEN_AFFILIATE_ID }}
-        RAKUTEN_APP_SECRET: ${{ secrets.RAKUTEN_APP_SECRET }}
-      run: npm run sync-products
-    
-    - name: Upload sync logs
-      if: always()
-      uses: actions/upload-artifact@v3
-      with:
-        name: sync-logs
-        path: |
-          *.log
-          logs/
-        retention-days: 7
+      - name: 📦 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🏗️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: 📥 Install dependencies
+        run: |
+          npm ci --only=production
+          npm install dotenv @supabase/supabase-js axios
+
+      - name: 🔍 Check environment
+        run: |
+          echo "Running sync at $(date)"
+          echo "Dry run: ${{ github.event.inputs.dry_run || 'false' }}"
+          
+      - name: 🔄 Sync products
+        run: node scripts/sync-products-improved.js
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          RAKUTEN_APP_ID: ${{ secrets.RAKUTEN_APP_ID }}
+          RAKUTEN_AFFILIATE_ID: ${{ secrets.RAKUTEN_AFFILIATE_ID }}
+          NODE_ENV: production
+          DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+        continue-on-error: false
+
+      - name: 📊 Generate sync report
+        if: always()
+        run: |
+          echo "## Sync Report" >> $GITHUB_STEP_SUMMARY
+          echo "- Date: $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Branch: ${{ github.ref }}" >> $GITHUB_STEP_SUMMARY
+          
+      - name: 🚨 Notify on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Product sync failed - ${new Date().toISOString()}`,
+              body: `The product sync workflow failed.\n\nWorkflow run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              labels: ['bug', 'automated']
+            });
+            console.log(`Created issue #${issue.data.number}`);
+
+      - name: 💾 Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sync-logs-${{ github.run_id }}
+          path: |
+            logs/
+            *.log
+          retention-days: 30

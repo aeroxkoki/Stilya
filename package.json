@@ -16,6 +16,7 @@
     "check-env": "node -e \"console.log('SUPABASE_URL:', process.env.EXPO_PUBLIC_SUPABASE_URL ? 'Set' : 'Not set')\"",
     "full-reset": "./scripts/full-reset.sh",
     "sync-products": "node scripts/sync-products.js",
+    "sync-products:improved": "node scripts/sync-products-improved.js",
     "test-db": "node scripts/test-database.js"
   },
   "dependencies": {
