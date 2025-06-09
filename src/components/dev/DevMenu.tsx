@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Modal } from 'rea
 import { runLocalTests } from '../../tests/localTests';
 import { NetworkDiagnostics } from './NetworkDiagnostics';
 import { SupabaseConnectionTest } from '../SupabaseConnectionTest';
+import { runDeviceDiagnostics } from '../../tests/deviceDiagnostics';
 
 interface DevMenuProps {
   onClose: () => void;
@@ -43,6 +44,31 @@ export const DevMenu: React.FC<DevMenuProps> = ({ onClose }) => {
     }
   };
 
+  const handleRunDiagnostics = async () => {
+    setIsRunning(true);
+    setTestResults(['診断実行中...']);
+    
+    // コンソールログをキャプチャ
+    const originalLog = console.log;
+    const logs: string[] = [];
+    
+    console.log = (...args) => {
+      logs.push(args.join(' '));
+      originalLog(...args);
+    };
+
+    try {
+      await runDeviceDiagnostics();
+      setTestResults(logs);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      setTestResults([...logs, `エラー: ${errorMessage}`]);
+    } finally {
+      console.log = originalLog;
+      setIsRunning(false);
+    }
+  };
+
   return (
     <>
       <View style={styles.container}>
@@ -61,6 +87,16 @@ export const DevMenu: React.FC<DevMenuProps> = ({ onClose }) => {
           >
             <Text style={styles.buttonText}>
               {isRunning ? '⏳ テスト実行中...' : '🧪 MVPテストを実行'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.button, isRunning && styles.buttonDisabled, { backgroundColor: '#FF9800' }]}
+            onPress={handleRunDiagnostics}
+            disabled={isRunning}
+          >
+            <Text style={styles.buttonText}>
+              {isRunning ? '⏳ 診断実行中...' : '🔍 エラー診断を実行'}
             </Text>
           </TouchableOpacity>
 
