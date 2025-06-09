@@ -48,6 +48,9 @@ typescript_errors.txt
 *.tmp
 *.temp
 temp-backup-*/
+
+# Archive directory (for cleanup)
+archive/
 *.bak
 *.backup
 
@@ -127,3 +130,9 @@ expo-env.d.ts
 # Native projects (managed workflow)
 ios/
 android/
+
+# Supabase
+.branches
+.temp
+supabase/.branches
+supabase/.temp

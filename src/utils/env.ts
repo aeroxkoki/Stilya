@@ -5,10 +5,27 @@ import Constants from 'expo-constants';
 
 // 開発環境判定
 export const IS_DEV = process.env.NODE_ENV === 'development';
+export const IS_LOCAL_SUPABASE = process.env.EXPO_PUBLIC_USE_LOCAL_SUPABASE === 'true';
 
-// Supabase設定
-export const SUPABASE_URL = Constants.expoConfig?.extra?.supabaseUrl || process.env.EXPO_PUBLIC_SUPABASE_URL || '';
-export const SUPABASE_ANON_KEY = Constants.expoConfig?.extra?.supabaseAnonKey || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
+// Supabase設定（ローカル/本番切り替え対応）
+const getSupabaseConfig = () => {
+  if (IS_LOCAL_SUPABASE || (IS_DEV && !process.env.EXPO_PUBLIC_SUPABASE_URL)) {
+    // ローカルSupabase設定
+    return {
+      url: 'http://localhost:54321',
+      anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
+    };
+  }
+  // 本番Supabase設定
+  return {
+    url: Constants.expoConfig?.extra?.supabaseUrl || process.env.EXPO_PUBLIC_SUPABASE_URL || '',
+    anonKey: Constants.expoConfig?.extra?.supabaseAnonKey || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || ''
+  };
+};
+
+const supabaseConfig = getSupabaseConfig();
+export const SUPABASE_URL = supabaseConfig.url;
+export const SUPABASE_ANON_KEY = supabaseConfig.anonKey;
 
 // API設定
 export const LINKSHARE_API_KEY = Constants.expoConfig?.extra?.linkshareApiToken || process.env.EXPO_PUBLIC_LINKSHARE_API_TOKEN || '';
