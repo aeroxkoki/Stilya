@@ -1,7 +1,8 @@
 # 根本的解決策の実装状況
 
 ## 実施日時
-2025年6月8日
+- 初回実装: 2025年6月8日
+- 最新更新: 2025年6月9日
 
 ## 実装した内容
 
@@ -37,20 +38,34 @@ npm run test-db
 - トラブルシューティング
 - セキュリティ注意事項
 
+### 6. 追加実装（2025年6月9日）
+**新規スクリプト**:
+- `scripts/fix-rls-policies.ts` - RLS修正スクリプト（サービスキー版）
+- `scripts/insert-product-data.ts` - TypeScript版データ挿入スクリプト
+- `scripts/insert-product-data-anon.ts` - Anonキー版データ挿入スクリプト
+- `scripts/insert-product-data.js` - JavaScript版データ挿入スクリプト
+- `scripts/generate-insert-sql.js` - SQL生成スクリプト
+- `scripts/insert-products.sql` - 生成された商品挿入SQL（15件）
+
+**新規ドキュメント**:
+- `docs/ROOT_CAUSE_SOLUTION.md` - 詳細な解決ガイド
+
 ## 残りの作業（手動実施が必要）
 
-### 1. Supabaseでの作業
+### 1. 【最優先】SQLによるデータ挿入
 
-1. **サービスキーの取得**
+1. **Supabaseダッシュボードにログイン**
    ```
-   Supabase Dashboard → Settings → API → service_role key
+   https://app.supabase.com
    ```
 
-2. **RLSポリシーの適用**
-   ```sql
-   -- Supabase SQL Editorで実行
-   -- scripts/setup-rls-policies.sql の内容をコピー＆ペースト
+2. **SQL Editorで実行**
+   ```bash
+   # ローカルで確認
+   cat scripts/insert-products.sql
    ```
+   - 上記SQLをコピーしてSQL Editorで実行
+   - まずRLS無効化、次にINSERT文を実行
 
 ### 2. 環境変数の設定
 
