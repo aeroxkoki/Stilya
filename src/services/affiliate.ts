@@ -52,7 +52,7 @@ interface RakutenResponse {
   hits: number;
 }
 
-// LinkShareからアパレル商品検索
+// LinkShareからアパレル商品検索（MVP段階では未実装）
 export const searchLinkShareProducts = async (
   keyword: string = '',
   category: string = 'apparel',
@@ -60,52 +60,12 @@ export const searchLinkShareProducts = async (
   page: number = 1
 ): Promise<Product[]> => {
   try {
-    // サンプルとテスト用にモック応答を返す（開発時のみ）
-    if (__DEV__ && !LINKSHARE_API_TOKEN) {
-      console.warn('Using mock LinkShare response due to missing API token');
-      return getMockLinkShareProducts(limit);
-    }
-
-    // 実際のAPI呼び出し
-    const params = {
-      token: LINKSHARE_API_TOKEN,
-      keyword,
-      cat: category,
-      max: limit,
-      pagenumber: page,
-    };
-
-    // URLパラメータを生成
-    const queryParams = Object.entries(params)
-      .filter(([_, value]) => value)
-      .map(([key, value]) => `${key}=${encodeURIComponent(String(value))}`)
-      .join('&');
-
-    const response = await apiGet<LinkShareResponse>(`${LINKSHARE_ENDPOINT}?${queryParams}`);
-
-    // LinkShare商品データをアプリの商品型に変換
-    return response.products.map((item): Product => ({
-      id: item.productId,
-      title: item.productName,
-      imageUrl: item.imageUrl,
-      brand: item.merchantName,
-      price: parseFloat(item.price),
-      category: item.category,
-      tags: item.keywords?.split(',').map(tag => tag.trim()) || [],
-      affiliateUrl: item.productUrl,
-      source: 'LinkShare',
-      createdAt: new Date().toISOString(),
-    }));
+    // MVPではLinkShareは未実装、モックデータを返す
+    console.warn('LinkShare API is not implemented yet in MVP phase, returning mock data');
+    return getMockLinkShareProducts(limit);
   } catch (error) {
-    console.error('Error searching LinkShare products:', error);
-    
-    // 開発時はモックデータを返す
-    if (__DEV__) {
-      console.warn('Using mock LinkShare data due to API error');
-      return getMockLinkShareProducts(limit);
-    }
-    
-    throw error;
+    console.error('Error in LinkShare products:', error);
+    return getMockLinkShareProducts(limit);
   }
 };
 

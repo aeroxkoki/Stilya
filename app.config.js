@@ -80,10 +80,15 @@ export default {
       // 環境変数は直接設定（dotenvを使わない）
       supabaseUrl: "https://ddypgpljprljqrblpuli.supabase.co",
       supabaseAnonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkeXBncGxqcHJsanFyYmxwdWxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcxMDMwOTcsImV4cCI6MjA2MjY3OTA5N30.u4310NL9FYdxcMSrGxEzEXP0M5y5pDuG3_mz7IRAhMU",
-      linkshareApiToken: "your_linkshare_token_here",
-      linkshareMerchantId: "your_merchant_id_here",
+      // LinkShare API設定（未設定）
+      linkshareApiToken: "",
+      linkshareMerchantId: "",
+      linkshareApplicationId: "",
+      linkshareAffiliateId: "",
+      // 楽天API設定
       rakutenAppId: "1070253780037975195",
       rakutenAffiliateId: "3ad7bc23.8866b306.3ad7bc24.393c3977",
+      rakutenAppSecret: "a76549ef32187b548573ecfb1c06a2452ce525fb",
       enableDevFeatures: true
     }
   }

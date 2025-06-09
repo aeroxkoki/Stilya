@@ -14,9 +14,12 @@ export const SUPABASE_ANON_KEY = Constants.expoConfig?.extra?.supabaseAnonKey ||
 export const LINKSHARE_API_KEY = Constants.expoConfig?.extra?.linkshareApiToken || process.env.EXPO_PUBLIC_LINKSHARE_API_TOKEN || '';
 export const LINKSHARE_API_TOKEN = LINKSHARE_API_KEY; // エイリアス for backward compatibility
 export const LINKSHARE_MERCHANT_ID = Constants.expoConfig?.extra?.linkshareMerchantId || process.env.EXPO_PUBLIC_LINKSHARE_MERCHANT_ID || '';
+export const LINKSHARE_APPLICATION_ID = Constants.expoConfig?.extra?.linkshareApplicationId || process.env.EXPO_PUBLIC_LINKSHARE_APPLICATION_ID || '';
+export const LINKSHARE_AFFILIATE_ID = Constants.expoConfig?.extra?.linkshareAffiliateId || process.env.EXPO_PUBLIC_LINKSHARE_AFFILIATE_ID || '';
 export const A8_NET_API_KEY = Constants.expoConfig?.extra?.a8NetApiKey || process.env.EXPO_PUBLIC_A8_NET_API_KEY || '';
 export const RAKUTEN_APP_ID = Constants.expoConfig?.extra?.rakutenAppId || process.env.EXPO_PUBLIC_RAKUTEN_APP_ID || '';
 export const RAKUTEN_AFFILIATE_ID = Constants.expoConfig?.extra?.rakutenAffiliateId || process.env.EXPO_PUBLIC_RAKUTEN_AFFILIATE_ID || '';
+export const RAKUTEN_APP_SECRET = Constants.expoConfig?.extra?.rakutenAppSecret || process.env.EXPO_PUBLIC_RAKUTEN_APP_SECRET || '';
 
 // アプリ設定
 export const APP_VERSION = Constants.expoConfig?.version || '1.0.0';
