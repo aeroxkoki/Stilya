@@ -6,6 +6,7 @@
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../utils/env';
 import { testSupabaseConnection } from '../services/supabase';
 import { runSupabaseTests } from '../services/connectionTest';
+import { diagnoseSupabaseConnection, logSupabaseConnectionInfo } from '../utils/supabaseConnectionCheck';
 
 interface DiagnosticResult {
   test: string;
@@ -21,6 +22,28 @@ export const runDeviceDiagnostics = async (): Promise<DiagnosticResult[]> => {
   const results: DiagnosticResult[] = [];
   
   console.log('🔍 実機テストエラー診断を開始します...\n');
+  
+  // 0. Supabase接続設定の診断（最重要）
+  console.log('0️⃣ Supabase接続設定の診断...');
+  logSupabaseConnectionInfo();
+  
+  const connectionDiagnosis = diagnoseSupabaseConnection();
+  results.push({
+    test: 'Supabase接続設定',
+    success: connectionDiagnosis.status === 'ok',
+    error: connectionDiagnosis.status !== 'ok' ? connectionDiagnosis.message : undefined,
+    details: connectionDiagnosis.details
+  });
+  
+  if (connectionDiagnosis.status === 'error') {
+    console.log('\n⚠️  重要: ローカルSupabase設定が有効になっています！');
+    console.log('実機テストでは以下のコマンドを使用してください:');
+    console.log('> npm run start');
+    console.log('（npm run start:local は使用しないでください）\n');
+    
+    // ローカル設定の場合、これ以上のテストは無意味なので終了
+    return results;
+  }
   
   // 1. 環境変数の確認
   try {
