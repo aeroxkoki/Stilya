@@ -12,6 +12,9 @@
       },
       "ios": {
         "simulator": true
+      },
+      "env": {
+        "NODE_ENV": "development"
       }
     },
     "preview": {
