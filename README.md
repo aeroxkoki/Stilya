@@ -156,6 +156,18 @@ RAKUTEN_APP_ID=your_app_id
 - 詳細は [SUPABASE_ERROR_CHECK_RESULT.md](./SUPABASE_ERROR_CHECK_RESULT.md) を参照
 - ✅ オフライン対応
 
+## 📚 開発ガイド
+
+### 重要なドキュメント
+- [Supabase使用方針](./docs/SUPABASE_USAGE_POLICY.md) - **必読**: 開発・本番環境でのSupabase利用について
+- [環境変数設定ガイド](./docs/EAS_ENVIRONMENT_VARIABLES.md) - EAS Buildとローカルでの環境変数設定
+- [モバイルアプリ開発ガイドライン](./モバイルアプリ開発ガイドライン) - Expo開発の指針
+
+### 開発の注意点
+- 🚨 **開発・本番環境では必ずオンラインのSupabaseを使用**（`npm run start`）
+- 🚨 **`npm run start:local`は通常の開発では使用しない**
+- 🚨 **認証情報をコードにハードコードしない**（環境変数を使用）
+
 ### 今後の実装予定
 - 🔄 CLIPベース画像推薦
 - 🔄 スタイル診断機能
