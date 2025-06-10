@@ -5,6 +5,7 @@ import { NetworkDiagnostics } from './NetworkDiagnostics';
 import { SupabaseConnectionTest } from '../SupabaseConnectionTest';
 import { runDeviceDiagnostics } from '../../tests/deviceDiagnostics';
 import { ConnectionDiagnostics } from './ConnectionDiagnostics';
+import { DirectSupabaseTest } from './DirectSupabaseTest';
 
 interface DevMenuProps {
   onClose: () => void;
@@ -20,6 +21,7 @@ export const DevMenu: React.FC<DevMenuProps> = ({ onClose }) => {
   const [showNetworkDiagnostics, setShowNetworkDiagnostics] = React.useState(false);
   const [showSupabaseTest, setShowSupabaseTest] = React.useState(false);
   const [showConnectionDiagnostics, setShowConnectionDiagnostics] = React.useState(false);
+  const [showDirectTest, setShowDirectTest] = React.useState(false);
 
   const handleRunTests = async () => {
     setIsRunning(true);
@@ -129,6 +131,15 @@ export const DevMenu: React.FC<DevMenuProps> = ({ onClose }) => {
             </Text>
           </TouchableOpacity>
 
+          <TouchableOpacity
+            style={[styles.button, { backgroundColor: '#9C27B0' }]}
+            onPress={() => setShowDirectTest(true)}
+          >
+            <Text style={styles.buttonText}>
+              🔬 直接接続テスト
+            </Text>
+          </TouchableOpacity>
+
           <ScrollView style={styles.results}>
             {testResults.map((result, index) => (
               <Text key={index} style={styles.resultText}>
@@ -184,6 +195,22 @@ export const DevMenu: React.FC<DevMenuProps> = ({ onClose }) => {
             <Text style={styles.modalCloseText}>閉じる</Text>
           </TouchableOpacity>
           <ConnectionDiagnostics />
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showDirectTest}
+        animationType="slide"
+        onRequestClose={() => setShowDirectTest(false)}
+      >
+        <View style={styles.modalContainer}>
+          <TouchableOpacity
+            style={styles.modalCloseButton}
+            onPress={() => setShowDirectTest(false)}
+          >
+            <Text style={styles.modalCloseText}>閉じる</Text>
+          </TouchableOpacity>
+          <DirectSupabaseTest />
         </View>
       </Modal>
     </>
