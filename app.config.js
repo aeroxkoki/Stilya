@@ -38,12 +38,17 @@ export default ({ config }) => {
           NSCameraUsageDescription: "Stilyaで自分のコーディネートを撮影するために、カメラへのアクセスが必要です。",
           NSUserTrackingUsageDescription: "あなたに最適なファッションアイテムを提案するために、パーソナライズされた広告を表示します。",
           ITSAppUsesNonExemptEncryption: false,
-          // 開発ビルド用のネットワーク設定
+          // 開発ビルド用のネットワーク設定（HTTPSのみ）
           NSAppTransportSecurity: {
-            NSAllowsArbitraryLoads: true, // 開発時のみ
+            NSAllowsArbitraryLoads: false, // HTTPSのみ許可
             NSExceptionDomains: {
-              "localhost": {
-                NSTemporaryExceptionAllowsInsecureHTTPLoads: true
+              "supabase.co": {
+                NSExceptionAllowsInsecureHTTPLoads: false,
+                NSIncludesSubdomains: true
+              },
+              "rakuten.co.jp": {
+                NSExceptionAllowsInsecureHTTPLoads: false,
+                NSIncludesSubdomains: true
               }
             }
           },
