@@ -3,94 +3,32 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform, AppState } from 'react-native';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../utils/env';
 
-// Force URL polyfill loading before Supabase initialization
-if (typeof globalThis.URL === 'undefined') {
-  require('react-native-url-polyfill/auto');
-}
+// URL polyfillの読み込み
+import 'react-native-url-polyfill/auto';
 
-// Supabase configuration from centralized environment variables
+// Supabase configuration
 const supabaseUrl = SUPABASE_URL.trim();
 const supabaseAnonKey = SUPABASE_ANON_KEY.trim();
 
 // 開発環境でのみデバッグ情報を表示
 if (__DEV__) {
-  console.log('[Supabase] Initializing...');
-  console.log('[Supabase] URL:', supabaseUrl);
-  console.log('[Supabase] Key:', supabaseAnonKey ? 'Set' : 'Not set');
-  console.log('[Supabase] Platform:', Platform.OS);
+  console.log('[Supabase] Initializing with URL:', supabaseUrl);
 }
 
-// 環境変数が設定されていない場合の警告
+// 環境変数チェック
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn(
-    '⚠️ Supabase環境変数が設定されていません。',
-    '\n1. .envファイルにEXPO_PUBLIC_SUPABASE_URLとEXPO_PUBLIC_SUPABASE_ANON_KEYを設定',
-    '\n2. または app.config.js の extra フィールドに supabaseUrl と supabaseAnonKey を設定してください。'
+  throw new Error(
+    'Supabase環境変数が設定されていません。.envファイルを確認してください。'
   );
 }
 
-// React Native用のカスタムfetch
-const customFetch = (url: RequestInfo | URL, options: RequestInit = {}) => {
-  const timeout = 30000; // 30 seconds
-  const controller = new AbortController();
-  
-  // URLを文字列に変換
-  const urlString = typeof url === 'string' ? url : url.toString();
-  
-  if (__DEV__) {
-    console.log('[Supabase] Fetch request:', urlString.substring(0, 50) + '...');
-  }
-  
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
-  
-  // React Native用のヘッダー設定
-  const headers = {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-    ...options.headers,
-  };
-  
-  return fetch(urlString, {
-    ...options,
-    headers,
-    signal: controller.signal,
-  })
-    .then(response => {
-      clearTimeout(timeoutId);
-      if (__DEV__) {
-        console.log('[Supabase] Fetch response:', response.status);
-      }
-      return response;
-    })
-    .catch(error => {
-      clearTimeout(timeoutId);
-      if (__DEV__) {
-        console.error('[Supabase] Fetch error:', error);
-      }
-      throw error;
-    });
-};
-
-// Create Supabase client with proper configuration for React Native
+// Create Supabase client - シンプルな設定
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: AsyncStorage,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
-    flowType: 'pkce',
-    debug: __DEV__, // 開発環境でのみデバッグを有効化
-  },
-  global: {
-    fetch: customFetch,
-    headers: {
-      'X-Client-Info': 'stilya-app/1.0.0',
-    },
-  },
-  // Disable realtime for MVP
-  realtime: {} as any, // realtimeを無効化（MVPでは使用しない）
-  db: {
-    schema: 'public',
   },
 });
 
@@ -120,11 +58,11 @@ export const cleanupSupabaseListeners = () => {
   }
 };
 
-// Database table definitions for type safety
+// Database table definitions
 export const TABLES = {
   USERS: 'users',
-  PRODUCTS: 'external_products', // 統一: external_productsを使用
-  EXTERNAL_PRODUCTS: 'external_products', // 互換性のため両方定義
+  PRODUCTS: 'external_products',
+  EXTERNAL_PRODUCTS: 'external_products',
   SWIPES: 'swipes',
   FAVORITES: 'favorites',
   CLICK_LOGS: 'click_logs',
@@ -145,26 +83,23 @@ interface SupabaseSuccess<T> {
 type SupabaseResult<T> = SupabaseSuccess<T> | SupabaseError;
 
 // Helper function to handle Supabase errors
-export const handleSupabaseError = (error: Error | { message: string } | any): SupabaseError => {
+export const handleSupabaseError = (error: any): SupabaseError => {
   if (__DEV__) {
-    console.error('Supabase error:', error);
+    console.error('[Supabase] Error:', error);
   }
   
-  let errorMessage = 'An unexpected error occurred';
+  let errorMessage = 'エラーが発生しました';
   
   if (error?.message) {
     errorMessage = error.message;
-  } else if (error?.error_description) {
-    errorMessage = error.error_description;
-  } else if (error?.msg) {
-    errorMessage = error.msg;
   } else if (typeof error === 'string') {
     errorMessage = error;
   }
   
-  // ネットワークエラーの場合、より親切なメッセージを表示
-  if (errorMessage.includes('Network request failed') || errorMessage.includes('fetch failed')) {
-    errorMessage = 'ネットワーク接続エラーが発生しました。インターネット接続を確認してください。';
+  // ネットワークエラーの場合
+  if (errorMessage.includes('Network request failed') || 
+      errorMessage.includes('fetch failed')) {
+    errorMessage = 'インターネット接続を確認してください';
   }
   
   return {
@@ -182,7 +117,7 @@ export const handleSupabaseSuccess = <T>(data: T): SupabaseSuccess<T> => {
   };
 };
 
-// Auth functions with better error handling
+// Auth functions
 export const signIn = async (email: string, password: string): Promise<SupabaseResult<any>> => {
   try {
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -290,7 +225,7 @@ export const getUserProfile = async (userId: string): Promise<SupabaseResult<any
       .from(TABLES.USERS)
       .select('*')
       .eq('id', userId)
-      .maybeSingle(); // .single()から.maybeSingle()に変更
+      .maybeSingle();
       
     if (error) throw error;
     return handleSupabaseSuccess(data);
@@ -315,7 +250,7 @@ export const updateUserProfile = async (userId: string, updates: any): Promise<S
   }
 };
 
-// ネットワーク接続テスト関数（開発用）
+// 接続テスト関数（シンプル化）
 export const testSupabaseConnection = async (): Promise<boolean> => {
   try {
     const { data, error } = await supabase.auth.getSession();

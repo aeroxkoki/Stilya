@@ -1,304 +1,216 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Modal } from 'react-native';
-import { runLocalTests } from '../../tests/localTests';
-import { NetworkDiagnostics } from './NetworkDiagnostics';
-import { SupabaseConnectionTest } from '../SupabaseConnectionTest';
-import { runDeviceDiagnostics } from '../../tests/deviceDiagnostics';
-import { ConnectionDiagnostics } from './ConnectionDiagnostics';
-import { DirectSupabaseTest } from './DirectSupabaseTest';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+  Alert,
+  Modal,
+} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '../../hooks/useAuth';
+import { runDiagnostics, formatDiagnosticsResult } from '../../tests/diagnostics';
+import { supabase } from '../../services/supabase';
 
 interface DevMenuProps {
   onClose: () => void;
 }
 
-/**
- * 開発メニューコンポーネント
- * MVPテストとネットワーク診断を実行するためのUIを提供
- */
 export const DevMenu: React.FC<DevMenuProps> = ({ onClose }) => {
-  const [testResults, setTestResults] = React.useState<string[]>([]);
-  const [isRunning, setIsRunning] = React.useState(false);
-  const [showNetworkDiagnostics, setShowNetworkDiagnostics] = React.useState(false);
-  const [showSupabaseTest, setShowSupabaseTest] = React.useState(false);
-  const [showConnectionDiagnostics, setShowConnectionDiagnostics] = React.useState(false);
-  const [showDirectTest, setShowDirectTest] = React.useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { user } = useAuth();
 
-  const handleRunTests = async () => {
-    setIsRunning(true);
-    setTestResults(['テスト実行中...']);
-    
-    // コンソールログをキャプチャ
-    const originalLog = console.log;
-    const logs: string[] = [];
-    
-    console.log = (...args) => {
-      logs.push(args.join(' '));
-      originalLog(...args);
-    };
-
+  const handleAction = async (action: string, fn: () => Promise<void>) => {
+    setIsLoading(true);
     try {
-      await runLocalTests();
-      setTestResults(logs);
+      await fn();
+      Alert.alert('成功', `${action}が完了しました`);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      setTestResults([...logs, `エラー: ${errorMessage}`]);
+      Alert.alert('エラー', `${action}に失敗しました: ${error}`);
     } finally {
-      console.log = originalLog;
-      setIsRunning(false);
+      setIsLoading(false);
     }
   };
 
-  const handleRunDiagnostics = async () => {
-    setIsRunning(true);
-    setTestResults(['診断実行中...']);
-    
-    // コンソールログをキャプチャ
-    const originalLog = console.log;
-    const logs: string[] = [];
-    
-    console.log = (...args) => {
-      logs.push(args.join(' '));
-      originalLog(...args);
-    };
-
-    try {
-      await runDeviceDiagnostics();
-      setTestResults(logs);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      setTestResults([...logs, `エラー: ${errorMessage}`]);
-    } finally {
-      console.log = originalLog;
-      setIsRunning(false);
-    }
+  // 診断実行
+  const runDiagnosticsTest = async () => {
+    const result = await runDiagnostics();
+    const formattedResult = formatDiagnosticsResult(result);
+    Alert.alert('診断結果', formattedResult);
   };
+
+  // キャッシュクリア
+  const clearCache = async () => {
+    await AsyncStorage.clear();
+  };
+
+  // スワイプ履歴クリア
+  const clearSwipeHistory = async () => {
+    if (!user) {
+      Alert.alert('エラー', 'ログインが必要です');
+      return;
+    }
+    
+    const { error } = await supabase
+      .from('swipes')
+      .delete()
+      .eq('user_id', user.id);
+      
+    if (error) throw error;
+  };
+
+  // テストユーザーでログイン
+  const loginTestUser = async () => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email: 'test@example.com',
+      password: 'testpassword123',
+    });
+    
+    if (error) throw error;
+  };
+
+  // ログアウト
+  const logout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+  };
+
+  const menuItems = [
+    { 
+      title: '🔍 診断を実行', 
+      action: () => handleAction('診断', runDiagnosticsTest),
+      disabled: false,
+    },
+    { 
+      title: '🗑️ キャッシュクリア', 
+      action: () => handleAction('キャッシュクリア', clearCache),
+      disabled: false,
+    },
+    { 
+      title: '🔄 スワイプ履歴クリア', 
+      action: () => handleAction('スワイプ履歴クリア', clearSwipeHistory),
+      disabled: !user,
+    },
+    { 
+      title: '👤 テストユーザーログイン', 
+      action: () => handleAction('テストユーザーログイン', loginTestUser),
+      disabled: !!user,
+    },
+    { 
+      title: '🚪 ログアウト', 
+      action: () => handleAction('ログアウト', logout),
+      disabled: !user,
+    },
+  ];
 
   return (
-    <>
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>🛠️ 開発メニュー</Text>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Text style={styles.closeText}>✕</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.content}>
-          <TouchableOpacity
-            style={[styles.button, isRunning && styles.buttonDisabled]}
-            onPress={handleRunTests}
-            disabled={isRunning}
-          >
-            <Text style={styles.buttonText}>
-              {isRunning ? '⏳ テスト実行中...' : '🧪 MVPテストを実行'}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.button, isRunning && styles.buttonDisabled, { backgroundColor: '#FF9800' }]}
-            onPress={handleRunDiagnostics}
-            disabled={isRunning}
-          >
-            <Text style={styles.buttonText}>
-              {isRunning ? '⏳ 診断実行中...' : '🔍 エラー診断を実行'}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => setShowNetworkDiagnostics(true)}
-          >
-            <Text style={styles.buttonText}>
-              🌐 ネットワーク診断
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => setShowSupabaseTest(true)}
-          >
-            <Text style={styles.buttonText}>
-              🔌 Supabase接続テスト
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.button, { backgroundColor: '#4CAF50' }]}
-            onPress={() => setShowConnectionDiagnostics(true)}
-          >
-            <Text style={styles.buttonText}>
-              🩺 詳細接続診断
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.button, { backgroundColor: '#9C27B0' }]}
-            onPress={() => setShowDirectTest(true)}
-          >
-            <Text style={styles.buttonText}>
-              🔬 直接接続テスト
-            </Text>
-          </TouchableOpacity>
-
-          <ScrollView style={styles.results}>
-            {testResults.map((result, index) => (
-              <Text key={index} style={styles.resultText}>
-                {result}
-              </Text>
+    <Modal
+      visible={true}
+      transparent={true}
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <View style={styles.overlay}>
+        <View style={styles.container}>
+          <View style={styles.header}>
+            <Text style={styles.title}>🛠 開発メニュー</Text>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <Text style={styles.closeText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <ScrollView style={styles.content}>
+            {user && (
+              <View style={styles.userInfo}>
+                <Text style={styles.userText}>ユーザー: {user.email}</Text>
+              </View>
+            )}
+            
+            {menuItems.map((item, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.menuItem,
+                  item.disabled && styles.menuItemDisabled,
+                ]}
+                onPress={item.action}
+                disabled={item.disabled || isLoading}
+              >
+                <Text style={[
+                  styles.menuItemText,
+                  item.disabled && styles.menuItemTextDisabled,
+                ]}>
+                  {item.title}
+                </Text>
+              </TouchableOpacity>
             ))}
           </ScrollView>
         </View>
       </View>
-
-      <Modal
-        visible={showNetworkDiagnostics}
-        animationType="slide"
-        onRequestClose={() => setShowNetworkDiagnostics(false)}
-      >
-        <View style={styles.modalContainer}>
-          <TouchableOpacity
-            style={styles.modalCloseButton}
-            onPress={() => setShowNetworkDiagnostics(false)}
-          >
-            <Text style={styles.modalCloseText}>閉じる</Text>
-          </TouchableOpacity>
-          <NetworkDiagnostics />
-        </View>
-      </Modal>
-
-      <Modal
-        visible={showSupabaseTest}
-        animationType="slide"
-        onRequestClose={() => setShowSupabaseTest(false)}
-      >
-        <View style={styles.modalContainer}>
-          <TouchableOpacity
-            style={styles.modalCloseButton}
-            onPress={() => setShowSupabaseTest(false)}
-          >
-            <Text style={styles.modalCloseText}>閉じる</Text>
-          </TouchableOpacity>
-          <SupabaseConnectionTest />
-        </View>
-      </Modal>
-
-      <Modal
-        visible={showConnectionDiagnostics}
-        animationType="slide"
-        onRequestClose={() => setShowConnectionDiagnostics(false)}
-      >
-        <View style={styles.modalContainer}>
-          <TouchableOpacity
-            style={styles.modalCloseButton}
-            onPress={() => setShowConnectionDiagnostics(false)}
-          >
-            <Text style={styles.modalCloseText}>閉じる</Text>
-          </TouchableOpacity>
-          <ConnectionDiagnostics />
-        </View>
-      </Modal>
-
-      <Modal
-        visible={showDirectTest}
-        animationType="slide"
-        onRequestClose={() => setShowDirectTest(false)}
-      >
-        <View style={styles.modalContainer}>
-          <TouchableOpacity
-            style={styles.modalCloseButton}
-            onPress={() => setShowDirectTest(false)}
-          >
-            <Text style={styles.modalCloseText}>閉じる</Text>
-          </TouchableOpacity>
-          <DirectSupabaseTest />
-        </View>
-      </Modal>
-    </>
+    </Modal>
   );
 };
 
 const styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   container: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
-    zIndex: 1000,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    width: '90%',
+    maxHeight: '80%',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
+    padding: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
+    borderBottomColor: '#eee',
   },
   title: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#fff',
   },
   closeButton: {
-    padding: 10,
+    padding: 5,
   },
   closeText: {
-    fontSize: 24,
-    color: '#fff',
+    fontSize: 20,
+    color: '#666',
   },
   content: {
-    flex: 1,
-    padding: 20,
+    padding: 15,
   },
-  button: {
-    backgroundColor: '#007AFF',
-    paddingVertical: 15,
-    paddingHorizontal: 20,
+  userInfo: {
+    backgroundColor: '#f0f0f0',
+    padding: 10,
+    borderRadius: 5,
+    marginBottom: 15,
+  },
+  userText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  menuItem: {
+    padding: 15,
+    backgroundColor: '#f8f8f8',
     borderRadius: 8,
     marginBottom: 10,
-    alignItems: 'center',
   },
-  buttonDisabled: {
-    opacity: 0.6,
+  menuItemDisabled: {
+    opacity: 0.5,
   },
-  buttonText: {
-    color: '#fff',
+  menuItemText: {
     fontSize: 16,
-    fontWeight: 'bold',
+    color: '#333',
   },
-  results: {
-    flex: 1,
-    marginTop: 20,
-    padding: 10,
-    backgroundColor: '#1a1a1a',
-    borderRadius: 8,
-  },
-  resultText: {
-    color: '#0f0',
-    fontFamily: 'monospace',
-    fontSize: 12,
-    marginBottom: 5,
-  },
-  modalContainer: {
-    flex: 1,
-    paddingTop: 40,
-    backgroundColor: '#fff',
-  },
-  modalCloseButton: {
-    position: 'absolute',
-    top: 50,
-    right: 20,
-    zIndex: 1,
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  modalCloseText: {
-    color: '#fff',
-    fontWeight: 'bold',
+  menuItemTextDisabled: {
+    color: '#999',
   },
 });
