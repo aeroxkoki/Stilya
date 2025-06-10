@@ -9,18 +9,28 @@ export const IS_LOCAL_SUPABASE = process.env.EXPO_PUBLIC_USE_LOCAL_SUPABASE === 
 
 // Supabase設定（ローカル/本番切り替え対応）
 const getSupabaseConfig = () => {
-  if (IS_LOCAL_SUPABASE || (IS_DEV && !process.env.EXPO_PUBLIC_SUPABASE_URL)) {
+  // 明示的にローカルSupabaseを使用する場合のみローカル設定を使用
+  if (IS_LOCAL_SUPABASE) {
+    console.log('[ENV] Using local Supabase (explicitly set)');
     // ローカルSupabase設定
     return {
       url: 'http://localhost:54321',
       anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
     };
   }
-  // 本番Supabase設定
-  return {
-    url: Constants.expoConfig?.extra?.supabaseUrl || process.env.EXPO_PUBLIC_SUPABASE_URL || '',
-    anonKey: Constants.expoConfig?.extra?.supabaseAnonKey || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || ''
-  };
+  
+  // 本番Supabase設定（デフォルト）
+  const url = Constants.expoConfig?.extra?.supabaseUrl || 
+              process.env.EXPO_PUBLIC_SUPABASE_URL || 
+              'https://ddypgpljprljqrblpuli.supabase.co'; // フォールバック
+              
+  const anonKey = Constants.expoConfig?.extra?.supabaseAnonKey || 
+                  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 
+                  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkeXBncGxqcHJsanFyYmxwdWxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcxMDMwOTcsImV4cCI6MjA2MjY3OTA5N30.u4310NL9FYdxcMSrGxEzEXP0M5y5pDuG3_mz7IRAhMU'; // フォールバック
+  
+  console.log('[ENV] Using online Supabase:', url);
+  
+  return { url, anonKey };
 };
 
 const supabaseConfig = getSupabaseConfig();
@@ -63,9 +73,10 @@ export const validateEnvVars = () => {
 
 // デバッグ用: 環境変数の確認（開発環境のみ）
 if (IS_DEV) {
-  console.log('Environment Variables Loaded:');
-  console.log('- SUPABASE_URL:', SUPABASE_URL ? 'Set' : 'Missing');
+  console.log('[ENV] Environment Variables Loaded:');
+  console.log('- SUPABASE_URL:', SUPABASE_URL);
   console.log('- SUPABASE_ANON_KEY:', SUPABASE_ANON_KEY ? 'Set' : 'Missing');
   console.log('- APP_VERSION:', APP_VERSION);
   console.log('- IS_DEV:', IS_DEV);
+  console.log('- IS_LOCAL_SUPABASE:', IS_LOCAL_SUPABASE);
 }
