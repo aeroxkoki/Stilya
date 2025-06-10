@@ -19,18 +19,7 @@
     "full-reset": "./scripts/full-reset.sh",
     "sync-products": "node scripts/sync-products.js",
     "sync-products:improved": "node scripts/sync-products-improved.js",
-    "test-db": "node scripts/test-database.js",
-    "supabase:start": "./scripts/start-supabase.sh",
-    "supabase:stop": "supabase stop",
-    "supabase:status": "supabase status",
-    "supabase:types": "supabase gen types typescript --local > src/types/database.types.ts",
-    "db:reset": "supabase db reset",
-    "db:migrate": "supabase migration new",
-    "db:push": "supabase db push",
-    "db:pull": "supabase db pull",
-    "db:diff": "supabase db diff --schema public",
-    "supabase:start-no-proxy": "./scripts/start-supabase-no-proxy.sh",
-    "docker:fix-proxy": "./scripts/fix-docker-proxy.sh"
+    "test-db": "node scripts/test-database.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.0",
@@ -64,7 +53,6 @@
     "metro": "^0.82.0",
     "metro-config": "^0.82.0",
     "metro-core": "^0.82.0",
-    "supabase": "^2.24.3",
     "typescript": "^5.3.0"
   },
   "private": true
