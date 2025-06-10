@@ -15,7 +15,7 @@ const supabaseAnonKey = SUPABASE_ANON_KEY.trim();
 // 開発環境でのみデバッグ情報を表示
 if (__DEV__) {
   console.log('[Supabase] Initializing...');
-  console.log('[Supabase] URL:', supabaseUrl ? 'Set' : 'Not set');
+  console.log('[Supabase] URL:', supabaseUrl);
   console.log('[Supabase] Key:', supabaseAnonKey ? 'Set' : 'Not set');
   console.log('[Supabase] Platform:', Platform.OS);
 }
@@ -29,17 +29,46 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-// Custom fetch with timeout and retry logic for production
+// React Native用のカスタムfetch
 const customFetch = (url: RequestInfo | URL, options: RequestInit = {}) => {
   const timeout = 30000; // 30 seconds
   const controller = new AbortController();
   
+  // URLを文字列に変換
+  const urlString = typeof url === 'string' ? url : url.toString();
+  
+  if (__DEV__) {
+    console.log('[Supabase] Fetch request:', urlString.substring(0, 50) + '...');
+  }
+  
   const timeoutId = setTimeout(() => controller.abort(), timeout);
   
-  return fetch(url, {
+  // React Native用のヘッダー設定
+  const headers = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    ...options.headers,
+  };
+  
+  return fetch(urlString, {
     ...options,
+    headers,
     signal: controller.signal,
-  }).finally(() => clearTimeout(timeoutId));
+  })
+    .then(response => {
+      clearTimeout(timeoutId);
+      if (__DEV__) {
+        console.log('[Supabase] Fetch response:', response.status);
+      }
+      return response;
+    })
+    .catch(error => {
+      clearTimeout(timeoutId);
+      if (__DEV__) {
+        console.error('[Supabase] Fetch error:', error);
+      }
+      throw error;
+    });
 };
 
 // Create Supabase client with proper configuration for React Native

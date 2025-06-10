@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Platform,
 } from 'react-native';
 import { testSupabaseConnection, supabase, checkNetworkConnection } from '@/services/supabase';
 import { SUPABASE_URL, SUPABASE_ANON_KEY, IS_LOCAL_SUPABASE } from '@/utils/env';
@@ -30,16 +31,21 @@ export const ConnectionDiagnostics: React.FC = () => {
     const testResults: TestResult[] = [];
 
     // 1. 環境変数チェック
+    const actualSupabaseUrl = SUPABASE_URL || '';
+    const actualSupabaseKey = SUPABASE_ANON_KEY || '';
+    
     testResults.push({
       test: '環境変数チェック',
-      status: SUPABASE_URL && SUPABASE_ANON_KEY ? 'success' : 'failure',
-      message: SUPABASE_URL && SUPABASE_ANON_KEY 
-        ? `URL: ${SUPABASE_URL}` 
+      status: actualSupabaseUrl && actualSupabaseKey ? 'success' : 'failure',
+      message: actualSupabaseUrl && actualSupabaseKey 
+        ? `URL設定済み` 
         : '環境変数が設定されていません',
       details: {
-        url: SUPABASE_URL || 'Not set',
-        key: SUPABASE_ANON_KEY ? 'Set' : 'Not set',
+        url: actualSupabaseUrl.substring(0, 30) + '...',
+        keyLength: actualSupabaseKey.length,
         isLocal: IS_LOCAL_SUPABASE,
+        platform: Platform.OS,
+        platformVersion: Platform.Version,
       }
     });
 
@@ -68,38 +74,73 @@ export const ConnectionDiagnostics: React.FC = () => {
       }
     });
 
-    // 4. Supabase URL アクセステスト
+    // 4. 基本的なHTTPSテスト（Google）
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒タイムアウト
-      
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/`, {
+      const testUrl = 'https://www.google.com';
+      const response = await fetch(testUrl, {
         method: 'HEAD',
-        signal: controller.signal,
       });
       
-      clearTimeout(timeoutId);
-      
       testResults.push({
-        test: 'Supabase URL到達性',
-        status: response.ok || response.status === 401 ? 'success' : 'failure',
+        test: 'HTTPS接続テスト（Google）',
+        status: response.ok || response.status > 0 ? 'success' : 'failure',
         message: `ステータス: ${response.status}`,
         details: {
-          url: SUPABASE_URL,
+          url: testUrl,
           status: response.status,
-          statusText: response.statusText,
         }
       });
     } catch (error: any) {
       testResults.push({
-        test: 'Supabase URL到達性',
+        test: 'HTTPS接続テスト（Google）',
         status: 'failure',
         message: `エラー: ${error.message}`,
         details: { error: error.message }
       });
     }
 
-    // 5. Supabase認証テスト
+    // 5. Supabase URL アクセステスト（改善版）
+    try {
+      const supabaseTestUrl = `${actualSupabaseUrl}/rest/v1/`;
+      console.log('[Diagnostics] Testing Supabase URL:', supabaseTestUrl);
+      
+      // iOS/Androidで異なるfetch設定を使用
+      const fetchOptions: RequestInit = {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'apikey': actualSupabaseKey,
+          'Authorization': `Bearer ${actualSupabaseKey}`,
+        },
+      };
+      
+      const response = await fetch(supabaseTestUrl, fetchOptions);
+      
+      testResults.push({
+        test: 'Supabase URL到達性',
+        status: response.status === 401 || response.status === 200 ? 'success' : 'failure',
+        message: `ステータス: ${response.status}`,
+        details: {
+          url: supabaseTestUrl,
+          status: response.status,
+          statusText: response.statusText,
+        }
+      });
+    } catch (error: any) {
+      console.error('[Diagnostics] Supabase URL test error:', error);
+      testResults.push({
+        test: 'Supabase URL到達性',
+        status: 'failure',
+        message: `エラー: ${error.message}`,
+        details: { 
+          error: error.message,
+          stack: error.stack,
+          url: actualSupabaseUrl,
+        }
+      });
+    }
+
+    // 6. Supabase認証テスト
     try {
       const connected = await testSupabaseConnection();
       testResults.push({
@@ -116,25 +157,32 @@ export const ConnectionDiagnostics: React.FC = () => {
       });
     }
 
-    // 6. データベース接続テスト
+    // 7. データベース接続テスト（改善版）
     try {
-      const { data, error } = await supabase
+      // より単純なクエリを使用
+      const { count, error } = await supabase
         .from('external_products')
-        .select('id')
-        .limit(1);
+        .select('*', { count: 'exact', head: true });
+      
+      if (error) throw error;
       
       testResults.push({
         test: 'データベース接続',
-        status: error ? 'failure' : 'success',
-        message: error ? `エラー: ${error.message}` : 'データベース接続成功',
-        details: { data, error }
+        status: 'success',
+        message: 'データベース接続成功',
+        details: { count }
       });
     } catch (error: any) {
+      console.error('[Diagnostics] Database test error:', error);
       testResults.push({
         test: 'データベース接続',
         status: 'failure',
         message: `エラー: ${error.message}`,
-        details: { error }
+        details: { 
+          error: error.message,
+          code: error.code,
+          details: error.details,
+        }
       });
     }
 
@@ -163,6 +211,9 @@ export const ConnectionDiagnostics: React.FC = () => {
         <Text style={styles.title}>接続診断ツール</Text>
         <Text style={styles.subtitle}>
           現在の接続状態: {isConnected ? '接続中' : '未接続'} ({connectionType})
+        </Text>
+        <Text style={styles.info}>
+          プラットフォーム: {Platform.OS} {Platform.Version}
         </Text>
       </View>
 
@@ -224,6 +275,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
   },
+  info: {
+    fontSize: 14,
+    color: '#888',
+    marginTop: 5,
+  },
   button: {
     backgroundColor: '#007AFF',
     padding: 15,
@@ -278,7 +334,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     marginTop: 5,
-    fontFamily: 'monospace',
+    fontFamily: Platform.select({ ios: 'Courier', android: 'monospace' }),
   },
   exportButton: {
     backgroundColor: '#666',
