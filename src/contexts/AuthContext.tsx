@@ -321,13 +321,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (error: any) {
       console.error('Error logging in:', error);
       
+      // デバッグ情報を追加
+      if (__DEV__) {
+        console.log('[AuthContext] Login error details:', {
+          email,
+          errorMessage: error.message,
+          errorCode: error.code,
+          errorStatus: error.status,
+          fullError: error
+        });
+      }
+      
       // エラーメッセージを整形
       let errorMessage = 'ログインに失敗しました';
       if (error.message) {
         if (error.message.includes('Invalid login credentials')) {
-          errorMessage = 'メールアドレスかパスワードが間違っています';
+          errorMessage = 'メールアドレスかパスワードが間違っています。\n\n最新のテストアカウント:\nメール: test1749564109932@stilya.com\nパスワード: StrongPass123!';
         } else if (error.message.includes('Email not confirmed')) {
           errorMessage = 'メールアドレスが確認されていません。メールをご確認ください';
+        } else if (error.message.includes('Invalid email')) {
+          errorMessage = '有効なメールアドレスを入力してください';
+        } else if (error.message.includes('Password')) {
+          errorMessage = 'パスワードは6文字以上で入力してください';
         } else {
           errorMessage = error.message;
         }
