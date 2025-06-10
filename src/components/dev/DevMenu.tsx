@@ -4,6 +4,7 @@ import { runLocalTests } from '../../tests/localTests';
 import { NetworkDiagnostics } from './NetworkDiagnostics';
 import { SupabaseConnectionTest } from '../SupabaseConnectionTest';
 import { runDeviceDiagnostics } from '../../tests/deviceDiagnostics';
+import { ConnectionDiagnostics } from './ConnectionDiagnostics';
 
 interface DevMenuProps {
   onClose: () => void;
@@ -18,6 +19,7 @@ export const DevMenu: React.FC<DevMenuProps> = ({ onClose }) => {
   const [isRunning, setIsRunning] = React.useState(false);
   const [showNetworkDiagnostics, setShowNetworkDiagnostics] = React.useState(false);
   const [showSupabaseTest, setShowSupabaseTest] = React.useState(false);
+  const [showConnectionDiagnostics, setShowConnectionDiagnostics] = React.useState(false);
 
   const handleRunTests = async () => {
     setIsRunning(true);
@@ -118,6 +120,15 @@ export const DevMenu: React.FC<DevMenuProps> = ({ onClose }) => {
             </Text>
           </TouchableOpacity>
 
+          <TouchableOpacity
+            style={[styles.button, { backgroundColor: '#4CAF50' }]}
+            onPress={() => setShowConnectionDiagnostics(true)}
+          >
+            <Text style={styles.buttonText}>
+              🩺 詳細接続診断
+            </Text>
+          </TouchableOpacity>
+
           <ScrollView style={styles.results}>
             {testResults.map((result, index) => (
               <Text key={index} style={styles.resultText}>
@@ -157,6 +168,22 @@ export const DevMenu: React.FC<DevMenuProps> = ({ onClose }) => {
             <Text style={styles.modalCloseText}>閉じる</Text>
           </TouchableOpacity>
           <SupabaseConnectionTest />
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showConnectionDiagnostics}
+        animationType="slide"
+        onRequestClose={() => setShowConnectionDiagnostics(false)}
+      >
+        <View style={styles.modalContainer}>
+          <TouchableOpacity
+            style={styles.modalCloseButton}
+            onPress={() => setShowConnectionDiagnostics(false)}
+          >
+            <Text style={styles.modalCloseText}>閉じる</Text>
+          </TouchableOpacity>
+          <ConnectionDiagnostics />
         </View>
       </Modal>
     </>
