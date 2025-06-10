@@ -13,8 +13,10 @@ import {
   isSessionExpired,
   createUserProfile,
   getUserProfile,
-  updateUserProfile
+  updateUserProfile,
+  testSupabaseConnection
 } from '../services/supabase';
+import { runNetworkDiagnostics, logDiagnosticResults } from '../services/networkDiagnostics';
 
 console.log('[AuthContext.tsx] 2. インポート完了');
 
@@ -54,6 +56,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       setLoading(true);
       setError(null);
+      
+      // ネットワーク接続をチェック
+      try {
+        // 詳細なネットワーク診断を実行
+        if (__DEV__) {
+          const diagnostics = await runNetworkDiagnostics();
+          logDiagnosticResults(diagnostics);
+        }
+        
+        const connectionTest = await testSupabaseConnection();
+        if (!connectionTest) {
+          throw new Error('Supabaseへの接続に失敗しました。インターネット接続を確認してください。');
+        }
+      } catch (networkError: any) {
+        console.error('[AuthContext] Network error:', networkError);
+        setError('インターネット接続を確認してください');
+        setLoading(false);
+        setIsInitialized(true);
+        return;
+      }
       
       // セッションを取得
       const { data: { session } } = await supabase.auth.getSession();

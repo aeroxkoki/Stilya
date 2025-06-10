@@ -29,6 +29,11 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
+    flowType: 'pkce',
+  },
+  global: {
+    // デフォルトのfetchを使用（カスタマイズを削除）
+    // React Nativeのfetchは既にタイムアウトを持っているため
   },
 });
 
@@ -250,19 +255,42 @@ export const updateUserProfile = async (userId: string, updates: any): Promise<S
   }
 };
 
-// 接続テスト関数（シンプル化）
+// 接続テスト関数（詳細なエラー情報を含む）
 export const testSupabaseConnection = async (): Promise<boolean> => {
   try {
+    if (__DEV__) {
+      console.log('[Supabase] Testing connection to:', supabaseUrl);
+    }
+    
+    // 認証APIの動作確認
     const { data, error } = await supabase.auth.getSession();
-    if (error) throw error;
+    if (error) {
+      if (__DEV__) {
+        console.error('[Supabase] Auth check error:', error);
+        console.error('[Supabase] Error details:', {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+          code: error.code,
+        });
+      }
+      return false;
+    }
     
     if (__DEV__) {
       console.log('[Supabase] Connection test successful');
     }
     return true;
-  } catch (error) {
+  } catch (error: any) {
     if (__DEV__) {
       console.error('[Supabase] Connection test failed:', error);
+      console.error('[Supabase] Error type:', error.constructor.name);
+      console.error('[Supabase] Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+        code: error.code,
+      });
     }
     return false;
   }
