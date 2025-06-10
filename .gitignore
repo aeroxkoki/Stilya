@@ -136,3 +136,8 @@ android/
 .temp
 supabase/.branches
 supabase/.temp
+
+# Supabase CLI (型生成専用)
+.supabase-types/
+supabase/
+# 注: src/types/database.types.ts はコミット対象

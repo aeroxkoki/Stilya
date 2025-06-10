@@ -160,8 +160,19 @@ RAKUTEN_APP_ID=your_app_id
 
 ### 重要なドキュメント
 - [Supabase使用方針](./docs/SUPABASE_USAGE_POLICY.md) - **必読**: 開発・本番環境でのSupabase利用について
+- [Supabase型生成ガイド](./docs/SUPABASE_TYPE_GENERATION.md) - TypeScript型の自動生成
 - [環境変数設定ガイド](./docs/EAS_ENVIRONMENT_VARIABLES.md) - EAS Buildとローカルでの環境変数設定
 - [モバイルアプリ開発ガイドライン](./モバイルアプリ開発ガイドライン) - Expo開発の指針
+
+### TypeScript型の管理
+データベーススキーマから型を自動生成できます：
+```bash
+# 型を生成
+npm run types:generate
+
+# 型チェックを実行
+npm run types:check
+```
 
 ### 開発の注意点
 - 🚨 **開発・本番環境では必ずオンラインのSupabaseを使用**（`npm run start`）
