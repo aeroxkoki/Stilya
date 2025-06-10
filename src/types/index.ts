@@ -109,7 +109,7 @@ export type OnboardingStackParamList = {
 
 export type SwipeStackParamList = {
   SwipeHome: undefined;
-  ProductDetail: { productId: string };
+  ProductDetail: { productId: string; from?: string };
 };
 
 export type RecommendStackParamList = {
