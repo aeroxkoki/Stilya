@@ -15,6 +15,7 @@ import { Product } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 import { useNetwork } from '../../contexts/NetworkContext';
 import SwipeCard from './SwipeCard';
+import QuickViewModal from './QuickViewModal';
 
 const { width } = Dimensions.get('window');
 const SWIPE_THRESHOLD = 120;
@@ -44,6 +45,8 @@ const SwipeContainer: React.FC<SwipeContainerProps> = ({
   const { isConnected } = useNetwork();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [showQuickView, setShowQuickView] = useState(false);
+  const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
   const loadMoreThreshold = useRef(5); // あと5枚になったら追加読み込み
   const currentProduct = products[currentIndex];
 
@@ -184,6 +187,34 @@ const SwipeContainer: React.FC<SwipeContainerProps> = ({
     }
   }, [currentProduct, onCardPress]);
 
+  // 商品カードの長押しイベント
+  const handleCardLongPress = useCallback(() => {
+    if (currentProduct) {
+      setQuickViewProduct(currentProduct);
+      setShowQuickView(true);
+    }
+  }, [currentProduct]);
+
+  // クイックビューから詳細画面への遷移
+  const handleQuickViewDetail = useCallback(() => {
+    if (quickViewProduct && onCardPress) {
+      onCardPress(quickViewProduct);
+    }
+  }, [quickViewProduct, onCardPress]);
+
+  // クイックビューからのスワイプ処理
+  const handleQuickViewSwipeLeft = useCallback(() => {
+    if (quickViewProduct) {
+      handleSwipeLeft(quickViewProduct);
+    }
+  }, [quickViewProduct, handleSwipeLeft]);
+
+  const handleQuickViewSwipeRight = useCallback(() => {
+    if (quickViewProduct) {
+      handleSwipeRight(quickViewProduct);
+    }
+  }, [quickViewProduct, handleSwipeRight]);
+
   // ローディング中の表示
   if (isLoading && products.length === 0) {
     return (
@@ -254,6 +285,7 @@ const SwipeContainer: React.FC<SwipeContainerProps> = ({
           <SwipeCard
             product={currentProduct}
             onPress={handleCardPress}
+            onLongPress={handleCardLongPress}
             onSwipeLeft={isConnected === false ? undefined : handleNoButtonPress}
             onSwipeRight={isConnected === false ? undefined : handleYesButtonPress}
             testID="current-swipe-card"
@@ -296,6 +328,16 @@ const SwipeContainer: React.FC<SwipeContainerProps> = ({
           残り {products.length - currentIndex} / {products.length} 件
         </Text>
       </View>
+
+      {/* クイックビューモーダル */}
+      <QuickViewModal
+        visible={showQuickView}
+        product={quickViewProduct}
+        onClose={() => setShowQuickView(false)}
+        onViewDetails={handleQuickViewDetail}
+        onSwipeLeft={handleQuickViewSwipeLeft}
+        onSwipeRight={handleQuickViewSwipeRight}
+      />
     </View>
   );
 };

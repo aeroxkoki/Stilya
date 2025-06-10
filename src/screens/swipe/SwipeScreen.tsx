@@ -79,7 +79,10 @@ const SwipeScreen: React.FC = () => {
   
   // 商品カードをタップした時の処理
   const handleCardPress = (product: Product) => {
-    navigation.navigate('ProductDetail', { productId: product.id });
+    navigation.navigate('ProductDetail', { 
+      productId: product.id,
+      from: 'swipe' // 遷移元を記録
+    });
   };
   
   // 残りのアイテムがなくなった場合のリロード

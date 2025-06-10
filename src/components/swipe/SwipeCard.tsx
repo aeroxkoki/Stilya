@@ -10,6 +10,7 @@ interface SwipeCardProps {
   onSwipeLeft?: () => void;
   onSwipeRight?: () => void;
   onPress?: () => void;
+  onLongPress?: () => void;
   testID?: string;
 }
 
@@ -22,6 +23,7 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
   onSwipeLeft,
   onSwipeRight,
   onPress,
+  onLongPress,
   testID
 }) => {
   // imageUrlとimage_urlの両方の形式に対応
@@ -41,6 +43,8 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
       <TouchableOpacity
         style={styles.cardContent}
         onPress={onPress}
+        onLongPress={onLongPress}
+        delayLongPress={500}
         testID="swipe-card-touch"
       >
         <Image
@@ -76,6 +80,12 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
               ))}
             </View>
           )}
+          
+          {/* 長押しインストラクション */}
+          <View style={styles.instructionContainer}>
+            <Ionicons name="finger-print-outline" size={14} color="rgba(255, 255, 255, 0.6)" />
+            <Text style={styles.instructionText}>長押しでクイックビュー</Text>
+          </View>
         </View>
         
         <View style={styles.actionButtons}>
@@ -168,6 +178,17 @@ const styles = StyleSheet.create({
   tagText: {
     color: 'white',
     fontSize: 12,
+  },
+  instructionContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    opacity: 0.8,
+  },
+  instructionText: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 12,
+    marginLeft: 4,
   },
   actionButtons: {
     position: 'absolute',
