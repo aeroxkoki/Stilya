@@ -4,7 +4,6 @@
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
     "start": "expo start",
-    "start:local": "EXPO_PUBLIC_USE_LOCAL_SUPABASE=true expo start",
     "start:prod": "expo start",
     "ios": "expo run:ios",
     "android": "expo run:android",
