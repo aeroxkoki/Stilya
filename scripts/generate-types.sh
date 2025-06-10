@@ -3,7 +3,7 @@
 # Supabase型生成スクリプト
 # このスクリプトはオンラインSupabaseから型定義を生成します
 
-PROJECT_REF="ycsydubuirflfuyqfshg"
+PROJECT_REF="ddypgpljprljqrblpuli"
 OUTPUT_FILE="src/types/database.types.ts"
 
 echo "🔄 Supabase型を生成中..."

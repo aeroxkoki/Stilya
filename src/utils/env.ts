@@ -9,7 +9,7 @@ export const IS_DEV = process.env.NODE_ENV === 'development';
 // Supabase設定（オンラインのみ）
 const getSupabaseConfig = () => {
   // プロジェクトIDに基づく正しいURL
-  const projectId = 'ycsydubuirflfuyqfshg';
+  const projectId = 'ddypgpljprljqrblpuli';
   
   const url = Constants.expoConfig?.extra?.supabaseUrl || 
               process.env.EXPO_PUBLIC_SUPABASE_URL || 

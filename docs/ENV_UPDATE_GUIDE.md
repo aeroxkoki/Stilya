@@ -1,21 +1,17 @@
 # 環境変数更新ガイド
 
-## 重要な変更（2025年6月10日）
+## 重要な変更（2025年1月15日）
 
 実機での「Network request failed」エラーを解決するため、Supabase URLを正しいプロジェクトIDに更新しました。
 
-### 更新が必要な環境変数
+### 正しい環境変数
 
-**.envファイル**を以下のように更新してください：
+**.envファイル**に以下の設定を使用してください：
 
 ```env
-# 古い値（削除）
+# 正しい値（必須）
 EXPO_PUBLIC_SUPABASE_URL=https://ddypgpljprljqrblpuli.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkeXBncGxqcHJsanFyYmxwdWxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcxMDMwOTcsImV4cCI6MjA2MjY3OTA5N30.u4310NL9FYdxcMSrGxEzEXP0M5y5pDuG3_mz7IRAhMU
-
-# 新しい値（必須）
-EXPO_PUBLIC_SUPABASE_URL=https://ycsydubuirflfuyqfshg.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inljc3lkdWJ1aXJmbGZ1eXFmc2hnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU1MzM0NDAsImV4cCI6MjA1MTEwOTQ0MH0.Zs8Jq4A8dyiHgdTEQqT8SkgdQGqr3CEzABXULV4vNFs
 ```
 
 ### 削除された設定
