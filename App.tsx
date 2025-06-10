@@ -16,14 +16,14 @@ import { DevMenu } from './src/components/dev/DevMenu';
 // Supabase
 import { initializeSupabaseListeners, cleanupSupabaseListeners } from './src/services/supabase';
 
-// 開発環境でのテスト
-if (__DEV__) {
-  import('./src/tests/authTest').then(module => {
-    console.log('[App.tsx] 認証テストモジュールをロード');
-  }).catch(error => {
-    console.error('[App.tsx] 認証テストモジュールのロードエラー:', error);
-  });
-}
+// 開発環境でのテスト（現在は無効化）
+// if (__DEV__) {
+//   import('./src/tests/authTest').then(module => {
+//     console.log('[App.tsx] 認証テストモジュールをロード');
+//   }).catch(error => {
+//     console.error('[App.tsx] 認証テストモジュールのロードエラー:', error);
+//   });
+// }
 
 // LogBoxの警告を無視
 if (__DEV__) {
