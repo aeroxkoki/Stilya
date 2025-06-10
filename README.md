@@ -42,10 +42,25 @@ cp .env.example .env
 
 ### 起動方法
 
-```bash
-# 開発サーバーの起動
-npm start
+#### 開発ビルド（推奨）
 
+Stilyaは**開発ビルド**を使用します。Expo Goは使用しません。
+
+```bash
+# 1. 開発ビルドを作成（初回のみ）
+npm run eas-build-development
+
+# 2. 開発サーバーの起動
+npm start  # --dev-clientフラグが自動的に付与されます
+
+# 3. 実機の開発ビルドアプリ（Stilya）で接続
+```
+
+詳細は [開発ビルド設定ガイド](./docs/DEVELOPMENT_BUILD_GUIDE.md) を参照してください。
+
+#### シミュレーター/エミュレーター
+
+```bash
 # iOSシミュレーターで起動
 npm run ios
 
@@ -159,10 +174,11 @@ RAKUTEN_APP_ID=your_app_id
 ## 📚 開発ガイド
 
 ### 重要なドキュメント
-- [Supabase使用方針](./docs/SUPABASE_USAGE_POLICY.md) - **必読**: 開発・本番環境でのSupabase利用について
+- [開発ビルド設定ガイド](./docs/DEVELOPMENT_BUILD_GUIDE.md) - **必読**: 開発ビルドの作成と使用方法
+- [Supabase使用方針](./docs/SUPABASE_USAGE_POLICY.md) - 開発・本番環境でのSupabase利用について
 - [Supabase型生成ガイド](./docs/SUPABASE_TYPE_GENERATION.md) - TypeScript型の自動生成
 - [環境変数設定ガイド](./docs/EAS_ENVIRONMENT_VARIABLES.md) - EAS Buildとローカルでの環境変数設定
-- [モバイルアプリ開発ガイドライン](./モバイルアプリ開発ガイドライン) - Expo開発の指針
+- [ネットワークエラー解決](./docs/NETWORK_ERROR_RESOLUTION.md) - 実機でのネットワークエラー対処法
 
 ### TypeScript型の管理
 データベーススキーマから型を自動生成できます：
@@ -175,8 +191,8 @@ npm run types:check
 ```
 
 ### 開発の注意点
-- 🚨 **開発・本番環境では必ずオンラインのSupabaseを使用**（`npm run start`）
-- 🚨 **`npm run start:local`は通常の開発では使用しない**
+- 🚨 **開発ビルドを使用**（Expo Goは使用しない）
+- 🚨 **開発・本番環境では必ずオンラインのSupabaseを使用**
 - 🚨 **認証情報をコードにハードコードしない**（環境変数を使用）
 
 ### 今後の実装予定
