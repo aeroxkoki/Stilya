@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Button, StyleSheet, ScrollView, Alert } from 'react-native';
 import { testSupabaseConnection, supabase } from '../services/supabase';
-import { SUPABASE_URL } from '../utils/env';
+import { SUPABASE_URL, RAKUTEN_APP_ID, RAKUTEN_AFFILIATE_ID } from '../utils/env';
 
 export const NetworkDebugScreen: React.FC = () => {
   const [results, setResults] = React.useState<string[]>([]);
@@ -18,6 +18,8 @@ export const NetworkDebugScreen: React.FC = () => {
     try {
       // Test 1: 環境変数の確認
       addResult(`Supabase URL: ${SUPABASE_URL}`);
+      addResult(`Rakuten App ID: ${RAKUTEN_APP_ID ? 'Set' : 'NOT SET'}`);
+      addResult(`Rakuten Affiliate ID: ${RAKUTEN_AFFILIATE_ID ? 'Set' : 'NOT SET'}`);
       
       // Test 2: 基本的なfetchテスト
       try {
@@ -52,6 +54,34 @@ export const NetworkDebugScreen: React.FC = () => {
         }
       } catch (error: any) {
         addResult(`Supabase API exception: ${error.message}`);
+      }
+      
+      // Test 5: 楽天APIテスト
+      if (RAKUTEN_APP_ID && RAKUTEN_AFFILIATE_ID) {
+        try {
+          addResult('Testing Rakuten API...');
+          const params = new URLSearchParams({
+            format: 'json',
+            keyword: 'test',
+            applicationId: RAKUTEN_APP_ID,
+            affiliateId: RAKUTEN_AFFILIATE_ID,
+            hits: '1',
+          });
+          
+          const url = `https://app.rakuten.co.jp/services/api/IchibaItem/Search/20220601?${params}`;
+          const response = await fetch(url);
+          
+          if (response.ok) {
+            const data = await response.json();
+            addResult(`Rakuten API: SUCCESS (${data.Items ? data.Items.length : 0} items)`);
+          } else {
+            addResult(`Rakuten API: Failed with status ${response.status}`);
+          }
+        } catch (error: any) {
+          addResult(`Rakuten API error: ${error.message}`);
+        }
+      } else {
+        addResult('Rakuten API: Skipped (no API keys)');
       }
       
     } catch (error: any) {
