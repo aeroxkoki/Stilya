@@ -1,11 +1,7 @@
-// Polyfills must be imported first
-import './src/lib/polyfills';
-
 import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-// import Toast from 'react-native-toast-message';
 import { TouchableOpacity, Text, View, LogBox } from 'react-native';
 
 // Components and Navigation
@@ -17,11 +13,8 @@ import { NetworkProvider } from './src/contexts/NetworkContext';
 import { ThemeProvider } from './src/contexts/ThemeContext';
 import { DevMenu } from './src/components/dev/DevMenu';
 
-// Supabase listeners
+// Supabase
 import { initializeSupabaseListeners, cleanupSupabaseListeners } from './src/services/supabase';
-
-// テスト実行用インポート（開発時のみ）
-import { runLocalTests } from './src/tests/localTests';
 
 // LogBoxの警告を無視
 if (__DEV__) {
@@ -33,27 +26,16 @@ if (__DEV__) {
 
 const App: React.FC = () => {
   const [showDevMenu, setShowDevMenu] = useState(false);
-  const [testMode] = useState(false); // MVPではテストモードは無効
 
   useEffect(() => {
     // Initialize Supabase listeners
     initializeSupabaseListeners();
     
-    // 開発モードでのみテスト実行（現在は無効）
-    if (__DEV__ && testMode) {
-      console.log('=== ローカルテスト実行開始 ===');
-      runLocalTests().then(() => {
-        console.log('=== ローカルテスト完了 ===');
-      }).catch((error) => {
-        console.error('=== ローカルテストエラー ===', error);
-      });
-    }
-    
     // Cleanup on unmount
     return () => {
       cleanupSupabaseListeners();
     };
-  }, [testMode]);
+  }, []);
 
   return (
     <View style={{ flex: 1 }}>
@@ -68,7 +50,7 @@ const App: React.FC = () => {
                     <AppNavigator />
                     
                     {/* 開発メニュー */}
-                    {__DEV__ && !testMode && (
+                    {__DEV__ && (
                       <>
                         <TouchableOpacity
                           style={{
@@ -89,8 +71,6 @@ const App: React.FC = () => {
                         )}
                       </>
                     )}
-                    
-                    {/* <Toast /> */}
                   </NavigationContainer>
                 </OnboardingProvider>
               </ProductProvider>

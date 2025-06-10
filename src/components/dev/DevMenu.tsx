@@ -12,6 +12,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../hooks/useAuth';
 import { runDiagnostics, formatDiagnosticsResult } from '../../tests/diagnostics';
 import { supabase } from '../../services/supabase';
+import { NetworkDebugScreen } from '../../screens/NetworkDebugScreen';
 
 interface DevMenuProps {
   onClose: () => void;
@@ -19,6 +20,7 @@ interface DevMenuProps {
 
 export const DevMenu: React.FC<DevMenuProps> = ({ onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [showNetworkDebug, setShowNetworkDebug] = useState(false);
   const { user } = useAuth();
 
   const handleAction = async (action: string, fn: () => Promise<void>) => {
@@ -83,6 +85,11 @@ export const DevMenu: React.FC<DevMenuProps> = ({ onClose }) => {
       disabled: false,
     },
     { 
+      title: '🌐 ネットワークデバッグ', 
+      action: () => setShowNetworkDebug(true),
+      disabled: false,
+    },
+    { 
       title: '🗑️ キャッシュクリア', 
       action: () => handleAction('キャッシュクリア', clearCache),
       disabled: false,
@@ -105,50 +112,71 @@ export const DevMenu: React.FC<DevMenuProps> = ({ onClose }) => {
   ];
 
   return (
-    <Modal
-      visible={true}
-      transparent={true}
-      animationType="slide"
-      onRequestClose={onClose}
-    >
-      <View style={styles.overlay}>
-        <View style={styles.container}>
-          <View style={styles.header}>
-            <Text style={styles.title}>🛠 開発メニュー</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Text style={styles.closeText}>✕</Text>
+    <>
+      {showNetworkDebug ? (
+        <Modal
+          visible={true}
+          transparent={false}
+          animationType="slide"
+          onRequestClose={() => setShowNetworkDebug(false)}
+        >
+          <View style={{ flex: 1, paddingTop: 50 }}>
+            <TouchableOpacity 
+              style={{ padding: 15, backgroundColor: '#f0f0f0' }}
+              onPress={() => setShowNetworkDebug(false)}
+            >
+              <Text style={{ fontSize: 16 }}>← 戻る</Text>
             </TouchableOpacity>
+            <NetworkDebugScreen />
           </View>
-          
-          <ScrollView style={styles.content}>
-            {user && (
-              <View style={styles.userInfo}>
-                <Text style={styles.userText}>ユーザー: {user.email}</Text>
+        </Modal>
+      ) : (
+        <Modal
+          visible={true}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={onClose}
+        >
+          <View style={styles.overlay}>
+            <View style={styles.container}>
+              <View style={styles.header}>
+                <Text style={styles.title}>🛠 開発メニュー</Text>
+                <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                  <Text style={styles.closeText}>✕</Text>
+                </TouchableOpacity>
               </View>
-            )}
-            
-            {menuItems.map((item, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.menuItem,
-                  item.disabled && styles.menuItemDisabled,
-                ]}
-                onPress={item.action}
-                disabled={item.disabled || isLoading}
-              >
-                <Text style={[
-                  styles.menuItemText,
-                  item.disabled && styles.menuItemTextDisabled,
-                ]}>
-                  {item.title}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      </View>
-    </Modal>
+              
+              <ScrollView style={styles.content}>
+                {user && (
+                  <View style={styles.userInfo}>
+                    <Text style={styles.userText}>ユーザー: {user.email}</Text>
+                  </View>
+                )}
+                
+                {menuItems.map((item, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.menuItem,
+                      item.disabled && styles.menuItemDisabled,
+                    ]}
+                    onPress={item.action}
+                    disabled={item.disabled || isLoading}
+                  >
+                    <Text style={[
+                      styles.menuItemText,
+                      item.disabled && styles.menuItemTextDisabled,
+                    ]}>
+                      {item.title}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+      )}
+    </>
   );
 };
 

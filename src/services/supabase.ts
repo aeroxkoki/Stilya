@@ -1,10 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform, AppState } from 'react-native';
+import { AppState, AppStateStatus } from 'react-native';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../utils/env';
-
-// URL polyfillの読み込み
-import 'react-native-url-polyfill/auto';
 
 // Supabase configuration
 const supabaseUrl = SUPABASE_URL.trim();
@@ -29,15 +26,10 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
-    flowType: 'pkce',
-  },
-  global: {
-    // デフォルトのfetchを使用（カスタマイズを削除）
-    // React Nativeのfetchは既にタイムアウトを持っているため
   },
 });
 
-// Proper AppState listener registration
+// AppState listener
 let appStateSubscription: any;
 
 export const initializeSupabaseListeners = () => {
@@ -47,7 +39,7 @@ export const initializeSupabaseListeners = () => {
   }
   
   // Register new listener
-  appStateSubscription = AppState.addEventListener('change', (state) => {
+  appStateSubscription = AppState.addEventListener('change', (state: AppStateStatus) => {
     if (state === 'active') {
       supabase.auth.startAutoRefresh();
     } else {
@@ -56,7 +48,6 @@ export const initializeSupabaseListeners = () => {
   });
 };
 
-// Call this in App.tsx useEffect
 export const cleanupSupabaseListeners = () => {
   if (appStateSubscription) {
     appStateSubscription.remove();
@@ -73,225 +64,18 @@ export const TABLES = {
   CLICK_LOGS: 'click_logs',
 } as const;
 
-// Type-safe error handling
-interface SupabaseError {
-  success: false;
-  error: string;
-}
-
-interface SupabaseSuccess<T> {
-  success: true;
-  data: T;
-  error: null;
-}
-
-type SupabaseResult<T> = SupabaseSuccess<T> | SupabaseError;
-
-// Helper function to handle Supabase errors
-export const handleSupabaseError = (error: any): SupabaseError => {
-  if (__DEV__) {
-    console.error('[Supabase] Error:', error);
-  }
-  
-  let errorMessage = 'エラーが発生しました';
-  
-  if (error?.message) {
-    errorMessage = error.message;
-  } else if (typeof error === 'string') {
-    errorMessage = error;
-  }
-  
-  // ネットワークエラーの場合
-  if (errorMessage.includes('Network request failed') || 
-      errorMessage.includes('fetch failed')) {
-    errorMessage = 'インターネット接続を確認してください';
-  }
-  
-  return {
-    success: false,
-    error: errorMessage,
-  };
-};
-
-// Helper function for successful responses
-export const handleSupabaseSuccess = <T>(data: T): SupabaseSuccess<T> => {
-  return {
-    success: true,
-    data,
-    error: null,
-  };
-};
-
-// Auth functions
-export const signIn = async (email: string, password: string): Promise<SupabaseResult<any>> => {
-  try {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
-      password,
-    });
-    
-    if (error) throw error;
-    return handleSupabaseSuccess(data);
-  } catch (error: any) {
-    return handleSupabaseError(error);
-  }
-};
-
-export const signUp = async (email: string, password: string): Promise<SupabaseResult<any>> => {
-  try {
-    const { data, error } = await supabase.auth.signUp({
-      email: email.trim().toLowerCase(),
-      password,
-      options: {
-        data: {
-          created_at: new Date().toISOString(),
-        },
-      },
-    });
-    
-    if (error) throw error;
-    return handleSupabaseSuccess(data);
-  } catch (error: any) {
-    return handleSupabaseError(error);
-  }
-};
-
-export const signOut = async (): Promise<SupabaseResult<null>> => {
-  try {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
-    return handleSupabaseSuccess(null);
-  } catch (error: any) {
-    return handleSupabaseError(error);
-  }
-};
-
-export const resetPassword = async (email: string): Promise<SupabaseResult<any>> => {
-  try {
-    const { data, error } = await supabase.auth.resetPasswordForEmail(email);
-    if (error) throw error;
-    return handleSupabaseSuccess(data);
-  } catch (error: any) {
-    return handleSupabaseError(error);
-  }
-};
-
-export const updatePassword = async (newPassword: string): Promise<SupabaseResult<any>> => {
-  try {
-    const { data, error } = await supabase.auth.updateUser({
-      password: newPassword,
-    });
-    if (error) throw error;
-    return handleSupabaseSuccess(data);
-  } catch (error: any) {
-    return handleSupabaseError(error);
-  }
-};
-
-export const refreshSession = async (): Promise<SupabaseResult<any>> => {
-  try {
-    const { data, error } = await supabase.auth.refreshSession();
-    if (error) throw error;
-    return handleSupabaseSuccess(data);
-  } catch (error: any) {
-    return handleSupabaseError(error);
-  }
-};
-
-export const isSessionExpired = (session: any): boolean => {
-  if (!session) return true;
-  
-  const expiresAt = session.expires_at;
-  if (!expiresAt) return true;
-  
-  const now = Date.now() / 1000;
-  return now > expiresAt;
-};
-
-// User profile functions
-export const createUserProfile = async (userId: string, profile: any): Promise<SupabaseResult<any>> => {
-  try {
-    const { data, error } = await supabase
-      .from(TABLES.USERS)
-      .insert([{ id: userId, ...profile }])
-      .select()
-      .single();
-      
-    if (error) throw error;
-    return handleSupabaseSuccess(data);
-  } catch (error: any) {
-    return handleSupabaseError(error);
-  }
-};
-
-export const getUserProfile = async (userId: string): Promise<SupabaseResult<any>> => {
-  try {
-    const { data, error } = await supabase
-      .from(TABLES.USERS)
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
-      
-    if (error) throw error;
-    return handleSupabaseSuccess(data);
-  } catch (error: any) {
-    return handleSupabaseError(error);
-  }
-};
-
-export const updateUserProfile = async (userId: string, updates: any): Promise<SupabaseResult<any>> => {
-  try {
-    const { data, error } = await supabase
-      .from(TABLES.USERS)
-      .update(updates)
-      .eq('id', userId)
-      .select()
-      .single();
-      
-    if (error) throw error;
-    return handleSupabaseSuccess(data);
-  } catch (error: any) {
-    return handleSupabaseError(error);
-  }
-};
-
-// 接続テスト関数（詳細なエラー情報を含む）
+// 接続テスト関数（シンプル版）
 export const testSupabaseConnection = async (): Promise<boolean> => {
   try {
-    if (__DEV__) {
-      console.log('[Supabase] Testing connection to:', supabaseUrl);
-    }
-    
-    // 認証APIの動作確認
     const { data, error } = await supabase.auth.getSession();
     if (error) {
-      if (__DEV__) {
-        console.error('[Supabase] Auth check error:', error);
-        console.error('[Supabase] Error details:', {
-          message: error.message,
-          stack: error.stack,
-          name: error.name,
-          code: error.code,
-        });
-      }
+      console.error('[Supabase] Connection test error:', error.message);
       return false;
     }
-    
-    if (__DEV__) {
-      console.log('[Supabase] Connection test successful');
-    }
+    console.log('[Supabase] Connection test successful');
     return true;
   } catch (error: any) {
-    if (__DEV__) {
-      console.error('[Supabase] Connection test failed:', error);
-      console.error('[Supabase] Error type:', error.constructor.name);
-      console.error('[Supabase] Error details:', {
-        message: error.message,
-        stack: error.stack,
-        name: error.name,
-        code: error.code,
-      });
-    }
+    console.error('[Supabase] Connection test failed:', error.message);
     return false;
   }
 };
