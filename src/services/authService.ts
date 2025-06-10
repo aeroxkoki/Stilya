@@ -24,6 +24,16 @@ export class AuthService {
   // User sign in
   static async signIn(email: string, password: string) {
     try {
+      // デバッグログ
+      console.log('[AuthService.signIn] メソッド開始');
+      console.log('[AuthService.signIn] supabase:', typeof supabase);
+      console.log('[AuthService.signIn] supabase.auth:', typeof supabase.auth);
+      console.log('[AuthService.signIn] supabase.auth.signInWithPassword:', typeof supabase.auth.signInWithPassword);
+      
+      if (!supabase || !supabase.auth || typeof supabase.auth.signInWithPassword !== 'function') {
+        throw new Error('Supabase auth.signInWithPassword メソッドが利用できません');
+      }
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -35,6 +45,7 @@ export class AuthService {
 
       return handleSupabaseSuccess(data);
     } catch (error) {
+      console.error('[AuthService.signIn] エラー発生:', error);
       return handleSupabaseError(error as Error | { message: string });
     }
   }

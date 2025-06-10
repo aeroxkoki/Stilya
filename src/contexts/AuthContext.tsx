@@ -4,18 +4,9 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { AuthState, User } from '../types';
 import {
   supabase,
-  signIn,
-  signUp,
-  signOut,
-  resetPassword,
-  updatePassword,
-  refreshSession,
-  isSessionExpired,
-  createUserProfile,
-  getUserProfile,
-  updateUserProfile,
   testSupabaseConnection
 } from '../services/supabase';
+import { AuthService } from '../services/authService';
 import { runNetworkDiagnostics, logDiagnosticResults } from '../services/networkDiagnostics';
 
 console.log('[AuthContext.tsx] 2. インポート完了');
@@ -39,6 +30,97 @@ interface AuthContextType extends AuthState {
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 console.log('[AuthContext.tsx] 3. AuthContext作成完了');
+
+// Helper functions for authentication
+const isSessionExpired = (session: any): boolean => {
+  if (!session || !session.expires_at) return true;
+  
+  const expiryTime = new Date(session.expires_at).getTime();
+  const currentTime = new Date().getTime();
+  const bufferTime = 5 * 60 * 1000; // 5 minutes buffer
+  
+  return currentTime > (expiryTime - bufferTime);
+};
+
+const refreshSession = async () => {
+  try {
+    const { data, error } = await supabase.auth.refreshSession();
+    if (error) return { success: false, error: error.message };
+    return { success: true, data };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+};
+
+const getUserProfile = async (userId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    
+    if (error) return { success: false, error: error.message };
+    return { success: true, data };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+};
+
+const createUserProfile = async (userId: string, profile: any) => {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .insert({
+        id: userId,
+        ...profile,
+        created_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+    
+    if (error) return { success: false, error: error.message };
+    return { success: true, data };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+};
+
+const updateUserProfile = async (userId: string, updates: any) => {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .update(updates)
+      .eq('id', userId)
+      .select()
+      .single();
+    
+    if (error) return { success: false, error: error.message };
+    return { success: true, data };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+};
+
+const resetPassword = async (email: string) => {
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    if (error) throw error;
+  } catch (error: any) {
+    throw error;
+  }
+};
+
+const updatePassword = async (newPassword: string) => {
+  try {
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword
+    });
+    if (error) throw error;
+  } catch (error: any) {
+    throw error;
+  }
+};
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   console.log('[AuthContext.tsx] 4. AuthProvider関数実行開始');
@@ -207,7 +289,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       setLoading(true);
       setError(null);
-      const result = await signIn(email, password);
+      const result = await AuthService.signIn(email, password);
       
       if (result.success && 'data' in result && result.data) {
         const { user, session } = result.data;
@@ -260,7 +342,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       setLoading(true);
       setError(null);
-      const result = await signUp(email, password);
+      const result = await AuthService.signUp(email, password);
       
       if (result.success && 'data' in result && result.data) {
         const { user, session } = result.data;
@@ -311,7 +393,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       setLoading(true);
       setError(null);
-      await signOut();
+      await AuthService.signOut();
       // テスト環境ではユーザーとセッションをそのままにしておく
       if (process.env.NODE_ENV === 'test') {
         setLoading(false);

@@ -79,3 +79,21 @@ export const testSupabaseConnection = async (): Promise<boolean> => {
     return false;
   }
 };
+
+// エラーハンドリングヘルパー関数
+export const handleSupabaseError = (error: Error | { message: string }) => {
+  const errorMessage = 'message' in error ? error.message : error.toString();
+  console.error('[Supabase Error]:', errorMessage);
+  return {
+    success: false,
+    error: errorMessage,
+  };
+};
+
+// 成功レスポンスヘルパー関数
+export const handleSupabaseSuccess = <T>(data: T) => {
+  return {
+    success: true,
+    data,
+  };
+};
