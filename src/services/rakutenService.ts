@@ -132,17 +132,12 @@ export const fetchRakutenFashionProducts = async (
       }
     }
     
-    // APIキーが設定されていない場合はモックデータを返す
+    // APIキーが設定されていない場合はエラーをスロー
     if (!RAKUTEN_APP_ID || !RAKUTEN_AFFILIATE_ID) {
-      console.log('[RakutenService] API keys not set, using mock data');
-      console.log('[RakutenService] RAKUTEN_APP_ID:', RAKUTEN_APP_ID ? 'Set' : 'Missing');
-      console.log('[RakutenService] RAKUTEN_AFFILIATE_ID:', RAKUTEN_AFFILIATE_ID ? 'Set' : 'Missing');
-      const mockProducts = generateMockProducts(keyword || 'fashion', hits);
-      return {
-        products: mockProducts,
-        totalProducts: mockProducts.length,
-        pageCount: 1,
-      };
+      console.error('[RakutenService] API keys not set!');
+      console.error('[RakutenService] RAKUTEN_APP_ID:', RAKUTEN_APP_ID ? 'Set' : 'Missing');
+      console.error('[RakutenService] RAKUTEN_AFFILIATE_ID:', RAKUTEN_AFFILIATE_ID ? 'Set' : 'Missing');
+      throw new Error('Rakuten API keys are not configured');
     }
     
     console.log('[RakutenService] API keys are set, proceeding with real API call');
@@ -234,18 +229,6 @@ export const fetchRakutenFashionProducts = async (
     return result;
   } catch (error: any) {
     console.error('[RakutenService] Error fetching products:', error);
-    
-    // エラー時はモックデータを返す
-    if (IS_DEV) {
-      console.log('[RakutenService] Returning mock data due to error');
-      const mockProducts = generateMockProducts(keyword || 'fashion', hits);
-      return {
-        products: mockProducts,
-        totalProducts: mockProducts.length,
-        pageCount: 1,
-      };
-    }
-    
     throw error;
   }
 };

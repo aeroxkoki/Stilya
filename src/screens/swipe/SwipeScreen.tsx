@@ -108,10 +108,13 @@ const SwipeScreen: React.FC = () => {
     return (
       <>
         <SwipeContainer
-          products={products.slice(currentIndex)}
+          products={products}
           onSwipe={handleSwipe}
           onCardPress={handleCardPress}
           isLoading={loading}
+          currentIndex={currentIndex}
+          onLoadMore={loadMore}
+          hasMoreProducts={hasMore}
         />
         <View style={styles.actionButtonsContainer}>
           <ActionButtons

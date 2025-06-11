@@ -29,6 +29,7 @@ interface SwipeContainerProps {
   onLoadMore?: () => Promise<void>;
   hasMoreProducts?: boolean;
   testID?: string;
+  currentIndex?: number; // 外部から現在のインデックスを受け取る
 }
 
 const SwipeContainer: React.FC<SwipeContainerProps> = ({
@@ -40,14 +41,18 @@ const SwipeContainer: React.FC<SwipeContainerProps> = ({
   onLoadMore,
   hasMoreProducts = false,
   testID,
+  currentIndex: externalIndex, // 外部から渡されたインデックス
 }) => {
   const { user } = useAuth();
   const { isConnected } = useNetwork();
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [internalIndex, setInternalIndex] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
   const [showQuickView, setShowQuickView] = useState(false);
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
   const loadMoreThreshold = useRef(5); // あと5枚になったら追加読み込み
+  
+  // 外部のインデックスが提供されていればそれを使う、なければ内部の状態を使う
+  const currentIndex = externalIndex !== undefined ? externalIndex : internalIndex;
   const currentProduct = products[currentIndex];
 
   // アニメーション値
@@ -95,8 +100,10 @@ const SwipeContainer: React.FC<SwipeContainerProps> = ({
       if (onSwipe) {
         onSwipe(product, direction);
       }
-      // 次のカードへ
-      setCurrentIndex(prevIndex => prevIndex + 1);
+      // 外部インデックスが提供されていない場合のみ、内部インデックスを更新
+      if (externalIndex === undefined) {
+        setInternalIndex(prevIndex => prevIndex + 1);
+      }
       // ポジションをリセット
       position.setValue({ x: 0, y: 0 });
       swipeIndicatorOpacity.setValue(0);
