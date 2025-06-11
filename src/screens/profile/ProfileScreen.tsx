@@ -5,7 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Button, Card } from '@/components/common';
 import { useAuth } from '@/contexts/AuthContext';
-import { useProducts } from '@/contexts/ProductContext';
+import { useProductStore } from '@/store/productStore';
 import { ProfileStackParamList } from '@/types';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -20,7 +20,7 @@ const ProfileScreen: React.FC = () => {
     swipeHistory,
     getFavorites,
     getSwipeHistory
-  } = useProducts();
+  } = useProductStore();
 
   // 初回表示時にデータを取得
   useEffect(() => {
