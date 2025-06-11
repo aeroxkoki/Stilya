@@ -65,6 +65,7 @@ const rateLimitedApiCall = async (url: string, retryCount = 0): Promise<any> => 
   lastApiCallTime = Date.now();
   
   try {
+    console.log('[RakutenService] Making API request...');
     const response = await fetch(url, {
       method: 'GET',
       headers: {
@@ -73,6 +74,8 @@ const rateLimitedApiCall = async (url: string, retryCount = 0): Promise<any> => 
       },
     });
     
+    console.log('[RakutenService] Response status:', response.status);
+    
     if (response.status === 429 && retryCount < MAX_RETRIES) {
       console.log(`楽天APIレート制限に達しました。${RETRY_DELAY / 1000}秒後にリトライします... (${retryCount + 1}/${MAX_RETRIES})`);
       await sleep(RETRY_DELAY);
@@ -80,13 +83,15 @@ const rateLimitedApiCall = async (url: string, retryCount = 0): Promise<any> => 
     }
     
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorText = await response.text();
+      console.error('[RakutenService] API Error Response:', errorText);
+      throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
     }
     
     const data = await response.json();
     return data;
   } catch (error: any) {
-    console.error('[RakutenService] API call error:', error);
+    console.error('[RakutenService] API call error:', error.message || error);
     throw error;
   }
 };
@@ -105,6 +110,15 @@ export const fetchRakutenFashionProducts = async (
   totalProducts: number;
   pageCount: number;
 }> => {
+  console.log('[RakutenService] fetchRakutenFashionProducts called with:', {
+    keyword,
+    genreId,
+    page,
+    hits,
+    forceRefresh,
+    RAKUTEN_APP_ID: RAKUTEN_APP_ID ? 'Set' : 'Not set',
+    RAKUTEN_AFFILIATE_ID: RAKUTEN_AFFILIATE_ID ? 'Set' : 'Not set'
+  });
   // キャッシュキーの生成
   const cacheKey = `fashion_${genreId}_${keyword || 'all'}_${page}_${hits}`;
   
@@ -144,11 +158,20 @@ export const fetchRakutenFashionProducts = async (
     
     const url = `https://app.rakuten.co.jp/services/api/IchibaItem/Search/20220601?${params}`;
     
+    console.log('[RakutenService] API Request URL:', url);
+    console.log('[RakutenService] API Parameters:', Object.fromEntries(params));
     console.log('[RakutenService] Fetching from API...');
     const data = await rateLimitedApiCall(url);
     
+    console.log('[RakutenService] API Response received:', {
+      hasData: !!data,
+      hasItems: !!data?.Items,
+      itemCount: data?.Items?.length || 0,
+      error: data?.error
+    });
+    
     if (!data || !data.Items) {
-      console.error('Invalid response from Rakuten API');
+      console.error('[RakutenService] Invalid response from Rakuten API:', data);
       return {
         products: [],
         totalProducts: 0,
