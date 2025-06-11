@@ -65,8 +65,8 @@ export const DevMenu: React.FC<DevMenuProps> = ({ onClose }) => {
   // テストユーザーでログイン
   const loginTestUser = async () => {
     const { error } = await supabase.auth.signInWithPassword({
-      email: 'test@example.com',
-      password: 'testpassword123',
+      email: 'test1749564109932@stilya.com',
+      password: 'StrongPass123!',
     });
     
     if (error) throw error;
