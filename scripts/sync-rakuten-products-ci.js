@@ -7,6 +7,50 @@
 const { createClient } = require('@supabase/supabase-js');
 const axios = require('axios');
 
+// enhanced-tag-extractorモジュールの安全な読み込み
+let extractEnhancedTags;
+try {
+  const path = require('path');
+  const tagExtractorPath = path.join(__dirname, 'enhanced-tag-extractor.js');
+  const tagExtractor = require(tagExtractorPath);
+  extractEnhancedTags = tagExtractor.extractEnhancedTags;
+  console.log('✅ 高精度タグ抽出モジュールを読み込みました');
+} catch (error) {
+  console.warn('⚠️ 高精度タグ抽出モジュールが見つかりません。基本的なタグ抽出を使用します。');
+  console.warn('エラー詳細:', error.message);
+  
+  // フォールバック: 基本的なタグ抽出
+  extractEnhancedTags = function(product) {
+    const tags = [];
+    const itemName = product.itemName || '';
+    const keywords = {
+      'ワンピース': 'ワンピース',
+      'シャツ': 'シャツ',
+      'ブラウス': 'ブラウス',
+      'スカート': 'スカート',
+      'パンツ': 'パンツ',
+      'ジャケット': 'ジャケット',
+      'コート': 'コート',
+      'ニット': 'ニット',
+      'カーディガン': 'カーディガン',
+      'Tシャツ': 'Tシャツ',
+      'デニム': 'デニム',
+      'カジュアル': 'カジュアル',
+      'フォーマル': 'フォーマル',
+      'オフィス': 'オフィス'
+    };
+
+    Object.entries(keywords).forEach(([key, tag]) => {
+      if (itemName.includes(key)) {
+        tags.push(tag);
+      }
+    });
+
+    tags.push('レディース');
+    return [...new Set(tags)];
+  };
+}
+
 // 環境変数から直接取得（GitHub Secretsから）
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
@@ -109,6 +153,9 @@ async function saveProducts(products) {
 
     // バッチで挿入（upsertを使用して重複を防ぐ）
     const batchSize = 50;
+    let successCount = 0;
+    let errorCount = 0;
+    
     for (let i = 0; i < productsToInsert.length; i += batchSize) {
       const batch = productsToInsert.slice(i, i + batchSize);
       
@@ -117,24 +164,25 @@ async function saveProducts(products) {
         .upsert(batch, { onConflict: 'id' });
 
       if (error) {
+        errorCount += batch.length;
         console.error(`❌ バッチ ${Math.floor(i/batchSize) + 1} エラー:`, error.message);
         if (error.message.includes('row-level security')) {
           console.error('⚠️  RLSポリシーエラー: SUPABASE_SERVICE_KEYが必要です');
           throw error;
         }
       } else {
+        successCount += batch.length;
         console.log(`✅ バッチ ${Math.floor(i/batchSize) + 1}/${Math.ceil(productsToInsert.length/batchSize)} 完了`);
       }
     }
+    
+    console.log(`\\n📊 保存結果: 成功 ${successCount}件 / エラー ${errorCount}件`);
 
   } catch (error) {
     console.error('❌ 保存エラー:', error);
     throw error;
   }
 }
-
-// 高精度タグ抽出モジュールをインポート
-const { extractEnhancedTags } = require('./enhanced-tag-extractor');
 
 /**
  * 商品からタグを抽出（高精度版）
@@ -202,6 +250,10 @@ async function main() {
     console.error('エラーメッセージ:', error.message);
     if (error.response) {
       console.error('APIレスポンス:', error.response.data);
+    }
+    if (error.stack) {
+      console.error('\\nスタックトレース:');
+      console.error(error.stack);
     }
     
     process.exit(1);
