@@ -17,13 +17,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { ProductCard, Button } from '@/components/common';
 import { useProductStore } from '@/store/productStore';
 import { useAuthStore } from '@/store/authStore';
-import { Product, RootStackParamList } from '@/types';
+import { Product, ProfileStackParamList } from '@/types';
 
 const { width } = Dimensions.get('window');
 const COLUMN_NUM = 2;
 const CARD_WIDTH = (width - 32 - 8 * (COLUMN_NUM - 1)) / COLUMN_NUM; // Padding + Gap
 
-type NavigationProp = StackNavigationProp<RootStackParamList>;
+type NavigationProp = StackNavigationProp<ProfileStackParamList>;
 
 const FavoritesScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();

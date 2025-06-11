@@ -122,6 +122,7 @@ export type ProfileStackParamList = {
   Settings: undefined;
   Favorites: undefined;
   SwipeHistory: undefined;
+  ProductDetail: { productId: string };
 };
 
 export type ReportStackParamList = {

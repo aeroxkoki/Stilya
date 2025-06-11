@@ -5,6 +5,7 @@ import ProfileScreen from '@/screens/profile/ProfileScreen';
 import SettingsScreen from '@/screens/profile/SettingsScreen';
 import FavoritesScreen from '@/screens/profile/FavoritesScreen';
 import SwipeHistoryScreen from '@/screens/profile/SwipeHistoryScreen';
+import ProductDetailScreen from '@/screens/detail/ProductDetailScreen';
 
 const Stack = createStackNavigator<ProfileStackParamList>();
 
@@ -20,6 +21,7 @@ const ProfileNavigator: React.FC = () => {
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="Favorites" component={FavoritesScreen} />
       <Stack.Screen name="SwipeHistory" component={SwipeHistoryScreen} />
+      <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
     </Stack.Navigator>
   );
 };
