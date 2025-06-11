@@ -132,9 +132,9 @@ export const fetchRakutenFashionProducts = async (
       }
     }
     
-    // 開発環境でAPIキーが設定されていない場合はモックデータを返す
+    // APIキーが設定されていない場合はモックデータを返す
     if (!RAKUTEN_APP_ID || !RAKUTEN_AFFILIATE_ID) {
-      console.log('Rakuten API keys not set, using mock data');
+      console.log('[RakutenService] API keys not set, using mock data');
       const mockProducts = generateMockProducts(keyword || 'fashion', hits);
       return {
         products: mockProducts,
@@ -151,12 +151,16 @@ export const fetchRakutenFashionProducts = async (
       page: page.toString(),
       hits: hits.toString(),
       applicationId: RAKUTEN_APP_ID,
-      affiliateId: RAKUTEN_AFFILIATE_ID,
+      // affiliateIdは存在する場合のみ追加
+      ...(RAKUTEN_AFFILIATE_ID ? { affiliateId: RAKUTEN_AFFILIATE_ID } : {}),
       sort: '+updateTimestamp', // 新着順
       imageFlag: '1', // 画像ありのみ
     });
     
-    const url = `https://app.rakuten.co.jp/services/api/IchibaItem/Search/20220601?${params}`;
+    // APIのURLを最新バージョンに更新
+    const url = `https://app.rakuten.co.jp/services/api/IchibaItem/Search/20170706?${params}`;
+    
+    console.log('[RakutenService] API URL:', url.replace(RAKUTEN_APP_ID, 'APP_ID_HIDDEN'));
     
     console.log('[RakutenService] Fetching from API...');
     const data = await rateLimitedApiCall(url);
@@ -171,40 +175,48 @@ export const fetchRakutenFashionProducts = async (
     }
     
     // APIレスポンスをProduct型に変換
-    const products: Product[] = data.Items.map((item: any) => {
-      const productItem = item.Item || item;
-      
-      // タグの生成
-      const tags: string[] = [];
-      if (productItem.itemName) {
-        // 商品名から簡単なタグを抽出
-        if (productItem.itemName.includes('ワンピース')) tags.push('ワンピース');
-        if (productItem.itemName.includes('トップス')) tags.push('トップス');
-        if (productItem.itemName.includes('パンツ')) tags.push('パンツ');
-        if (productItem.itemName.includes('スカート')) tags.push('スカート');
-        if (productItem.itemName.includes('アウター')) tags.push('アウター');
-        if (productItem.itemName.includes('バッグ')) tags.push('バッグ');
-        if (productItem.itemName.includes('シューズ') || productItem.itemName.includes('靴')) tags.push('シューズ');
-      }
-      
-      // ジャンルIDに基づくタグ
-      if (genreId === 100371) tags.push('レディース');
-      if (genreId === 551177) tags.push('メンズ');
-      
-      return {
-        id: productItem.itemCode || `rakuten_${Date.now()}_${Math.random()}`,
-        title: productItem.itemName || '商品名なし',
-        price: productItem.itemPrice || 0,
-        brand: productItem.shopName || 'ブランド不明',
-        imageUrl: productItem.mediumImageUrls?.[0]?.imageUrl || productItem.imageUrl || '',
-        description: productItem.itemCaption || '',
-        tags: tags,
-        category: 'ファッション',
-        affiliateUrl: productItem.affiliateUrl || productItem.itemUrl || '',
-        source: 'rakuten',
-        createdAt: new Date().toISOString(),
-      };
-    });
+    const products: Product[] = data.Items
+      .map((item: any) => {
+        const productItem = item.Item || item;
+        
+        // 必須項目のチェック
+        if (!productItem.itemCode || !productItem.itemName || !productItem.itemPrice) {
+          console.warn('[RakutenService] Skipping invalid product:', productItem);
+          return null;
+        }
+        
+        // タグの生成
+        const tags: string[] = [];
+        if (productItem.itemName) {
+          // 商品名から簡単なタグを抽出
+          if (productItem.itemName.includes('ワンピース')) tags.push('ワンピース');
+          if (productItem.itemName.includes('トップス')) tags.push('トップス');
+          if (productItem.itemName.includes('パンツ')) tags.push('パンツ');
+          if (productItem.itemName.includes('スカート')) tags.push('スカート');
+          if (productItem.itemName.includes('アウター')) tags.push('アウター');
+          if (productItem.itemName.includes('バッグ')) tags.push('バッグ');
+          if (productItem.itemName.includes('シューズ') || productItem.itemName.includes('靴')) tags.push('シューズ');
+        }
+        
+        // ジャンルIDに基づくタグ
+        if (genreId === 100371) tags.push('レディース');
+        if (genreId === 551177) tags.push('メンズ');
+        
+        return {
+          id: productItem.itemCode,
+          title: productItem.itemName,
+          price: productItem.itemPrice,
+          brand: productItem.shopName || 'ブランド不明',
+          imageUrl: productItem.mediumImageUrls?.[0]?.imageUrl || productItem.imageUrl || '',
+          description: productItem.itemCaption || '',
+          tags: tags,
+          category: 'ファッション',
+          affiliateUrl: productItem.affiliateUrl || productItem.itemUrl || '',
+          source: 'rakuten',
+          createdAt: new Date().toISOString(),
+        };
+      })
+      .filter((product: Product | null) => product !== null); // 無効な商品を除外
     
     const result = {
       products,

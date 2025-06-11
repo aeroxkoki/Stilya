@@ -3,11 +3,11 @@
  * @param price 価格（数値）
  * @returns フォーマットされた価格文字列（例: "¥1,000"）
  */
-const formatPrice = (price: number | undefined | null): string => {
-  // 価格が存在しない場合のエラーハンドリング
-  if (price === undefined || price === null || isNaN(price)) {
+const formatPrice = (price: number): string => {
+  // 価格が不正な値の場合のチェック（0は許可）
+  if (price < 0 || isNaN(price)) {
     console.warn('[formatPrice] Invalid price value:', price);
-    return '¥0';
+    return '価格情報なし';
   }
   
   try {
