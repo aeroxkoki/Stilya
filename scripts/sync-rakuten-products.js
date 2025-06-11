@@ -135,45 +135,14 @@ async function saveProducts(products) {
   }
 }
 
+// 高精度タグ抽出モジュールをインポート
+const { extractEnhancedTags } = require('./enhanced-tag-extractor');
+
 /**
- * 商品からタグを抽出
+ * 商品からタグを抽出（高精度版）
  */
 function extractTags(product) {
-  const tags = [];
-  
-  // 商品名から特徴を抽出
-  const itemName = product.itemName || '';
-  const keywords = {
-    'ワンピース': 'ワンピース',
-    'シャツ': 'シャツ',
-    'ブラウス': 'ブラウス',
-    'スカート': 'スカート',
-    'パンツ': 'パンツ',
-    'ジャケット': 'ジャケット',
-    'コート': 'コート',
-    'ニット': 'ニット',
-    'カーディガン': 'カーディガン',
-    'Tシャツ': 'Tシャツ',
-    'デニム': 'デニム',
-    'カジュアル': 'カジュアル',
-    'フォーマル': 'フォーマル',
-    'オフィス': 'オフィス',
-    '春': '春',
-    '夏': '夏',
-    '秋': '秋', 
-    '冬': '冬'
-  };
-
-  Object.entries(keywords).forEach(([key, tag]) => {
-    if (itemName.includes(key)) {
-      tags.push(tag);
-    }
-  });
-
-  // レディースタグを追加
-  tags.push('レディース');
-
-  return [...new Set(tags)]; // 重複を除去
+  return extractEnhancedTags(product);
 }
 
 /**
