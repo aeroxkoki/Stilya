@@ -87,6 +87,8 @@ export const useProducts = (): UseProductsReturn => {
           totalFetched: 0
         });
         setError(null);
+        // リセット時はスワイプ履歴もクリア（重要）
+        swipedProductsRef.current.clear();
       } else if (!productsData.hasMore) {
         loadingRef.current = false;
         return;
@@ -95,8 +97,11 @@ export const useProducts = (): UseProductsReturn => {
       // ローディング状態を管理
       setIsLoading(prevState => reset ? true : prevState);
       
-      // 商品データを取得
-      const response = await fetchProducts(pageSize, page * pageSize);
+      // 商品データを取得（現在のページを使用）
+      const currentPage = reset ? 0 : page;
+      console.log('[useProducts] Loading products - page:', currentPage, 'offset:', currentPage * pageSize);
+      
+      const response = await fetchProducts(pageSize, currentPage * pageSize);
       
       // レスポンスの検証
       if (!response?.success) {
@@ -106,19 +111,24 @@ export const useProducts = (): UseProductsReturn => {
       }
       
       const newProducts = response?.data || [];
+      console.log('[useProducts] Fetched products:', newProducts.length);
       
       // スワイプ済みの商品を除外
       const filteredProducts = newProducts.filter(
         product => !swipedProductsRef.current.has(product.id)
       );
+      
+      console.log('[useProducts] After filtering swiped products:', filteredProducts.length);
 
       // 結果が十分でない場合の処理
       if (filteredProducts.length === 0 && newProducts.length > 0) {
         // スワイプ済みを除外した結果、商品がない場合は次のページを試みる
+        console.log('[useProducts] All products were swiped, trying next page...');
         setPage(prevPage => prevPage + 1);
         loadingRef.current = false;
         if (!reset) {
-          loadProducts(false);
+          // 再帰的に次のページを読み込む
+          setTimeout(() => loadProducts(false), 100);
         }
         return;
       }
@@ -134,12 +144,19 @@ export const useProducts = (): UseProductsReturn => {
               p => !prev.products.some(existing => existing.id === p.id)
             )];
 
+        console.log('[useProducts] Total products after update:', updatedProducts.length);
+
         return {
           products: updatedProducts,
           hasMore: hasMoreProducts,
           totalFetched: prev.totalFetched + filteredProducts.length
         };
       });
+      
+      // ページを進める（resetでない場合のみ）
+      if (!reset) {
+        setPage(prevPage => prevPage + 1);
+      }
       
       // 画像をプリフェッチ（バックグラウンドで、UIブロックなし）
       InteractionManager.runAfterInteractions(() => {
@@ -159,7 +176,7 @@ export const useProducts = (): UseProductsReturn => {
       setRefreshing(false);
       loadingRef.current = false;
     }
-  }, [user, page, pageSize, productsData.hasMore, prefetchImages]);
+  }, [page, pageSize, productsData.hasMore, prefetchImages]);
 
   // 初回マウント時に商品データを取得（認証初期化完了後）
   useEffect(() => {
@@ -170,13 +187,13 @@ export const useProducts = (): UseProductsReturn => {
 
   // 追加データ読み込み
   const loadMore = useCallback(async (reset = false) => {
-    if (isLoading && !reset) return;
     if (reset) {
       await loadProducts(true);
       return;
     }
-    if (!productsData.hasMore) return;
-    setPage(prevPage => prevPage + 1);
+    if (isLoading || !productsData.hasMore || loadingRef.current) return;
+    
+    // loadProductsが自動的にページを進めるので、ここでは呼び出すだけ
     await loadProducts(false);
   }, [isLoading, productsData.hasMore, loadProducts]);
 

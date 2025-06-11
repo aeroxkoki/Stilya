@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -8,7 +8,6 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { EmptyState } from '../../components/common';
 import { useProducts } from '../../hooks/useProducts';
-import { useSwipe } from '../../hooks/useSwipe';
 import SwipeContainer from '../../components/swipe/SwipeContainer';
 import ActionButtons from '../../components/swipe/ActionButtons';
 
@@ -19,63 +18,39 @@ type SwipeScreenNavigationProp = StackNavigationProp<SwipeStackParamList, 'Swipe
 const SwipeScreen: React.FC = () => {
   const navigation = useNavigation<SwipeScreenNavigationProp>();
   const theme = useTheme();
-  const { user } = useAuth();
   
-  // 商品データの取得
-  const { products, isLoading: loading, error, loadMore, resetProducts } = useProducts();
+  // useProductsフックを使用（currentIndexも管理）
+  const { 
+    products, 
+    currentIndex,
+    currentProduct,
+    isLoading: loading, 
+    error, 
+    loadMore, 
+    resetProducts,
+    handleSwipe: productHandleSwipe,
+    hasMore
+  } = useProducts();
   
-  // 現在表示中のカードインデックス
-  const [currentIndex, setCurrentIndex] = useState(0);
-  
-  // スワイプ機能の利用
-  const swipeUtils = useSwipe({ 
-    userId: user?.id || '', // 空文字列を使用（guestではなく）
-    onSwipeComplete: (direction, product) => {
-      // スワイプ完了時の処理
-      console.log(`Swiped ${direction} on product ${product.id}`);
-    }
-  });
-  
-  // スワイプ関数を定義
+  // スワイプ処理（useProductsのhandleSwipeを使用）
   const handleSwipe = useCallback(async (product: Product, direction: 'left' | 'right') => {
     try {
-      // 現在の商品
-      const currentProduct = products[currentIndex];
-      
-      if (!currentProduct) {
-        console.error('[SwipeScreen] No current product found');
-        return;
-      }
-      
       // デバッグ情報
       console.log('[SwipeScreen] Handling swipe:', {
         direction,
-        productId: currentProduct.id,
+        productId: product.id,
         currentIndex,
-        totalProducts: products.length
+        totalProducts: products.length,
+        hasMore
       });
       
-      // スワイプ方向に応じた処理
-      if (direction === 'right') {
-        await swipeUtils.handleSwipeRight(currentProduct);
-      } else {
-        await swipeUtils.handleSwipeLeft(currentProduct);
-      }
+      // useProductsのhandleSwipeを呼び出す
+      await productHandleSwipe(product, direction);
       
-      // 次のカードへ
-      setCurrentIndex(prevIndex => prevIndex + 1);
-      
-      // 残りが少なくなったら追加で取得
-      if (currentIndex >= products.length - 3 && products.length > 0) {
-        console.log('[SwipeScreen] Loading more products...');
-        loadMore();
-      }
     } catch (error) {
       console.error('[SwipeScreen] Error during swipe:', error);
-      // エラーが発生してもUIを止めない
-      setCurrentIndex(prevIndex => prevIndex + 1);
     }
-  }, [currentIndex, products, swipeUtils, loadMore]);
+  }, [currentIndex, products.length, hasMore, productHandleSwipe]);
   
   // 商品カードをタップした時の処理
   const handleCardPress = (product: Product) => {
@@ -87,13 +62,8 @@ const SwipeScreen: React.FC = () => {
   
   // 残りのアイテムがなくなった場合のリロード
   const handleReload = () => {
-    setCurrentIndex(0);
-    // resetProductsを使用するか、refreshProductsがあればそれを使用
-    if (resetProducts) {
-      resetProducts();
-    } else {
-      loadMore(true); // loadMoreにtrueを渡して強制リフレッシュ
-    }
+    // resetProductsを使用（currentIndexのリセットも内部で行われる）
+    resetProducts();
   };
   
   // スワイプ画面の表示内容
@@ -145,8 +115,8 @@ const SwipeScreen: React.FC = () => {
         />
         <View style={styles.actionButtonsContainer}>
           <ActionButtons
-            onPressNo={() => handleSwipe(products[currentIndex], 'left')}
-            onPressYes={() => handleSwipe(products[currentIndex], 'right')}
+            onPressNo={() => currentProduct && handleSwipe(currentProduct, 'left')}
+            onPressYes={() => currentProduct && handleSwipe(currentProduct, 'right')}
           />
         </View>
       </>
