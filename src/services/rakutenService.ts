@@ -80,7 +80,21 @@ const rateLimitedApiCall = async (url: string, retryCount = 0): Promise<any> => 
     }
     
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      // エラーレスポンスの詳細を取得
+      let errorDetails = '';
+      try {
+        const errorBody = await response.text();
+        errorDetails = errorBody;
+        console.error('[RakutenService] API Error Response:', {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorBody,
+          url: url
+        });
+      } catch (e) {
+        console.error('[RakutenService] Could not parse error response');
+      }
+      throw new Error(`HTTP error! status: ${response.status}, details: ${errorDetails}`);
     }
     
     const data = await response.json();

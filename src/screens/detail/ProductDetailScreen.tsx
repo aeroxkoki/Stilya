@@ -34,13 +34,29 @@ const { width } = Dimensions.get('window');
 const ProductDetailScreen: React.FC = () => {
   const route = useRoute<ProductDetailScreenRouteProp>();
   const navigation = useNavigation();
-  const { productId } = route.params;
+  const { productId } = route.params || {};
   const { user } = useAuth();
   const { 
     products, 
     loading, 
     error
   } = useProductStore();
+  
+  // 商品IDが存在しない場合の早期リターン
+  if (!productId) {
+    console.error('[ProductDetailScreen] No productId provided in route params');
+    return (
+      <SafeAreaView style={{ flex: 1 }}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+          <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 8 }}>エラーが発生しました</Text>
+          <Text style={{ fontSize: 14, color: '#666', textAlign: 'center', marginBottom: 16 }}>
+            商品情報が正しく読み込まれませんでした
+          </Text>
+          <Button onPress={() => navigation.goBack()}>戻る</Button>
+        </View>
+      </SafeAreaView>
+    );
+  }
   
   // レコメンデーション関連の情報取得
   const { userPreference } = useRecommendations();
@@ -58,16 +74,25 @@ const ProductDetailScreen: React.FC = () => {
   // 商品データの取得
   useEffect(() => {
     const loadProduct = async () => {
+      if (!productId) {
+        console.error('[ProductDetailScreen] No productId to load');
+        return;
+      }
+      
       try {
+        console.log('[ProductDetailScreen] Loading product:', productId);
+        
         // まず既存の商品データから検索
         if (products && products.length > 0) {
           const existingProduct = products.find(p => p.id === productId);
           if (existingProduct) {
+            console.log('[ProductDetailScreen] Found product in existing data:', existingProduct);
             setProduct(existingProduct);
             
             // 類似商品を取得
             const similar = getSimilarProducts(existingProduct, products, 5);
             setSimilarProducts(similar);
+            return; // 既存データで見つかったので、APIコールは不要
           }
         }
         
@@ -76,6 +101,7 @@ const ProductDetailScreen: React.FC = () => {
         const productData = await productStore.fetchProductById(productId);
         
         if (productData) {
+          console.log('[ProductDetailScreen] Fetched product from API:', productData);
           setProduct(productData);
           
           // productsが空の場合は商品データをロード
@@ -89,7 +115,7 @@ const ProductDetailScreen: React.FC = () => {
           setSimilarProducts(similar);
           
           // 閲覧履歴に記録（ログインしている場合のみ）
-          if (user) {
+          if (user && productData.id) {
             recordProductView(user.id, productData.id)
               .catch(err => console.error('Failed to record view:', err));
               
@@ -108,9 +134,11 @@ const ProductDetailScreen: React.FC = () => {
               product_id: productData.id,
             }, user.id).catch(err => console.error('Failed to track screen view:', err));
           }
+        } else {
+          console.error('[ProductDetailScreen] Product not found for ID:', productId);
         }
       } catch (error) {
-        console.error('Error loading product:', error);
+        console.error('[ProductDetailScreen] Error loading product:', error);
       }
     };
     

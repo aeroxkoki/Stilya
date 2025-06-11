@@ -101,11 +101,17 @@ const storeActions = {
   },
 
   fetchProductById: async (id: string): Promise<Product | null> => {
+    // IDが存在しない場合の早期リターン
+    if (!id) {
+      console.error('[productStore] fetchProductById: ID is undefined or empty');
+      return null;
+    }
+    
     try {
       const product = await fetchProductByIdService(id);
       return product;
     } catch (error) {
-      console.error('商品取得中にエラーが発生しました:', error);
+      console.error('[productStore] 商品取得中にエラーが発生しました:', error);
       return null;
     }
   },
