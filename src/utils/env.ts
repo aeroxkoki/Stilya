@@ -69,6 +69,8 @@ if (IS_DEV) {
   console.log('[ENV] Environment Variables Loaded:');
   console.log('- SUPABASE_URL:', SUPABASE_URL);
   console.log('- SUPABASE_ANON_KEY:', SUPABASE_ANON_KEY ? 'Set' : 'Missing');
+  console.log('- RAKUTEN_APP_ID:', RAKUTEN_APP_ID ? 'Set' : 'Missing');
+  console.log('- RAKUTEN_AFFILIATE_ID:', RAKUTEN_AFFILIATE_ID ? 'Set' : 'Missing');
   console.log('- APP_VERSION:', APP_VERSION);
   console.log('- IS_DEV:', IS_DEV);
 }

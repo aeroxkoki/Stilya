@@ -95,10 +95,10 @@ export default ({ config }) => {
         linkshareMerchantId: process.env.LINKSHARE_MERCHANT_ID || "",
         linkshareApplicationId: process.env.LINKSHARE_APPLICATION_ID || "",
         linkshareAffiliateId: process.env.LINKSHARE_AFFILIATE_ID || "",
-        // 楽天API設定
-        rakutenAppId: process.env.RAKUTEN_APP_ID || "",
-        rakutenAffiliateId: process.env.RAKUTEN_AFFILIATE_ID || "",
-        rakutenAppSecret: process.env.RAKUTEN_APP_SECRET || "",
+        // 楽天API設定（EXPO_PUBLIC_プレフィックスに対応）
+        rakutenAppId: process.env.EXPO_PUBLIC_RAKUTEN_APP_ID || process.env.RAKUTEN_APP_ID || "",
+        rakutenAffiliateId: process.env.EXPO_PUBLIC_RAKUTEN_AFFILIATE_ID || process.env.RAKUTEN_AFFILIATE_ID || "",
+        rakutenAppSecret: process.env.EXPO_PUBLIC_RAKUTEN_APP_SECRET || process.env.RAKUTEN_APP_SECRET || "",
         enableDevFeatures: process.env.NODE_ENV === 'development'
       }
     }

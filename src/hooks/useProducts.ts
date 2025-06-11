@@ -43,7 +43,7 @@ export const useProducts = (): UseProductsReturn => {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
-  const pageSize = 10;
+  const pageSize = 20; // 10から20に増やす
   
   // 画像プリフェッチ用
   const { prefetchImages } = useImagePrefetch();

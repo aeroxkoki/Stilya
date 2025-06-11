@@ -135,6 +135,8 @@ export const fetchRakutenFashionProducts = async (
     // APIキーが設定されていない場合はモックデータを返す
     if (!RAKUTEN_APP_ID || !RAKUTEN_AFFILIATE_ID) {
       console.log('[RakutenService] API keys not set, using mock data');
+      console.log('[RakutenService] RAKUTEN_APP_ID:', RAKUTEN_APP_ID ? 'Set' : 'Missing');
+      console.log('[RakutenService] RAKUTEN_AFFILIATE_ID:', RAKUTEN_AFFILIATE_ID ? 'Set' : 'Missing');
       const mockProducts = generateMockProducts(keyword || 'fashion', hits);
       return {
         products: mockProducts,
@@ -142,6 +144,8 @@ export const fetchRakutenFashionProducts = async (
         pageCount: 1,
       };
     }
+    
+    console.log('[RakutenService] API keys are set, proceeding with real API call');
     
     // APIリクエストのパラメータを構築
     const params = new URLSearchParams({
