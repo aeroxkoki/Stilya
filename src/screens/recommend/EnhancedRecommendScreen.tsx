@@ -12,6 +12,7 @@ import {
   Image
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { RecommendScreenProps } from '@/navigation/types';
 import { Ionicons } from '@expo/vector-icons';
 import { 
   ProductHorizontalList,
@@ -29,9 +30,10 @@ const { width } = Dimensions.get('window');
 
 // タブの種類
 type TabType = 'all' | 'outfits' | 'forYou' | 'trending';
+type NavigationProp = RecommendScreenProps<'RecommendHome'>['navigation'];
 
 const EnhancedRecommendScreen: React.FC = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
   
   // 状態管理
@@ -92,7 +94,6 @@ const EnhancedRecommendScreen: React.FC = () => {
   
   // 商品タップハンドラー
   const handleProductPress = (product: Product) => {
-    // @ts-ignore
     navigation.navigate('ProductDetail', { productId: product.id });
   };
   
@@ -107,8 +108,11 @@ const EnhancedRecommendScreen: React.FC = () => {
   
   // スワイプ画面に移動
   const handleGoToSwipe = () => {
-    // @ts-ignore
-    navigation.navigate('Swipe');
+    // タブナビゲーターのスワイプタブに移動
+    const parentNavigation = navigation.getParent();
+    if (parentNavigation) {
+      parentNavigation.navigate('Swipe');
+    }
   };
   
   // タブ切り替え

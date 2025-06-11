@@ -1,5 +1,7 @@
 import { NavigatorScreenParams } from '@react-navigation/native';
 import { StackScreenProps } from '@react-navigation/stack';
+import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import { CompositeScreenProps } from '@react-navigation/native';
 
 // Auth Stack
 export type AuthStackParamList = {
@@ -8,36 +10,99 @@ export type AuthStackParamList = {
   ForgotPassword: undefined;
 };
 
-// Main Stack
-export type MainStackParamList = {
-  Home: undefined;
-  Swipe: undefined;
-  Profile: undefined;
-  Recommendations: undefined;
+// Onboarding Stack
+export type OnboardingStackParamList = {
+  Welcome: undefined;
+  AppIntro: undefined;
+  Gender: undefined;
+  Style: undefined;
+  AgeGroup: undefined;
+  Complete: undefined;
+};
+
+// Swipe Stack
+export type SwipeStackParamList = {
+  SwipeHome: undefined;
+  ProductDetail: { productId: string; from?: string };
+};
+
+// Recommend Stack
+export type RecommendStackParamList = {
+  RecommendHome: undefined;
   ProductDetail: { productId: string };
 };
 
-// Onboarding Stack
-export type OnboardingStackParamList = {
-  Onboarding: undefined;
+// Profile Stack  
+export type ProfileStackParamList = {
+  ProfileHome: undefined;
+  Settings: undefined;
+  Favorites: undefined;
+  SwipeHistory: undefined;
+  ProductDetail: { productId: string };
+};
+
+// Report Stack
+export type ReportStackParamList = {
+  Report: undefined;
+};
+
+// Main Tab Navigator
+export type MainTabParamList = {
+  Swipe: NavigatorScreenParams<SwipeStackParamList>;
+  Recommend: NavigatorScreenParams<RecommendStackParamList>;
+  Report: NavigatorScreenParams<ReportStackParamList>;
+  Profile: NavigatorScreenParams<ProfileStackParamList>;
 };
 
 // Root Stack
 export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
-  Main: NavigatorScreenParams<MainStackParamList>;
+  Main: NavigatorScreenParams<MainTabParamList>;
   Onboarding: NavigatorScreenParams<OnboardingStackParamList>;
 };
 
-// Screen Props
+// Screen Props Types
 export type AuthScreenProps<T extends keyof AuthStackParamList> = 
   StackScreenProps<AuthStackParamList, T>;
 
-export type MainScreenProps<T extends keyof MainStackParamList> = 
-  StackScreenProps<MainStackParamList, T>;
-
 export type OnboardingScreenProps<T extends keyof OnboardingStackParamList> = 
   StackScreenProps<OnboardingStackParamList, T>;
+
+export type SwipeScreenProps<T extends keyof SwipeStackParamList> = 
+  CompositeScreenProps<
+    StackScreenProps<SwipeStackParamList, T>,
+    CompositeScreenProps<
+      BottomTabScreenProps<MainTabParamList, 'Swipe'>,
+      StackScreenProps<RootStackParamList>
+    >
+  >;
+
+export type RecommendScreenProps<T extends keyof RecommendStackParamList> = 
+  CompositeScreenProps<
+    StackScreenProps<RecommendStackParamList, T>,
+    CompositeScreenProps<
+      BottomTabScreenProps<MainTabParamList, 'Recommend'>,
+      StackScreenProps<RootStackParamList>
+    >
+  >;
+
+export type ProfileScreenProps<T extends keyof ProfileStackParamList> = 
+  CompositeScreenProps<
+    StackScreenProps<ProfileStackParamList, T>,
+    CompositeScreenProps<
+      BottomTabScreenProps<MainTabParamList, 'Profile'>,
+      StackScreenProps<RootStackParamList>
+    >
+  >;
+
+export type ReportScreenProps<T extends keyof ReportStackParamList> = 
+  CompositeScreenProps<
+    StackScreenProps<ReportStackParamList, T>,
+    CompositeScreenProps<
+      BottomTabScreenProps<MainTabParamList, 'Report'>,
+      StackScreenProps<RootStackParamList>
+    >
+  >;
 
 export type RootScreenProps<T extends keyof RootStackParamList> = 
   StackScreenProps<RootStackParamList, T>;

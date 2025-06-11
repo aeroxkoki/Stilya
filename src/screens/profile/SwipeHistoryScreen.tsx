@@ -12,18 +12,21 @@ import {
   Alert
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { ProductCard, Button } from '@/components/common';
 import { useProducts } from '@/contexts/ProductContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { Product } from '@/types';
+import { Product, ProfileStackParamList } from '@/types';
 
 const { width } = Dimensions.get('window');
 const COLUMN_NUM = 2;
 const CARD_WIDTH = (width - 32 - 8 * (COLUMN_NUM - 1)) / COLUMN_NUM; // Padding + Gap
 
+type NavigationProp = StackNavigationProp<ProfileStackParamList>;
+
 const SwipeHistoryScreen: React.FC = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
   const { 
     swipeHistory, 
@@ -71,7 +74,6 @@ const SwipeHistoryScreen: React.FC = () => {
   
   // 商品タップハンドラー
   const handleProductPress = (product: Product) => {
-    // @ts-ignore
     navigation.navigate('ProductDetail', { productId: product.id });
   };
   

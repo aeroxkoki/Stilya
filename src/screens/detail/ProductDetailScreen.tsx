@@ -14,6 +14,7 @@ import {
   Platform
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/common';
 import { RecommendReason, SimilarProducts } from '@/components/recommend';
@@ -25,15 +26,22 @@ import { useRecordClick } from '@/hooks/useRecordClick';
 import { useDeepLinks } from '@/utils/deepLinking';
 import { trackShare, trackProductView, EventType, trackEvent } from '@/services/analyticsService';
 import { recordProductView, recordProductClick } from '@/services/viewHistoryService';
-import { Product, RecommendStackParamList } from '@/types';
+import { Product, RecommendStackParamList, ProfileStackParamList, SwipeStackParamList } from '@/types';
 
-type ProductDetailScreenRouteProp = RouteProp<RecommendStackParamList, 'ProductDetail'>;
+// ProductDetailは複数のナビゲーターから呼ばれるため、ユニオン型で定義
+type ProductDetailParams = 
+  | RecommendStackParamList
+  | ProfileStackParamList
+  | SwipeStackParamList;
+
+type ProductDetailScreenRouteProp = RouteProp<ProductDetailParams, 'ProductDetail'>;
+type ProductDetailScreenNavigationProp = StackNavigationProp<ProductDetailParams, 'ProductDetail'>;
 
 const { width } = Dimensions.get('window');
 
 const ProductDetailScreen: React.FC = () => {
   const route = useRoute<ProductDetailScreenRouteProp>();
-  const navigation = useNavigation();
+  const navigation = useNavigation<ProductDetailScreenNavigationProp>();
   const { productId } = route.params || {};
   const { user } = useAuth();
   const { 
@@ -204,8 +212,7 @@ const ProductDetailScreen: React.FC = () => {
   
   // 類似商品のタップ
   const handleSimilarProductPress = (similarProduct: Product) => {
-    // @ts-ignore - タイプエラーを一時的に無視
-    navigation.navigate('ProductDetail', { productId: similarProduct.id });
+    navigation.push('ProductDetail', { productId: similarProduct.id });
   };
   
   // 戻るボタン
