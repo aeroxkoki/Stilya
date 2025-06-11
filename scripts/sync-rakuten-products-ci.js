@@ -137,7 +137,7 @@ async function saveProducts(products) {
       brand: product.shopName,
       price: product.itemPrice,
       tags: extractTags(product),
-      category: '100371',
+      category: product.categoryId || '100371',
       affiliate_url: product.affiliateUrl || product.itemUrl,
       source: 'rakuten',
       is_active: true,
@@ -203,22 +203,66 @@ async function main() {
   console.log('\\n🚀 楽天商品同期を開始します...\\n');
 
   try {
-    // 複数ページから商品を取得
-    const pages = process.env.DRY_RUN === 'true' ? 1 : 10; // 段階的に増加：3→10ページ（300件）
+    // データベース容量チェック
+    const { count: currentCount } = await supabase
+      .from('external_products')
+      .select('*', { count: 'exact', head: true });
+    
+    console.log(`📊 現在の商品数: ${currentCount}件`);
+    
+    // 安全な上限値の設定（5万商品）
+    const SAFE_LIMIT = 50000;
+    const remainingCapacity = SAFE_LIMIT - currentCount;
+    
+    if (remainingCapacity <= 0) {
+      console.log('⚠️  商品数が上限に達しています。古い商品の削除を検討してください。');
+      return;
+    }
+
+    // 動的なページ取得戦略
+    const today = new Date();
+    const dayOfMonth = today.getDate();
+    const hourOfDay = today.getHours();
+    
+    // 時間帯によって異なるカテゴリを取得
+    const categories = [
+      { id: '100371', name: 'レディースファッション' },
+      { id: '551177', name: 'メンズファッション' },
+      { id: '216131', name: 'バッグ・小物・ブランド雑貨' },
+      { id: '558885', name: '靴' },
+      { id: '509892', name: 'アクセサリー' }
+    ];
+    
+    // 時間帯でカテゴリを選択（朝と夕方で異なるカテゴリ）
+    const categoryIndex = hourOfDay < 12 ? dayOfMonth % 3 : (dayOfMonth % 3) + 2;
+    const selectedCategory = categories[categoryIndex % categories.length];
+    
+    console.log(`📂 選択カテゴリ: ${selectedCategory.name}`);
+    
+    // ページ番号を日付ベースで動的に設定
+    const startPage = ((dayOfMonth - 1) * 20) % 100 + 1;
+    const pagesToFetch = Math.min(
+      20, // 最大20ページ（600件）
+      Math.floor(remainingCapacity / 30) // 容量に応じて調整
+    );
+    
+    console.log(`📄 取得ページ: ${startPage}〜${startPage + pagesToFetch - 1}`);
+    
     const itemsPerPage = 30;
     let allProducts = [];
 
-    for (let page = 1; page <= pages; page++) {
-      console.log(`\\n📄 ページ ${page}/${pages} を取得中...`);
+    for (let i = 0; i < pagesToFetch; i++) {
+      const page = startPage + i;
+      console.log(`\\n📄 ページ ${i + 1}/${pagesToFetch} を取得中... (API page: ${page})`);
       
-      const data = await fetchRakutenProducts('100371', page, itemsPerPage);
+      const data = await fetchRakutenProducts(selectedCategory.id, page, itemsPerPage);
       
       if (data.Items && data.Items.length > 0) {
         allProducts = allProducts.concat(data.Items);
         console.log(`✅ ${data.Items.length}件の商品を取得`);
         
         // レート制限対策
-        if (page < pages) {
+        if (i < pagesToFetch - 1) {
           console.log('⏳ 2秒待機中...');
           await sleep(2000);
         }
@@ -234,8 +278,33 @@ async function main() {
         console.log(`${i + 1}. ${item.Item.itemName} - ¥${item.Item.itemPrice}`);
       });
     } else {
-      // 商品をSupabaseに保存
-      await saveProducts(allProducts);
+      // 商品をSupabaseに保存（カテゴリ情報も保存）
+      const productsWithCategory = allProducts.map(item => ({
+        ...item,
+        Item: {
+          ...item.Item,
+          categoryId: selectedCategory.id,
+          categoryName: selectedCategory.name
+        }
+      }));
+      await saveProducts(productsWithCategory);
+      
+      // 古い商品の自動削除（30日以上前の商品）
+      if (currentCount > 30000) {
+        console.log('\\n🗑️ 古い商品を削除中...');
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        
+        const { error: deleteError } = await supabase
+          .from('external_products')
+          .delete()
+          .lt('last_synced', thirtyDaysAgo.toISOString())
+          .eq('source', 'rakuten');
+          
+        if (!deleteError) {
+          console.log('✅ 古い商品を削除しました');
+        }
+      }
     }
 
     // 最終確認
@@ -245,6 +314,7 @@ async function main() {
       .eq('is_active', true);
 
     console.log(`\\n✅ 同期完了！ 現在のアクティブ商品数: ${count}件`);
+    console.log(`📈 使用率: ${((count / SAFE_LIMIT) * 100).toFixed(1)}%`);
 
   } catch (error) {
     console.error('\\n❌ エラーが発生しました:', error.message);
