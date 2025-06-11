@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Product } from '@/types';
-import { fetchProducts as fetchProductsService, fetchProductById as fetchProductByIdService } from '@/services/productService';
+import { fetchProducts as fetchProductsService, fetchProductById as fetchProductByIdService, fetchProductsByTags } from '@/services/productService';
 import { toggleFavorite, isFavorite as checkIsFavorite, getFavorites as fetchFavorites } from '@/services/favoriteService';
 import { getSwipeHistory as fetchSwipeHistory } from '@/services/swipeService';
 
@@ -56,10 +56,10 @@ const storeActions = {
     updateStore({ loading: true, error: null });
     
     try {
-      const result = await fetchProductsService({ limit: 50, page: 1 }); // 初期ロードで50件取得
+      const result = await fetchProductsService(50, 0); // 初期ロードで50件取得
       
-      if (result && result.products) {
-        updateStore({ products: result.products, loading: false });
+      if (result.success && 'data' in result && result.data) {
+        updateStore({ products: result.data, loading: false });
       } else {
         updateStore({ error: '商品の読み込みに失敗しました', loading: false });
       }
@@ -72,10 +72,13 @@ const storeActions = {
     updateStore({ loading: true, error: null });
     
     try {
-      const result = await fetchProductsService({ category, limit: 20, page: 1 });
+      // TODO: カテゴリベースの商品検索機能を実装する必要がある
+      const result = await fetchProductsService(20, 0);
       
-      if (result && result.products) {
-        updateStore({ products: result.products, loading: false });
+      if (result.success && 'data' in result && result.data) {
+        // 一時的にカテゴリでフィルタリング（本来はDB側で行うべき）
+        const filteredProducts = result.data.filter(p => p.category === category);
+        updateStore({ products: filteredProducts, loading: false });
       } else {
         updateStore({ error: 'カテゴリ検索に失敗しました', loading: false });
       }
@@ -88,10 +91,11 @@ const storeActions = {
     updateStore({ loading: true, error: null });
     
     try {
-      const result = await fetchProductsService({ tags, limit: 20, page: 1 });
+      // fetchProductsByTags を使用
+      const result = await fetchProductsByTags(tags, 20);
       
-      if (result && result.products) {
-        updateStore({ products: result.products, loading: false });
+      if (result.success && 'data' in result && result.data) {
+        updateStore({ products: result.data, loading: false });
       } else {
         updateStore({ error: 'タグ検索に失敗しました', loading: false });
       }
@@ -108,8 +112,11 @@ const storeActions = {
     }
     
     try {
-      const product = await fetchProductByIdService(id);
-      return product;
+      const result = await fetchProductByIdService(id);
+      if (result.success && 'data' in result && result.data) {
+        return result.data;
+      }
+      return null;
     } catch (error) {
       console.error('[productStore] 商品取得中にエラーが発生しました:', error);
       return null;

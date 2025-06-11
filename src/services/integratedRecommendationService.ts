@@ -1,6 +1,6 @@
 import { Product } from '@/types';
 import { getRecommendations, analyzeUserPreferences } from './recommendationService';
-import { fetchProducts, fetchRelatedProducts } from './productService';
+import { fetchProducts, fetchProductsByTags } from './productService';
 
 interface OutfitRecommendation {
   top: Product | null;
@@ -29,10 +29,7 @@ export const getEnhancedRecommendations = async (
       // 内部DBからの推薦（ユーザーのスワイプ履歴に基づく）
       getRecommendations(userId, Math.floor(limit / 2)),
       // トレンド商品（external_productsから最新の商品を取得）
-      fetchProducts({
-        limit: Math.floor(limit / 2),
-        page: 1,
-      }),
+      fetchProducts(Math.floor(limit / 2), 0),
       // ユーザーの好み分析
       analyzeUserPreferences(userId)
     ]);
@@ -44,26 +41,23 @@ export const getEnhancedRecommendations = async (
     let forYouProducts: Product[] = [];
     if (userPrefs.success && 'data' in userPrefs && userPrefs.data && userPrefs.data.likedTags && userPrefs.data.likedTags.length > 0) {
       // タグベースで関連商品を取得（external_productsから）
-      forYouProducts = await fetchRelatedProducts(
+      const tagResult = await fetchProductsByTags(
         userPrefs.data.likedTags,
-        excludeIds,
         Math.floor(limit / 2)
       );
+      forYouProducts = tagResult.success && 'data' in tagResult && tagResult.data ? tagResult.data : [];
     }
 
     // データが少ない場合は補完（external_productsから）
     if (forYouProducts.length < Math.floor(limit / 4)) {
-      const additionalProducts = await fetchProducts({
-        keyword: 'おすすめ',
-        limit: Math.floor(limit / 4),
-        page: 1,
-      });
-      forYouProducts = [...forYouProducts, ...additionalProducts.products].slice(0, Math.floor(limit / 2));
+      const additionalProducts = await fetchProducts(Math.floor(limit / 4), 0);
+      const additionalProductsList = additionalProducts.success && 'data' in additionalProducts && additionalProducts.data ? additionalProducts.data : [];
+      forYouProducts = [...forYouProducts, ...additionalProductsList].slice(0, Math.floor(limit / 2));
     }
 
     return {
       recommended: internalRecs,
-      trending: trendingProducts.products || [],
+      trending: trendingProducts.success && 'data' in trendingProducts && trendingProducts.data ? trendingProducts.data : [],
       forYou: forYouProducts,
       isLoading: false
     };
@@ -97,12 +91,9 @@ export const getEnhancedCategoryRecommendations = async (
     // 各カテゴリから商品を取得
     for (const category of categories) {
       try {
-        const { products } = await fetchProducts({
-          category,
-          limit,
-          page: 1,
-        });
-        categoryProducts[category] = products;
+        // TODO: カテゴリベースの商品取得機能を実装する必要がある
+        const result = await fetchProducts(limit, 0);
+        categoryProducts[category] = result.success && 'data' in result && result.data ? result.data : [];
       } catch (error) {
         console.error(`Error fetching products for category ${category}:`, error);
         categoryProducts[category] = [];

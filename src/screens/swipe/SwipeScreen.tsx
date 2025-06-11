@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList, MainStackParamList, SwipeStackParamList } from '../../navigation/types';
+import { RootStackParamList, MainTabParamList, SwipeStackParamList } from '../../navigation/types';
 import { Product } from '../../types/product';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
