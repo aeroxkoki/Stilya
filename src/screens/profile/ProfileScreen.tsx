@@ -7,7 +7,6 @@ import { Button, Card } from '@/components/common';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProducts } from '@/contexts/ProductContext';
 import { ProfileStackParamList } from '@/types';
-import { IS_DEV } from '@/utils/env';
 
 type ProfileScreenNavigationProp = StackNavigationProp<ProfileStackParamList, 'ProfileHome'>;
 
@@ -169,25 +168,6 @@ const ProfileScreen: React.FC = () => {
             </TouchableOpacity>
           </Card>
         </View>
-
-        {/* 開発用デバッグメニュー */}
-        {IS_DEV && (
-          <View style={{ marginTop: 16 }}>
-            <Text style={{ fontSize: 16, fontWeight: '600', color: '#FF6B6B', marginBottom: 8 }}>開発者メニュー</Text>
-            <Card variant="outlined" style={{ backgroundColor: '#FFF5F5' }}>
-              <TouchableOpacity 
-                style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16 }}
-                onPress={() => navigation.navigate('RakutenDebug' as any)}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Ionicons name="bug-outline" size={20} color="#FF6B6B" style={{ marginRight: 12 }} />
-                  <Text style={{ fontSize: 16, color: '#374151' }}>楽天APIデバッグ</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color="#FF6B6B" />
-              </TouchableOpacity>
-            </Card>
-          </View>
-        )}
 
         {/* ログアウトボタン */}
         <View >

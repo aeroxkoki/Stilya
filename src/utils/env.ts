@@ -37,17 +37,9 @@ export const LINKSHARE_MERCHANT_ID = Constants.expoConfig?.extra?.linkshareMerch
 export const LINKSHARE_APPLICATION_ID = Constants.expoConfig?.extra?.linkshareApplicationId || process.env.EXPO_PUBLIC_LINKSHARE_APPLICATION_ID || '';
 export const LINKSHARE_AFFILIATE_ID = Constants.expoConfig?.extra?.linkshareAffiliateId || process.env.EXPO_PUBLIC_LINKSHARE_AFFILIATE_ID || '';
 export const A8_NET_API_KEY = Constants.expoConfig?.extra?.a8NetApiKey || process.env.EXPO_PUBLIC_A8_NET_API_KEY || '';
-export const RAKUTEN_APP_ID = Constants.expoConfig?.extra?.rakutenAppId || process.env.EXPO_PUBLIC_RAKUTEN_APP_ID || process.env.RAKUTEN_APP_ID || '';
-export const RAKUTEN_AFFILIATE_ID = Constants.expoConfig?.extra?.rakutenAffiliateId || process.env.EXPO_PUBLIC_RAKUTEN_AFFILIATE_ID || process.env.RAKUTEN_AFFILIATE_ID || '';
-export const RAKUTEN_APP_SECRET = Constants.expoConfig?.extra?.rakutenAppSecret || process.env.EXPO_PUBLIC_RAKUTEN_APP_SECRET || process.env.RAKUTEN_APP_SECRET || '';
-
-// 楽天APIの設定状況をログ出力
-if (IS_DEV) {
-  console.log('[ENV] Rakuten API Configuration:');
-  console.log('- RAKUTEN_APP_ID:', RAKUTEN_APP_ID ? 'Set' : 'Missing');
-  console.log('- RAKUTEN_AFFILIATE_ID:', RAKUTEN_AFFILIATE_ID ? 'Set' : 'Missing');
-  console.log('- RAKUTEN_APP_SECRET:', RAKUTEN_APP_SECRET ? 'Set' : 'Missing');
-}
+export const RAKUTEN_APP_ID = Constants.expoConfig?.extra?.rakutenAppId || process.env.EXPO_PUBLIC_RAKUTEN_APP_ID || '';
+export const RAKUTEN_AFFILIATE_ID = Constants.expoConfig?.extra?.rakutenAffiliateId || process.env.EXPO_PUBLIC_RAKUTEN_AFFILIATE_ID || '';
+export const RAKUTEN_APP_SECRET = Constants.expoConfig?.extra?.rakutenAppSecret || process.env.EXPO_PUBLIC_RAKUTEN_APP_SECRET || '';
 
 // アプリ設定
 export const APP_VERSION = Constants.expoConfig?.version || '1.0.0';
