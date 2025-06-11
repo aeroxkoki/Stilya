@@ -96,13 +96,16 @@ export const useProducts = (): UseProductsReturn => {
       setIsLoading(prevState => reset ? true : prevState);
       
       // 商品データを取得
-      const response = await fetchProducts({
-        page: page + 1, // fetchProductsは1-indexedページを期待
-        limit: pageSize,
-      });
+      const response = await fetchProducts(pageSize, page * pageSize);
       
       // レスポンスの検証
-      const newProducts = response?.products || [];
+      if (!response?.success) {
+        setError(response?.error || '商品データの取得に失敗しました');
+        loadingRef.current = false;
+        return;
+      }
+      
+      const newProducts = response?.data || [];
       
       // スワイプ済みの商品を除外
       const filteredProducts = newProducts.filter(
