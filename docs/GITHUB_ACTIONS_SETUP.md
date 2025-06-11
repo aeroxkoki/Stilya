@@ -2,6 +2,12 @@
 
 このガイドでは、GitHub Actionsで日次商品同期を正しく動作させるための設定手順を説明します。
 
+## 🆕 重要な変更
+
+**新しいワークフロー名**: `Daily Product Sync - Rakuten API` (ファイル: `daily-product-sync.yml`)
+
+古い `sync-products.yml` は廃止されました。
+
 ## 🔑 必要なGitHub Secrets
 
 以下の5つのSecretsをGitHubリポジトリに設定する必要があります：
@@ -74,7 +80,7 @@ Secret: 3ad7bc23.8866b306.3ad7bc24.393c3977
 ### 手動実行でテスト
 
 1. GitHubリポジトリの **Actions** タブを開く
-2. 左側から「Sync Products from Rakuten」を選択
+2. 左側から「Daily Product Sync - Rakuten API」を選択
 3. 右側の「Run workflow」ボタンをクリック
 4. 「Run workflow」を再度クリックして実行
 
@@ -117,7 +123,7 @@ FOR UPDATE TO service_role USING (true) WITH CHECK (true);
 
 ### 3. ワークフローの実行履歴確認
 
-1. Actions → Sync Products from Rakuten
+1. Actions → Daily Product Sync - Rakuten API
 2. 実行履歴をクリック
 3. 各ステップのログを確認
 
@@ -127,7 +133,7 @@ FOR UPDATE TO service_role USING (true) WITH CHECK (true);
 - **JST 午前3時**（UTC 18:00）
 - **JST 午後3時**（UTC 6:00）
 
-変更したい場合は `.github/workflows/sync-products.yml` の cron 設定を編集します。
+変更したい場合は `.github/workflows/daily-product-sync.yml` の cron 設定を編集します。
 
 ## ⚡ 即座に手動実行
 

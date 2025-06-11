@@ -1,0 +1,25 @@
+# このワークフローは廃止されました
+# 新しいワークフロー: daily-product-sync.yml を使用してください
+
+name: [DEPRECATED] Sync Products from Rakuten
+
+on:
+  workflow_dispatch:  # 手動実行のみ（スケジュールは無効）
+    inputs:
+      message:
+        description: 'このワークフローは廃止されました'
+        required: true
+        default: 'Use daily-product-sync.yml instead'
+
+jobs:
+  deprecated:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deprecated Notice
+        run: |
+          echo "❌ このワークフローは廃止されました" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "新しいワークフロー **daily-product-sync.yml** を使用してください。" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "GitHub Actions → Daily Product Sync - Rakuten API" >> $GITHUB_STEP_SUMMARY
+          exit 1

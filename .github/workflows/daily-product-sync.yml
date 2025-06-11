@@ -1,0 +1,100 @@
+name: Daily Product Sync - Rakuten API
+
+on:
+  schedule:
+    # 毎日午前3時と午後3時（JST）に実行
+    - cron: '0 18,6 * * *'  # UTC時間で18:00と6:00 = JST 3:00と15:00
+  workflow_dispatch:  # 手動実行も可能
+    inputs:
+      dry_run:
+        description: 'Dry run (no database changes)'
+        required: false
+        default: 'false'
+
+jobs:
+  sync-rakuten-products:
+    name: Sync Rakuten Products
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📦 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🏗️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: 📥 Install dependencies
+        run: |
+          npm ci --only=production
+          npm install dotenv @supabase/supabase-js axios
+
+      - name: 🔍 Check environment
+        run: |
+          echo "## Environment Check" >> $GITHUB_STEP_SUMMARY
+          echo "- Running sync at: $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "- Dry run: ${{ github.event.inputs.dry_run || 'false' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Node version: $(node --version)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+      - name: 🔄 Sync products from Rakuten API
+        id: sync
+        run: |
+          echo "Starting product sync..." >> $GITHUB_STEP_SUMMARY
+          node scripts/sync-rakuten-products-ci.js
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          RAKUTEN_APP_ID: ${{ secrets.RAKUTEN_APP_ID }}
+          RAKUTEN_AFFILIATE_ID: ${{ secrets.RAKUTEN_AFFILIATE_ID }}
+          NODE_ENV: production
+          DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+        continue-on-error: true
+
+      - name: 📊 Generate sync report
+        if: always()
+        run: |
+          echo "## 📊 Sync Report" >> $GITHUB_STEP_SUMMARY
+          echo "- Date: $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: ${{ steps.sync.outcome }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Branch: ${{ github.ref }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Run ID: ${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ steps.sync.outcome }}" == "failure" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "## ❌ Sync Failed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Common issues:" >> $GITHUB_STEP_SUMMARY
+            echo "1. **Missing GitHub Secrets**" >> $GITHUB_STEP_SUMMARY
+            echo "   - SUPABASE_URL" >> $GITHUB_STEP_SUMMARY
+            echo "   - SUPABASE_SERVICE_KEY (最重要)" >> $GITHUB_STEP_SUMMARY
+            echo "   - SUPABASE_ANON_KEY" >> $GITHUB_STEP_SUMMARY
+            echo "   - RAKUTEN_APP_ID" >> $GITHUB_STEP_SUMMARY
+            echo "   - RAKUTEN_AFFILIATE_ID" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "2. **Supabase RLS policies blocking writes**" >> $GITHUB_STEP_SUMMARY
+            echo "   - Service roleキーが必要です" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "3. **Rakuten API rate limit exceeded**" >> $GITHUB_STEP_SUMMARY
+            echo "   - 自動リトライ機能があります" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 設定方法" >> $GITHUB_STEP_SUMMARY
+            echo "詳細は [GitHub Actions設定ガイド](https://github.com/${{ github.repository }}/blob/main/docs/GITHUB_ACTIONS_SETUP.md) を参照してください。" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "## ✅ Sync Successful!" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: 💾 Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sync-logs-${{ github.run_id }}
+          path: |
+            logs/
+            *.log
+          retention-days: 30
+          if-no-files-found: ignore
