@@ -125,10 +125,15 @@ async function saveProducts(products) {
   
   const productsToInsert = products.map(item => {
     const product = item.Item;
+    // 高画質画像を優先的に使用（largeImageUrls → mediumImageUrls → smallImageUrls）
+    const imageUrl = product.largeImageUrls?.[0]?.imageUrl || 
+                     product.mediumImageUrls?.[0]?.imageUrl || 
+                     product.smallImageUrls?.[0]?.imageUrl || '';
+    
     return {
       id: product.itemCode,
       title: product.itemName,
-      image_url: product.mediumImageUrls[0]?.imageUrl || '',
+      image_url: imageUrl,
       brand: product.shopName,
       price: product.itemPrice,
       tags: extractTags(product),
@@ -199,7 +204,7 @@ async function main() {
 
   try {
     // 複数ページから商品を取得
-    const pages = process.env.DRY_RUN === 'true' ? 1 : 3;
+    const pages = process.env.DRY_RUN === 'true' ? 1 : 10; // 段階的に増加：3→10ページ（300件）
     const itemsPerPage = 30;
     let allProducts = [];
 

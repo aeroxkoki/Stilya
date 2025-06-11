@@ -1,43 +1,54 @@
 import React from 'react';
-import { Image, StyleProp, ImageStyle, StyleSheet } from 'react-native';
+import { StyleProp, ImageStyle, ViewStyle } from 'react-native';
+import { Image } from 'expo-image';
 
-// 既存のExpo Imageパッケージがインストールされていない場合、ポリフィルを提供
-// 実際の実装ではexpo-imageをインストールする必要があります
-interface ExpoImageProps {
+interface CachedImageProps {
   source: { uri: string } | number;
-  style?: StyleProp<ImageStyle>;
+  style?: StyleProp<ImageStyle | ViewStyle>;
   className?: string;
   contentFit?: 'cover' | 'contain' | 'fill' | 'none' | 'scale-down';
   transition?: number;
   contentPosition?: string;
   placeholder?: object;
+  resizeMode?: 'cover' | 'contain' | 'stretch' | 'repeat' | 'center';
   [key: string]: any;
 }
 
-// ポリフィル実装（本番環境では実際のexpo-imageをインポートする）
-const MockExpoImage: React.FC<ExpoImageProps> = ({ 
+// expo-imageの高性能画像コンポーネント
+const CachedImage: React.FC<CachedImageProps> = ({ 
   source, 
   style, 
-   
-  contentFit, 
+  contentFit = 'cover',
+  resizeMode,
+  transition = 200,
   ...restProps 
 }) => {
-  // classNameを使わないスタイル版の実装（temporary fix）
-  const resizeMode = 
-    contentFit === 'contain' ? 'contain' : 
-    contentFit === 'cover' ? 'cover' : 
-    contentFit === 'fill' ? 'stretch' : 'cover';
+  // resizeModeとcontentFitの互換性を保つ
+  const finalContentFit = resizeMode ? 
+    (resizeMode === 'stretch' ? 'fill' : resizeMode) : 
+    contentFit;
     
   return (
     <Image
       source={source}
       style={style}
-      resizeMode={resizeMode}
+      contentFit={finalContentFit}
+      transition={transition}
+      cachePolicy="memory-disk" // メモリとディスクの両方にキャッシュ
+      priority="normal"
       {...restProps}
     />
   );
 };
 
-export const ExpoImage = MockExpoImage;
+// 画像の事前読み込み機能
+export const prefetchImage = async (url: string) => {
+  try {
+    await Image.prefetch(url);
+  } catch (error) {
+    console.warn('画像のプリフェッチに失敗:', error);
+  }
+};
 
-export default ExpoImage;
+export default CachedImage;
+export const ExpoImage = CachedImage; // 互換性のためのエイリアス
