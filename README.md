@@ -233,6 +233,31 @@ npm run eas-build-preview
 npm run eas-build-production
 ```
 
+## 📱 実機テスト
+
+### iPhone実機テスト（5分で完了）
+詳細ガイド: [IPHONE_QUICKSTART.md](./IPHONE_QUICKSTART.md)
+
+```bash
+# クイックスタート
+cd /Users/koki_air/Documents/GitHub/Stilya
+eas build --platform ios --profile development  # ビルド作成（初回のみ）
+npm start  # 開発サーバー起動
+
+# ビルド完了後、QRコードをカメラでスキャンしてインストール
+```
+
+### Android実機テスト
+```bash
+eas build --platform android --profile development
+# APKをダウンロードしてインストール
+```
+
+### 実機テストドキュメント
+- [iPhone準備ガイド](./docs/IPHONE_SETUP_GUIDE.md)
+- [実機テストガイド](./TESTING_GUIDE.md)
+- [テストチェックリスト](./TESTING_CHECKLIST.md)
+
 ## 🤝 貢献方法
 
 1. このリポジトリをフォーク

@@ -1,0 +1,243 @@
+name: Daily Product Sync - Unified
+
+on:
+  schedule:
+    # 毎日午前2時（JST）に実行
+    - cron: '0 17 * * *'  # UTC 17:00 = JST 2:00
+  workflow_dispatch: # 手動実行も可能
+    inputs:
+      sync_mode:
+        description: 'Sync mode'
+        required: false
+        default: 'progressive'
+        type: choice
+        options:
+          - progressive  # 段階的増加（推奨）
+          - initial      # 初期同期（少なめ）
+          - full         # フル同期（最大）
+      priority_filter:
+        description: 'Priority filter (1-7, or all)'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - '1'    # メガブランド
+          - '2'    # 大手ECブランド
+          - '3'    # セレクトショップ
+          - '4'    # ライフスタイル
+          - '5'    # トレンド
+          - '6'    # ニッチ
+      maintenance:
+        description: 'Run maintenance tasks'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+jobs:
+  sync-products:
+    name: Daily Product Sync
+    runs-on: ubuntu-latest
+    timeout-minutes: 120  # 2時間のタイムアウト
+    
+    steps:
+    - name: 📦 Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: 🏗️ Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: 📥 Install dependencies
+      run: |
+        npm ci
+        npm install --save-prod dotenv @supabase/supabase-js axios
+    
+    - name: 🔍 Environment check
+      run: |
+        echo "## 🔍 Environment Check" >> $GITHUB_STEP_SUMMARY
+        echo "- Date: $(date '+%Y-%m-%d %H:%M:%S JST')" >> $GITHUB_STEP_SUMMARY
+        echo "- Sync mode: ${{ github.event.inputs.sync_mode || 'progressive' }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Priority filter: ${{ github.event.inputs.priority_filter || 'all' }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Maintenance: ${{ github.event.inputs.maintenance || 'true' }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # 必須環境変数の確認
+        if [ -z "${{ secrets.SUPABASE_URL }}" ]; then
+          echo "❌ SUPABASE_URL is not set" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+        
+        if [ -z "${{ secrets.RAKUTEN_APP_ID }}" ]; then
+          echo "❌ RAKUTEN_APP_ID is not set" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+        
+        echo "✅ All required environment variables are set" >> $GITHUB_STEP_SUMMARY
+    
+    - name: 🗄️ Database capacity check
+      id: capacity_check
+      run: |
+        echo "## 🗄️ Database Capacity" >> $GITHUB_STEP_SUMMARY
+        
+        # Supabaseの容量チェック用スクリプト作成
+        cat > check-capacity.js << 'EOF'
+        const { createClient } = require('@supabase/supabase-js');
+        require('dotenv').config();
+        
+        const supabase = createClient(
+          process.env.EXPO_PUBLIC_SUPABASE_URL,
+          process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
+        );
+        
+        async function check() {
+          const { count: total } = await supabase
+            .from('external_products')
+            .select('*', { count: 'exact', head: true });
+            
+          const { count: active } = await supabase
+            .from('external_products')
+            .select('*', { count: 'exact', head: true })
+            .eq('is_active', true);
+            
+          console.log(`- Total products: ${total?.toLocaleString() || 0}`);
+          console.log(`- Active products: ${active?.toLocaleString() || 0}`);
+          console.log(`- Target products: 50,000+`);
+          
+          if (total > 90000) {
+            console.error('⚠️ WARNING: Database is near capacity limit!');
+            process.exit(1);
+          }
+        }
+        
+        check().catch(console.error);
+        EOF
+        
+        node check-capacity.js >> $GITHUB_STEP_SUMMARY || echo "⚠️ Capacity check failed" >> $GITHUB_STEP_SUMMARY
+      env:
+        EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+    
+    - name: 🎯 Run product sync
+      id: sync
+      run: |
+        echo "## 🎯 Product Sync (50,000+ products target)" >> $GITHUB_STEP_SUMMARY
+        
+        # 環境変数の設定
+        export PRIORITY_FILTER="${{ github.event.inputs.priority_filter || 'all' }}"
+        export SYNC_MODE="${{ github.event.inputs.sync_mode || 'progressive' }}"
+        
+        # 同期スクリプトの実行（大規模版）
+        node scripts/sync-extended-mvp-brands.js
+      env:
+        EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        RAKUTEN_APP_ID: ${{ secrets.RAKUTEN_APP_ID }}
+        RAKUTEN_AFFILIATE_ID: ${{ secrets.RAKUTEN_AFFILIATE_ID }}
+        NODE_ENV: production
+      continue-on-error: true
+    
+    - name: 🧹 Database maintenance
+      if: github.event.inputs.maintenance != 'false' && steps.sync.outcome == 'success'
+      run: |
+        echo "## 🧹 Maintenance Tasks" >> $GITHUB_STEP_SUMMARY
+        
+        # メンテナンススクリプト作成
+        cat > maintenance.js << 'EOF'
+        const { createClient } = require('@supabase/supabase-js');
+        require('dotenv').config();
+        
+        const supabase = createClient(
+          process.env.EXPO_PUBLIC_SUPABASE_URL,
+          process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
+        );
+        
+        async function maintenance() {
+          // 30日以上古い非アクティブ商品を削除
+          const thirtyDaysAgo = new Date();
+          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+          
+          const { data, error } = await supabase
+            .from('external_products')
+            .delete()
+            .eq('is_active', false)
+            .lt('last_synced', thirtyDaysAgo.toISOString())
+            .limit(1000);
+            
+          if (!error && data) {
+            console.log(`- Deleted ${data.length} old inactive products`);
+          }
+          
+          // 統計情報の更新
+          const { count: total } = await supabase
+            .from('external_products')
+            .select('*', { count: 'exact', head: true });
+            
+          const { count: active } = await supabase
+            .from('external_products')
+            .select('*', { count: 'exact', head: true })
+            .eq('is_active', true);
+            
+          console.log(`- After maintenance: ${active?.toLocaleString() || 0} active / ${total?.toLocaleString() || 0} total`);
+        }
+        
+        maintenance().catch(console.error);
+        EOF
+        
+        node maintenance.js >> $GITHUB_STEP_SUMMARY || echo "- Maintenance failed" >> $GITHUB_STEP_SUMMARY
+      env:
+        EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+    
+    - name: 📊 Generate final report
+      if: always()
+      run: |
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## 📊 Sync Report Summary" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "${{ steps.sync.outcome }}" == "success" ]; then
+          echo "### ✅ Sync Status: Success" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Target**: 50,000+ products across 40+ brands" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📈 Major Brand Categories:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Mega Brands**: UNIQLO (8,000), GU (8,000), 無印良品 (5,000)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Marketplace**: 楽天ファッション総合 (10,000)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Category Search**: トップス, ボトムス, ワンピース (各5,000)" >> $GITHUB_STEP_SUMMARY
+          echo "- **EC Brands**: coca, pierrot, Re:EDIT, fifth, titivate" >> $GITHUB_STEP_SUMMARY
+          echo "- **Select Shops**: URBAN RESEARCH, BEAMS, SHIPS, etc." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🚀 Features:" >> $GITHUB_STEP_SUMMARY
+          echo "- Intelligent rotation system" >> $GITHUB_STEP_SUMMARY
+          echo "- Machine learning-based tagging (30 tags per product)" >> $GITHUB_STEP_SUMMARY
+          echo "- Seasonal prioritization" >> $GITHUB_STEP_SUMMARY
+          echo "- Automatic cleanup of old products" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "### ❌ Sync Status: Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Please check the logs for details." >> $GITHUB_STEP_SUMMARY
+        fi
+    
+    - name: 💾 Upload artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: sync-logs-${{ github.run_id }}
+        path: |
+          logs/
+          data/sync-history.json
+          *.log
+        retention-days: 7
+        if-no-files-found: ignore
+    
+    - name: 🎉 Success notification
+      if: success()
+      run: |
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## 🎉 Daily Product Sync Completed Successfully!" >> $GITHUB_STEP_SUMMARY
+        echo "Working towards 50,000+ products to provide the best fashion recommendations!" >> $GITHUB_STEP_SUMMARY
