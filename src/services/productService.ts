@@ -1,6 +1,8 @@
 import { supabase } from './supabase';
 import { Product } from '@/types';
 import { fetchRakutenFashionProducts } from './rakutenService';
+import { sortProductsByScore, filterOutOfSeasonProducts } from '@/utils/productScoring';
+import { getUserPreferences } from './userPreferenceService';
 
 /**
  * DBの商品データをアプリ用の形式に正規化
@@ -277,6 +279,132 @@ export const fetchPersonalizedProducts = async (
   } catch (error: any) {
     console.error('[ProductService] Error fetching personalized products:', error);
     // エラー時は通常の商品取得にフォールバック
+/**
+ * スコアリングシステムを使用した高度な商品推薦
+ * Phase 2: 商品スコアリング・季節性・価格帯最適化
+ */
+export const fetchScoredProducts = async (
+  userId: string,
+  limit: number = 20,
+  offset: number = 0,
+  options?: {
+    enableSeasonalFilter?: boolean;
+    enablePriceFilter?: boolean;
+    priceFlexibility?: number;
+  }
+) => {
+  try {
+    console.log('[ProductService] Fetching scored products for user:', userId);
+    
+    // ユーザーの嗜好データを取得
+    const userPreferences = await getUserPreferences(userId);
+    
+    if (!userPreferences) {
+      console.log('[ProductService] No user preferences found, using default');
+      return fetchProducts(limit, offset);
+    }
+    
+    console.log('[ProductService] User preferences:', {
+      tags: userPreferences.preferredTags.length,
+      brands: userPreferences.preferredBrands.length,
+      priceRange: userPreferences.priceRange
+    });
+    
+    // より多くの商品を取得してスコアリング用のプールを作る
+    const poolSize = limit * 3; // 3倍の商品を取得
+    const { data, error } = await supabase
+      .from('external_products')
+      .select('*')
+      .eq('is_active', true)
+      .order('priority', { ascending: true, nullsFirst: false })
+      .order('last_synced', { ascending: false })
+      .range(offset * 3, offset * 3 + poolSize - 1);
+    
+    if (error || !data || data.length === 0) {
+      console.log('[ProductService] No products found for scoring');
+      return fetchProducts(limit, offset);
+    }
+    
+    let products = data;
+    
+    // 価格フィルタリング（オプション）
+    if (options?.enablePriceFilter) {
+      const originalCount = products.length;
+      products = products.filter(product => {
+        const price = product.price;
+        const { min, max } = userPreferences.priceRange;
+        const flexibility = options.priceFlexibility || 1.2;
+        const adjustedMin = min * (2 - flexibility);
+        const adjustedMax = max * flexibility;
+        return price >= adjustedMin && price <= adjustedMax;
+      });
+      console.log(`[ProductService] Price filter: ${originalCount} -> ${products.length}`);
+    }
+    
+    // 季節フィルタリング（オプション）
+    if (options?.enableSeasonalFilter) {
+      const originalCount = products.length;
+      products = filterOutOfSeasonProducts(
+        products.map(normalizeProduct),
+        50 // 季節性スコア50以上
+      ).map(p => products.find(dbP => dbP.id === p.id)!);
+      console.log(`[ProductService] Seasonal filter: ${originalCount} -> ${products.length}`);
+    }
+    
+    // スコアリングを実行
+    const scoredProducts = sortProductsByScore(products, userPreferences);
+    
+    // 上位の商品のみを返す
+    const topProducts = scoredProducts.slice(0, limit);
+    
+    // スコア情報をログ出力（デバッグ用）
+    console.log('[ProductService] Top 5 products scores:');
+    topProducts.slice(0, 5).forEach((p, i) => {
+      if (p.score) {
+        console.log(`${i + 1}. ${p.title} (${p.brand})`);
+        console.log(`   Total: ${p.score.totalScore}, Personal: ${p.score.personalScore}, Price: ${p.score.priceScore}`);
+      }
+    });
+    
+    // 正規化して返す
+    const normalizedProducts = topProducts.map(p => {
+      const product = normalizeProduct(p);
+      // スコア情報を含める（デバッグ用）
+      return { ...product, _score: p.score };
+    });
+    
+    return { success: true, data: normalizedProducts };
+    
+  } catch (error: any) {
+    console.error('[ProductService] Error fetching scored products:', error);
+    // エラー時は通常の商品取得にフォールバック
     return fetchProducts(limit, offset);
   }
+};
+
+/**
+ * ユーザーの価格帯に合わせた商品を取得
+ */
+export const fetchProductsInPriceRange = async (
+  userId: string,
+  limit: number = 20,
+  offset: number = 0
+) => {
+  return fetchScoredProducts(userId, limit, offset, {
+    enablePriceFilter: true,
+    priceFlexibility: 1.3 // 30%の余裕
+  });
+};
+
+/**
+ * 季節に合った商品を取得
+ */
+export const fetchSeasonalProducts = async (
+  userId: string,
+  limit: number = 20,
+  offset: number = 0
+) => {
+  return fetchScoredProducts(userId, limit, offset, {
+    enableSeasonalFilter: true
+  });
 };
