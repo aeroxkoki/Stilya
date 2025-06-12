@@ -16,6 +16,8 @@ import { useAuth } from '../../hooks/useAuth';
 import { useNetwork } from '../../contexts/NetworkContext';
 import SwipeCard from './SwipeCard';
 import QuickViewModal from './QuickViewModal';
+import { savedItemsService } from '../../services/savedItemsService';
+import Toast from 'react-native-toast-message';
 
 const { width } = Dimensions.get('window');
 const SWIPE_THRESHOLD = 120;
@@ -49,6 +51,7 @@ const SwipeContainer: React.FC<SwipeContainerProps> = ({
   const [loadingMore, setLoadingMore] = useState(false);
   const [showQuickView, setShowQuickView] = useState(false);
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
+  const [savedProductIds, setSavedProductIds] = useState<Set<string>>(new Set());
   const loadMoreThreshold = useRef(5); // あと5枚になったら追加読み込み
   
   // 外部のインデックスが提供されていればそれを使う、なければ内部の状態を使う
@@ -58,6 +61,23 @@ const SwipeContainer: React.FC<SwipeContainerProps> = ({
   // アニメーション値
   const position = useRef(new Animated.ValueXY()).current;
   const swipeIndicatorOpacity = useRef(new Animated.Value(0)).current;
+
+  // 保存済みアイテムを初期ロード
+  useEffect(() => {
+    const loadSavedItems = async () => {
+      if (user?.id) {
+        try {
+          const savedItems = await savedItemsService.getSavedItems(user.id);
+          const savedIds = savedItems.map(item => item.product_id);
+          setSavedProductIds(new Set(savedIds));
+        } catch (error) {
+          console.error('[SwipeContainer] Failed to load saved items:', error);
+        }
+      }
+    };
+
+    loadSavedItems();
+  }, [user?.id]);
 
   // 商品が少なくなってきたら追加読み込み
   useEffect(() => {
@@ -222,6 +242,53 @@ const SwipeContainer: React.FC<SwipeContainerProps> = ({
     }
   }, [quickViewProduct, handleSwipeRight]);
 
+  // 保存ボタンのハンドラー
+  const handleSaveProduct = useCallback(async () => {
+    if (!currentProduct || !user?.id) return;
+
+    const productId = currentProduct.id;
+    const isSaved = savedProductIds.has(productId);
+
+    try {
+      if (isSaved) {
+        // 保存解除
+        await savedItemsService.unsaveItem(user.id, productId);
+        setSavedProductIds(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(productId);
+          return newSet;
+        });
+        Toast.show({
+          type: 'success',
+          text1: '保存を解除しました',
+          text2: currentProduct.title,
+          position: 'bottom',
+          visibilityTime: 2000,
+        });
+      } else {
+        // 保存
+        await savedItemsService.saveItem(user.id, productId);
+        setSavedProductIds(prev => new Set([...prev, productId]));
+        Toast.show({
+          type: 'success',
+          text1: '保存しました',
+          text2: currentProduct.title,
+          position: 'bottom',
+          visibilityTime: 2000,
+        });
+      }
+    } catch (error) {
+      console.error('[SwipeContainer] Save error:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'エラーが発生しました',
+        text2: '後でもう一度お試しください',
+        position: 'bottom',
+        visibilityTime: 3000,
+      });
+    }
+  }, [currentProduct, user?.id, savedProductIds]);
+
   // ローディング中の表示
   if (isLoading && products.length === 0) {
     return (
@@ -295,6 +362,8 @@ const SwipeContainer: React.FC<SwipeContainerProps> = ({
             onLongPress={handleCardLongPress}
             onSwipeLeft={isConnected === false ? undefined : handleNoButtonPress}
             onSwipeRight={isConnected === false ? undefined : handleYesButtonPress}
+            onSave={handleSaveProduct}
+            isSaved={savedProductIds.has(currentProduct.id)}
             testID="current-swipe-card"
           />
         )}

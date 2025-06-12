@@ -13,6 +13,12 @@ export interface Product {
   source?: string;
   createdAt?: string;
   created_at?: string; // Supabase DB 形式のフィールド名
+  // Phase 1 改良: セール情報（オプショナルで後方互換性を保つ）
+  originalPrice?: number; // 元の価格（セール前）
+  discountPercentage?: number; // 割引率（%）
+  isSale?: boolean; // セール中フラグ
+  rating?: number; // レビュー評価（1-5）
+  reviewCount?: number; // レビュー数
 }
 
 export interface SwipeResult {

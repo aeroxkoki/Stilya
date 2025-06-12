@@ -23,6 +23,7 @@ const normalizeProduct = (dbProduct: any): Product => {
 
 /**
  * 商品を取得（Supabase優先、楽天APIフォールバック）
+ * MVP戦略に基づいた優先度付き取得
  */
 export const fetchProducts = async (limit: number = 20, offset: number = 0) => {
   try {
@@ -30,11 +31,13 @@ export const fetchProducts = async (limit: number = 20, offset: number = 0) => {
     console.log('[ProductService] Request params:', { limit, offset });
     
     // まずSupabaseから取得を試みる
+    // MVP戦略: priority（ブランド優先度）とlast_synced（新しさ）でソート
     const { data, error } = await supabase
       .from('external_products')
       .select('*')
       .eq('is_active', true)
-      .order('created_at', { ascending: false })
+      .order('priority', { ascending: true, nullsFirst: false }) // 優先度の高い順（1が最高）
+      .order('last_synced', { ascending: false }) // 更新日時の新しい順
       .range(offset, offset + limit - 1);
     
     if (!error && data && data.length > 0) {
@@ -174,5 +177,106 @@ export const fetchProductsByTags = async (tags: string[], limit: number = 20) =>
     return { success: true, data: products };
   } catch (error: any) {
     return { success: false, error: error.message || 'Unknown error' };
+  }
+};
+
+/**
+ * パーソナライズされた商品推薦を取得
+ * ユーザーのスワイプ履歴に基づいて商品を取得
+ */
+export const fetchPersonalizedProducts = async (
+  userId: string,
+  limit: number = 20,
+  offset: number = 0
+) => {
+  try {
+    // ユーザーのスワイプ履歴から好みのタグを抽出
+    const { data: swipeData } = await supabase
+      .from('swipes')
+      .select('product_id, result')
+      .eq('user_id', userId)
+      .eq('result', 'yes')
+      .limit(100);
+
+    if (!swipeData || swipeData.length === 0) {
+      // スワイプ履歴がない場合は通常の商品取得
+      return fetchProducts(limit, offset);
+    }
+
+    // 「Yes」スワイプした商品のIDを取得
+    const likedProductIds = swipeData.map(s => s.product_id);
+
+    // これらの商品情報を取得してタグを集計
+    const { data: likedProducts } = await supabase
+      .from('external_products')
+      .select('tags, brand')
+      .in('id', likedProductIds);
+
+    // タグとブランドの頻度を計算
+    const tagFrequency: Record<string, number> = {};
+    const brandFrequency: Record<string, number> = {};
+
+    likedProducts?.forEach(product => {
+      // タグの集計
+      product.tags?.forEach((tag: string) => {
+        tagFrequency[tag] = (tagFrequency[tag] || 0) + 1;
+      });
+      // ブランドの集計
+      if (product.brand) {
+        brandFrequency[product.brand] = (brandFrequency[product.brand] || 0) + 1;
+      }
+    });
+
+    // 頻度の高いタグを抽出（上位5つ）
+    const popularTags = Object.entries(tagFrequency)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 5)
+      .map(([tag]) => tag);
+
+    // 頻度の高いブランドを抽出（上位3つ）
+    const popularBrands = Object.entries(brandFrequency)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 3)
+      .map(([brand]) => brand);
+
+    console.log('[ProductService] User preferences:', { popularTags, popularBrands });
+
+    // パーソナライズされた商品を取得
+    // 1. 好みのタグを含む商品
+    // 2. 好みのブランドの商品
+    // 3. MVPブランドの優先度
+    let query = supabase
+      .from('external_products')
+      .select('*')
+      .eq('is_active', true);
+
+    // タグでフィルタリング（OR条件）
+    if (popularTags.length > 0) {
+      query = query.or(popularTags.map(tag => `tags.cs.{${tag}}`).join(','));
+    }
+
+    // ブランドでフィルタリング（OR条件）
+    if (popularBrands.length > 0) {
+      query = query.or(popularBrands.map(brand => `brand.eq.${brand}`).join(','));
+    }
+
+    const { data, error } = await query
+      .order('priority', { ascending: true, nullsFirst: false })
+      .order('last_synced', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (!error && data && data.length > 0) {
+      const products = data.map(normalizeProduct);
+      console.log(`[ProductService] Fetched ${products.length} personalized products`);
+      return { success: true, data: products };
+    }
+
+    // パーソナライズ商品が見つからない場合は通常の商品取得
+    return fetchProducts(limit, offset);
+
+  } catch (error: any) {
+    console.error('[ProductService] Error fetching personalized products:', error);
+    // エラー時は通常の商品取得にフォールバック
+    return fetchProducts(limit, offset);
   }
 };
