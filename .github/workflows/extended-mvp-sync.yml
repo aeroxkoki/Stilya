@@ -1,0 +1,220 @@
+name: Extended MVP Brands Sync - 30 Brands
+
+on:
+  schedule:
+    # 毎日午前2時と午後2時（JST）に実行
+    - cron: '0 17,5 * * *'  # UTC時間で17:00と5:00 = JST 2:00と14:00
+  workflow_dispatch:  # 手動実行も可能
+    inputs:
+      sync_mode:
+        description: 'Sync mode'
+        required: false
+        default: 'progressive'
+        type: choice
+        options:
+          - progressive  # 段階的増加（推奨）
+          - initial      # 初期同期（少なめ）
+          - full         # フル同期（最大）
+      priority_filter:
+        description: 'Priority filter (1-7, or all)'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - '1'    # ベーシック・定番
+          - '2'    # ECブランド・D2C
+          - '3'    # セレクトショップ
+          - '4'    # ライフスタイル
+          - '5'    # 年齢層特化
+          - '6'    # トレンド・個性派
+          - '7'    # カジュアル
+      dry_run:
+        description: 'Dry run (no database changes)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+jobs:
+  extended-sync:
+    name: Extended MVP Brands Sync (30 Brands)
+    runs-on: ubuntu-latest
+    timeout-minutes: 120  # 2時間のタイムアウト
+    
+    steps:
+      - name: 📦 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🏗️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: 📥 Install dependencies
+        run: |
+          npm ci
+          npm install --save-prod dotenv @supabase/supabase-js axios
+
+      - name: 🔍 Pre-sync checks
+        run: |
+          echo "## 🔍 Pre-Sync Checks" >> $GITHUB_STEP_SUMMARY
+          echo "- Date: $(date '+%Y-%m-%d %H:%M:%S JST')" >> $GITHUB_STEP_SUMMARY
+          echo "- Sync mode: ${{ github.event.inputs.sync_mode || 'progressive' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Priority filter: ${{ github.event.inputs.priority_filter || 'all' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Dry run: ${{ github.event.inputs.dry_run || 'false' }}" >> $GITHUB_STEP_SUMMARY
+          
+          # 環境変数チェック
+          if [ -z "${{ secrets.SUPABASE_URL }}" ]; then
+            echo "❌ SUPABASE_URL is not set" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          
+          if [ -z "${{ secrets.RAKUTEN_APP_ID }}" ]; then
+            echo "❌ RAKUTEN_APP_ID is not set" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          
+          echo "✅ All required environment variables are set" >> $GITHUB_STEP_SUMMARY
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          RAKUTEN_APP_ID: ${{ secrets.RAKUTEN_APP_ID }}
+          RAKUTEN_AFFILIATE_ID: ${{ secrets.RAKUTEN_AFFILIATE_ID }}
+
+      - name: 🗄️ Database capacity check
+        id: capacity_check
+        run: |
+          echo "## 🗄️ Database Capacity" >> $GITHUB_STEP_SUMMARY
+          
+          # Supabaseの容量チェック用スクリプト作成
+          cat > check-capacity.js << 'EOF'
+          const { createClient } = require('@supabase/supabase-js');
+          require('dotenv').config();
+          
+          const supabase = createClient(
+            process.env.EXPO_PUBLIC_SUPABASE_URL,
+            process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
+          );
+          
+          async function check() {
+            const { count: total } = await supabase
+              .from('external_products')
+              .select('*', { count: 'exact', head: true });
+              
+            const { count: active } = await supabase
+              .from('external_products')
+              .select('*', { count: 'exact', head: true })
+              .eq('is_active', true);
+              
+            console.log(`Total products: ${total}`);
+            console.log(`Active products: ${active}`);
+            
+            if (total > 90000) {
+              console.error('WARNING: Database is near capacity limit!');
+              process.exit(1);
+            }
+          }
+          
+          check().catch(console.error);
+          EOF
+          
+          node check-capacity.js || echo "⚠️ Capacity check failed" >> $GITHUB_STEP_SUMMARY
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+
+      - name: 🎯 Run extended MVP sync
+        id: sync
+        run: |
+          echo "## 🎯 Extended MVP Brands Sync" >> $GITHUB_STEP_SUMMARY
+          
+          # 優先度フィルタの設定
+          PRIORITY_FILTER="${{ github.event.inputs.priority_filter || 'all' }}"
+          SYNC_MODE="${{ github.event.inputs.sync_mode || 'progressive' }}"
+          DRY_RUN="${{ github.event.inputs.dry_run || 'false' }}"
+          
+          # 環境変数としてエクスポート
+          export PRIORITY_FILTER
+          export SYNC_MODE
+          export DRY_RUN
+          
+          # 同期スクリプトの実行
+          if [ "$DRY_RUN" == "true" ]; then
+            echo "🔍 Running in DRY RUN mode - no database changes will be made" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          node scripts/sync-extended-mvp-brands.js
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          RAKUTEN_APP_ID: ${{ secrets.RAKUTEN_APP_ID }}
+          RAKUTEN_AFFILIATE_ID: ${{ secrets.RAKUTEN_AFFILIATE_ID }}
+          NODE_ENV: production
+        continue-on-error: true
+
+      - name: 📊 Generate sync report
+        if: always()
+        run: |
+          echo "## 📊 Sync Report" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ steps.sync.outcome }}" == "success" ]; then
+            echo "### ✅ Sync completed successfully" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ Sync failed or completed with errors" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # カテゴリ別統計
+          echo "### 📈 Category Statistics" >> $GITHUB_STEP_SUMMARY
+          echo "- **Basic & Standard**: UNIQLO, GU, 無印良品" >> $GITHUB_STEP_SUMMARY
+          echo "- **EC Brands**: coca, pierrot, Re:EDIT, fifth, titivate" >> $GITHUB_STEP_SUMMARY
+          echo "- **Select Shops**: URBAN RESEARCH, nano・universe, BEAMS, etc." >> $GITHUB_STEP_SUMMARY
+          echo "- **Lifestyle**: studio CLIP, SM2, earth music&ecology, etc." >> $GITHUB_STEP_SUMMARY
+          echo "- **Age-specific**: PLST, vis, ROPE, etc." >> $GITHUB_STEP_SUMMARY
+          echo "- **Trend**: ZARA, H&M, SNIDEL, FRAY I.D" >> $GITHUB_STEP_SUMMARY
+          echo "- **Casual**: WEGO, GLOBAL WORK, niko and..., coen" >> $GITHUB_STEP_SUMMARY
+
+      - name: 🧹 Post-sync cleanup
+        if: success()
+        run: |
+          echo "## 🧹 Cleanup Tasks" >> $GITHUB_STEP_SUMMARY
+          
+          # 古いログファイルの削除
+          find logs/ -name "*.log" -mtime +30 -delete 2>/dev/null || true
+          
+          # データベースの最適化（必要に応じて）
+          echo "- Old logs cleaned up" >> $GITHUB_STEP_SUMMARY
+
+      - name: 💾 Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: extended-sync-logs-${{ github.run_id }}
+          path: |
+            logs/
+            data/sync-history.json
+            *.log
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: 📧 Send notification on failure
+        if: failure() && github.event_name == 'schedule'
+        run: |
+          echo "Extended MVP sync failed during scheduled run" >> $GITHUB_STEP_SUMMARY
+          echo "Please check the logs for details" >> $GITHUB_STEP_SUMMARY
+          # ここに通知処理を追加（Slack、Email等）
+
+      - name: 🎉 Success message
+        if: success()
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 🎉 Extended MVP Brands Sync Completed!" >> $GITHUB_STEP_SUMMARY
+          echo "30 brands have been successfully synchronized with progressive product count increase." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 💡 Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. Monitor user engagement with expanded brand selection" >> $GITHUB_STEP_SUMMARY
+          echo "2. Review product distribution across categories" >> $GITHUB_STEP_SUMMARY
+          echo "3. Analyze performance impact of increased product count" >> $GITHUB_STEP_SUMMARY

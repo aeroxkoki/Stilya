@@ -171,6 +171,26 @@ RAKUTEN_APP_ID=your_app_id
 - 詳細は [SUPABASE_ERROR_CHECK_RESULT.md](./SUPABASE_ERROR_CHECK_RESULT.md) を参照
 - ✅ オフライン対応
 
+## 🏷️ MVP戦略
+
+### 拡張MVPブランド（30ブランド）
+ペルソナ（20-40代女性）に合わせて厳選した30ブランドを7カテゴリで展開：
+
+- **ベーシック・定番**: UNIQLO, GU, 無印良品
+- **ECブランド・D2C**: coca, pierrot, Re:EDIT, fifth, titivate
+- **セレクトショップ**: URBAN RESEARCH, nano・universe, BEAMS, UNITED ARROWS, SHIPS
+- **ライフスタイル**: studio CLIP, SM2, earth music&ecology, LOWRYS FARM
+- **年齢層特化**: PLST, vis, ROPE, NATURAL BEAUTY BASIC
+- **トレンド・個性派**: ZARA, H&M, SNIDEL, FRAY I.D
+- **カジュアル**: WEGO, GLOBAL WORK, niko and..., coen
+
+詳細は [拡張MVPブランドリスト](docs/EXTENDED_MVP_BRANDS_LIST.md) を参照してください。
+
+### 段階的商品数増加システム
+- 初回同期: 435商品（控えめスタート）
+- 週次20%増加: 最大1,410商品まで自動拡張
+- Supabase容量管理: 90,000件上限で自動調整
+
 ## 📚 開発ガイド
 
 ### 重要なドキュメント
