@@ -1,0 +1,40 @@
+name: Daily Product Sync
+
+on:
+  schedule:
+    # 毎日午前2時（JST）に実行
+    - cron: '0 17 * * *'  # UTC 17:00 = JST 2:00
+  workflow_dispatch: # 手動実行も可能
+
+jobs:
+  sync-products:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+    
+    - name: Install dependencies
+      run: npm install
+    
+    - name: Run product sync
+      env:
+        EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+        EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+        RAKUTEN_APP_ID: ${{ secrets.RAKUTEN_APP_ID }}
+        RAKUTEN_AFFILIATE_ID: ${{ secrets.RAKUTEN_AFFILIATE_ID }}
+      run: |
+        cd scripts
+        node sync-extended-mvp-brands.js
+    
+    - name: Notify on success
+      if: success()
+      run: echo "✅ 商品同期が正常に完了しました"
+    
+    - name: Notify on failure
+      if: failure()
+      run: echo "❌ 商品同期でエラーが発生しました"
