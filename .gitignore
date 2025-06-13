@@ -49,17 +49,18 @@ typescript_errors.txt
 *.temp
 temp-backup-*/
 
-# Archive directory (for cleanup)
+# Archive and backup
 archive/
 *.bak
 *.backup
-
-# Backup files
-*.backup
-*.bak
 *~
-*.swp
-*.swo
+
+# VSCode
+.vscode/
+
+# Data directory
+data/
+
 
 # Scripts backup
 scripts/backup/
@@ -67,17 +68,23 @@ scripts/old/
 scripts/temp/
 
 # Logs
-logs
+logs/
 *.log
 
+# iOS specific
+ios/DerivedData/
+ios/xcuserdata/
+*.xcuserstate
+
 # Editor directories and files
-.vscode/
 .idea/
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+*.swp
+*.swo
 
 # Testing
 coverage/
