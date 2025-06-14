@@ -146,6 +146,8 @@ npm run test:e2e
 - [データベース設計](docs/DATABASE_INITIALIZATION_GUIDE.md)
 - [テストガイド](docs/testing/TESTING_GUIDE.md)
 - [リリースチェックリスト](docs/MVP_RELEASE_CHECKLIST.md)
+- [Supabase無料枠最適化](docs/SUPABASE_FREE_TIER_OPTIMIZATION.md)
+- [商品削除管理](docs/DELETION_MANAGEMENT_GUIDE.md)
 
 ## 🚢 デプロイ
 

@@ -23,7 +23,11 @@
     "sync-products:improved": "node scripts/sync/sync-products-improved.js",
     "test-db": "node scripts/testing/test-database.js",
     "types:generate": "./scripts/utils/generate-types.sh",
-    "types:check": "tsc --noEmit"
+    "types:check": "tsc --noEmit",
+    "monitor:capacity": "node scripts/monitoring/supabase-free-tier-monitor.js",
+    "cleanup:dry-run": "node scripts/maintenance/smart-deletion-manager.js --dry-run",
+    "cleanup:execute": "node scripts/maintenance/smart-deletion-manager.js",
+    "cleanup:emergency": "node scripts/maintenance/emergency-deletion.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.0",

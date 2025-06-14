@@ -1,0 +1,108 @@
+{
+  "deletion_policies": {
+    "automatic_deletion": {
+      "enabled": true,
+      "policies": [
+        {
+          "name": "old_products",
+          "description": "14日以上更新されていない商品",
+          "criteria": {
+            "field": "last_synced",
+            "condition": "older_than_days",
+            "value": 14
+          },
+          "priority": 4
+        },
+        {
+          "name": "inactive_products",
+          "description": "非アクティブフラグが立っている商品",
+          "criteria": {
+            "field": "is_active",
+            "condition": "equals",
+            "value": false
+          },
+          "priority": 1
+        },
+        {
+          "name": "low_priority_products",
+          "description": "優先度が5以上の商品",
+          "criteria": {
+            "field": "priority",
+            "condition": "greater_than_or_equal",
+            "value": 5
+          },
+          "priority": 3
+        },
+        {
+          "name": "out_of_season",
+          "description": "季節外れの商品",
+          "criteria": {
+            "field": "tags",
+            "condition": "contains_out_of_season",
+            "value": "auto"
+          },
+          "priority": 2
+        }
+      ]
+    },
+    "capacity_management": {
+      "thresholds": {
+        "warning": 60,
+        "high": 80,
+        "critical": 90
+      },
+      "targets": {
+        "warning": {
+          "daily_sync_limit": 2000,
+          "deletion": "optional"
+        },
+        "high": {
+          "daily_sync_limit": 1000,
+          "deletion": "recommended",
+          "target_capacity": 70
+        },
+        "critical": {
+          "daily_sync_limit": 0,
+          "deletion": "required",
+          "target_capacity": 60
+        }
+      }
+    },
+    "retention_rules": {
+      "minimum_retention_days": 7,
+      "priority_retention": {
+        "0": 30,
+        "1": 21,
+        "2": 14,
+        "3": 10,
+        "4": 7,
+        "5": 5,
+        "6": 3,
+        "7": 3
+      }
+    },
+    "batch_settings": {
+      "deletion_batch_size": 100,
+      "max_deletions_per_run": 5000,
+      "rate_limit_delay_ms": 100
+    },
+    "seasonal_rules": {
+      "spring": {
+        "months": [3, 4, 5],
+        "out_of_season_tags": ["冬", "ウィンター", "コート", "厚手", "ウール"]
+      },
+      "summer": {
+        "months": [6, 7, 8],
+        "out_of_season_tags": ["冬", "ウィンター", "コート", "ニット", "厚手"]
+      },
+      "autumn": {
+        "months": [9, 10, 11],
+        "out_of_season_tags": ["夏", "サマー", "ノースリーブ", "涼感"]
+      },
+      "winter": {
+        "months": [12, 1, 2],
+        "out_of_season_tags": ["夏", "サマー", "半袖", "ノースリーブ", "涼感"]
+      }
+    }
+  }
+}

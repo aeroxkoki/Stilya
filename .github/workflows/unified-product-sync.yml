@@ -258,8 +258,28 @@ jobs:
           
           # メンテナンスタスクの実行
           if [[ "$MAINTENANCE" == "all" || "$MAINTENANCE" == "cleanup" ]]; then
-            echo "### 🗑️ Cleaning old products" >> $GITHUB_STEP_SUMMARY
-            node scripts/maintenance/cleanup-old-products.js >> $GITHUB_STEP_SUMMARY 2>&1 || true
+            echo "### 🗑️ Smart Product Deletion" >> $GITHUB_STEP_SUMMARY
+            
+            # 容量ベースの削除判断
+            USAGE_PERCENT=$(grep -oP '使用率: \K[\d.]+' monitoring_report.txt || echo "0")
+            if (( $(echo "$USAGE_PERCENT > 60" | bc -l) )); then
+              echo "容量使用率が${USAGE_PERCENT}%のため、削除処理を実行します" >> $GITHUB_STEP_SUMMARY
+              node scripts/maintenance/smart-deletion-manager.js --dry-run >> deletion_report.txt 2>&1 || true
+              
+              # ドライラン結果の表示
+              if [ -f deletion_report.txt ]; then
+                echo "#### 削除候補:" >> $GITHUB_STEP_SUMMARY
+                grep -E "削除対象:|古い商品:|低優先度:|季節外れ:|非アクティブ:" deletion_report.txt | head -10 >> $GITHUB_STEP_SUMMARY || true
+              fi
+              
+              # 容量が80%以上の場合は実際に削除
+              if (( $(echo "$USAGE_PERCENT > 80" | bc -l) )); then
+                echo "⚠️ 容量が高いため実際に削除を実行" >> $GITHUB_STEP_SUMMARY
+                CI=true node scripts/maintenance/smart-deletion-manager.js >> $GITHUB_STEP_SUMMARY 2>&1 || true
+              fi
+            else
+              echo "容量使用率が${USAGE_PERCENT}%のため、削除は不要です" >> $GITHUB_STEP_SUMMARY
+            fi
           fi
           
           if [[ "$MAINTENANCE" == "all" || "$MAINTENANCE" == "optimize" ]]; then
@@ -274,7 +294,35 @@ jobs:
           
           if [[ "$MAINTENANCE" == "all" || "$MAINTENANCE" == "rotation" ]]; then
             echo "### 🔄 Rotating products" >> $GITHUB_STEP_SUMMARY
-            node scripts/maintenance/rotate-products.js >> $GITHUB_STEP_SUMMARY 2>&1 || true
+            # 古い削除スクリプトの代わりにスマート削除を使用
+            DRY_RUN=false CI=true node scripts/maintenance/smart-deletion-manager.js >> $GITHUB_STEP_SUMMARY 2>&1 || true
+          fi
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+
+      - name: 🚨 Emergency capacity check
+        if: always()
+        run: |
+          echo "## 🚨 Emergency Capacity Check" >> $GITHUB_STEP_SUMMARY
+          
+          # 現在の容量を再確認
+          node scripts/monitoring/supabase-free-tier-monitor.js > final_capacity_check.txt 2>&1 || true
+          
+          if [ -f final_capacity_check.txt ]; then
+            FINAL_USAGE=$(grep -oP '使用率: \K[\d.]+' final_capacity_check.txt || echo "0")
+            
+            echo "最終容量使用率: ${FINAL_USAGE}%" >> $GITHUB_STEP_SUMMARY
+            
+            # 90%を超えている場合は緊急削除
+            if (( $(echo "$FINAL_USAGE > 90" | bc -l) )); then
+              echo "❌ 容量が危険水準(${FINAL_USAGE}%)です！緊急削除を実行" >> $GITHUB_STEP_SUMMARY
+              node scripts/maintenance/emergency-deletion.js >> $GITHUB_STEP_SUMMARY 2>&1 || true
+            elif (( $(echo "$FINAL_USAGE > 80" | bc -l) )); then
+              echo "⚠️ 容量が警告水準(${FINAL_USAGE}%)です" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "✅ 容量は健全(${FINAL_USAGE}%)です" >> $GITHUB_STEP_SUMMARY
+            fi
           fi
         env:
           EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
