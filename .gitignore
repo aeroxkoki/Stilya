@@ -135,8 +135,8 @@ start-*.sh
 # Expo generated
 expo-env.d.ts
 # Native projects (managed workflow)
-ios/
-android/
+# ios/  # Commented out for development builds
+# android/  # Commented out for development builds
 
 # Supabase
 .branches
