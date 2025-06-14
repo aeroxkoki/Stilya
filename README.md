@@ -46,14 +46,19 @@ cp .env.example .env
 # 1. iOSプロジェクトの生成
 npx expo prebuild --platform ios --clean
 
-# 2. Xcodeでプロジェクトを開く
+# 2. CocoaPodsの依存関係をインストール
+cd ios && pod install && cd ..
+
+# 3. Xcodeでプロジェクトを開く（必ず.xcworkspaceを使用）
 open ios/Stilya.xcworkspace
 
-# 3. Xcodeで以下を設定：
+# 4. Xcodeで以下を設定：
 # - Signing & Capabilities → Team: Personal Team
 # - Bundle Identifier: com.yourname.stilya.dev (ユニークな値に変更)
 # - デバイスを接続してRun
 ```
+
+**注意**: 必ず`Stilya.xcworkspace`を開いてください。`Stilya.xcodeproj`を直接開くとCocoaPodsの依存関係が読み込まれません。
 
 #### 開発サーバーの起動
 
