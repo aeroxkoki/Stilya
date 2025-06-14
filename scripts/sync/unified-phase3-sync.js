@@ -893,7 +893,7 @@ async function syncBrandProducts(brand, targetCount) {
   return totalSynced;
 }
 
-// 楽天APIから商品取得
+// 楽天APIから商品取得（最高画質対応）
 async function fetchProductsFromRakuten(keyword, limit) {
   const maxPerPage = 30;
   const pages = Math.ceil(limit / maxPerPage);
@@ -908,25 +908,54 @@ async function fetchProductsFromRakuten(keyword, limit) {
         keyword: keyword,
         hits: maxPerPage,
         page: page,
-        sort: '-updateTimestamp',
-        genreId: '100371' // レディースファッション
+        sort: '-reviewCount', // レビュー数順で品質の高い商品を優先
+        genreId: '100371', // レディースファッション
+        imageFlag: 1 // 画像ありの商品のみ
       };
 
       const response = await axios.get(url, { params });
       
       if (response.data.Items && response.data.Items.length > 0) {
-        const products = response.data.Items.map(item => ({
-          productId: `rakuten_${item.Item.itemCode}`,
-          title: item.Item.itemName,
-          price: item.Item.itemPrice,
-          imageUrl: item.Item.mediumImageUrls[0]?.imageUrl || '',
-          productUrl: item.Item.itemUrl,
-          shopName: item.Item.shopName,
-          shopCode: item.Item.shopCode,
-          catchCopy: item.Item.catchcopy || '',
-          reviewAverage: item.Item.reviewAverage || 0,
-          reviewCount: item.Item.reviewCount || 0
-        }));
+        const products = response.data.Items.map(item => {
+          const i = item.Item;
+          
+          // 最高画質の画像を優先的に取得
+          let imageUrl = '';
+          let hasLargeImage = false;
+          let imageQuality = 'low';
+          
+          // 大サイズ画像を優先
+          if (i.largeImageUrls && i.largeImageUrls.length > 0) {
+            imageUrl = i.largeImageUrls[0].imageUrl;
+            hasLargeImage = true;
+            imageQuality = 'high';
+          }
+          // 中サイズ画像をフォールバック
+          else if (i.mediumImageUrls && i.mediumImageUrls.length > 0) {
+            imageUrl = i.mediumImageUrls[0].imageUrl;
+            imageQuality = 'medium';
+          }
+          // 小サイズ画像を最終手段
+          else if (i.smallImageUrls && i.smallImageUrls.length > 0) {
+            imageUrl = i.smallImageUrls[0].imageUrl;
+            imageQuality = 'low';
+          }
+          
+          return {
+            productId: `rakuten_${i.itemCode}`,
+            title: i.itemName,
+            price: i.itemPrice,
+            imageUrl: imageUrl,
+            productUrl: i.itemUrl,
+            shopName: i.shopName,
+            shopCode: i.shopCode,
+            catchCopy: i.catchcopy || '',
+            reviewAverage: i.reviewAverage || 0,
+            reviewCount: i.reviewCount || 0,
+            hasLargeImage: hasLargeImage,
+            imageQuality: imageQuality
+          };
+        }).filter(p => p.imageUrl); // 画像がある商品のみ
         
         allProducts = allProducts.concat(products);
       }
@@ -1060,9 +1089,13 @@ function isSeasonalProduct(product, season) {
   return seasonalTags.length > 0;
 }
 
-// データベース保存
+// データベース保存（無料枠最適化版）
 async function saveProductToDatabase(product) {
   try {
+    // タグを最適化（無料枠のため最大10タグに制限）
+    const optimizedTags = product.ml_tags ? product.ml_tags.slice(0, 10) : [];
+    const optimizedSeasonalTags = product.seasonal_tags ? product.seasonal_tags.slice(0, 5) : [];
+    
     const { error } = await supabase
       .from('external_products')
       .upsert({
@@ -1077,13 +1110,16 @@ async function saveProductToDatabase(product) {
         brand_category: product.brand_category,
         target_age: product.target_age,
         price_range: product.price_range,
-        tags: product.ml_tags || [],
-        seasonal_tags: product.seasonal_tags || [],
+        tags: optimizedTags,  // 最適化されたタグ（最大10個）
+        seasonal_tags: optimizedSeasonalTags,  // 最適化された季節タグ（最大5個）
         recommendation_score: product.recommendation_score || 50,
         review_average: product.reviewAverage,
         review_count: product.reviewCount,
         is_active: product.is_active,
-        last_synced: product.last_synced
+        last_synced: product.last_synced,
+        // 画像品質情報
+        has_large_image: product.hasLargeImage || false,
+        image_quality: product.imageQuality || 'medium'
       }, {
         onConflict: 'product_id'
       });

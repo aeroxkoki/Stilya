@@ -3,6 +3,7 @@ import { Product } from '@/types';
 import { fetchRakutenFashionProducts } from './rakutenService';
 import { sortProductsByScore, filterOutOfSeasonProducts } from '@/utils/productScoring';
 import { getUserPreferences } from './userPreferenceService';
+import { optimizeImageUrl, API_OPTIMIZATION } from '@/utils/supabaseOptimization';
 
 /**
  * DBの商品データをアプリ用の形式に正規化
@@ -13,7 +14,7 @@ const normalizeProduct = (dbProduct: any): Product => {
     title: dbProduct.title,
     brand: dbProduct.brand,
     price: dbProduct.price,
-    imageUrl: dbProduct.image_url,
+    imageUrl: optimizeImageUrl(dbProduct.image_url), // 高画質画像URLに最適化
     description: dbProduct.description,
     tags: dbProduct.tags || [],
     category: dbProduct.category,
