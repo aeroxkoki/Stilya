@@ -228,8 +228,8 @@ jobs:
           # 同期実行
           echo "### Starting sync with mode: $SYNC_MODE" >> $GITHUB_STEP_SUMMARY
           
-          # Phase 3拡張スクリプトの実行
-          node scripts/sync/unified-phase3-sync.js || echo "Sync completed with warnings"
+          # Phase 3拡張スクリプトの実行（高画質版）
+          node scripts/sync/unified-phase3-sync-hq.js || echo "Sync completed with warnings"
         env:
           EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
