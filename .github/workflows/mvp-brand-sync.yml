@@ -1,116 +1,33 @@
-name: MVP Brand Sync - Priority Brands Only
+# このワークフローは統合版に移行されました
+# 新しいワークフロー: unified-product-sync.yml
+
+name: [DEPRECATED] mvp-brand-sync
 
 on:
-  schedule:
-    # 毎日午前3時と午後3時（JST）に実行
-    - cron: '0 18,6 * * *'  # UTC時間で18:00と6:00 = JST 3:00と15:00
-  workflow_dispatch:  # 手動実行も可能
+  workflow_dispatch:
     inputs:
-      sync_mode:
-        description: 'Sync mode'
-        required: false
-        default: 'mvp'
-        type: choice
-        options:
-          - mvp     # MVPブランドのみ
-          - all     # 全ブランド（従来の方法）
+      message:
+        description: 'このワークフローは廃止されました'
+        required: true
+        default: 'Use unified-product-sync.yml instead'
 
 jobs:
-  sync-mvp-brands:
-    name: Sync MVP Priority Brands
+  deprecated:
     runs-on: ubuntu-latest
-    
     steps:
-      - name: 📦 Checkout repository
-        uses: actions/checkout@v4
-
-      - name: 🏗️ Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-
-      - name: 📥 Install dependencies
+      - name: Deprecated Notice
         run: |
-          npm ci
-          # 本番環境では必要なパッケージを確実にインストール
-          npm install --save-prod dotenv @supabase/supabase-js axios
-
-      - name: 🔍 Check environment
-        run: |
-          echo "## Environment Check" >> $GITHUB_STEP_SUMMARY
-          echo "- Running sync at: $(date)" >> $GITHUB_STEP_SUMMARY
-          echo "- Sync mode: ${{ github.event.inputs.sync_mode || 'mvp' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Node version: $(node --version)" >> $GITHUB_STEP_SUMMARY
+          echo "❌ このワークフローは廃止されました" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
-          # 環境変数チェック
-          node scripts/check-github-env.js || true
-        env:
-          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          RAKUTEN_APP_ID: ${{ secrets.RAKUTEN_APP_ID }}
-          RAKUTEN_AFFILIATE_ID: ${{ secrets.RAKUTEN_AFFILIATE_ID }}
-
-      - name: 🎯 Sync MVP brands from Rakuten API
-        id: sync
-        run: |
-          echo "Starting MVP brand sync..." >> $GITHUB_STEP_SUMMARY
-          
-          # MVPモードか全ブランドモードかを選択
-          if [ "${{ github.event.inputs.sync_mode }}" == "all" ]; then
-            echo "Running full sync (all brands)..." >> $GITHUB_STEP_SUMMARY
-            node scripts/sync-rakuten-products.js
-          else
-            echo "Running MVP sync (priority brands only)..." >> $GITHUB_STEP_SUMMARY
-            node scripts/sync-mvp-brands.js
-          fi
-        env:
-          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          RAKUTEN_APP_ID: ${{ secrets.RAKUTEN_APP_ID }}
-          RAKUTEN_AFFILIATE_ID: ${{ secrets.RAKUTEN_AFFILIATE_ID }}
-          NODE_ENV: production
-        continue-on-error: true
-
-      - name: 📊 Generate sync report
-        if: always()
-        run: |
-          echo "## 📊 MVP Sync Report" >> $GITHUB_STEP_SUMMARY
-          echo "- Date: $(date)" >> $GITHUB_STEP_SUMMARY
-          echo "- Status: ${{ steps.sync.outcome }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Mode: ${{ github.event.inputs.sync_mode || 'mvp' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Branch: ${{ github.ref }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Run ID: ${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
-          
-          if [ "${{ steps.sync.outcome }}" == "success" ]; then
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "## ✅ Sync Successful!" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "### MVPブランド優先度:" >> $GITHUB_STEP_SUMMARY
-            echo "1. **Priority 1**: UNIQLO, GU" >> $GITHUB_STEP_SUMMARY
-            echo "2. **Priority 2**: coca, pierrot" >> $GITHUB_STEP_SUMMARY
-            echo "3. **Priority 3**: URBAN RESEARCH" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "## ❌ Sync Failed" >> $GITHUB_STEP_SUMMARY
-            echo "詳細は [GitHub Actions設定ガイド](https://github.com/${{ github.repository }}/blob/main/docs/GITHUB_ACTIONS_SETUP.md) を参照してください。" >> $GITHUB_STEP_SUMMARY
-          fi
-
-      - name: 💾 Upload logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: mvp-sync-logs-${{ github.run_id }}
-          path: |
-            logs/
-            *.log
-          retention-days: 30
-          if-no-files-found: ignore
-
-      - name: 🔄 Update database schema if needed
-        if: success()
-        run: |
-          echo "Checking database schema for MVP fields..."
-          # priorityとsource_brandフィールドの確認と追加
-          # 注：この処理は別途手動で実行することを推奨
+          echo "## 📢 重要なお知らせ" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "このワークフローは **unified-product-sync.yml** に統合されました。" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🚀 新しいワークフローの特徴:" >> $GITHUB_STEP_SUMMARY
+          echo "- 50-60ブランド対応（Phase 3）" >> $GITHUB_STEP_SUMMARY
+          echo "- 20-40代女性向け最適化" >> $GITHUB_STEP_SUMMARY
+          echo "- 統合された全機能" >> $GITHUB_STEP_SUMMARY
+          echo "- 柔軟な実行モード" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Actions → Unified Product Sync - Phase 3** を使用してください。" >> $GITHUB_STEP_SUMMARY
+          exit 1

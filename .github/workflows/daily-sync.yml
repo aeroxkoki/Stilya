@@ -1,40 +1,33 @@
-name: Daily Product Sync
+# このワークフローは統合版に移行されました
+# 新しいワークフロー: unified-product-sync.yml
+
+name: [DEPRECATED] daily-sync
 
 on:
-  schedule:
-    # 毎日午前2時（JST）に実行
-    - cron: '0 17 * * *'  # UTC 17:00 = JST 2:00
-  workflow_dispatch: # 手動実行も可能
+  workflow_dispatch:
+    inputs:
+      message:
+        description: 'このワークフローは廃止されました'
+        required: true
+        default: 'Use unified-product-sync.yml instead'
 
 jobs:
-  sync-products:
+  deprecated:
     runs-on: ubuntu-latest
-    
     steps:
-    - uses: actions/checkout@v3
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
-    
-    - name: Install dependencies
-      run: npm install
-    
-    - name: Run product sync
-      env:
-        EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
-        EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
-        RAKUTEN_APP_ID: ${{ secrets.RAKUTEN_APP_ID }}
-        RAKUTEN_AFFILIATE_ID: ${{ secrets.RAKUTEN_AFFILIATE_ID }}
-      run: |
-        cd scripts
-        node sync-extended-mvp-brands.js
-    
-    - name: Notify on success
-      if: success()
-      run: echo "✅ 商品同期が正常に完了しました"
-    
-    - name: Notify on failure
-      if: failure()
-      run: echo "❌ 商品同期でエラーが発生しました"
+      - name: Deprecated Notice
+        run: |
+          echo "❌ このワークフローは廃止されました" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 📢 重要なお知らせ" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "このワークフローは **unified-product-sync.yml** に統合されました。" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🚀 新しいワークフローの特徴:" >> $GITHUB_STEP_SUMMARY
+          echo "- 50-60ブランド対応（Phase 3）" >> $GITHUB_STEP_SUMMARY
+          echo "- 20-40代女性向け最適化" >> $GITHUB_STEP_SUMMARY
+          echo "- 統合された全機能" >> $GITHUB_STEP_SUMMARY
+          echo "- 柔軟な実行モード" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Actions → Unified Product Sync - Phase 3** を使用してください。" >> $GITHUB_STEP_SUMMARY
+          exit 1

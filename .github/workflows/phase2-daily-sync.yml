@@ -1,186 +1,33 @@
-name: Phase 2 Daily Sync - MVP Brands with Scoring
+# このワークフローは統合版に移行されました
+# 新しいワークフロー: unified-product-sync.yml
+
+name: [DEPRECATED] phase2-daily-sync
 
 on:
-  schedule:
-    # 毎日午前3時と午後3時（JST）に実行
-    - cron: '0 18,6 * * *'  # UTC時間で18:00と6:00 = JST 3:00と15:00
-  workflow_dispatch:  # 手動実行も可能
+  workflow_dispatch:
     inputs:
-      sync_mode:
-        description: 'Sync mode'
-        required: false
-        default: 'mvp'
-        type: choice
-        options:
-          - mvp       # MVPブランドのみ
-          - seasonal  # 季節商品を優先
-          - all       # 全ブランド
-      maintenance:
-        description: 'Run maintenance tasks'
-        required: false
-        default: 'true'
-        type: choice
-        options:
-          - 'true'
-          - 'false'
+      message:
+        description: 'このワークフローは廃止されました'
+        required: true
+        default: 'Use unified-product-sync.yml instead'
 
 jobs:
-  sync-and-optimize:
-    name: Phase 2 Product Sync and Optimization
+  deprecated:
     runs-on: ubuntu-latest
-    
     steps:
-      - name: 📦 Checkout repository
-        uses: actions/checkout@v4
-
-      - name: 🏗️ Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-
-      - name: 📥 Install dependencies
+      - name: Deprecated Notice
         run: |
-          npm ci
-          # 本番環境では必要なパッケージを確実にインストール
-          npm install --save-prod dotenv @supabase/supabase-js axios
-
-      - name: 🔍 Check environment
-        run: |
-          echo "## 🔍 Environment Check" >> $GITHUB_STEP_SUMMARY
-          echo "- Running at: $(date '+%Y-%m-%d %H:%M:%S JST')" >> $GITHUB_STEP_SUMMARY
-          echo "- Sync mode: ${{ github.event.inputs.sync_mode || 'mvp' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Maintenance: ${{ github.event.inputs.maintenance || 'true' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Node version: $(node --version)" >> $GITHUB_STEP_SUMMARY
-          
-          # 現在の季節を表示
-          MONTH=$(date +%m)
-          if [[ $MONTH -ge 3 && $MONTH -le 5 ]]; then
-            SEASON="春 🌸"
-          elif [[ $MONTH -ge 6 && $MONTH -le 8 ]]; then
-            SEASON="夏 ☀️"
-          elif [[ $MONTH -ge 9 && $MONTH -le 11 ]]; then
-            SEASON="秋 🍁"
-          else
-            SEASON="冬 ❄️"
-          fi
-          echo "- Current season: $SEASON" >> $GITHUB_STEP_SUMMARY
+          echo "❌ このワークフローは廃止されました" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
-          # 環境変数チェック
-          node scripts/check-github-env.js || true
-        env:
-          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          RAKUTEN_APP_ID: ${{ secrets.RAKUTEN_APP_ID }}
-          RAKUTEN_AFFILIATE_ID: ${{ secrets.RAKUTEN_AFFILIATE_ID }}
-
-      - name: 🎯 Sync products based on mode
-        id: sync
-        run: |
-          echo "## 🎯 Product Sync" >> $GITHUB_STEP_SUMMARY
-          
-          SYNC_MODE="${{ github.event.inputs.sync_mode || 'mvp' }}"
-          
-          case $SYNC_MODE in
-            "mvp")
-              echo "Running MVP brand sync (UNIQLO, GU, coca, pierrot, URBAN RESEARCH)..." >> $GITHUB_STEP_SUMMARY
-              node scripts/sync-mvp-brands.js
-              ;;
-            "seasonal")
-              echo "Running seasonal-focused sync..." >> $GITHUB_STEP_SUMMARY
-              # 季節商品を優先的に同期するスクリプトを実行
-              node scripts/sync-seasonal-products.js || node scripts/sync-mvp-brands.js
-              ;;
-            "all")
-              echo "Running full sync (all brands)..." >> $GITHUB_STEP_SUMMARY
-              node scripts/sync-rakuten-products.js
-              ;;
-          esac
-        env:
-          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          RAKUTEN_APP_ID: ${{ secrets.RAKUTEN_APP_ID }}
-          RAKUTEN_AFFILIATE_ID: ${{ secrets.RAKUTEN_AFFILIATE_ID }}
-          NODE_ENV: production
-        continue-on-error: true
-
-      - name: 🧹 Database maintenance
-        if: github.event.inputs.maintenance != 'false'
-        run: |
-          echo "## 🧹 Maintenance Tasks" >> $GITHUB_STEP_SUMMARY
-          
-          # 古い商品の無効化
-          echo "### Deactivating old products" >> $GITHUB_STEP_SUMMARY
-          node scripts/deactivate-old-products.js || echo "- Deactivation script not found, skipping" >> $GITHUB_STEP_SUMMARY
-          
-          # 季節外れ商品の優先度調整
-          echo "### Adjusting seasonal priorities" >> $GITHUB_STEP_SUMMARY
-          node scripts/update-seasonal-priorities.js || echo "- Seasonal update script not found, skipping" >> $GITHUB_STEP_SUMMARY
-          
-          # データベース統計の更新
-          echo "### Updating statistics" >> $GITHUB_STEP_SUMMARY
-          node scripts/update-db-statistics.js || echo "- Statistics script not found, skipping" >> $GITHUB_STEP_SUMMARY
-        env:
-          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-
-      - name: 📊 Generate comprehensive report
-        if: always()
-        run: |
-          echo "## 📊 Sync Report Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## 📢 重要なお知らせ" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
-          # 同期結果
-          if [ "${{ steps.sync.outcome }}" == "success" ]; then
-            echo "### ✅ Sync Status: Success" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "### ❌ Sync Status: Failed" >> $GITHUB_STEP_SUMMARY
-          fi
-          
+          echo "このワークフローは **unified-product-sync.yml** に統合されました。" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
-          # ブランド統計を取得
-          echo "### 📈 Brand Statistics" >> $GITHUB_STEP_SUMMARY
-          node scripts/check-current-brands.js >> $GITHUB_STEP_SUMMARY 2>&1 || echo "Failed to get brand statistics" >> $GITHUB_STEP_SUMMARY
-          
+          echo "### 🚀 新しいワークフローの特徴:" >> $GITHUB_STEP_SUMMARY
+          echo "- 50-60ブランド対応（Phase 3）" >> $GITHUB_STEP_SUMMARY
+          echo "- 20-40代女性向け最適化" >> $GITHUB_STEP_SUMMARY
+          echo "- 統合された全機能" >> $GITHUB_STEP_SUMMARY
+          echo "- 柔軟な実行モード" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
-          # Phase 2機能の状態
-          echo "### 🎯 Phase 2 Features" >> $GITHUB_STEP_SUMMARY
-          echo "- **Scoring System**: Active ✅" >> $GITHUB_STEP_SUMMARY
-          echo "- **Seasonal Filtering**: Active ✅" >> $GITHUB_STEP_SUMMARY
-          echo "- **Price Optimization**: Active ✅" >> $GITHUB_STEP_SUMMARY
-          echo "- **User Preference Learning**: Active ✅" >> $GITHUB_STEP_SUMMARY
-          
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          # 推奨アクション
-          echo "### 💡 Recommendations" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ steps.sync.outcome }}" != "success" ]; then
-            echo "1. Check API credentials in GitHub Secrets" >> $GITHUB_STEP_SUMMARY
-            echo "2. Verify Supabase connection" >> $GITHUB_STEP_SUMMARY
-            echo "3. Check Rakuten API rate limits" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "1. Monitor user engagement metrics" >> $GITHUB_STEP_SUMMARY
-            echo "2. Review seasonal tag accuracy" >> $GITHUB_STEP_SUMMARY
-            echo "3. Analyze price range distribution" >> $GITHUB_STEP_SUMMARY
-          fi
-
-      - name: 💾 Upload logs and reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: phase2-sync-logs-${{ github.run_id }}
-          path: |
-            logs/
-            *.log
-            reports/
-          retention-days: 30
-          if-no-files-found: ignore
-
-      - name: 📧 Send notification (optional)
-        if: failure() && github.event_name == 'schedule'
-        run: |
-          echo "Sync failed during scheduled run. This would trigger a notification in production."
-          # ここに通知処理を追加（Slack、Email等）
+          echo "**Actions → Unified Product Sync - Phase 3** を使用してください。" >> $GITHUB_STEP_SUMMARY
+          exit 1
