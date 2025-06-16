@@ -29,6 +29,16 @@ config.resolver = {
   ),
   // テストファイルを除外
   blacklistRE: /.*\.(test|spec)\.(js|ts|tsx)$/,
+  // Podの数を削減するための追加設定
+  platforms: ['ios', 'android'],
+  // Webプラットフォーム関連を完全に除外
+  providesModuleNodeModules: [
+    '@react-native',
+    'react-native',
+    ...config.resolver.providesModuleNodeModules.filter(
+      module => !module.includes('web') && !module.includes('dom')
+    ),
+  ],
 };
 
 // Metroのデフォルトキャッシュ設定を使用（カスタムキャッシュストアを削除）

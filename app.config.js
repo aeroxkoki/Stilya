@@ -81,7 +81,27 @@ export default ({ config }) => {
       web: {
         favicon: "./assets/favicon.png"
       },
-      plugins: [],
+      plugins: [
+        [
+          "expo-build-properties",
+          {
+            ios: {
+              deploymentTarget: "15.1",
+              useFrameworks: "static",
+              // ビルド最適化設定
+              extraPods: [],
+              // コンパイラ最適化
+              ccacheEnabled: true
+            },
+            android: {
+              compileSdkVersion: 35,
+              targetSdkVersion: 35,
+              minSdkVersion: 24,
+              buildToolsVersion: "35.0.0"
+            }
+          }
+        ]
+      ],
       scheme: "stilya",
       extra: {
         eas: {

@@ -60,10 +60,51 @@
     "@types/react": "~19.0.10",
     "babel-plugin-module-resolver": "^5.0.2",
     "dotenv": "^16.5.0",
+    "expo-build-properties": "^0.14.6",
     "metro": "^0.82.0",
     "metro-config": "^0.82.0",
     "metro-core": "^0.82.0",
     "typescript": "^5.3.0"
   },
-  "private": true
+  "private": true,
+  "expo": {
+    "autolinking": {
+      "exclude": [
+        "expo-camera",
+        "expo-av",
+        "expo-sensors",
+        "expo-location",
+        "expo-media-library",
+        "expo-contacts",
+        "expo-calendar",
+        "expo-brightness",
+        "expo-barcode-scanner",
+        "expo-battery",
+        "expo-background-fetch",
+        "expo-cellular",
+        "expo-crypto",
+        "expo-document-picker",
+        "expo-face-detector",
+        "expo-gl",
+        "expo-gl-cpp",
+        "expo-haptics",
+        "expo-local-authentication",
+        "expo-localization",
+        "expo-mail-composer",
+        "expo-network",
+        "expo-notifications",
+        "expo-print",
+        "expo-screen-capture",
+        "expo-secure-store",
+        "expo-sharing",
+        "expo-sms",
+        "expo-speech",
+        "expo-sqlite",
+        "expo-store-review",
+        "expo-task-manager",
+        "expo-video-thumbnails",
+        "expo-web-browser"
+      ]
+    }
+  }
 }
