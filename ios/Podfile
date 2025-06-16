@@ -61,24 +61,77 @@ target 'Stilya' do
       end
     end
     
-    # ビルド時間最適化設定
+    # =========================================
+    # 🚀 Stilya ビルド時間最適化設定
+    # =========================================
+    
     installer.pods_project.targets.each do |target|
       target.build_configurations.each do |config|
         # デバッグビルドの最適化
         if config.name == 'Debug'
+          # アクティブアーキテクチャのみビルド
           config.build_settings['ONLY_ACTIVE_ARCH'] = 'YES'
+          
+          # Swiftコンパイル最適化
           config.build_settings['SWIFT_COMPILATION_MODE'] = 'singlefile'
           config.build_settings['SWIFT_OPTIMIZATION_LEVEL'] = '-Onone'
+          
+          # C/C++コンパイル最適化
           config.build_settings['GCC_OPTIMIZATION_LEVEL'] = '0'
+          
+          # ビットコード無効化
           config.build_settings['ENABLE_BITCODE'] = 'NO'
+          
+          # インデックスストア無効化（ビルド時間短縮）
+          config.build_settings['COMPILER_INDEX_STORE_ENABLE'] = 'NO'
+          
+          # メタルデバッグ情報無効化
+          config.build_settings['MTL_ENABLE_DEBUG_INFO'] = 'NO'
+          
+          # デバッグシンボルを最小化
+          config.build_settings['DEBUG_INFORMATION_FORMAT'] = 'dwarf'
+          
+          # プリコンパイルヘッダーの利用
+          config.build_settings['GCC_PRECOMPILE_PREFIX_HEADER'] = 'YES'
+          
+          # モジュールデバッグ無効化
+          config.build_settings['CLANG_ENABLE_MODULE_DEBUGGING'] = 'NO'
+          
+          # アセットカタログコンパイル最適化
+          config.build_settings['ASSETCATALOG_COMPILER_OPTIMIZATION'] = 'time'
+          
+          # その他の最適化
+          config.build_settings['VALIDATE_PRODUCT'] = 'NO'
+          config.build_settings['ENABLE_PREVIEWS'] = 'NO'
         end
         
+        # 全ビルド設定共通
         # 不要なアーキテクチャを除外
         config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
         
-        # ビルドの並列化を有効化
-        config.build_settings['COMPILER_INDEX_STORE_ENABLE'] = 'NO'
-        config.build_settings['MTL_ENABLE_DEBUG_INFO'] = 'NO'
+        # 並列ビルドを有効化
+        config.build_settings['ENABLE_PARALLEL_CODE_SIGNING'] = 'YES'
+        
+        # 警告を抑制（ビルド時間短縮）
+        config.build_settings['GCC_WARN_INHIBIT_ALL_WARNINGS'] = 'YES'
+        config.build_settings['SWIFT_SUPPRESS_WARNINGS'] = 'YES'
+        
+        # 不要なPodを条件付きで無効化
+        if target.name.include?('Expo') && !['expo-constants', 'expo-dev-client', 'expo-image', 'expo-linking', 'expo-status-bar'].any? { |required| target.name.include?(required) }
+          # 使用していないExpoモジュールのビルドを簡略化
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'MINIMAL_BUILD=1'
+        end
+      end
+    end
+    
+    # Xcodeプロジェクトの最適化
+    installer.generated_projects.each do |project|
+      project.build_configurations.each do |config|
+        if config.name == 'Debug'
+          config.build_settings['SWIFT_COMPILATION_MODE'] = 'singlefile'
+          config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'NO'
+        end
       end
     end
   end

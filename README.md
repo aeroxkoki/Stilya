@@ -46,7 +46,10 @@ cp .env.example .env
 # 1. iOSプロジェクトの生成
 npx expo prebuild --platform ios --clean
 
-# 2. CocoaPodsの依存関係をインストール
+# 2. ビルド最適化（初回のみ）
+./scripts/quick-optimize-ios.sh
+
+# 3. CocoaPodsの依存関係をインストール
 cd ios && pod install && cd ..
 
 # 3. Xcodeでプロジェクトを開く（必ず.xcworkspaceを使用）
