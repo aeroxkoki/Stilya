@@ -2,14 +2,14 @@ import React, { useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList, MainTabParamList, SwipeStackParamList } from '../../navigation/types';
-import { Product } from '../../types/product';
-import { useTheme } from '../../contexts/ThemeContext';
-import { useAuth } from '../../contexts/AuthContext';
-import { EmptyState } from '../../components/common';
-import { useProducts } from '../../hooks/useProducts';
-import SwipeContainer from '../../components/swipe/SwipeContainer';
-import ActionButtons from '../../components/swipe/ActionButtons';
+import { RootStackParamList, MainTabParamList, SwipeStackParamList } from '@/types';
+import { Product } from '@/types/product';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useAuth } from '@/hooks/useAuth';
+import { EmptyState } from '@/components/common';
+import { useProducts } from '@/hooks/useProducts';
+import SwipeContainer from '@/components/swipe/SwipeContainer';
+import ActionButtons from '@/components/swipe/ActionButtons';
 
 // ナビゲーションの型定義
 type SwipeScreenNavigationProp = StackNavigationProp<SwipeStackParamList, 'SwipeHome'>;
