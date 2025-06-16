@@ -7,7 +7,7 @@ import { ActivityIndicator, View, Text } from 'react-native';
 console.log('[AppNavigator.tsx] 2. 基本インポート完了');
 
 // Context
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 
 // Navigators
 import MainNavigator from './MainNavigator';
