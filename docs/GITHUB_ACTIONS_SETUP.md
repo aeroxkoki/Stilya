@@ -1,144 +1,90 @@
-# GitHub Actions設定ガイド - 日次商品同期
+# GitHub Actions設定ガイド
 
-このガイドでは、GitHub Actionsで日次商品同期を正しく動作させるための設定手順を説明します。
+このガイドでは、GitHub Actionsを使用したStilya（スワイプ型ファッション提案アプリ）のビルドおよび商品同期ワークフローについて説明します。
 
-## 🆕 重要な変更
+## 概要
 
-**新しいワークフロー名**: `Daily Product Sync - Rakuten API` (ファイル: `daily-product-sync.yml`)
+Stilyaでは以下の2つのGitHub Actionsワークフローを使用しています：
 
-古い `sync-products.yml` は廃止されました。
+1. **EAS Build** - アプリのビルドを行うワークフロー
+2. **Product Sync** - 商品データの同期を行うワークフロー
 
 ## 🔑 必要なGitHub Secrets
 
-以下の5つのSecretsをGitHubリポジトリに設定する必要があります：
+以下の変数をGitHubリポジトリのSecretsに設定してください：
 
-| Secret名 | 説明 | 取得方法 |
-|----------|------|----------|
-| `SUPABASE_URL` | SupabaseプロジェクトのURL | Supabaseダッシュボード → Settings → API |
-| `SUPABASE_SERVICE_KEY` | Service roleキー（重要） | Supabaseダッシュボード → Settings → API → service_role |
-| `SUPABASE_ANON_KEY` | 匿名キー（バックアップ用） | Supabaseダッシュボード → Settings → API → anon |
-| `RAKUTEN_APP_ID` | 楽天アプリケーションID | 楽天ウェブサービス → アプリ情報 |
-| `RAKUTEN_AFFILIATE_ID` | 楽天アフィリエイトID | 楽天アフィリエイト → 基本情報 |
+| Secret名 | 説明 | 
+|----------|------|
+| `EXPO_TOKEN` | Expoアカウントのアクセストークン |
+| `SUPABASE_URL` | SupabaseプロジェクトのURL |
+| `SUPABASE_ANON_KEY` | Supabase匿名キー | 
+| `RAKUTEN_APP_ID` | 楽天アプリケーションID |
+| `RAKUTEN_AFFILIATE_ID` | 楽天アフィリエイトID |
 
-## 📝 設定手順
+## EAS Build ワークフロー
 
-### 1. Supabase情報の取得
+このワークフローは、アプリのビルドを自動化します。
 
-1. [Supabaseダッシュボード](https://supabase.com/dashboard/project/ddypgpljprljqrblpuli)にアクセス
-2. 左メニューから「Settings」→「API」を選択
-3. 以下の値をコピー：
-   - **Project URL**: `https://ddypgpljprljqrblpuli.supabase.co`
-   - **service_role key**: `eyJ...` で始まる長い文字列（重要：これが必須）
-   - **anon public key**: `eyJ...` で始まる文字列
+### 特徴
+- mainブランチへのプッシュ時に本番ビルドを自動実行
+- developブランチへのプッシュ時にプレビュービルドを自動実行
+- 手動でのビルド実行も可能（プラットフォームとプロファイルを選択可能）
 
-### 2. 楽天API情報
+### 実行方法
+1. **自動実行**: `main`または`develop`ブランチへのプッシュ時に自動実行
+2. **手動実行**:
+   - GitHubリポジトリの **Actions** タブを開く
+   - 左側から「EAS Build」を選択
+   - 右側の「Run workflow」ボタンをクリック
+   - プラットフォーム（iOS/Android/両方）とプロファイル（development/preview/production）を選択
+   - 「Run workflow」を再度クリックして実行
 
-以下の値を使用：
-- **Application ID**: `1070253780037975195`
-- **Affiliate ID**: `3ad7bc23.8866b306.3ad7bc24.393c3977`
+## Product Sync ワークフロー
 
-### 3. GitHub Secretsの設定
+このワークフローは、アプリで使用する商品データをアフィリエイトAPIから取得し、Supabaseに同期します。
 
-1. GitHubリポジトリ（https://github.com/aeroxkoki/Stilya）にアクセス
-2. **Settings** タブをクリック
-3. 左メニューから **Secrets and variables** → **Actions** を選択
-4. **New repository secret** をクリック
-5. 以下の順番で設定：
+### 特徴
+- 毎日定期実行（JST午前2時と午後2時）
+- 商品データの取得と保存
+- Supabase DBの容量監視と自動最適化
+- 複数の同期モード（full/mvp/extended/seasonal）
+- 詳細なカスタマイズオプション
 
-#### SUPABASE_URL
-```
-Name: SUPABASE_URL
-Secret: https://ddypgpljprljqrblpuli.supabase.co
-```
+### 実行方法
+1. **自動実行**: 設定されたスケジュールで自動実行（JST午前2時と午後2時）
+2. **手動実行**:
+   - GitHubリポジトリの **Actions** タブを開く
+   - 左側から「Product Sync」を選択
+   - 右側の「Run workflow」ボタンをクリック
+   - 必要に応じてオプションを設定（同期モード、フィルター、ブランド指定など）
+   - 「Run workflow」を再度クリックして実行
 
-#### SUPABASE_SERVICE_KEY（最重要）
-```
-Name: SUPABASE_SERVICE_KEY
-Secret: [Supabaseダッシュボードから取得したservice_role key]
-```
-
-#### SUPABASE_ANON_KEY
-```
-Name: SUPABASE_ANON_KEY
-Secret: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkeXBncGxqcHJsanFyYmxwdWxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcxMDMwOTcsImV4cCI6MjA2MjY3OTA5N30.u4310NL9FYdxcMSrGxEzEXP0M5y5pDuG3_mz7IRAhMU
-```
-
-#### RAKUTEN_APP_ID
-```
-Name: RAKUTEN_APP_ID
-Secret: 1070253780037975195
-```
-
-#### RAKUTEN_AFFILIATE_ID
-```
-Name: RAKUTEN_AFFILIATE_ID
-Secret: 3ad7bc23.8866b306.3ad7bc24.393c3977
-```
-
-## 🧪 動作テスト
-
-### 手動実行でテスト
-
-1. GitHubリポジトリの **Actions** タブを開く
-2. 左側から「Daily Product Sync - Rakuten API」を選択
-3. 右側の「Run workflow」ボタンをクリック
-4. 「Run workflow」を再度クリックして実行
-
-### 確認ポイント
-
-✅ 正常に動作する場合：
-- 「✅ Service Roleキーを使用してRLSをバイパス」と表示される
-- 商品データが正常に保存される
-- 最後に「✨ すべての処理が完了しました」と表示される
-
-❌ エラーの場合：
-- 「Invalid API key」→ SUPABASE_SERVICE_KEYが正しく設定されていない
-- 「row-level security policy」→ service roleキーではなくanon keyを使用している
-- 「429 Too Many Requests」→ 楽天APIのレート制限（自動リトライされます）
+### 同期モード
+- **full**: 全商品（50-60ブランド）を同期
+- **extended**: 拡張MVP（30ブランド）を同期
+- **mvp**: 主要ブランド（5ブランド）のみ同期
+- **seasonal**: 季節商品を優先して同期
+- **test**: テストモード（実際の変更はなし）
 
 ## 🚨 トラブルシューティング
 
-### 1. Service Roleキーの確認方法
+### ビルドエラー
+1. **EXPO_TOKEN**: Expoアカウントの有効なトークンが設定されているか確認
+2. **依存関係エラー**: package.jsonの依存関係を確認
 
-Supabaseダッシュボードで：
-1. Settings → API
-2. 「service_role」セクションを確認
-3. 「Reveal」をクリックしてキーを表示
-4. このキーは**書き込み権限**があるため重要
+### 同期エラー
+1. **Supabase接続エラー**: SUPABASE_URL, SUPABASE_ANON_KEYの設定を確認
+2. **楽天APIエラー**: RAKUTEN_APP_ID, RAKUTEN_AFFILIATE_IDの設定を確認
+3. **レート制限エラー**: 「429 Too Many Requests」の場合、一定時間後に自動でリトライ
 
-### 2. RLSポリシーエラーが続く場合
+## メンテナンス
 
-Supabaseダッシュボードで以下のSQLを実行：
-```sql
--- external_productsテーブルのRLSポリシーを確認
-SELECT * FROM pg_policies WHERE tablename = 'external_products';
+ワークフローファイルは以下の場所にあります：
+- **EAS Build**: `.github/workflows/build.yml`
+- **Product Sync**: `.github/workflows/product-sync.yml`
 
--- 必要に応じて書き込みポリシーを追加
-CREATE POLICY "Allow service role to insert" ON external_products
-FOR INSERT TO service_role WITH CHECK (true);
-
-CREATE POLICY "Allow service role to update" ON external_products
-FOR UPDATE TO service_role USING (true) WITH CHECK (true);
-```
-
-### 3. ワークフローの実行履歴確認
-
-1. Actions → Daily Product Sync - Rakuten API
-2. 実行履歴をクリック
-3. 各ステップのログを確認
-
-## 📅 日次実行スケジュール
-
-現在の設定：
-- **JST 午前3時**（UTC 18:00）
-- **JST 午後3時**（UTC 6:00）
-
-変更したい場合は `.github/workflows/daily-product-sync.yml` の cron 設定を編集します。
-
-## ⚡ 即座に手動実行
-
-開発中やテスト時は、GitHub Actionsページから「Run workflow」で即座に実行できます。
+古いワークフローファイルは `.github/workflows/archive/` に保存されています。
 
 ---
 
-**重要**: SUPABASE_SERVICE_KEYは必須です。これがないと、RLSポリシーにより商品データの書き込みができません。
+**注意**: GitHub Secretsの設定は、リポジトリの「Settings」→「Secrets and variables」→「Actions」から行えます。

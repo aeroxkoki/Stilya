@@ -1,10 +1,30 @@
-name: EAS Build and CI
+name: EAS Build
 
 on:
   push:
     branches: [ main, develop ]
   pull_request:
     branches: [ main, develop ]
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Platform to build'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - ios
+          - android
+      profile:
+        description: 'Build profile'
+        required: true
+        default: 'preview'
+        type: choice
+        options:
+          - development
+          - preview
+          - production
 
 jobs:
   build:
@@ -30,18 +50,49 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: 🚀 Build Android APK (Preview)
-        if: github.ref == 'refs/heads/develop'
-        run: eas build --platform android --profile preview --non-interactive
+      # Platform決定ロジック
+      - name: 🔍 Determine build platform
+        id: platform
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            PLATFORM="${{ github.event.inputs.platform }}"
+            PROFILE="${{ github.event.inputs.profile }}"
+          else
+            # 自動ビルドの場合
+            if [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
+              PLATFORM="all"
+              PROFILE="preview"
+            elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+              PLATFORM="all"
+              PROFILE="production"
+            else
+              PLATFORM="all"
+              PROFILE="preview"
+            fi
+          fi
+          
+          echo "Selected platform: $PLATFORM"
+          echo "Selected profile: $PROFILE"
+          
+          echo "build_platform=$PLATFORM" >> $GITHUB_ENV
+          echo "build_profile=$PROFILE" >> $GITHUB_ENV
 
-      - name: 🚀 Build iOS App (Preview)
-        if: github.ref == 'refs/heads/develop'
-        run: eas build --platform ios --profile preview --non-interactive
+      # Android Build
+      - name: 🚀 Build Android
+        if: env.build_platform == 'android' || env.build_platform == 'all'
+        run: eas build --platform android --profile ${{ env.build_profile }} --non-interactive
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          EXPO_PUBLIC_RAKUTEN_APP_ID: ${{ secrets.RAKUTEN_APP_ID }}
+          EXPO_PUBLIC_RAKUTEN_AFFILIATE_ID: ${{ secrets.RAKUTEN_AFFILIATE_ID }}
 
-      - name: 🚀 Build Android Production
-        if: github.ref == 'refs/heads/main'
-        run: eas build --platform android --profile production --non-interactive
-
-      - name: 🚀 Build iOS Production
-        if: github.ref == 'refs/heads/main'
-        run: eas build --platform ios --profile production --non-interactive
+      # iOS Build
+      - name: 🚀 Build iOS
+        if: env.build_platform == 'ios' || env.build_platform == 'all'
+        run: eas build --platform ios --profile ${{ env.build_profile }} --non-interactive
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          EXPO_PUBLIC_RAKUTEN_APP_ID: ${{ secrets.RAKUTEN_APP_ID }}
+          EXPO_PUBLIC_RAKUTEN_AFFILIATE_ID: ${{ secrets.RAKUTEN_AFFILIATE_ID }}
