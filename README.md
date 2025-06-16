@@ -65,6 +65,29 @@ open ios/Stilya.xcworkspace
 
 **注意**: 必ず`Stilya.xcworkspace`を開いてください。`Stilya.xcodeproj`を直接開くとCocoaPodsの依存関係が読み込まれません。
 
+#### CocoaPodsエラーの対処
+
+Xcodeで"The sandbox is not in sync with the Podfile.lock"エラーが発生した場合：
+
+```bash
+# 1. クリーンアップ
+cd ios
+rm -rf Pods Podfile.lock
+rm -rf ~/Library/Developer/Xcode/DerivedData/*
+
+# 2. 依存関係の再インストール
+cd ..
+npm install
+
+# 3. Podsの再インストール
+cd ios
+pod install
+cd ..
+
+# 4. Xcodeで再度ビルド
+open ios/Stilya.xcworkspace
+```
+
 #### 開発サーバーの起動
 
 ```bash
