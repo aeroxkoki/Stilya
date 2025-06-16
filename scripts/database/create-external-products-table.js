@@ -10,7 +10,7 @@ const dotenv = require('dotenv');
 const path = require('path');
 
 // 環境変数の読み込み
-dotenv.config({ path: path.join(__dirname, '..', '.env') });
+dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 // Supabaseクライアントの作成
 const supabaseUrl = process.env.SUPABASE_URL;

@@ -10,7 +10,7 @@ const dotenv = require('dotenv');
 const path = require('path');
 
 // 環境変数の読み込み
-dotenv.config({ path: path.join(__dirname, '..', '.env') });
+dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 // Supabaseクライアントの作成（EXPO_PUBLIC_プレフィックス付きの環境変数を使用）
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;

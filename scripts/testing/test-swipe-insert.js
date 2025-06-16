@@ -9,7 +9,7 @@ const dotenv = require('dotenv');
 const path = require('path');
 
 // 環境変数の読み込み
-dotenv.config({ path: path.join(__dirname, '..', '.env') });
+dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
