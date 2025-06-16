@@ -23,9 +23,30 @@ config.resolver = {
   sourceExts: [...config.resolver.sourceExts, 'cjs'],
   // 開発ビルド用のフィールド解決順序
   resolverMainFields: ['react-native', 'browser', 'main'],
+  // ビルド時間短縮：不要なファイルタイプを除外
+  assetExts: config.resolver.assetExts.filter(ext => 
+    !['db', 'mp4', 'webm', 'mov', 'avi', 'mkv'].includes(ext)
+  ),
+  // テストファイルを除外
+  blacklistRE: /.*\.(test|spec)\.(js|ts|tsx)$/,
 };
 
 // Metroのデフォルトキャッシュ設定を使用（カスタムキャッシュストアを削除）
 // config.cacheStores は設定しない（デフォルトを使用）
+
+// ビルド最適化：並列処理のワーカー数を制限
+config.maxWorkers = 4;
+
+// トランスフォーマーの最適化
+config.transformer = {
+  ...config.transformer,
+  // 開発ビルドでの最適化
+  minifierConfig: {
+    keep_fnames: true,
+    mangle: {
+      keep_fnames: true,
+    },
+  },
+};
 
 module.exports = config;
