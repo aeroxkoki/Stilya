@@ -86,23 +86,14 @@ export default ({ config }) => {
           "expo-build-properties",
           {
             ios: {
-              deploymentTarget: "15.1",
-              useFrameworks: "static",
-              // ビルド最適化設定
-              extraPods: [],
-              // コンパイラ最適化
-              ccacheEnabled: true
-            },
-            android: {
-              compileSdkVersion: 35,
-              targetSdkVersion: 35,
-              minSdkVersion: 24,
-              buildToolsVersion: "35.0.0"
+              deploymentTarget: "15.1"
             }
           }
         ]
       ],
       scheme: "stilya",
+      // New Architectureを無効化（これだけで大幅にPodが削減される）
+      newArchEnabled: false,
       extra: {
         eas: {
           projectId: "beb25e0f-344b-4f2f-8b64-20614b9744a3"
