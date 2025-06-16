@@ -280,6 +280,9 @@ export const fetchPersonalizedProducts = async (
   } catch (error: any) {
     console.error('[ProductService] Error fetching personalized products:', error);
     // エラー時は通常の商品取得にフォールバック
+    return fetchProducts(limit, offset);
+  }
+};
 /**
  * スコアリングシステムを使用した高度な商品推薦
  * Phase 2: 商品スコアリング・季節性・価格帯最適化
