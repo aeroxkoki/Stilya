@@ -28,7 +28,21 @@ defaults write com.apple.dt.Xcode BuildSystemScheduleInherentlyParallelCommandsE
 defaults write com.apple.dt.Xcode IDEBuildOperationMaxNumberOfConcurrentCompileTasks $(sysctl -n hw.ncpu)
 ```
 
-### 3. ビルド設定の詳細
+### 3. use_expo_modules! の最適化
+Expo SDK 53では直接的な`exclude`機能はサポートされていませんが、以下の方法で最適化を実現：
+
+```ruby
+# Podfileのpost_installフックで実装
+if target.name.include?('Expo') && !['expo-constants', 'expo-dev-client', 'expo-image', 'expo-linking', 'expo-status-bar'].any? { |required| target.name.include?(required) }
+  # 使用していないExpoモジュールのビルドを簡略化
+  config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
+  config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'MINIMAL_BUILD=1'
+end
+```
+
+この設定により、実際に使用していないExpoモジュールのビルドが軽量化され、ビルド時間が短縮されます。
+
+### 4. ビルド設定の詳細
 
 | 設定項目 | 値 | 効果 |
 |---------|-----|------|
