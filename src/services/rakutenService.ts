@@ -206,7 +206,10 @@ export const fetchRakutenFashionProducts = async (
           title: productItem.itemName,
           price: productItem.itemPrice,
           brand: productItem.shopName || 'ブランド不明',
-          imageUrl: productItem.mediumImageUrls?.[0]?.imageUrl || productItem.imageUrl || '',
+          // 画像URLは大きいサイズを優先的に選択
+          imageUrl: productItem.mediumImageUrls?.length > 0 
+            ? productItem.mediumImageUrls[0].imageUrl.replace('128x128', '600x600')
+            : (productItem.imageUrl || ''),
           description: productItem.itemCaption || '',
           tags: tags,
           category: 'ファッション',

@@ -56,6 +56,10 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
           style={styles.image}
           contentFit="cover"
           testID="product-image"
+          priority="high"
+          cachePolicy="memory-disk"
+          transition={300}
+          placeholder={{ uri: 'https://via.placeholder.com/50x50?text=Loading' }}
         />
         
         <View style={styles.productInfo}>

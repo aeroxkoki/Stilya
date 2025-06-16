@@ -134,11 +134,64 @@ export const getRecommendedSyncStrategy = (productCount: number) => {
 export const optimizeImageUrl = (url: string): string => {
   if (!url) return '';
   
-  // 楽天の画像URLから低解像度パスを除去
-  const optimizedUrl = url
-    .replace(/\/128x128\//, '/')
-    .replace(/\/64x64\//, '/')
-    .replace(/\/pc\//, '/');
+  // 楽天の画像URLを高解像度に変換
+  let optimizedUrl = url;
+  
+  try {
+    // 楽天画像URLの最適化（小さいサイズから大きいサイズへ変換）
+    if (url.includes('rakuten.co.jp')) {
+      // 低解像度パスを除去し、高解像度パスに置換
+      optimizedUrl = url
+        .replace(/\/128x128\//, '/600x600/') // 128x128を600x600に
+        .replace(/\/64x64\//, '/600x600/')   // 64x64を600x600に
+        .replace(/\/pc\//, '/600x600/')      // pcパスを600x600に
+        .replace(/\/thumbnail\//, '/600x600/'); // サムネイルを600x600に
+      
+      // '_ex=128x128'のようなクエリパラメータを高解像度に変更
+      if (optimizedUrl.includes('_ex=')) {
+        optimizedUrl = optimizedUrl.replace(/_ex=\d+x\d+/, '_ex=640x640');
+      } else if (optimizedUrl.includes('?')) {
+        optimizedUrl += '&_ex=640x640';
+      } else {
+        optimizedUrl += '?_ex=640x640';
+      }
+      
+      // 最後にスケーリングされるように、拡大パラメータを追加
+      if (!optimizedUrl.includes('_sc=')) {
+        if (optimizedUrl.includes('?')) {
+          optimizedUrl += '&_sc=1';
+        } else {
+          optimizedUrl += '?_sc=1';
+        }
+      }
+    }
+    
+    // ZOZOTOWN画像の最適化
+    else if (url.includes('zozo.jp')) {
+      optimizedUrl = url.replace(/\?.*$/, '') // クエリパラメータを除去
+        .replace(/\/c\/\d+x\d+/, '/c/1200x1200'); // サイズ指定を1200x1200に
+    }
+    
+    // Amazon画像の最適化
+    else if (url.includes('amazon.com') || url.includes('amazon.co.jp')) {
+      optimizedUrl = url.replace(/\._.*_\./, '._SL1000_.');
+    }
+    
+    // 一般的なCDN対応
+    else if (url.includes('cloudinary.com')) {
+      optimizedUrl = url.replace(/\/upload\//, '/upload/q_auto,f_auto,w_1000/');
+    }
+    
+    // その他のeコマースサイト
+    else if (url.includes('imgix.net')) {
+      const separator = url.includes('?') ? '&' : '?';
+      optimizedUrl = `${url}${separator}w=1200&q=90&auto=format`;
+    }
+  } catch (error) {
+    console.warn('[Optimization] Error optimizing image URL:', error);
+    // エラーの場合は元のURLを使用
+    return url;
+  }
     
   return optimizedUrl;
 };

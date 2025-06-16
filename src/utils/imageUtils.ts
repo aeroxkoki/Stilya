@@ -104,50 +104,76 @@ export const cacheImage = async (url: string): Promise<string> => {
 };
 
 /**
- * 画像URLを解像度に応じて最適化する
- * ※CDNなどでURLベースの解像度指定に対応している場合に使用
+ * 画像URLから最高画質バージョンを取得する（ソース別に最適化）
+ * @param url 元の画像URL
+ * @param width 希望する幅（オプション）
+ * @param height 希望する高さ（オプション）
+ * @returns 最適化された画像URL
  */
-export const getOptimizedImageUrl = (url: string, width?: number, height?: number): string => {
+export const getHighQualityImageUrl = (url: string, width?: number, height?: number): string => {
   if (!url) return '';
   
-  // 画面の解像度に基づいて最適なサイズを計算
-  const screenScale = PixelRatio.get();
-  const optimizedWidth = width ? Math.round(width * screenScale) : undefined;
-  const optimizedHeight = height ? Math.round(height * screenScale) : undefined;
-  
   try {
-    // URLパース
-    const urlObj = new URL(url);
-    
-    // CDNサービスのパターンをチェック
-    if (urlObj.hostname.includes('cloudinary.com') && optimizedWidth && optimizedHeight) {
-      // Cloudinaryのリサイズパラメータ
-      return url.replace('/upload/', `/upload/w_${optimizedWidth},h_${optimizedHeight},q_${IMAGE_QUALITY * 100}/`);
-    } else if (urlObj.hostname.includes('imgix.net') && optimizedWidth) {
-      // imgixのリサイズパラメータ
-      urlObj.searchParams.append('w', optimizedWidth.toString());
-      urlObj.searchParams.append('q', (IMAGE_QUALITY * 100).toString());
-      return urlObj.toString();
-    } else if (urlObj.hostname.includes('images.rakuten.co.jp') && optimizedWidth) {
-      // 楽天画像APIのリサイズパラメータ
-      if (url.includes('?')) {
-        return `${url}&ex=${optimizedWidth}x0`;
+    // 楽天画像の最適化
+    if (url.includes('rakuten.co.jp')) {
+      // クエリパラメータを解析
+      const hasQuery = url.includes('?');
+      let optimizedUrl = url;
+      
+      // パスの置換（低解像度→高解像度）
+      optimizedUrl = optimizedUrl
+        .replace(/\/128x128\//, '/600x600/')
+        .replace(/\/64x64\//, '/600x600/')
+        .replace(/\/pc\//, '/600x600/')
+        .replace(/\/thumbnail\//, '/600x600/');
+      
+      // _exパラメータの置換または追加
+      if (optimizedUrl.includes('_ex=')) {
+        optimizedUrl = optimizedUrl.replace(/_ex=\d+x\d+/, '_ex=640x640');
+      } else if (hasQuery) {
+        optimizedUrl += '&_ex=640x640';
       } else {
-        return `${url}?ex=${optimizedWidth}x0`;
+        optimizedUrl += '?_ex=640x640';
       }
-    } else if (urlObj.hostname.includes('images-amazon.com') && optimizedWidth) {
-      // Amazon画像のリサイズパラメータ
-      return url.replace(/\._[^.]*_\./, `._SL${optimizedWidth}_AC_`);
+      
+      // _scパラメータ（スケーリング）の追加
+      if (!optimizedUrl.includes('_sc=')) {
+        optimizedUrl += (hasQuery || optimizedUrl.includes('?') ? '&' : '?') + '_sc=1';
+      }
+      
+      return optimizedUrl;
     }
-  } catch (e) {
-    // URLパース失敗時はそのまま返す
-    if (__DEV__) {
-      console.warn(`Error optimizing URL ${url}:`, e);
+    
+    // Amazonの画像最適化
+    if (url.includes('amazon.com') || url.includes('amazon.co.jp')) {
+      // SLxxx形式の部分を高解像度に置換
+      return url.replace(/\._[^.]*_\./, '._SL1500_.');
     }
+    
+    // ZOZOTOWNの画像最適化
+    if (url.includes('zozo.jp')) {
+      // クエリパラメータを削除して高解像度パスを指定
+      return url.replace(/\?.*$/, '').replace(/\/c\/\d+x\d+/, '/c/1200x1200');
+    }
+    
+    // CDN系の画像（Cloudinary等）
+    if (url.includes('cloudinary.com')) {
+      return url.replace(/\/upload\//, '/upload/q_auto,f_auto,w_1200/');
+    }
+    
+    // ImgixやThumbor系のURLパラメータ最適化
+    if (url.includes('imgix.net') || url.includes('thumbor')) {
+      const separator = url.includes('?') ? '&' : '?';
+      return `${url}${separator}w=${width || 1200}&q=90`;
+    }
+    
+    // その他の一般的な画像URL
+    return url;
+    
+  } catch (error) {
+    console.warn('[ImageUtils] Error optimizing image URL:', error);
+    return url;
   }
-  
-  // 対応していない場合は元のURLをそのまま返す
-  return url;
 };
 
 /**
