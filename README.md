@@ -46,8 +46,10 @@ cp .env.example .env
 # 1. iOSプロジェクトの生成
 npx expo prebuild --platform ios --clean
 
-# 2. ビルド最適化（初回のみ）
-./scripts/quick-optimize-ios.sh
+# 2. ビルド最適化（初回のみ - 265個のPodsを大幅削減）
+./scripts/optimize-pods.sh  # 根本的な最適化
+# または
+./scripts/quick-optimize-ios.sh  # 簡易最適化
 
 # 3. CocoaPodsの依存関係をインストール
 cd ios && pod install && cd ..
