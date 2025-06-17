@@ -8,6 +8,7 @@ export interface User {
   ageGroup?: string;
   nickname?: string; // SettingsScreenのエラー修正用に追加
   onboardingCompleted?: boolean; // オンボーディング完了フラグ
+  uiStyle?: 'minimal' | 'natural' | 'bold'; // UIスタイル設定
 }
 
 // 商品情報 - product.tsを参照
@@ -103,6 +104,7 @@ export type OnboardingStackParamList = {
   AppIntro: undefined;
   Gender: undefined;
   Style: undefined;
+  StyleSelection: undefined; // 新しいスタイル選択画面
   AgeGroup: undefined;
   Complete: undefined;
 };

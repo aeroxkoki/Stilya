@@ -25,20 +25,55 @@ const normalizeProduct = (dbProduct: any): Product => {
 };
 
 /**
+ * フィルターオプションの型定義
+ */
+export interface FilterOptions {
+  categories?: string[];
+  priceRange?: [number, number];
+  selectedTags?: string[];
+}
+
+/**
  * 商品を取得（Supabase優先、楽天APIフォールバック）
  * MVP戦略に基づいた優先度付き取得
  */
-export const fetchProducts = async (limit: number = 20, offset: number = 0) => {
+export const fetchProducts = async (limit: number = 20, offset: number = 0, filters?: FilterOptions) => {
   try {
     console.log('[ProductService] Fetching products from Supabase...');
-    console.log('[ProductService] Request params:', { limit, offset });
+    console.log('[ProductService] Request params:', { limit, offset, filters });
     
     // まずSupabaseから取得を試みる
     // MVP戦略: priority（ブランド優先度）とlast_synced（新しさ）でソート
-    const { data, error } = await supabase
+    let query = supabase
       .from('external_products')
       .select('*')
-      .eq('is_active', true)
+      .eq('is_active', true);
+    
+    // フィルター条件を適用
+    if (filters) {
+      // カテゴリーフィルター
+      if (filters.categories && filters.categories.length > 0) {
+        query = query.in('category', filters.categories);
+      }
+      
+      // 価格範囲フィルター
+      if (filters.priceRange) {
+        const [minPrice, maxPrice] = filters.priceRange;
+        if (minPrice > 0) {
+          query = query.gte('price', minPrice);
+        }
+        if (maxPrice < Infinity) {
+          query = query.lte('price', maxPrice);
+        }
+      }
+      
+      // タグフィルター（配列のORマッチ）
+      if (filters.selectedTags && filters.selectedTags.length > 0) {
+        query = query.or(filters.selectedTags.map(tag => `tags.cs.{${tag}}`).join(','));
+      }
+    }
+    
+    const { data, error } = await query
       .order('priority', { ascending: true, nullsFirst: false }) // 優先度の高い順（1が最高）
       .order('last_synced', { ascending: false }) // 更新日時の新しい順
       .range(offset, offset + limit - 1);
@@ -190,7 +225,8 @@ export const fetchProductsByTags = async (tags: string[], limit: number = 20) =>
 export const fetchPersonalizedProducts = async (
   userId: string,
   limit: number = 20,
-  offset: number = 0
+  offset: number = 0,
+  filters?: FilterOptions
 ) => {
   try {
     // ユーザーのスワイプ履歴から好みのタグを抽出
@@ -203,7 +239,7 @@ export const fetchPersonalizedProducts = async (
 
     if (!swipeData || swipeData.length === 0) {
       // スワイプ履歴がない場合は通常の商品取得
-      return fetchProducts(limit, offset);
+      return fetchProducts(limit, offset, filters);
     }
 
     // 「Yes」スワイプした商品のIDを取得
@@ -262,6 +298,30 @@ export const fetchPersonalizedProducts = async (
     if (popularBrands.length > 0) {
       query = query.or(popularBrands.map(brand => `brand.eq.${brand}`).join(','));
     }
+    
+    // フィルター条件を適用
+    if (filters) {
+      // カテゴリーフィルター
+      if (filters.categories && filters.categories.length > 0) {
+        query = query.in('category', filters.categories);
+      }
+      
+      // 価格範囲フィルター
+      if (filters.priceRange) {
+        const [minPrice, maxPrice] = filters.priceRange;
+        if (minPrice > 0) {
+          query = query.gte('price', minPrice);
+        }
+        if (maxPrice < Infinity) {
+          query = query.lte('price', maxPrice);
+        }
+      }
+      
+      // 追加タグフィルター（配列のORマッチ）
+      if (filters.selectedTags && filters.selectedTags.length > 0) {
+        query = query.or(filters.selectedTags.map(tag => `tags.cs.{${tag}}`).join(','));
+      }
+    }
 
     const { data, error } = await query
       .order('priority', { ascending: true, nullsFirst: false })
@@ -275,12 +335,12 @@ export const fetchPersonalizedProducts = async (
     }
 
     // パーソナライズ商品が見つからない場合は通常の商品取得
-    return fetchProducts(limit, offset);
+    return fetchProducts(limit, offset, filters);
 
   } catch (error: any) {
     console.error('[ProductService] Error fetching personalized products:', error);
     // エラー時は通常の商品取得にフォールバック
-    return fetchProducts(limit, offset);
+    return fetchProducts(limit, offset, filters);
   }
 };
 /**

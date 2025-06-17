@@ -10,7 +10,7 @@ import { AuthProvider } from './src/contexts/AuthContext';
 import { ProductProvider } from './src/contexts/ProductContext';
 import { OnboardingProvider } from './src/contexts/OnboardingContext';
 import { NetworkProvider } from './src/contexts/NetworkContext';
-import { ThemeProvider } from './src/contexts/ThemeContext';
+import { StyleProvider } from './src/contexts/ThemeContext';
 import { DevMenu } from './src/components/dev/DevMenu';
 
 // Supabase
@@ -50,7 +50,7 @@ const App: React.FC = () => {
     <View style={{ flex: 1 }}>
       <SafeAreaProvider>
         <NetworkProvider>
-          <ThemeProvider>
+          <StyleProvider>
             <AuthProvider>
               <ProductProvider>
                 <OnboardingProvider>
@@ -84,7 +84,7 @@ const App: React.FC = () => {
                 </OnboardingProvider>
               </ProductProvider>
             </AuthProvider>
-          </ThemeProvider>
+          </StyleProvider>
         </NetworkProvider>
       </SafeAreaProvider>
     </View>

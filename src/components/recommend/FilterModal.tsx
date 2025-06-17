@@ -9,12 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/common';
-
-export interface FilterOptions {
-  categories: string[];
-  priceRange: [number, number];
-  selectedTags: string[];
-}
+import { FilterOptions } from '@/services/productService';
 
 interface FilterModalProps {
   visible: boolean;

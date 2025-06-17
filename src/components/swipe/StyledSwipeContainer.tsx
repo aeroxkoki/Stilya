@@ -14,7 +14,9 @@ import { useSwipe } from '../../hooks/useSwipe';
 import { Product } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 import { useNetwork } from '../../contexts/NetworkContext';
-import SwipeCard from './SwipeCard';
+import { useStyle } from '../../contexts/ThemeContext';
+import StyledSwipeCard from './StyledSwipeCard';
+import SwipeCardEnhanced from './SwipeCardEnhanced';
 import QuickViewModal from './QuickViewModal';
 import { savedItemsService } from '../../services/savedItemsService';
 import Toast from 'react-native-toast-message';
@@ -22,7 +24,7 @@ import Toast from 'react-native-toast-message';
 const { width } = Dimensions.get('window');
 const SWIPE_THRESHOLD = 120;
 
-interface SwipeContainerProps {
+interface StyledSwipeContainerProps {
   products: Product[];
   isLoading: boolean;
   onSwipe?: (product: Product, direction: 'left' | 'right') => void;
@@ -31,10 +33,11 @@ interface SwipeContainerProps {
   onLoadMore?: () => Promise<void>;
   hasMoreProducts?: boolean;
   testID?: string;
-  currentIndex?: number; // 外部から現在のインデックスを受け取る
+  currentIndex?: number;
+  useEnhancedCard?: boolean;
 }
 
-const SwipeContainer: React.FC<SwipeContainerProps> = ({
+const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
   products,
   isLoading,
   onSwipe,
@@ -43,10 +46,12 @@ const SwipeContainer: React.FC<SwipeContainerProps> = ({
   onLoadMore,
   hasMoreProducts = false,
   testID,
-  currentIndex: externalIndex, // 外部から渡されたインデックス
+  currentIndex: externalIndex,
+  useEnhancedCard = true, // デフォルトで強化版カードを使用
 }) => {
   const { user } = useAuth();
   const { isConnected } = useNetwork();
+  const { theme, styleType } = useStyle();
   const [internalIndex, setInternalIndex] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
   const [showQuickView, setShowQuickView] = useState(false);
@@ -292,9 +297,22 @@ const SwipeContainer: React.FC<SwipeContainerProps> = ({
   // ローディング中の表示
   if (isLoading && products.length === 0) {
     return (
-      <View style={styles.centerContainer} testID="loading-container">
-        <ActivityIndicator size="large" color="#3B82F6" />
-        <Text style={styles.loadingText}>商品を読み込んでいます...</Text>
+      <View 
+        style={[
+          styles.centerContainer, 
+          { backgroundColor: theme.colors.background }
+        ]} 
+        testID="loading-container"
+      >
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <Text 
+          style={[
+            styles.loadingText,
+            { color: theme.colors.text.secondary }
+          ]}
+        >
+          商品を読み込んでいます...
+        </Text>
       </View>
     );
   }
@@ -302,14 +320,47 @@ const SwipeContainer: React.FC<SwipeContainerProps> = ({
   // 全ての商品をスワイプし終わった場合 または オフライン時でデータがない場合
   if ((products.length === 0 || currentIndex >= products.length)) {
     return (
-      <View style={styles.centerContainer} testID="empty-container">
-        <Ionicons name="cart-outline" size={64} color="#9CA3AF" />
-        <Text style={styles.emptyText}>表示できる商品がありません</Text>
+      <View 
+        style={[
+          styles.centerContainer,
+          { backgroundColor: theme.colors.background }
+        ]} 
+        testID="empty-container"
+      >
+        <Ionicons name="cart-outline" size={64} color={theme.colors.text.hint} />
+        <Text 
+          style={[
+            styles.emptyText,
+            { color: theme.colors.text.secondary }
+          ]}
+        >
+          表示できる商品がありません
+        </Text>
         {isConnected === false && (
-          <View style={styles.offlineContainer} testID="offline-state-notice">
-            <Ionicons name="cloud-offline-outline" size={24} color="#F87171" />
-            <Text style={styles.offlineText}>オフラインモードです</Text>
-            <Text style={styles.offlineSubText}>インターネット接続時に商品が更新されます</Text>
+          <View 
+            style={[
+              styles.offlineContainer,
+              { backgroundColor: `${theme.colors.error}10` }
+            ]} 
+            testID="offline-state-notice"
+          >
+            <Ionicons name="cloud-offline-outline" size={24} color={theme.colors.error} />
+            <Text 
+              style={[
+                styles.offlineText,
+                { color: theme.colors.error }
+              ]}
+            >
+              オフラインモードです
+            </Text>
+            <Text 
+              style={[
+                styles.offlineSubText,
+                { color: theme.colors.text.secondary }
+              ]}
+            >
+              インターネット接続時に商品が更新されます
+            </Text>
           </View>
         )}
       </View>
@@ -333,10 +384,22 @@ const SwipeContainer: React.FC<SwipeContainerProps> = ({
   };
 
   return (
-    <View style={styles.container} testID={testID || 'swipe-container'}>
+    <View 
+      style={[
+        styles.container,
+        { backgroundColor: theme.colors.background }
+      ]} 
+      testID={testID || 'swipe-container'}
+    >
       {/* オフライン通知 */}
       {isConnected === false && (
-        <View style={styles.offlineBanner} testID="offline-banner">
+        <View 
+          style={[
+            styles.offlineBanner,
+            { backgroundColor: theme.colors.error }
+          ]} 
+          testID="offline-banner"
+        >
           <Ionicons name="cloud-offline-outline" size={18} color="#FFFFFF" />
           <Text style={styles.offlineBannerText}>オフラインモード</Text>
         </View>
@@ -344,63 +407,116 @@ const SwipeContainer: React.FC<SwipeContainerProps> = ({
       
       {/* 追加ローディング */}
       {loadingMore && (
-        <View style={styles.loadingMoreContainer} testID="loading-more">
-          <ActivityIndicator size="small" color="#3B82F6" />
-          <Text style={styles.loadingMoreText}>もっと読み込み中...</Text>
+        <View 
+          style={[
+            styles.loadingMoreContainer,
+            { 
+              backgroundColor: `${theme.colors.card.background}F0`,
+              borderRadius: theme.radius.m
+            }
+          ]} 
+          testID="loading-more"
+        >
+          <ActivityIndicator size="small" color={theme.colors.primary} />
+          <Text 
+            style={[
+              styles.loadingMoreText,
+              { color: theme.colors.text.secondary }
+            ]}
+          >
+            もっと読み込み中...
+          </Text>
         </View>
       )}
       
       <Animated.View
         style={[styles.cardContainer, animatedCardStyle]}
-        {...panResponder.panHandlers}
+        {...(useEnhancedCard ? {} : panResponder.panHandlers)}
         testID="animated-card-container"
       >
         {currentProduct && (
-          <SwipeCard
-            product={currentProduct}
-            onPress={handleCardPress}
-            onLongPress={handleCardLongPress}
-            onSwipeLeft={isConnected === false ? undefined : handleNoButtonPress}
-            onSwipeRight={isConnected === false ? undefined : handleYesButtonPress}
-            onSave={handleSaveProduct}
-            isSaved={savedProductIds.has(currentProduct.id)}
-            testID="current-swipe-card"
-          />
+          useEnhancedCard ? (
+            <SwipeCardEnhanced
+              product={currentProduct}
+              onPress={handleCardPress}
+              onLongPress={handleCardLongPress}
+              onSwipeLeft={isConnected === false ? undefined : handleNoButtonPress}
+              onSwipeRight={isConnected === false ? undefined : handleYesButtonPress}
+              onSave={handleSaveProduct}
+              isSaved={savedProductIds.has(currentProduct.id)}
+              testID="current-swipe-card"
+            />
+          ) : (
+            <StyledSwipeCard
+              product={currentProduct}
+              onPress={handleCardPress}
+              onLongPress={handleCardLongPress}
+              onSwipeLeft={isConnected === false ? undefined : handleNoButtonPress}
+              onSwipeRight={isConnected === false ? undefined : handleYesButtonPress}
+              onSave={handleSaveProduct}
+              isSaved={savedProductIds.has(currentProduct.id)}
+              testID="current-swipe-card"
+            />
+          )
         )}
         
-        {/* スワイプインジケーター */}
-        <Animated.View
-          style={[
-            styles.swipeIndicator,
-            styles.yesIndicator,
-            { opacity: position.x.interpolate({
-              inputRange: [0, SWIPE_THRESHOLD],
-              outputRange: [0, 1],
-              extrapolate: 'clamp',
-            }) }
-          ]}
-        >
-          <Text style={styles.indicatorText}>YES</Text>
-        </Animated.View>
-        
-        <Animated.View
-          style={[
-            styles.swipeIndicator,
-            styles.noIndicator,
-            { opacity: position.x.interpolate({
-              inputRange: [-SWIPE_THRESHOLD, 0],
-              outputRange: [1, 0],
-              extrapolate: 'clamp',
-            }) }
-          ]}
-        >
-          <Text style={styles.indicatorText}>NO</Text>
-        </Animated.View>
+        {/* スワイプインジケーター (従来のカードのみ表示) */}
+        {!useEnhancedCard && (
+          <>
+            <Animated.View
+              style={[
+                styles.swipeIndicator,
+                styles.yesIndicator,
+                { 
+                  opacity: position.x.interpolate({
+                    inputRange: [0, SWIPE_THRESHOLD],
+                    outputRange: [0, 1],
+                    extrapolate: 'clamp',
+                  }),
+                  backgroundColor: theme.colors.success
+                }
+              ]}
+            >
+              <Text style={styles.indicatorText}>YES</Text>
+            </Animated.View>
+            
+            <Animated.View
+              style={[
+                styles.swipeIndicator,
+                styles.noIndicator,
+                { 
+                  opacity: position.x.interpolate({
+                    inputRange: [-SWIPE_THRESHOLD, 0],
+                    outputRange: [1, 0],
+                    extrapolate: 'clamp',
+                  }),
+                  backgroundColor: theme.colors.error
+                }
+              ]}
+            >
+              <Text style={styles.indicatorText}>NO</Text>
+            </Animated.View>
+          </>
+        )}
       </Animated.View>
       
       {/* 残りカード数表示 */}
-      <View style={styles.remainingContainer} testID="remaining-counter">
-        <Text style={styles.remainingText}>
+      <View 
+        style={[
+          styles.remainingContainer,
+          { 
+            backgroundColor: `${theme.colors.card.background}E6`,
+            borderRadius: theme.radius.m
+          }
+        ]} 
+        testID="remaining-counter"
+      >
+        <Text 
+          style={[
+            styles.remainingText,
+            { color: theme.colors.text.secondary }
+          ]}
+        >
           残り {products.length - currentIndex} / {products.length} 件
         </Text>
       </View>
@@ -433,11 +549,9 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 15,
     fontSize: 16,
-    color: '#757575',
   },
   emptyText: {
     fontSize: 18,
-    color: '#757575',
     textAlign: 'center',
     marginVertical: 12,
   },
@@ -453,10 +567,8 @@ const styles = StyleSheet.create({
     right: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -467,15 +579,12 @@ const styles = StyleSheet.create({
   loadingMoreText: {
     marginLeft: 8,
     fontSize: 14,
-    color: '#4B5563',
   },
   remainingContainer: {
     position: 'absolute',
     bottom: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
@@ -484,14 +593,12 @@ const styles = StyleSheet.create({
   },
   remainingText: {
     fontSize: 12,
-    color: '#6B7280',
   },
   offlineBanner: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#F87171',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -506,7 +613,6 @@ const styles = StyleSheet.create({
   },
   offlineContainer: {
     alignItems: 'center',
-    backgroundColor: '#FEF2F2',
     padding: 12,
     borderRadius: 8,
     marginTop: 16,
@@ -515,12 +621,10 @@ const styles = StyleSheet.create({
   offlineText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#EF4444',
     marginTop: 8,
   },
   offlineSubText: {
     fontSize: 14,
-    color: '#6B7280',
     textAlign: 'center',
     marginTop: 4,
   },
@@ -532,12 +636,10 @@ const styles = StyleSheet.create({
   yesIndicator: {
     top: 20,
     right: 20,
-    backgroundColor: '#10B981',
   },
   noIndicator: {
     top: 20,
     left: 20,
-    backgroundColor: '#EF4444',
   },
   indicatorText: {
     color: '#FFFFFF',
@@ -546,4 +648,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default SwipeContainer;
+export default StyledSwipeContainer;

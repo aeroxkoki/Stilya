@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { fetchProducts, fetchProductsByTags, fetchScoredProducts } from '@/services/productService';
+import { fetchProducts, fetchProductsByTags, fetchScoredProducts, FilterOptions } from '@/services/productService';
 import { Product } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import { getSwipeHistory } from '@/services/swipeService';
@@ -25,6 +25,7 @@ interface UseProductsReturn {
   handleSwipe: (product: Product, direction: 'left' | 'right') => void;
   hasMore: boolean;
   totalFetched: number;
+  setFilters: (filters: FilterOptions) => void;
 }
 
 /**
@@ -43,6 +44,12 @@ export const useProducts = (): UseProductsReturn => {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
+  const [filters, setActiveFilters] = useState<FilterOptions>({
+    categories: [],
+    priceRange: [0, Infinity],
+    selectedTags: []
+  });
+  
   const pageSize = 20; // 10から20に増やす
   
   // 画像プリフェッチ用
@@ -101,7 +108,8 @@ export const useProducts = (): UseProductsReturn => {
       const currentPage = reset ? 0 : page;
       console.log('[useProducts] Loading products - page:', currentPage, 'offset:', currentPage * pageSize);
       
-      const response = await fetchProducts(pageSize, currentPage * pageSize);
+      // フィルター付きで商品を取得
+      const response = await fetchProducts(pageSize, currentPage * pageSize, filters);
       
       // レスポンスの検証
       if (!response?.success) {
@@ -176,11 +184,16 @@ export const useProducts = (): UseProductsReturn => {
       setRefreshing(false);
       loadingRef.current = false;
     }
-  }, [page, pageSize, productsData.hasMore, prefetchImages]);
+  }, [page, pageSize, productsData.hasMore, prefetchImages, filters]);
+
+  // フィルターが変更されたときに商品を再読み込み
+  useEffect(() => {
+    loadProducts(true);
+  }, [filters]);
 
   // 初回マウント時に商品データを取得（認証初期化完了後）
   useEffect(() => {
-    if (isInitialized) {
+    if (isInitialized && !loadingRef.current) {
       loadProducts(true);
     }
   }, [isInitialized]);
@@ -237,6 +250,11 @@ export const useProducts = (): UseProductsReturn => {
     });
   }, [productsData.products.length, productsData.hasMore, loadMore, user]);
 
+  // フィルターをセットして商品を再読み込み
+  const setFilters = useCallback((newFilters: FilterOptions) => {
+    setActiveFilters(newFilters);
+  }, []);
+
   return {
     products: productsData.products,
     currentIndex,
@@ -248,6 +266,7 @@ export const useProducts = (): UseProductsReturn => {
     refreshProducts,
     handleSwipe,
     hasMore: productsData.hasMore,
-    totalFetched: productsData.totalFetched
+    totalFetched: productsData.totalFetched,
+    setFilters
   };
 };

@@ -96,6 +96,9 @@ export interface Theme {
   };
 }
 
+// スタイルタイプの定義
+export type StyleType = 'minimal' | 'natural' | 'bold';
+
 // ライトテーマ
 export const lightTheme: Theme = {
   colors: {
@@ -266,6 +269,133 @@ export const darkTheme: Theme = {
       elevation: 8,
     },
   },
+};
+
+// スタイル別テーマ - ミニマル（シャープでモダン）
+export const minimalTheme: Theme = {
+  ...lightTheme,
+  colors: {
+    ...lightTheme.colors,
+    primary: '#2c3e50',
+    secondary: '#34495e',
+    background: '#f5f5f5',
+    surface: '#ffffff',
+    card: {
+      background: '#ffffff',
+      border: '#e0e0e0',
+      shadow: '#000000',
+    },
+    main: {
+      background: '#ffffff',
+      surface: '#f5f5f5',
+    },
+    success: '#2ecc71',
+    button: {
+      primary: '#2c3e50',
+      secondary: '#7f8c8d',
+      disabled: '#bdc3c7',
+    },
+    text: {
+      primary: '#2c3e50',
+      secondary: '#7f8c8d',
+      hint: '#95a5a6',
+      inverse: '#ffffff',
+      disabled: '#bdc3c7',
+    },
+  },
+  radius: {
+    s: 4,
+    m: 8,
+    l: 12,
+    xl: 16,
+  },
+};
+
+// スタイル別テーマ - ナチュラル（柔らかく有機的）
+export const naturalTheme: Theme = {
+  ...lightTheme,
+  colors: {
+    ...lightTheme.colors,
+    primary: '#8d6e63',
+    secondary: '#a1887f',
+    background: '#f8f5f2',
+    surface: '#ffffff',
+    card: {
+      background: '#ffffff',
+      border: '#e0d6d1',
+      shadow: '#8d6e63',
+    },
+    main: {
+      background: '#ffffff',
+      surface: '#f8f5f2',
+    },
+    success: '#81c784',
+    button: {
+      primary: '#8d6e63',
+      secondary: '#bcaaa4',
+      disabled: '#d7ccc8',
+    },
+    text: {
+      primary: '#5d4037',
+      secondary: '#8d6e63',
+      hint: '#bcaaa4',
+      inverse: '#ffffff',
+      disabled: '#d7ccc8',
+    },
+  },
+  radius: {
+    s: 12,
+    m: 16,
+    l: 24,
+    xl: 32,
+  },
+};
+
+// スタイル別テーマ - ボールド（大胆で鮮やか）
+export const boldTheme: Theme = {
+  ...lightTheme,
+  colors: {
+    ...lightTheme.colors,
+    primary: '#6200ea',
+    secondary: '#7c4dff',
+    background: '#f5f0fd',
+    surface: '#ffffff',
+    card: {
+      background: '#ffffff',
+      border: '#e1d5f5',
+      shadow: '#6200ea',
+    },
+    main: {
+      background: '#ffffff',
+      surface: '#f5f0fd',
+    },
+    success: '#00c853',
+    button: {
+      primary: '#6200ea',
+      secondary: '#b388ff',
+      disabled: '#d1c4e9',
+    },
+    text: {
+      primary: '#4a148c',
+      secondary: '#6200ea',
+      hint: '#b388ff',
+      inverse: '#ffffff',
+      disabled: '#d1c4e9',
+    },
+  },
+  radius: {
+    s: 8,
+    m: 12,
+    l: 16,
+    xl: 20,
+  },
+};
+
+// スタイル別テーマをマッピング
+export const styleThemes: Record<StyleType, Theme> = {
+  minimal: minimalTheme,
+  natural: naturalTheme,
+  bold: boldTheme,
 };
 
 // デフォルトテーマをエクスポート
