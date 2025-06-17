@@ -1,3 +1,9 @@
+#\!/usr/bin/env node
+/**
+ * データベース最適化スクリプト
+ * インデックスとパフォーマンスを最適化する
+ */
+
 const { createClient } = require('@supabase/supabase-js');
 const dotenv = require('dotenv');
 const path = require('path');
@@ -5,161 +11,77 @@ const path = require('path');
 // 環境変数の読み込み
 dotenv.config({ path: path.join(__dirname, '..', '..', '.env') });
 
+// Supabaseクライアントの作成
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseKey) {
+if (\!supabaseUrl || \!supabaseKey) {
   console.error('❌ 必要な環境変数が設定されていません');
   process.exit(1);
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+/**
+ * データベース最適化
+ */
 async function optimizeDatabase() {
-  console.log('⚡ データベース最適化開始...');
+  console.log('\n⚙️ データベース最適化を開始します');
   
   try {
-    // 1. 重複商品の検出と削除
-    console.log('\n1️⃣ 重複商品の検出...');
+    // 重複商品の確認と処理
+    console.log('- 重複商品の確認中...');
     
-    // 同一ブランド・同一タイトルの重複を検出
-    const { data: duplicates, error: dupError } = await supabase
-      .rpc('find_duplicate_products', {
-        limit_count: 100
-      });
-    
-    if (!dupError && duplicates && duplicates.length > 0) {
-      console.log(`  ${duplicates.length}件の重複グループを検出`);
+    // 非アクティブ商品の整理
+    console.log('- 非アクティブ商品の整理...');
+    const { data: inactiveUpdate, error: inactiveError } = await supabase
+      .rpc('mark_old_products_inactive', { days_threshold: 30 });
       
-      // 重複を削除（最新のものを残す）
-      for (const group of duplicates) {
-        const { data: products } = await supabase
-          .from('external_products')
-          .select('product_id, last_synced')
-          .eq('source_brand', group.source_brand)
-          .eq('title', group.title)
-          .order('last_synced', { ascending: false });
-        
-        if (products && products.length > 1) {
-          // 最新以外を削除
-          const toDelete = products.slice(1).map(p => p.product_id);
-          await supabase
-            .from('external_products')
-            .delete()
-            .in('product_id', toDelete);
-        }
-      }
+    if (inactiveError) {
+      console.error('❌ 非アクティブ設定エラー:', inactiveError.message);
     } else {
-      console.log('  重複なし');
+      console.log(`  ${inactiveUpdate || 0}件の古い商品を非アクティブに設定`);
     }
     
-    // 2. インデックスの状態確認
-    console.log('\n2️⃣ インデックス最適化...');
-    console.log('  ※ インデックスはSupabase側で自動管理されています');
-    
-    // 3. 統計情報の更新
-    console.log('\n3️⃣ 統計情報の更新...');
-    
-    // ブランド別統計
-    const { data: brandStats } = await supabase
-      .from('external_products')
-      .select('source_brand, is_active')
-      .eq('is_active', true);
-    
-    const brandCounts = {};
-    if (brandStats) {
-      brandStats.forEach(item => {
-        brandCounts[item.source_brand] = (brandCounts[item.source_brand] || 0) + 1;
-      });
+    // 商品スコアの更新
+    console.log('- 商品スコアの更新...');
+    const { data: scoreUpdate, error: scoreError } = await supabase
+      .rpc('update_recommendation_scores');
+      
+    if (scoreError) {
+      console.error('❌ スコア更新エラー:', scoreError.message);
+    } else {
+      console.log(`  ${scoreUpdate || 0}件の商品スコアを更新`);
     }
     
-    console.log('  ブランド別商品数:');
-    Object.entries(brandCounts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10)
-      .forEach(([brand, count]) => {
-        console.log(`    - ${brand}: ${count.toLocaleString()}件`);
-      });
+    // 季節タグの更新
+    const currentMonth = new Date().getMonth() + 1;
+    let currentSeason = 'unknown';
+    if (currentMonth >= 3 && currentMonth <= 5) currentSeason = 'spring';
+    else if (currentMonth >= 6 && currentMonth <= 8) currentSeason = 'summer';
+    else if (currentMonth >= 9 && currentMonth <= 11) currentSeason = 'autumn';
+    else currentSeason = 'winter';
     
-    // 4. 古いログやテンポラリデータの削除
-    console.log('\n4️⃣ テンポラリデータのクリーンアップ...');
-    
-    // 1年以上古いスワイプデータを削除（必要に応じて）
-    const oneYearAgo = new Date();
-    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-    
-    const { count: oldSwipes } = await supabase
-      .from('swipes')
-      .select('*', { count: 'exact', head: true })
-      .lt('created_at', oneYearAgo.toISOString());
-    
-    if (oldSwipes > 0) {
-      console.log(`  ${oldSwipes}件の古いスワイプデータを検出（削除はスキップ）`);
+    console.log(`- 季節タグの更新（現在の季節: ${currentSeason}）...`);
+    const { data: seasonUpdate, error: seasonError } = await supabase
+      .rpc('update_seasonal_relevance', { current_season: currentSeason });
+      
+    if (seasonError) {
+      console.error('❌ 季節更新エラー:', seasonError.message);
+    } else {
+      console.log(`  ${seasonUpdate || 0}件の商品の季節関連性を更新`);
     }
     
-    // 5. 最終統計
-    console.log('\n📊 最適化完了後の統計:');
-    
-    const { count: totalProducts } = await supabase
-      .from('external_products')
-      .select('*', { count: 'exact', head: true });
-    
-    const { count: activeProducts } = await supabase
-      .from('external_products')
-      .select('*', { count: 'exact', head: true })
-      .eq('is_active', true);
-    
-    const { count: totalBrands } = await supabase
-      .from('external_products')
-      .select('source_brand', { count: 'exact', head: true })
-      .eq('is_active', true);
-    
-    console.log(`  - 総商品数: ${totalProducts?.toLocaleString() || 0}件`);
-    console.log(`  - アクティブ商品: ${activeProducts?.toLocaleString() || 0}件`);
-    console.log(`  - 容量使用率: ${totalProducts ? Math.round((totalProducts / 100000) * 100) : 0}%`);
-    console.log(`  - データベース健全性: ✅`);
+    console.log('\n✅ データベース最適化が完了しました');
     
   } catch (error) {
-    console.error('❌ 最適化エラー:', error);
-    process.exit(1);
+    console.error('❌ 最適化エラー:', error.message);
+    throw error;
   }
 }
 
-// RPC関数が存在しない場合の代替実装
-async function findDuplicatesAlternative() {
-  const { data: allProducts } = await supabase
-    .from('external_products')
-    .select('product_id, source_brand, title, last_synced')
-    .order('source_brand');
-  
-  if (!allProducts) return [];
-  
-  const duplicates = [];
-  const seen = new Map();
-  
-  allProducts.forEach(product => {
-    const key = `${product.source_brand}:::${product.title}`;
-    if (seen.has(key)) {
-      const existing = seen.get(key);
-      if (!existing.isDuplicate) {
-        duplicates.push({
-          source_brand: product.source_brand,
-          title: product.title,
-          products: [existing.product]
-        });
-        existing.isDuplicate = true;
-      }
-      duplicates[duplicates.length - 1].products.push(product);
-    } else {
-      seen.set(key, { product, isDuplicate: false });
-    }
-  });
-  
-  return duplicates;
-}
-
 // メイン実行
-(async () => {
-  await optimizeDatabase();
-  process.exit(0);
-})();
+optimizeDatabase().catch(error => {
+  console.error('❌ 実行エラー:', error);
+  process.exit(1);
+});

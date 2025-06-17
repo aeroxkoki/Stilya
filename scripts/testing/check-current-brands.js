@@ -28,7 +28,7 @@ async function checkBrands() {
     // ブランド別の商品数を取得
     const { data: brandStats, error } = await supabase
       .from('external_products')
-      .select('brand, priority')
+      .select('source_brand, brand_priority')
       .eq('is_active', true);
 
     if (error) {
@@ -41,10 +41,10 @@ async function checkBrands() {
     const brandPriorities = {};
 
     brandStats?.forEach(item => {
-      const brand = item.brand || 'Unknown';
+      const brand = item.source_brand || 'Unknown';
       brandCounts[brand] = (brandCounts[brand] || 0) + 1;
-      if (!brandPriorities[brand] && item.priority) {
-        brandPriorities[brand] = item.priority;
+      if (!brandPriorities[brand] && item.brand_priority) {
+        brandPriorities[brand] = item.brand_priority;
       }
     });
 
