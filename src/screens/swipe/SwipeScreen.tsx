@@ -3,16 +3,16 @@ import { View, Text, StyleSheet, SafeAreaView, ActivityIndicator, TouchableOpaci
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
-import { RootStackParamList, MainTabParamList, SwipeStackParamList } from '../../types';
-import { Product } from '../../types/product';
-import { useStyle } from '../../contexts/ThemeContext';
-import { useAuth } from '../../hooks/useAuth';
-import { EmptyState } from '../../components/common';
-import { useProducts } from '../../hooks/useProducts';
-import { StyledSwipeContainer } from '../../components/swipe';
-import ActionButtons from '../../components/swipe/ActionButtons';
-import FilterModal from '../../components/recommend/FilterModal';
-import { FilterOptions } from '../../services/productService';
+import { RootStackParamList, MainTabParamList, SwipeStackParamList } from '@/types';
+import { Product } from '@/types/product';
+import { useStyle } from '@/contexts/ThemeContext';
+import { useAuth } from '@/hooks/useAuth';
+import { EmptyState } from '@/components/common';
+import { useProducts } from '@/hooks/useProducts';
+import { StyledSwipeContainer } from '@/components/swipe';
+import ActionButtons from '@/components/swipe/ActionButtons';
+import FilterModal from '@/components/recommend/FilterModal';
+import { FilterOptions } from '@/services/productService';
 
 // ナビゲーションの型定義
 type SwipeScreenNavigationProp = StackNavigationProp<SwipeStackParamList, 'SwipeHome'>;
@@ -20,187 +20,180 @@ type SwipeScreenNavigationProp = StackNavigationProp<SwipeStackParamList, 'Swipe
 // スワイプ画面コンポーネント
 const SwipeScreen: React.FC = () => {
   const navigation = useNavigation<SwipeScreenNavigationProp>();
-  const { theme, styleType } = useStyle();
-  const [showFilter, setShowFilter] = useState(false);
-  const [activeFilters, setActiveFilters] = useState<FilterOptions>({
-    categories: [],
-    priceRange: [0, Infinity],
-    selectedTags: []
-  });
+  const { user } = useAuth();
+  const { styleType } = useStyle();
   
-  // フィルター適用数を計算
-  const getActiveFilterCount = () => {
-    let count = 0;
-    if (activeFilters.categories.length > 0) count += activeFilters.categories.length;
-    if (activeFilters.priceRange[0] > 0 || activeFilters.priceRange[1] < Infinity) count++;
-    if (activeFilters.selectedTags.length > 0) count += activeFilters.selectedTags.length;
-    return count;
-  };
-  
-  // useProductsフックを使用（currentIndexも管理）
+  // 商品とスワイプ状態の管理
   const { 
     products, 
-    currentIndex,
-    currentProduct,
-    isLoading: loading, 
-    error, 
-    loadMore, 
-    resetProducts,
-    handleSwipe: productHandleSwipe,
-    hasMore,
-    // フィルター機能を追加（実装は後述）
-    setFilters
+    loading, 
+    loadProducts, 
+    addSwipe,
+    addToFavorites,
+    removeFromFavorites,
+    isFavorite
   } = useProducts();
   
-  // フィルター適用時の処理
-  const handleApplyFilter = useCallback((filters: FilterOptions) => {
-    setActiveFilters(filters);
-    // フィルターを適用して商品を再読み込み
-    if (setFilters) {
-      setFilters(filters);
-    }
-    setShowFilter(false);
-  }, [setFilters]);
+  // 状態管理
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [showEmptyState, setShowEmptyState] = useState(false);
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [filters, setFilters] = useState<FilterOptions>({});
   
-  // スワイプ処理（useProductsのhandleSwipeを使用）
-  const handleSwipe = useCallback(async (product: Product, direction: 'left' | 'right') => {
+  // 現在の商品
+  const currentProduct = products[currentIndex];
+  
+  // 初期データロード
+  useEffect(() => {
+    loadProducts();
+  }, []);
+  
+  // 商品が空の場合の処理
+  useEffect(() => {
+    if (!loading && products.length === 0) {
+      setShowEmptyState(true);
+    }
+  }, [loading, products.length]);
+  
+  // スワイプ処理
+  const handleSwipe = useCallback(async (direction: 'left' | 'right', product: Product) => {
+    if (!user) return;
+    
+    const result = direction === 'right' ? 'yes' : 'no';
+    
     try {
-      // デバッグ情報
-      console.log('[SwipeScreen] Handling swipe:', {
-        direction,
-        productId: product.id,
-        currentIndex,
-        totalProducts: products.length,
-        hasMore
-      });
+      // スワイプをDBに記録
+      await addSwipe(user.id, product.id, result);
       
-      // useProductsのhandleSwipeを呼び出す
-      await productHandleSwipe(product, direction);
-      
+      // 次の商品へ
+      if (currentIndex < products.length - 1) {
+        setCurrentIndex(currentIndex + 1);
+      } else {
+        // 商品が終了
+        setShowEmptyState(true);
+      }
     } catch (error) {
-      console.error('[SwipeScreen] Error during swipe:', error);
+      console.error('スワイプ記録エラー:', error);
     }
-  }, [currentIndex, products.length, hasMore, productHandleSwipe]);
+  }, [user, currentIndex, products.length, addSwipe]);
   
-  // 商品カードをタップした時の処理
-  const handleCardPress = (product: Product) => {
-    navigation.navigate('ProductDetail', { 
-      productId: product.id,
-      from: 'swipe' // 遷移元を記録
-    });
-  };
-  
-  // 残りのアイテムがなくなった場合のリロード
-  const handleReload = () => {
-    // resetProductsを使用（currentIndexのリセットも内部で行われる）
-    resetProducts();
-  };
-  
-  // 利用可能なタグの取得（実際の実装では商品データから動的に取得）
-  const availableTags = ['カジュアル', 'フォーマル', 'ストリート', 'モード', 'ナチュラル', 'ヴィンテージ'];
-  
-  // スワイプ画面の表示内容
-  const renderContent = () => {
-    // ローディング中
-    if (loading && products.length === 0) {
-      return (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={[styles.loadingText, { color: theme.colors.text.secondary }]}>
-            ファッションアイテムを読み込み中...
-          </Text>
-        </View>
-      );
-    }
+  // お気に入り処理
+  const handleFavorite = useCallback(async () => {
+    if (!user || !currentProduct) return;
     
-    // エラー発生時
-    if (error) {
-      return (
-        <EmptyState
-          message="アイテムの読み込みに失敗しました"
-          icon="alert-circle"
-          buttonText="再読み込み"
-          onButtonPress={handleReload}
-        />
-      );
+    try {
+      if (isFavorite(currentProduct.id)) {
+        await removeFromFavorites(user.id, currentProduct.id);
+        setFavorites(favorites.filter(id => id !== currentProduct.id));
+      } else {
+        await addToFavorites(user.id, currentProduct.id);
+        setFavorites([...favorites, currentProduct.id]);
+      }
+    } catch (error) {
+      console.error('お気に入り処理エラー:', error);
     }
-    
-    // 表示するアイテムがない場合
-    if (products.length === 0 || currentIndex >= products.length) {
-      return (
-        <EmptyState
-          message="表示できるアイテムがありません"
-          icon="bag"
-          buttonText="もっと見る"
-          onButtonPress={handleReload}
-        />
-      );
+  }, [user, currentProduct, favorites, isFavorite, addToFavorites, removeFromFavorites]);
+  
+  // ロードし直し
+  const handleReload = useCallback(() => {
+    setShowEmptyState(false);
+    setCurrentIndex(0);
+    loadProducts();
+  }, [loadProducts]);
+  
+  // Undo処理
+  const handleUndo = useCallback(() => {
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+      setShowEmptyState(false);
     }
-    
-    // 通常表示（スワイプカード）
+  }, [currentIndex]);
+  
+  // フィルター適用
+  const handleApplyFilter = useCallback((newFilters: FilterOptions) => {
+    setFilters(newFilters);
+    setCurrentIndex(0);
+    loadProducts(newFilters);
+    setShowFilterModal(false);
+  }, [loadProducts]);
+  
+  // ローディング表示
+  if (loading && products.length === 0) {
     return (
-      <>
-        <StyledSwipeContainer
-          products={products}
-          onSwipe={handleSwipe}
-          onCardPress={handleCardPress}
-          isLoading={loading}
-          currentIndex={currentIndex}
-          onLoadMore={loadMore}
-          hasMoreProducts={hasMore}
-          useEnhancedCard={true} // 強化版カードを使用
-        />
-      </>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#3B82F6" />
+          <Text style={styles.loadingText}>商品を読み込み中...</Text>
+        </View>
+      </SafeAreaView>
     );
-  };
+  }
+  
+  // 空の状態
+  if (showEmptyState || (!loading && products.length === 0)) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <EmptyState
+          icon="card-outline"
+          title="商品がありません"
+          subtitle="新しい商品を探してみましょう"
+          actionLabel="再読み込み"
+          onAction={handleReload}
+        />
+      </SafeAreaView>
+    );
+  }
   
   return (
-    <SafeAreaView 
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-      testID="swipe-screen"
-    >
-      {/* フィルターボタン（右上に配置） */}
-      <TouchableOpacity
-        style={[
-          styles.filterButton,
-          {
-            backgroundColor: `${theme.colors.card.background}E6`,
-            shadowColor: theme.shadows.small.shadowColor,
-            shadowOffset: theme.shadows.small.shadowOffset,
-            shadowOpacity: theme.shadows.small.shadowOpacity,
-            shadowRadius: theme.shadows.small.shadowRadius,
-            elevation: theme.shadows.small.elevation,
-          }
-        ]}
-        onPress={() => setShowFilter(true)}
-        testID="filter-button"
-      >
-        <Ionicons 
-          name="options-outline" 
-          size={24} 
-          color={theme.colors.text.primary} 
-        />
-        {getActiveFilterCount() > 0 && (
-          <View 
-            style={[
-              styles.filterBadge, 
-              { backgroundColor: theme.colors.primary }
-            ]}
-          >
-            <Text style={styles.filterBadgeText}>{getActiveFilterCount()}</Text>
-          </View>
-        )}
-      </TouchableOpacity>
+    <SafeAreaView style={styles.container}>
+      {/* ヘッダー */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={() => setShowFilterModal(true)}
+        >
+          <Ionicons name="options-outline" size={24} color="#374151" />
+        </TouchableOpacity>
+        
+        <Text style={styles.headerTitle}>Stilya</Text>
+        
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={() => navigation.navigate('ProductDetail', { productId: currentProduct?.id || '', from: 'swipe' })}
+        >
+          <Ionicons name="information-circle-outline" size={24} color="#374151" />
+        </TouchableOpacity>
+      </View>
       
-      {renderContent()}
+      {/* スワイプエリア */}
+      <View style={styles.swipeContainer}>
+        {currentProduct && (
+          <StyledSwipeContainer
+            products={products.slice(currentIndex, currentIndex + 3)}
+            onSwipe={handleSwipe}
+            currentIndex={currentIndex}
+            styleType={styleType}
+          />
+        )}
+      </View>
+      
+      {/* アクションボタン */}
+      <ActionButtons
+        onDislike={() => currentProduct && handleSwipe('left', currentProduct)}
+        onLike={() => currentProduct && handleSwipe('right', currentProduct)}
+        onFavorite={handleFavorite}
+        onUndo={handleUndo}
+        isFavorite={currentProduct ? isFavorite(currentProduct.id) : false}
+        canUndo={currentIndex > 0}
+      />
       
       {/* フィルターモーダル */}
       <FilterModal
-        visible={showFilter}
-        onClose={() => setShowFilter(false)}
+        visible={showFilterModal}
+        onClose={() => setShowFilterModal(false)}
         onApply={handleApplyFilter}
-        initialFilters={activeFilters}
-        availableTags={availableTags}
+        currentFilters={filters}
       />
     </SafeAreaView>
   );
@@ -209,50 +202,65 @@ const SwipeScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
   },
-  centerContainer: {
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  headerButton: {
+    padding: 8,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1F2937',
+  },
+  swipeContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
   },
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    textAlign: 'center',
+    color: '#6B7280',
   },
-  actionButtonsContainer: {
+  undoButton: {
     position: 'absolute',
-    bottom: 30,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 24,
+    top: 20,
+    left: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 30,
+    padding: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   filterButton: {
     position: 'absolute',
-    top: 16,
-    right: 16,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 100,
-  },
-  filterBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  filterBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: 'bold',
+    top: 20,
+    right: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 30,
+    padding: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
 });
 

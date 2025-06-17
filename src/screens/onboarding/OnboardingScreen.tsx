@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, FlatList, Dimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList } from '../../navigation/types';
-import { useTheme } from '../../contexts/ThemeContext';
-import IntroSlide from '../../components/onboarding/IntroSlide';
-import { Button } from '../../components/common';
+import { RootStackParamList } from '@/navigation/types';
+import { useTheme } from '@/contexts/ThemeContext';
+import IntroSlide from '@/components/onboarding/IntroSlide';
+import { Button } from '@/components/common';
 import { useAuth } from '@/hooks/useAuth';
 
 // ナビゲーションの型

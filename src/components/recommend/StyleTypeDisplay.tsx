@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, ImageSourcePropType } from 'react-native';
-import { UserPreference } from '../../types';
+import { UserPreference } from '@/types';
 
 interface StyleTypeDisplayProps {
   userPreference: UserPreference;

@@ -10,7 +10,7 @@ import {
   Animated,
   Easing,
 } from 'react-native';
-import { useTheme } from '../../contexts/ThemeContext';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'text';
 export type ButtonSize = 'small' | 'medium' | 'large';

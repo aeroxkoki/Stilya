@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
-import { Input, Button, Card } from '../../components/common';
+import { Input, Button, Card } from '@/components/common';
 import { useAuth } from '@/hooks/useAuth';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList, AuthStackParamList } from '../../navigation/types';
+import { RootStackParamList, AuthStackParamList } from '@/navigation/types';
 import { StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTheme } from '../../contexts/ThemeContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { Feather } from '@expo/vector-icons';
 
 // ナビゲーションプロパティの型定義

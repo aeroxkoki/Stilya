@@ -12,9 +12,9 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { Product } from '../../types';
-import { formatPrice } from '../../utils';
-import { Button } from '../../components/common';
+import { Product } from '@/types';
+import { formatPrice } from '@/utils';
+import { Button } from '@/components/common';
 
 interface QuickViewModalProps {
   visible: boolean;

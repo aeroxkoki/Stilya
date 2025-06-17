@@ -2,8 +2,8 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { Product } from '../../types';
-import { formatPrice } from '../../utils';
+import { Product } from '@/types';
+import { formatPrice } from '@/utils';
 
 interface SwipeCardProps {
   product: Product;

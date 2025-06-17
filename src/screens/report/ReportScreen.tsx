@@ -4,15 +4,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 
 // 実際のチャートコンポーネントのインポートは後で追加
-// import ActivitySummary from '../../components/report/ActivitySummary';
-// import ConversionChart from '../../components/report/ConversionChart';
-// import TrendAnalysis from '../../components/report/TrendAnalysis';
+// import ActivitySummary from '@/components/report/ActivitySummary';
+// import ConversionChart from '@/components/report/ConversionChart';
+// import TrendAnalysis from '@/components/report/TrendAnalysis';
 
-import { getAnalyticsData } from '../../services/analyticsService';
+import { getAnalyticsData } from '@/services/analyticsService';
 // 必要に応じてAnalyticsDataをインポート
-// import { AnalyticsData } from '../../types';
-import Button from '../../components/common/Button';
-import Card from '../../components/common/Card';
+// import { AnalyticsData } from '@/types';
+import Button from '@/components/common/Button';
+import Card from '@/components/common/Card';
 
 // 一時的なAnalyticsDataの型定義
 interface AnalyticsData {

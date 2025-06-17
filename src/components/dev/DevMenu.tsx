@@ -9,10 +9,10 @@ import {
   Modal,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAuth } from '../../hooks/useAuth';
-import { runDiagnostics, formatDiagnosticsResult } from '../../tests/diagnostics';
-import { supabase } from '../../services/supabase';
-import { NetworkDebugScreen } from '../../screens/NetworkDebugScreen';
+import { useAuth } from '@/hooks/useAuth';
+import { runDiagnostics, formatDiagnosticsResult } from '@/tests/diagnostics';
+import { supabase } from '@/services/supabase';
+import { NetworkDebugScreen } from '@/screens/NetworkDebugScreen';
 
 interface DevMenuProps {
   onClose: () => void;

@@ -12,8 +12,8 @@ import {
   UIManager,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { useTheme } from '../../contexts/ThemeContext';
-import { Product } from '../../types';
+import { useTheme } from '@/contexts/ThemeContext';
+import { Product } from '@/types';
 import CachedImage from './CachedImage';
 
 // LayoutAnimationをAndroidで有効化

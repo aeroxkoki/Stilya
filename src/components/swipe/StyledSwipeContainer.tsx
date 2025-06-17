@@ -10,11 +10,11 @@ import {
   Dimensions
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useSwipe } from '../../hooks/useSwipe';
-import { Product } from '../../types';
-import { useAuth } from '../../hooks/useAuth';
-import { useNetwork } from '../../contexts/NetworkContext';
-import { useStyle } from '../../contexts/ThemeContext';
+import { useSwipe } from '@/hooks/useSwipe';
+import { Product } from '@/types';
+import { useAuth } from '@/hooks/useAuth';
+import { useNetwork } from '@/contexts/NetworkContext';
+import { useStyle } from '@/contexts/ThemeContext';
 import StyledSwipeCard from './StyledSwipeCard';
 import SwipeCardEnhanced from './SwipeCardEnhanced';
 import QuickViewModal from './QuickViewModal';

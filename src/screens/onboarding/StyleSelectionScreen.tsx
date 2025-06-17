@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Image } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { useStyle } from '../../contexts/ThemeContext';
-import { StyleType, styleThemes } from '../../styles/theme';
-import { Button } from '../../components/common';
-import { OnboardingStackParamList } from '../../navigation/OnboardingNavigator';
+import { useStyle } from '@/contexts/ThemeContext';
+import { StyleType, styleThemes } from '@/styles/theme';
+import { Button } from '@/components/common';
+import { OnboardingStackParamList } from '@/navigation/OnboardingNavigator';
 
 // サンプル商品画像
 const STYLE_SAMPLE_IMAGES = {

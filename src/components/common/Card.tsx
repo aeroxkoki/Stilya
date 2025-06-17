@@ -5,7 +5,7 @@ import {
   ViewStyle,
   Platform,
 } from 'react-native';
-import { useTheme } from '../../contexts/ThemeContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { View, TouchableOpacity } from './StyledComponents';
 
 export interface CardProps {

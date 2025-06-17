@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
-import { UserPreference } from '../../types';
+import { UserPreference } from '@/types';
 
 interface PreferenceTrendsGraphProps {
   userPreference: UserPreference;

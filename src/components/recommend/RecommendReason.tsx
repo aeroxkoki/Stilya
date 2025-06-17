@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Product, UserPreference } from '../../types';
+import { Product, UserPreference } from '@/types';
 
 interface RecommendReasonProps {
   product: Product;

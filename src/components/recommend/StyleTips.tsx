@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { UserPreference } from '../../types';
+import { UserPreference } from '@/types';
 
 interface StyleTipsProps {
   userPreference: UserPreference;

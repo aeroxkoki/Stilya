@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { StyleType, styleThemes } from '../../styles/theme';
+import { StyleType, styleThemes } from '@/styles/theme';
 
 interface StyleSelectionCardProps {
   styleType: StyleType;

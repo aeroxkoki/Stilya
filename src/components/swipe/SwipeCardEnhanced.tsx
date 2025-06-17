@@ -10,9 +10,9 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { Product } from '../../types';
-import { formatPrice } from '../../utils';
-import { useStyle } from '../../contexts/ThemeContext';
+import { Product } from '@/types';
+import { formatPrice } from '@/utils';
+import { useStyle } from '@/contexts/ThemeContext';
 
 interface SwipeCardEnhancedProps {
   product: Product;

@@ -2,11 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { Product } from '../../types';
-import { formatPrice } from '../../utils';
-import { useAuth } from '../../hooks/useAuth';
-import { useStyle } from '../../contexts/ThemeContext';
-import { savedItemsService } from '../../services/savedItemsService';
+import { Product } from '@/types';
+import { formatPrice } from '@/utils';
+import { useAuth } from '@/hooks/useAuth';
+import { useStyle } from '@/contexts/ThemeContext';
+import { savedItemsService } from '@/services/savedItemsService';
 import Toast from 'react-native-toast-message';
 import { LinearGradient } from 'expo-linear-gradient';
 
