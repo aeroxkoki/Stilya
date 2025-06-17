@@ -19,7 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/common';
 import { RecommendReason, SimilarProducts } from '@/components/recommend';
 import { useProductStore } from '@/store/productStore';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { formatPrice, getSimilarProducts } from '@/utils';
 import { useRecommendations } from '@/hooks/useRecommendations';
 import { useRecordClick } from '@/hooks/useRecordClick';
@@ -223,10 +223,10 @@ const ProductDetailScreen: React.FC = () => {
   // ローディング表示
   if (loading && !product) {
     return (
-      <SafeAreaView >
-        <View >
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#3B82F6" />
-          <Text >商品情報を読み込み中...</Text>
+          <Text style={styles.loadingText}>商品情報を読み込み中...</Text>
         </View>
       </SafeAreaView>
     );
@@ -235,10 +235,10 @@ const ProductDetailScreen: React.FC = () => {
   // エラー表示
   if (error && !product) {
     return (
-      <SafeAreaView >
-        <View >
-          <Text >エラーが発生しました</Text>
-          <Text >{error}</Text>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorTitle}>エラーが発生しました</Text>
+          <Text style={styles.errorText}>{error}</Text>
           <Button onPress={handleBackPress}>戻る</Button>
         </View>
       </SafeAreaView>
@@ -248,10 +248,10 @@ const ProductDetailScreen: React.FC = () => {
   // 商品が見つからない場合
   if (!product) {
     return (
-      <SafeAreaView >
-        <View >
-          <Text >商品が見つかりません</Text>
-          <Text >
+      <SafeAreaView style={styles.container}>
+        <View style={styles.notFoundContainer}>
+          <Text style={styles.notFoundTitle}>商品が見つかりません</Text>
+          <Text style={styles.notFoundText}>
             この商品は利用できないか、削除された可能性があります。
           </Text>
           <Button onPress={handleBackPress}>戻る</Button>
@@ -261,10 +261,10 @@ const ProductDetailScreen: React.FC = () => {
   }
   
   return (
-    <SafeAreaView >
-      <ScrollView >
+    <SafeAreaView style={styles.container}>
+      <ScrollView style={styles.scrollView}>
         {/* 画像部分 */}
-        <View >
+        <View style={styles.imageContainer}>
           <Image 
             source={{ uri: product.imageUrl ? product.imageUrl : '' }} 
             style={styles.image} 
@@ -273,7 +273,7 @@ const ProductDetailScreen: React.FC = () => {
           
           {/* 戻るボタン */}
           <TouchableOpacity 
-            
+            style={styles.backButton}
             onPress={handleBackPress}
           >
             <Ionicons name="arrow-back" size={24} color="white" />
@@ -281,7 +281,7 @@ const ProductDetailScreen: React.FC = () => {
           
           {/* シェアボタン */}
           <TouchableOpacity 
-            
+            style={styles.shareButton}
             onPress={handleShare}
           >
             <Ionicons name="share-outline" size={24} color="white" />
@@ -289,20 +289,20 @@ const ProductDetailScreen: React.FC = () => {
         </View>
         
         {/* 商品情報 */}
-        <View >
+        <View style={styles.contentContainer}>
           {/* 商品タイトルと価格 */}
-          <View >
-            <View >
-              <Text  numberOfLines={2}>
+          <View style={styles.productHeader}>
+            <View style={styles.productInfo}>
+              <Text style={styles.productTitle} numberOfLines={2}>
                 {product.title}
               </Text>
               {product.brand && (
-                <Text >
+                <Text style={styles.brandName}>
                   {product.brand}
                 </Text>
               )}
             </View>
-            <Text >
+            <Text style={styles.price}>
               {formatPrice(product.price)}
             </Text>
           </View>
@@ -317,13 +317,13 @@ const ProductDetailScreen: React.FC = () => {
           
           {/* タグ */}
           {product.tags && product.tags.length > 0 && (
-            <View >
+            <View style={styles.tagsContainer}>
               {product.tags.map((tag, index) => (
                 <View 
                   key={index} 
-                  
+                  style={styles.tag}
                 >
-                  <Text >
+                  <Text style={styles.tagText}>
                     {tag}
                   </Text>
                 </View>
@@ -334,18 +334,18 @@ const ProductDetailScreen: React.FC = () => {
           {/* 購入ボタン */}
           <Button 
             onPress={handleBuyPress}
-            
+            style={styles.buyButton}
           >
-            <View >
+            <View style={styles.buyButtonContent}>
               <Ionicons name="cart-outline" size={20} color="white" style={{ marginRight: 8 }} />
-              <Text >購入する</Text>
+              <Text style={styles.buyButtonText}>購入する</Text>
             </View>
           </Button>
           
           {/* 商品説明（ここでは仮のテキスト） */}
-          <View >
-            <Text >商品情報</Text>
-            <Text >
+          <View style={styles.descriptionSection}>
+            <Text style={styles.sectionTitle}>商品情報</Text>
+            <Text style={styles.descriptionText}>
               この商品の詳細情報を確認するには、「購入する」ボタンをタップして販売サイトをご覧ください。
               {'\n\n'}
               ※ 価格や送料、在庫状況などは販売サイトにて最新の情報をご確認ください。
@@ -363,8 +363,8 @@ const ProductDetailScreen: React.FC = () => {
           
           {/* 出典情報 */}
           {product.source && (
-            <View >
-              <Text >
+            <View style={styles.sourceContainer}>
+              <Text style={styles.sourceText}>
                 出典: {product.source}
               </Text>
             </View>
@@ -373,11 +373,11 @@ const ProductDetailScreen: React.FC = () => {
       </ScrollView>
       
       {/* 下部の購入ボタン（スクロール時も常に表示） */}
-      <View >
-        <Button onPress={handleBuyPress} >
-          <View >
+      <View style={styles.bottomBar}>
+        <Button onPress={handleBuyPress} style={styles.bottomBuyButton}>
+          <View style={styles.bottomBuyButtonContent}>
             <Ionicons name="cart-outline" size={20} color="white" style={{ marginRight: 8 }} />
-            <Text >購入する</Text>
+            <Text style={styles.buyButtonText}>購入する</Text>
           </View>
         </Button>
       </View>
@@ -386,10 +386,194 @@ const ProductDetailScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  imageContainer: {
+    position: 'relative',
+  },
   image: {
     width: '100%',
     height: width,
-  }
+  },
+  backButton: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 25,
+    width: 50,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  shareButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 25,
+    width: 50,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  contentContainer: {
+    padding: 20,
+  },
+  productHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 20,
+  },
+  productInfo: {
+    flex: 1,
+    marginRight: 10,
+  },
+  productTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 4,
+    color: '#1a1a1a',
+  },
+  brandName: {
+    fontSize: 14,
+    color: '#666',
+  },
+  price: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#3B82F6',
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginVertical: 15,
+  },
+  tag: {
+    backgroundColor: '#f0f0f0',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  tagText: {
+    fontSize: 12,
+    color: '#666',
+  },
+  buyButton: {
+    marginTop: 20,
+  },
+  buyButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buyButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  descriptionSection: {
+    marginTop: 30,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#1a1a1a',
+  },
+  descriptionText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#666',
+  },
+  sourceContainer: {
+    marginTop: 30,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    alignItems: 'center',
+  },
+  sourceText: {
+    fontSize: 12,
+    color: '#999',
+  },
+  bottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    paddingBottom: 30,
+  },
+  bottomBuyButton: {
+    width: '100%',
+  },
+  bottomBuyButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 14,
+    color: '#666',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#1a1a1a',
+  },
+  errorText: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 20,
+    color: '#666',
+  },
+  notFoundContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  notFoundTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#1a1a1a',
+  },
+  notFoundText: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 20,
+    color: '#666',
+  },
 });
 
 export default ProductDetailScreen;
