@@ -3,7 +3,7 @@ import { View, Text, SafeAreaView, TouchableOpacity, KeyboardAvoidingView, Platf
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Button, Input } from '@/components/common';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { AuthStackParamList } from '@/types';
 import { formatErrorMessage } from '@/utils';
 

@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Button, Card } from '@/components/common';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { useProductStore } from '@/store/productStore';
 import { ProfileStackParamList } from '@/types';
 import { useTheme } from '@/contexts/ThemeContext';

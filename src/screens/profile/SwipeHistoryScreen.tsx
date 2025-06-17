@@ -16,7 +16,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { ProductCard, Button } from '@/components/common';
 import { useProducts } from '@/contexts/ProductContext';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { Product, ProfileStackParamList } from '@/types';
 
 const { width } = Dimensions.get('window');
