@@ -1,271 +1,368 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { 
+  View, 
+  Text, 
+  TouchableOpacity, 
+  StyleSheet, 
+  Dimensions, 
+  Animated, 
+  PanResponder
+} from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { Product } from '../../types';
 import { formatPrice } from '../../utils';
-import { useAuth } from '../../hooks/useAuth';
-import { savedItemsService } from '../../services/savedItemsService';
-import Toast from 'react-native-toast-message';
+import { useStyle } from '../../contexts/ThemeContext';
 
 interface SwipeCardEnhancedProps {
   product: Product;
   onSwipeLeft?: () => void;
   onSwipeRight?: () => void;
-  onSave?: () => void;
   onPress?: () => void;
   onLongPress?: () => void;
+  onSave?: () => void;
+  isSaved?: boolean;
   testID?: string;
 }
 
 const { width, height } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.9;
-const CARD_HEIGHT = height * 0.6;
+const CARD_HEIGHT = height * 0.65;
+const SWIPE_THRESHOLD = width * 0.25;
+const ROTATION_ANGLE = 5; // 回転角度（度）
 
 const SwipeCardEnhanced: React.FC<SwipeCardEnhancedProps> = ({ 
   product, 
   onSwipeLeft,
   onSwipeRight,
-  onSave,
   onPress,
   onLongPress,
+  onSave,
+  isSaved = false,
   testID
 }) => {
-  const { user } = useAuth();
-  const [isSaved, setIsSaved] = useState(false);
-  const [isLoadingSave, setIsLoadingSave] = useState(false);
+  // StyleContextからテーマを取得
+  const { theme, styleType } = useStyle();
+  
+  // アニメーション用の状態
+  const [isPressed, setIsPressed] = useState(false);
+  const position = useRef(new Animated.ValueXY()).current;
+  const rotate = position.x.interpolate({
+    inputRange: [-width / 2, 0, width / 2],
+    outputRange: [`-${ROTATION_ANGLE}deg`, '0deg', `${ROTATION_ANGLE}deg`],
+    extrapolate: 'clamp',
+  });
+  const opacity = position.x.interpolate({
+    inputRange: [-width / 2, -SWIPE_THRESHOLD, SWIPE_THRESHOLD, width / 2],
+    outputRange: [0.8, 1, 1, 0.8],
+    extrapolate: 'clamp',
+  });
+  
+  // カードの透明度アニメーション
+  const cardOpacity = useRef(new Animated.Value(0)).current;
+  React.useEffect(() => {
+    Animated.timing(cardOpacity, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true
+    }).start();
+  }, []);
+  
+  // カードのスケールアニメーション
+  const cardScale = useRef(new Animated.Value(0.95)).current;
+  React.useEffect(() => {
+    Animated.spring(cardScale, {
+      toValue: 1,
+      friction: 8,
+      tension: 40,
+      useNativeDriver: true
+    }).start();
+  }, []);
+  
+  // スワイプ判定の状態
+  const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
+  
+  // PanResponderの設定
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        setIsPressed(true);
+      },
+      onPanResponderMove: (_, gestureState) => {
+        position.setValue({ x: gestureState.dx, y: gestureState.dy });
+        // スワイプ方向の判定
+        if (gestureState.dx > SWIPE_THRESHOLD) {
+          setSwipeDirection('right');
+        } else if (gestureState.dx < -SWIPE_THRESHOLD) {
+          setSwipeDirection('left');
+        } else {
+          setSwipeDirection(null);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        setIsPressed(false);
+        
+        // スワイプ閾値を超えたらカードを飛ばす
+        if (gestureState.dx > SWIPE_THRESHOLD) {
+          finishSwipe('right');
+        } else if (gestureState.dx < -SWIPE_THRESHOLD) {
+          finishSwipe('left');
+        } else {
+          resetPosition();
+        }
+      },
+    })
+  ).current;
+  
+  // カードを元の位置に戻す
+  const resetPosition = () => {
+    Animated.spring(position, {
+      toValue: { x: 0, y: 0 },
+      friction: 5,
+      useNativeDriver: true,
+    }).start();
+    setSwipeDirection(null);
+  };
+  
+  // スワイプ完了時の処理
+  const finishSwipe = (direction: 'left' | 'right') => {
+    const x = direction === 'right' ? width + 100 : -width - 100;
+    Animated.timing(position, {
+      toValue: { x, y: 0 },
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      if (direction === 'left' && onSwipeLeft) {
+        onSwipeLeft();
+      } else if (direction === 'right' && onSwipeRight) {
+        onSwipeRight();
+      }
+      // 再利用のためにカードの位置をリセット
+      position.setValue({ x: 0, y: 0 });
+      setSwipeDirection(null);
+    });
+  };
+  
+  // スワイプレイヤーの色（方向によって変化）
+  const getSwipeOverlayColor = () => {
+    if (swipeDirection === 'left') {
+      return 'rgba(239, 68, 68, 0.2)'; // 薄い赤
+    } else if (swipeDirection === 'right') {
+      return 'rgba(59, 130, 246, 0.2)'; // 薄い青
+    }
+    return 'transparent';
+  };
+  
+  // スワイプインジケーターの表示
+  const getSwipeIndicator = () => {
+    if (swipeDirection === 'left') {
+      return (
+        <View style={[styles.swipeIndicator, styles.noIndicator]}>
+          <Ionicons name="close" size={80} color="rgba(239, 68, 68, 0.7)" />
+        </View>
+      );
+    } else if (swipeDirection === 'right') {
+      return (
+        <View style={[styles.swipeIndicator, styles.yesIndicator]}>
+          <Ionicons name="heart" size={80} color="rgba(59, 130, 246, 0.7)" />
+        </View>
+      );
+    }
+    return null;
+  };
   
   // imageUrlとimage_urlの両方の形式に対応
   const imageUrl = product.imageUrl || product.image_url || 'https://via.placeholder.com/350x500?text=No+Image';
-  
-  // セール情報の計算
-  const isOnSale = product.isSale || (product.originalPrice && product.originalPrice > product.price);
-  const discountPercentage = product.discountPercentage || 
-    (product.originalPrice ? Math.round((1 - product.price / product.originalPrice) * 100) : 0);
-
-  // 保存状態の確認
-  useEffect(() => {
-    const checkSavedStatus = async () => {
-      if (user?.id && product.id) {
-        const saved = await savedItemsService.isItemSaved(user.id, product.id);
-        setIsSaved(saved);
-      }
-    };
-    checkSavedStatus();
-  }, [user?.id, product.id]);
-
-  // 保存ボタンのハンドラー
-  const handleSavePress = async () => {
-    if (!user?.id) {
-      Toast.show({
-        type: 'error',
-        text1: 'ログインが必要です',
-        text2: '保存機能を使うにはログインしてください',
-      });
-      return;
-    }
-
-    setIsLoadingSave(true);
-    try {
-      if (isSaved) {
-        const success = await savedItemsService.unsaveItem(user.id, product.id);
-        if (success) {
-          setIsSaved(false);
-          Toast.show({
-            type: 'success',
-            text1: '保存を解除しました',
-          });
-        }
-      } else {
-        const success = await savedItemsService.saveItem(user.id, product.id);
-        if (success) {
-          setIsSaved(true);
-          Toast.show({
-            type: 'success',
-            text1: 'アイテムを保存しました',
-            text2: '保存リストで確認できます',
-          });
-        }
-      }
-      
-      if (onSave) {
-        onSave();
-      }
-    } catch (error) {
-      Toast.show({
-        type: 'error',
-        text1: 'エラーが発生しました',
-        text2: 'もう一度お試しください',
-      });
-    } finally {
-      setIsLoadingSave(false);
-    }
-  };
 
   return (
-    <View style={styles.card} testID={testID || 'swipe-card'}>
-      {/* セールバッジ */}
-      {isOnSale && (
-        <View style={styles.saleBadge}>
-          <Text style={styles.saleBadgeText}>SALE -{discountPercentage}%</Text>
-        </View>
-      )}
-      
+    <Animated.View 
+      style={[
+        styles.container,
+        {
+          transform: [
+            { translateX: position.x },
+            { translateY: position.y },
+            { rotate },
+            { scale: cardScale }
+          ],
+          opacity: cardOpacity,
+        },
+        { 
+          backgroundColor: theme.colors.card.background,
+          borderRadius: theme.radius.l,
+          shadowColor: theme.shadows.medium.shadowColor,
+          shadowOffset: theme.shadows.medium.shadowOffset,
+          shadowOpacity: theme.shadows.medium.shadowOpacity,
+          shadowRadius: theme.shadows.medium.shadowRadius,
+          elevation: theme.shadows.medium.elevation,
+        },
+      ]}
+      testID={testID || 'swipe-card-enhanced'}
+      {...panResponder.panHandlers}
+    >
       <TouchableOpacity
         style={styles.cardContent}
         onPress={onPress}
         onLongPress={onLongPress}
         delayLongPress={500}
+        activeOpacity={0.95}
+        disabled={isPressed}
         testID="swipe-card-touch"
       >
+        {/* 商品画像 */}
         <Image
           source={{ uri: imageUrl }}
           style={styles.image}
           contentFit="cover"
           testID="product-image"
+          priority="high"
+          cachePolicy="memory-disk"
+          transition={300}
+          placeholder={{ uri: 'https://via.placeholder.com/50x50?text=Loading' }}
         />
         
+        {/* グラデーションの代わりに暗いオーバーレイを使用 */}
+        <View style={styles.darkOverlay} />
+        
+        {/* 商品情報 */}
         <View style={styles.productInfo}>
           <View style={styles.productHeader}>
             <View style={styles.productDetails}>
-              <Text style={styles.productTitle} numberOfLines={1}>
+              <Text 
+                style={[
+                  styles.productTitle, 
+                  { fontSize: theme.fontSizes.l }
+                ]} 
+                numberOfLines={1}
+              >
                 {product.title}
               </Text>
               {product.brand && (
-                <Text style={styles.productBrand} numberOfLines={1}>
+                <Text 
+                  style={[
+                    styles.productBrand,
+                    { fontSize: theme.fontSizes.s }
+                  ]} 
+                  numberOfLines={1}
+                >
                   {product.brand}
                 </Text>
               )}
             </View>
-            <View style={styles.priceContainer}>
-              {product.originalPrice && product.originalPrice > product.price ? (
-                <>
-                  <Text style={styles.originalPrice}>
-                    {formatPrice(product.originalPrice)}
-                  </Text>
-                  <Text style={styles.salePrice}>
-                    {formatPrice(product.price)}
-                  </Text>
-                </>
-              ) : (
-                <Text style={styles.productPrice}>
-                  {formatPrice(product.price)}
-                </Text>
-              )}
-            </View>
-          </View>
-          
-          {/* レビュー評価 */}
-          {product.rating !== undefined && (
-            <View style={styles.ratingContainer}>
-              <Ionicons name="star" size={16} color="#FFC107" />
-              <Text style={styles.ratingText}>{product.rating.toFixed(1)}</Text>
-              {product.reviewCount !== undefined && (
-                <Text style={styles.reviewCount}>({product.reviewCount}件)</Text>
-              )}
-            </View>
-          )}
-          
-          {product.tags && product.tags.length > 0 && (
-            <View style={styles.tagsContainer}>
-              {product.tags.slice(0, 3).map((tag, index) => (
-                <View key={index} style={styles.tag}>
-                  <Text style={styles.tagText}>{tag}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-          
-          {/* 長押しインストラクション */}
-          <View style={styles.instructionContainer}>
-            <Ionicons name="finger-print-outline" size={14} color="rgba(255, 255, 255, 0.6)" />
-            <Text style={styles.instructionText}>長押しでクイックビュー</Text>
+            <Text 
+              style={[
+                styles.productPrice,
+                { fontSize: theme.fontSizes.l }
+              ]}
+            >
+              {formatPrice(product.price)}
+            </Text>
           </View>
         </View>
         
-        {/* アクションボタン（3択） */}
-        <View style={styles.actionButtons}>
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.noButton]}
-            onPress={onSwipeLeft}
-            testID="swipe-left-button"
-          >
-            <Ionicons name="close" size={32} color="#F87171" />
-            <Text style={styles.actionButtonText}>パス</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.saveButton, isSaved && styles.savedButton]}
-            onPress={handleSavePress}
-            disabled={isLoadingSave}
-            testID="save-button"
-          >
-            <Ionicons 
-              name={isSaved ? "bookmark" : "bookmark-outline"} 
-              size={28} 
-              color={isSaved ? "#FFC107" : "#9CA3AF"} 
-            />
-            <Text style={[styles.actionButtonText, isSaved && styles.savedButtonText]}>
-              {isSaved ? "保存済" : "保存"}
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.yesButton]}
-            onPress={onSwipeRight}
-            testID="swipe-right-button"
-          >
-            <Ionicons name="heart" size={32} color="#3B82F6" />
-            <Text style={styles.actionButtonText}>好き</Text>
-          </TouchableOpacity>
+        {/* スワイプ方向インジケーター */}
+        <View 
+          style={[
+            styles.swipeOverlay,
+            { backgroundColor: getSwipeOverlayColor() }
+          ]}
+        >
+          {getSwipeIndicator()}
         </View>
       </TouchableOpacity>
-    </View>
+      
+      {/* アクションボタン */}
+      <View style={styles.actionButtons}>
+        <TouchableOpacity 
+          style={[
+            styles.actionButton, 
+            {
+              backgroundColor: theme.colors.surface,
+              shadowColor: theme.shadows.small.shadowColor,
+              shadowOffset: theme.shadows.small.shadowOffset,
+              shadowOpacity: theme.shadows.small.shadowOpacity,
+              shadowRadius: theme.shadows.small.shadowRadius,
+              elevation: theme.shadows.small.elevation,
+            }
+          ]}
+          onPress={() => finishSwipe('left')}
+          testID="swipe-left-button"
+        >
+          <Ionicons name="close" size={28} color="#F87171" />
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={[
+            styles.actionButton, 
+            {
+              backgroundColor: theme.colors.surface,
+              shadowColor: theme.shadows.small.shadowColor,
+              shadowOffset: theme.shadows.small.shadowOffset,
+              shadowOpacity: theme.shadows.small.shadowOpacity,
+              shadowRadius: theme.shadows.small.shadowRadius,
+              elevation: theme.shadows.small.elevation,
+            }
+          ]}
+          onPress={onSave}
+          testID="save-button"
+        >
+          <Ionicons 
+            name={isSaved ? "bookmark" : "bookmark-outline"} 
+            size={24} 
+            color={isSaved ? theme.colors.success : theme.colors.text.secondary} 
+          />
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={[
+            styles.actionButton, 
+            {
+              backgroundColor: theme.colors.surface,
+              shadowColor: theme.shadows.small.shadowColor,
+              shadowOffset: theme.shadows.small.shadowOffset,
+              shadowOpacity: theme.shadows.small.shadowOpacity,
+              shadowRadius: theme.shadows.small.shadowRadius,
+              elevation: theme.shadows.small.elevation,
+            }
+          ]}
+          onPress={() => finishSwipe('right')}
+          testID="swipe-right-button"
+        >
+          <Ionicons name="heart" size={28} color="#3B82F6" />
+        </TouchableOpacity>
+      </View>
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
-  card: {
+  container: {
     width: CARD_WIDTH,
     height: CARD_HEIGHT,
-    borderRadius: 12,
-    backgroundColor: 'white',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 5,
-  },
-  saleBadge: {
-    position: 'absolute',
-    top: 16,
-    left: 16,
-    backgroundColor: '#F87171',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    zIndex: 10,
-  },
-  saleBadgeText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 14,
+    overflow: 'hidden',
   },
   cardContent: {
     flex: 1,
-    borderRadius: 12,
     overflow: 'hidden',
   },
   image: {
     width: '100%',
-    flex: 1,
+    height: '100%',
+  },
+  darkOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 120,
+    backgroundColor: 'rgba(0,0,0,0.6)',
   },
   productInfo: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     padding: 16,
   },
   productHeader: {
@@ -275,113 +372,60 @@ const styles = StyleSheet.create({
   },
   productDetails: {
     flex: 1,
+    marginRight: 10,
   },
   productTitle: {
     color: 'white',
-    fontSize: 20,
     fontWeight: 'bold',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   productBrand: {
-    color: '#E5E7EB',
-    fontSize: 16,
-  },
-  priceContainer: {
-    alignItems: 'flex-end',
+    color: 'rgba(255, 255, 255, 0.8)',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   productPrice: {
     color: 'white',
-    fontSize: 20,
     fontWeight: 'bold',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
-  originalPrice: {
-    color: '#9CA3AF',
-    fontSize: 16,
-    textDecorationLine: 'line-through',
-  },
-  salePrice: {
-    color: '#F87171',
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  ratingContainer: {
-    flexDirection: 'row',
+  swipeOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 6,
   },
-  ratingText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  reviewCount: {
-    color: '#E5E7EB',
-    fontSize: 14,
-    marginLeft: 4,
-  },
-  tagsContainer: {
-    flexDirection: 'row',
-    marginTop: 8,
-    flexWrap: 'wrap',
-  },
-  tag: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    marginRight: 4,
-    marginBottom: 4,
-  },
-  tagText: {
-    color: 'white',
-    fontSize: 12,
-  },
-  instructionContainer: {
-    flexDirection: 'row',
+  swipeIndicator: {
+    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 8,
-    opacity: 0.8,
   },
-  instructionText: {
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontSize: 12,
-    marginLeft: 4,
+  noIndicator: {
+    transform: [{ rotate: '-10deg' }],
+  },
+  yesIndicator: {
+    transform: [{ rotate: '10deg' }],
   },
   actionButtons: {
     position: 'absolute',
-    bottom: 120,
-    left: 16,
-    right: 16,
+    bottom: 20,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-evenly',
+    alignItems: 'center',
+    paddingHorizontal: 16,
   },
   actionButton: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: 'white',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3,
   },
-  actionButtonText: {
-    fontSize: 12,
-    marginTop: 2,
-    color: '#6B7280',
-  },
-  noButton: {},
-  saveButton: {},
-  savedButton: {
-    backgroundColor: '#FFF9E6',
-  },
-  savedButtonText: {
-    color: '#FFC107',
-  },
-  yesButton: {},
 });
 
 export default SwipeCardEnhanced;

@@ -2,14 +2,14 @@ import React, { useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList, MainTabParamList, SwipeStackParamList } from '@/types';
-import { Product } from '@/types/product';
-import { useTheme } from '@/contexts/ThemeContext';
-import { useAuth } from '@/hooks/useAuth';
-import { EmptyState } from '@/components/common';
-import { useProducts } from '@/hooks/useProducts';
-import SwipeContainer from '@/components/swipe/SwipeContainer';
-import ActionButtons from '@/components/swipe/ActionButtons';
+import { RootStackParamList, MainTabParamList, SwipeStackParamList } from '../../types';
+import { Product } from '../../types/product';
+import { useStyle } from '../../contexts/ThemeContext';
+import { useAuth } from '../../hooks/useAuth';
+import { EmptyState } from '../../components/common';
+import { useProducts } from '../../hooks/useProducts';
+import { StyledSwipeContainer } from '../../components/swipe';
+import ActionButtons from '../../components/swipe/ActionButtons';
 
 // ナビゲーションの型定義
 type SwipeScreenNavigationProp = StackNavigationProp<SwipeStackParamList, 'SwipeHome'>;
@@ -17,7 +17,7 @@ type SwipeScreenNavigationProp = StackNavigationProp<SwipeStackParamList, 'Swipe
 // スワイプ画面コンポーネント
 const SwipeScreen: React.FC = () => {
   const navigation = useNavigation<SwipeScreenNavigationProp>();
-  const theme = useTheme();
+  const { theme, styleType } = useStyle();
   
   // useProductsフックを使用（currentIndexも管理）
   const { 
@@ -107,7 +107,7 @@ const SwipeScreen: React.FC = () => {
     // 通常表示（スワイプカード）
     return (
       <>
-        <SwipeContainer
+        <StyledSwipeContainer
           products={products}
           onSwipe={handleSwipe}
           onCardPress={handleCardPress}
@@ -115,13 +115,8 @@ const SwipeScreen: React.FC = () => {
           currentIndex={currentIndex}
           onLoadMore={loadMore}
           hasMoreProducts={hasMore}
+          useEnhancedCard={true} // 強化版カードを使用
         />
-        <View style={styles.actionButtonsContainer}>
-          <ActionButtons
-            onPressNo={() => currentProduct && handleSwipe(currentProduct, 'left')}
-            onPressYes={() => currentProduct && handleSwipe(currentProduct, 'right')}
-          />
-        </View>
       </>
     );
   };
