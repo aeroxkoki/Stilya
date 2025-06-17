@@ -78,55 +78,5 @@ export interface UseAuthReturn {
   signOut: () => Promise<void>;
 }
 
-// ナビゲーション定義
-export type RootStackParamList = {
-  Auth: undefined;
-  Main: undefined;
-  Onboarding: undefined;
-  ProductDetail: { productId: string };
-};
-
-export type AuthStackParamList = {
-  Login: undefined;
-  Register: undefined;
-  ForgotPassword: undefined;
-};
-
-export type MainTabParamList = {
-  Swipe: undefined;
-  Recommend: undefined;
-  Report: undefined;
-  Profile: undefined;
-};
-
-export type OnboardingStackParamList = {
-  Welcome: undefined;
-  AppIntro: undefined;
-  Gender: undefined;
-  Style: undefined;
-  StyleSelection: undefined; // 新しいスタイル選択画面
-  AgeGroup: undefined;
-  Complete: undefined;
-};
-
-export type SwipeStackParamList = {
-  SwipeHome: undefined;
-  ProductDetail: { productId: string; from?: string };
-};
-
-export type RecommendStackParamList = {
-  RecommendHome: undefined;
-  ProductDetail: { productId: string };
-};
-
-export type ProfileStackParamList = {
-  ProfileHome: undefined;
-  Settings: undefined;
-  Favorites: undefined;
-  SwipeHistory: undefined;
-  ProductDetail: { productId: string };
-};
-
-export type ReportStackParamList = {
-  Report: undefined;
-};
+// ナビゲーション関連の型をエクスポート
+export * from '../navigation/types';
