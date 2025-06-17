@@ -78,6 +78,59 @@
    - ユーティリティ: camelCase (`formatPrice.ts`)
    - 定数: UPPER_SNAKE_CASE (`API_ENDPOINTS.ts`)
 
+### インポート規約
+
+1. **パスエイリアスの使用**
+   ```typescript
+   // ✅ Good - パスエイリアスを使用
+   import { useAuth } from '@/hooks/useAuth';
+   import { Product } from '@/types';
+   import { Button } from '@/components/common';
+   
+   // ❌ Bad - 相対パスの使用
+   import { useAuth } from '../../hooks/useAuth';
+   import { Product } from '../types';
+   import { Button } from './common/Button';
+   ```
+
+2. **Context vs Hooks**
+   ```typescript
+   // ✅ Good - useAuthはhooksディレクトリから
+   import { useAuth } from '@/hooks/useAuth';
+   
+   // ❌ Bad - Contextから直接インポート
+   import { useAuth } from '@/contexts/AuthContext';
+   ```
+
+3. **型定義の統一**
+   ```typescript
+   // ✅ Good - 型は@/typesから
+   import { User, Product, MainTabParamList } from '@/types';
+   
+   // ❌ Bad - 個別のファイルから
+   import { User } from '@/types/user';
+   import { MainTabParamList } from '@/navigation/types';
+   ```
+
+4. **インポート順序**
+   ```typescript
+   // 1. React/React Native
+   import React, { useState, useEffect } from 'react';
+   import { View, Text, StyleSheet } from 'react-native';
+   
+   // 2. 外部ライブラリ
+   import { NavigationContainer } from '@react-navigation/native';
+   import { Ionicons } from '@expo/vector-icons';
+   
+   // 3. プロジェクト内部
+   import { useAuth } from '@/hooks/useAuth';
+   import { Button } from '@/components/common';
+   import { Product } from '@/types';
+   
+   // 4. 相対インポート（同一ディレクトリ内のみ）
+   import { styles } from './styles';
+   ```
+
 ## Git ワークフロー
 
 ### ブランチ戦略
