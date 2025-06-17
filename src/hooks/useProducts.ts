@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { fetchProducts, fetchProductsByTags, fetchScoredProducts, FilterOptions } from '@/services/productService';
 import { Product } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
@@ -50,12 +50,18 @@ export const useProducts = (): UseProductsReturn => {
     selectedTags: []
   });
   
-  const pageSize = 20; // 10から20に増やす
+  const pageSize = 20;
   
   // 画像プリフェッチ用
   const { prefetchImages } = useImagePrefetch();
   const loadingRef = useRef(false);
   const swipedProductsRef = useRef<Set<string>>(new Set());
+  const filtersRef = useRef(filters);
+  
+  // フィルターの参照を更新
+  useEffect(() => {
+    filtersRef.current = filters;
+  }, [filters]);
   
   // 現在表示中の商品
   const currentProduct = productsData.products[currentIndex];
@@ -84,9 +90,12 @@ export const useProducts = (): UseProductsReturn => {
     loadingRef.current = true;
     
     try {
+      let currentPage = page;
+      
       if (reset) {
         setIsLoading(true);
         setCurrentIndex(0);
+        currentPage = 0;
         setPage(0);
         setProductsData({
           products: [],
@@ -94,8 +103,12 @@ export const useProducts = (): UseProductsReturn => {
           totalFetched: 0
         });
         setError(null);
-        // リセット時はスワイプ履歴もクリア（重要）
-        swipedProductsRef.current.clear();
+        // リセット時はスワイプ履歴を再取得
+        if (user) {
+          const swipeHistory = await getSwipeHistory(user.id);
+          const swipedIds = new Set(swipeHistory.map(swipe => swipe.productId));
+          swipedProductsRef.current = swipedIds;
+        }
       } else if (!productsData.hasMore) {
         loadingRef.current = false;
         return;
@@ -104,12 +117,10 @@ export const useProducts = (): UseProductsReturn => {
       // ローディング状態を管理
       setIsLoading(prevState => reset ? true : prevState);
       
-      // 商品データを取得（現在のページを使用）
-      const currentPage = reset ? 0 : page;
       console.log('[useProducts] Loading products - page:', currentPage, 'offset:', currentPage * pageSize);
       
-      // フィルター付きで商品を取得
-      const response = await fetchProducts(pageSize, currentPage * pageSize, filters);
+      // 現在のフィルターを使用して商品を取得
+      const response = await fetchProducts(pageSize, currentPage * pageSize, filtersRef.current);
       
       // レスポンスの検証
       if (!response?.success) {
@@ -132,13 +143,13 @@ export const useProducts = (): UseProductsReturn => {
       if (filteredProducts.length === 0 && newProducts.length > 0) {
         // スワイプ済みを除外した結果、商品がない場合は次のページを試みる
         console.log('[useProducts] All products were swiped, trying next page...');
-        setPage(prevPage => prevPage + 1);
-        loadingRef.current = false;
         if (!reset) {
+          setPage(prevPage => prevPage + 1);
+          loadingRef.current = false;
           // 再帰的に次のページを読み込む
           setTimeout(() => loadProducts(false), 100);
+          return;
         }
-        return;
       }
 
       // 商品が取得できなかった場合
@@ -184,19 +195,14 @@ export const useProducts = (): UseProductsReturn => {
       setRefreshing(false);
       loadingRef.current = false;
     }
-  }, [page, pageSize, productsData.hasMore, prefetchImages, filters]);
-
-  // フィルターが変更されたときに商品を再読み込み
-  useEffect(() => {
-    loadProducts(true);
-  }, [filters]);
+  }, [page, pageSize, productsData.hasMore, prefetchImages, user]);
 
   // 初回マウント時に商品データを取得（認証初期化完了後）
   useEffect(() => {
     if (isInitialized && !loadingRef.current) {
       loadProducts(true);
     }
-  }, [isInitialized]);
+  }, [isInitialized]); // loadProductsを依存関係から除外
 
   // 追加データ読み込み
   const loadMore = useCallback(async (reset = false) => {
@@ -206,7 +212,6 @@ export const useProducts = (): UseProductsReturn => {
     }
     if (isLoading || !productsData.hasMore || loadingRef.current) return;
     
-    // loadProductsが自動的にページを進めるので、ここでは呼び出すだけ
     await loadProducts(false);
   }, [isLoading, productsData.hasMore, loadProducts]);
 
@@ -252,8 +257,26 @@ export const useProducts = (): UseProductsReturn => {
 
   // フィルターをセットして商品を再読み込み
   const setFilters = useCallback((newFilters: FilterOptions) => {
-    setActiveFilters(newFilters);
-  }, []);
+    // フィルターが実際に変更された場合のみ更新
+    const hasChanged = 
+      JSON.stringify(newFilters.categories) !== JSON.stringify(filters.categories) ||
+      JSON.stringify(newFilters.priceRange) !== JSON.stringify(filters.priceRange) ||
+      JSON.stringify(newFilters.selectedTags) !== JSON.stringify(filters.selectedTags);
+    
+    if (hasChanged) {
+      setActiveFilters(newFilters);
+      // フィルター変更時は明示的にリセット
+      setPage(0);
+      setProductsData({
+        products: [],
+        hasMore: true,
+        totalFetched: 0
+      });
+      setCurrentIndex(0);
+      // 新しいフィルターで再読み込み
+      loadProducts(true);
+    }
+  }, [filters, loadProducts]);
 
   return {
     products: productsData.products,
