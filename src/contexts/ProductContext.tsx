@@ -4,13 +4,15 @@ import {
   fetchProductById,
   fetchProductsByTags
 } from '@/services/productService';
-import { saveSwipeResult } from '@/services/swipeService';
+import { saveSwipeResult, getSwipeHistory as getSwipeHistoryService, SwipeData } from '@/services/swipeService';
 import { Product } from '@/types';
 
 interface ProductContextType {
   products: Product[];
   loading: boolean;
   error: string | null;
+  swipeHistory: Product[];
+  favorites: string[]; // お気に入り商品IDのリスト
   
   // 商品データ取得
   loadProducts: () => Promise<void>;
@@ -18,6 +20,12 @@ interface ProductContextType {
   
   // スワイプ関連
   addSwipe: (userId: string, productId: string, result: 'yes' | 'no') => Promise<void>;
+  getSwipeHistory: (userId: string, result?: 'yes' | 'no' | 'all') => Promise<void>;
+  
+  // お気に入り関連
+  addToFavorites: (userId: string, productId: string) => Promise<void>;
+  removeFromFavorites: (userId: string, productId: string) => Promise<void>;
+  isFavorite: (productId: string) => boolean;
 }
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
@@ -34,6 +42,8 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [swipeHistory, setSwipeHistory] = useState<Product[]>([]);
+  const [favorites, setFavorites] = useState<string[]>([]);
 
   const loadProducts = async () => {
     try {
@@ -70,13 +80,83 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   };
 
+  const getSwipeHistory = async (userId: string, result?: 'yes' | 'no' | 'all') => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // 'all'の場合はundefinedとして扱う（全履歴取得）
+      const filterResult = result === 'all' ? undefined : result;
+      
+      // スワイプ履歴を取得
+      const swipeData = await getSwipeHistoryService(userId, filterResult);
+      
+      if (swipeData && swipeData.length > 0) {
+        // 商品IDのリストを抽出
+        const productIds = swipeData.map(swipe => swipe.productId);
+        
+        // 商品詳細を取得
+        const productPromises = productIds.map(id => fetchProductById(id));
+        const productResults = await Promise.all(productPromises);
+        
+        // 成功した商品のみをフィルタリング
+        const validProducts: Product[] = productResults
+          .filter(result => result.success && 'data' in result && result.data)
+          .map(result => (result as any).data);
+        
+        setSwipeHistory(validProducts);
+      } else {
+        setSwipeHistory([]);
+      }
+    } catch (error: any) {
+      console.error('Error getting swipe history:', error);
+      setError(error.message || 'スワイプ履歴の取得に失敗しました');
+      setSwipeHistory([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const addToFavorites = async (userId: string, productId: string) => {
+    try {
+      // MVPではローカルstateで管理（後でSupabaseに保存する実装を追加可能）
+      setFavorites(prev => {
+        if (!prev.includes(productId)) {
+          return [...prev, productId];
+        }
+        return prev;
+      });
+    } catch (error) {
+      console.error('Error adding to favorites:', error);
+    }
+  };
+
+  const removeFromFavorites = async (userId: string, productId: string) => {
+    try {
+      // MVPではローカルstateで管理
+      setFavorites(prev => prev.filter(id => id !== productId));
+    } catch (error) {
+      console.error('Error removing from favorites:', error);
+    }
+  };
+
+  const isFavorite = (productId: string): boolean => {
+    return favorites.includes(productId);
+  };
+
   const value: ProductContextType = {
     products,
     loading,
     error,
+    swipeHistory,
+    favorites,
     loadProducts,
     resetProducts,
     addSwipe,
+    getSwipeHistory,
+    addToFavorites,
+    removeFromFavorites,
+    isFavorite,
   };
 
   return (
