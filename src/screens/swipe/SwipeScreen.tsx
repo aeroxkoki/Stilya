@@ -94,7 +94,7 @@ const SwipeScreen: React.FC = () => {
   }, [products]);
   
   // スワイプ処理
-  const handleSwipe = useCallback(async (direction: 'left' | 'right', product: Product) => {
+  const handleSwipe = useCallback(async (product: Product, direction: 'left' | 'right') => {
     if (!user) return;
     
     // useProductsフックのhandleSwipeを使用
@@ -232,17 +232,21 @@ const SwipeScreen: React.FC = () => {
         {currentProduct && (
           <SwipeContainer
             products={products.slice(currentIndex, currentIndex + 3)}
+            isLoading={isLoading}
             onSwipe={handleSwipe}
             currentIndex={0}
-            styleType={styleType}
+            onCardPress={(product) => navigation.navigate('ProductDetail', { productId: product.id, from: 'swipe' })}
+            onLoadMore={loadMore}
+            hasMoreProducts={hasMore}
+            useEnhancedCard={true}
           />
         )}
       </View>
       
       {/* アクションボタン */}
       <ActionButtons
-        onPressNo={() => currentProduct && handleSwipe('left', currentProduct)}
-        onPressYes={() => currentProduct && handleSwipe('right', currentProduct)}
+        onPressNo={() => currentProduct && handleSwipe(currentProduct, 'left')}
+        onPressYes={() => currentProduct && handleSwipe(currentProduct, 'right')}
         disabled={!currentProduct}
       />
       

@@ -4,6 +4,7 @@ import { fetchRakutenFashionProducts } from './rakutenService';
 import { sortProductsByScore, filterOutOfSeasonProducts } from '@/utils/productScoring';
 import { getUserPreferences } from './userPreferenceService';
 import { optimizeImageUrl, API_OPTIMIZATION } from '@/utils/supabaseOptimization';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/utils/env';
 
 /**
  * DBの商品データをアプリ用の形式に正規化
@@ -92,16 +93,32 @@ export const fetchProducts = async (limit: number = 20, offset: number = 0, filt
       await insertSampleProducts();
       
       // サンプルデータ挿入後、再度取得を試みる
-      const { data: newData } = await query
+      const { data: newData, error: newError } = await query
         .order('priority', { ascending: true, nullsFirst: false })
         .order('last_synced', { ascending: false })
         .range(offset, offset + limit - 1);
+      
+      if (newError) {
+        console.error('[ProductService] Error after inserting sample data:', newError);
+      }
       
       if (newData && newData.length > 0) {
         const products = newData.map(normalizeProduct);
         console.log(`[ProductService] Fetched ${products.length} sample products`);
         return { success: true, data: products };
       }
+    }
+    
+    // エラーの場合、詳細をログ出力
+    if (error) {
+      console.error('[ProductService] Supabase error details:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+        supabaseUrl: SUPABASE_URL,
+        hasAnonKey: !!SUPABASE_ANON_KEY
+      });
     }
     
     // エラーの場合、楽天APIから取得
