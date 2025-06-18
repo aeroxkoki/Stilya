@@ -124,6 +124,7 @@ const ProductDetailScreen: React.FC = () => {
           
           // 閲覧履歴に記録（ログインしている場合のみ）
           if (user && productData.id) {
+            // viewアクションをclick_logsテーブルに記録
             recordProductView(user.id, productData.id)
               .catch(err => console.error('Failed to record view:', err));
               
@@ -157,14 +158,8 @@ const ProductDetailScreen: React.FC = () => {
   const handleBuyPress = async () => {
     if (!product || !user) return;
     
-    // 新しいクリックログ記録フックを使用
-    trackClick(product.id, product);
-
-    // 閲覧履歴サービス経由でクリックログも記録
-    if (product && user && user.id) {
-      recordProductClick(user.id, product.id)
-        .catch(err => console.error('Failed to record click:', err));
-    }
+    // クリックログ記録フックを使用（click_logsテーブルへの記録とアナリティクスを統合）
+    await trackClick(product.id, product);
     
     // アフィリエイトリンクを開く
     try {

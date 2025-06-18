@@ -36,6 +36,7 @@ export interface ClickLog {
   id?: string;
   userId: string;
   productId: string;
+  action: 'view' | 'click' | 'purchase';
   createdAt?: string;
 }
 

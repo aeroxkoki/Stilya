@@ -1,7 +1,9 @@
 import { supabase } from './supabase';
+import { recordView, recordClick as recordClickAction } from './clickService';
 
 /**
  * 商品閲覧履歴を記録する
+ * click_logsテーブルにaction='view'として記録
  * @param userId ユーザーID
  * @param productId 商品ID
  */
@@ -10,28 +12,7 @@ export const recordProductView = async (
   productId: string
 ): Promise<void> => {
   try {
-    // 開発モードではモック処理としてログ出力のみ
-    if (__DEV__) {
-      console.log(`[DEV] Recorded product view: user=${userId}, product=${productId}`);
-      return;
-    }
-
-    // view_historyテーブルに記録
-    const { error } = await supabase
-      .from('view_history')
-      .insert([
-        {
-          user_id: userId,
-          product_id: productId,
-          viewed_at: new Date().toISOString(),
-        },
-      ]);
-
-    if (error) {
-      console.error('Error recording product view:', error);
-      throw error;
-    }
-
+    await recordView(userId, productId);
     console.log(`Product view recorded: user=${userId}, product=${productId}`);
   } catch (error) {
     console.error('Failed to record product view:', error);
@@ -41,6 +22,7 @@ export const recordProductView = async (
 
 /**
  * 商品クリック履歴を記録する（購入ボタンクリック時）
+ * click_logsテーブルにaction='click'として記録
  * @param userId ユーザーID
  * @param productId 商品ID
  */
@@ -49,28 +31,7 @@ export const recordProductClick = async (
   productId: string
 ): Promise<void> => {
   try {
-    // 開発モードではモック処理としてログ出力のみ
-    if (__DEV__) {
-      console.log(`[DEV] Recorded product click: user=${userId}, product=${productId}`);
-      return;
-    }
-
-    // click_logsテーブルに記録
-    const { error } = await supabase
-      .from('click_logs')
-      .insert([
-        {
-          user_id: userId,
-          product_id: productId,
-          clicked_at: new Date().toISOString(),
-        },
-      ]);
-
-    if (error) {
-      console.error('Error recording product click:', error);
-      throw error;
-    }
-
+    await recordClickAction(userId, productId);
     console.log(`Product click recorded: user=${userId}, product=${productId}`);
   } catch (error) {
     console.error('Failed to record product click:', error);
@@ -95,10 +56,11 @@ export const getViewHistory = async (
     }
 
     const { data, error } = await supabase
-      .from('view_history')
-      .select('product_id, viewed_at')
+      .from('click_logs')
+      .select('product_id, created_at')
       .eq('user_id', userId)
-      .order('viewed_at', { ascending: false })
+      .eq('action', 'view')
+      .order('created_at', { ascending: false })
       .limit(limit);
 
     if (error) {
@@ -108,7 +70,7 @@ export const getViewHistory = async (
 
     return data.map(item => ({
       productId: item.product_id,
-      viewedAt: item.viewed_at,
+      viewedAt: item.created_at,
     }));
   } catch (error) {
     console.error('Failed to fetch view history:', error);
@@ -134,9 +96,10 @@ export const getClickHistory = async (
 
     const { data, error } = await supabase
       .from('click_logs')
-      .select('product_id, clicked_at')
+      .select('product_id, created_at')
       .eq('user_id', userId)
-      .order('clicked_at', { ascending: false })
+      .eq('action', 'click')
+      .order('created_at', { ascending: false })
       .limit(limit);
 
     if (error) {
@@ -146,10 +109,59 @@ export const getClickHistory = async (
 
     return data.map(item => ({
       productId: item.product_id,
-      clickedAt: item.clicked_at,
+      clickedAt: item.created_at,
     }));
   } catch (error) {
     console.error('Failed to fetch click history:', error);
     return [];
+  }
+};
+
+/**
+ * 商品の閲覧・クリック統計を取得する
+ * @param productId 商品ID
+ */
+export const getProductViewStats = async (
+  productId: string
+): Promise<{
+  totalViews: number;
+  totalClicks: number;
+  clickThroughRate: number;
+  lastViewed?: string;
+  lastClicked?: string;
+}> => {
+  try {
+    const { data, error } = await supabase
+      .from('click_logs')
+      .select('action, created_at')
+      .eq('product_id', productId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching product stats:', error);
+      throw error;
+    }
+
+    const views = data.filter(item => item.action === 'view');
+    const clicks = data.filter(item => item.action === 'click');
+
+    const totalViews = views.length;
+    const totalClicks = clicks.length;
+    const clickThroughRate = totalViews > 0 ? (totalClicks / totalViews) * 100 : 0;
+
+    return {
+      totalViews,
+      totalClicks,
+      clickThroughRate: Math.round(clickThroughRate * 100) / 100,
+      lastViewed: views[0]?.created_at,
+      lastClicked: clicks[0]?.created_at,
+    };
+  } catch (error) {
+    console.error('Failed to fetch product view stats:', error);
+    return {
+      totalViews: 0,
+      totalClicks: 0,
+      clickThroughRate: 0,
+    };
   }
 };
