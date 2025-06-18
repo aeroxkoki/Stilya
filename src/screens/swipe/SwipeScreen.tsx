@@ -40,6 +40,7 @@ const SwipeScreen: React.FC = () => {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [filters, setFilters] = useState<FilterOptions>({});
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
   
   // 現在の商品
   const currentProduct = products[currentIndex];
@@ -55,6 +56,19 @@ const SwipeScreen: React.FC = () => {
       setShowEmptyState(true);
     }
   }, [loading, products.length]);
+  
+  // 利用可能なタグを商品から抽出
+  useEffect(() => {
+    if (products.length > 0) {
+      const tags = new Set<string>();
+      products.forEach(product => {
+        if (product.tags && Array.isArray(product.tags)) {
+          product.tags.forEach(tag => tags.add(tag));
+        }
+      });
+      setAvailableTags(Array.from(tags));
+    }
+  }, [products]);
   
   // スワイプ処理
   const handleSwipe = useCallback(async (direction: 'left' | 'right', product: Product) => {
@@ -190,7 +204,8 @@ const SwipeScreen: React.FC = () => {
         visible={showFilterModal}
         onClose={() => setShowFilterModal(false)}
         onApply={handleApplyFilter}
-        currentFilters={filters}
+        initialFilters={filters}
+        availableTags={availableTags}
       />
     </SafeAreaView>
   );
