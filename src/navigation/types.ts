@@ -39,6 +39,7 @@ export type ProfileStackParamList = {
   Favorites: undefined;
   SwipeHistory: undefined;
   ProductDetail: { productId: string };
+  SupabaseDiagnostic: undefined;
 };
 
 // Report Stack

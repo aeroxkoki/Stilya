@@ -51,18 +51,32 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
       setLoading(true);
       setError(null);
       
+      console.log('[ProductContext] Loading products...');
+      
       // 商品データを取得
       const result = await fetchProducts(30, 0, filters);
       
+      console.log('[ProductContext] Fetch result:', {
+        success: result.success,
+        dataLength: result.data?.length || 0,
+        error: result.error
+      });
+      
       if (result.success && 'data' in result && result.data) {
         setProducts(result.data);
+        console.log(`[ProductContext] Set ${result.data.length} products`);
       } else {
-        setError(result.error || '商品の読み込みに失敗しました');
+        const errorMessage = result.error || '商品の読み込みに失敗しました';
+        console.error('[ProductContext] Load failed:', errorMessage);
+        setError(errorMessage);
         setProducts([]);
       }
     } catch (error: any) {
-      console.error('Error loading products:', error);
-      setError(error.message || '商品の読み込みに失敗しました');
+      console.error('[ProductContext] Unexpected error:', error);
+      const errorMessage = error.message || '商品の読み込みに失敗しました';
+      setError(errorMessage);
+      // エラー時でも空配列をセット（UIの一貫性のため）
+      setProducts([]);
     } finally {
       setLoading(false);
     }

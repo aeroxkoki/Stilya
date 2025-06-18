@@ -290,6 +290,22 @@ const SettingsScreen: React.FC = () => {
             </View>
             <Ionicons name="chevron-forward" size={20} color={isDarkMode ? '#aaa' : '#999'} />
           </TouchableOpacity>
+          
+          {/* データベース診断（開発用） */}
+          {__DEV__ && (
+            <TouchableOpacity 
+              style={[styles.settingItem, { borderBottomColor: isDarkMode ? '#333' : '#f0f0f0' }]}
+              onPress={() => navigation.navigate('SupabaseDiagnostic' as never)}
+            >
+              <View style={styles.settingTextContainer}>
+                <Text style={[styles.settingLabel, { color: isDarkMode ? '#fff' : '#333' }]}>データベース診断</Text>
+                <Text style={[styles.settingDescription, { color: isDarkMode ? '#aaa' : '#777' }]}>
+                  開発用：接続状態を確認します
+                </Text>
+              </View>
+              <Ionicons name="bug-outline" size={20} color={isDarkMode ? '#aaa' : '#999'} />
+            </TouchableOpacity>
+          )}
         </View>
         
         {/* ログアウトボタン */}
