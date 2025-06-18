@@ -12,7 +12,7 @@ import {
   UIManager,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { useTheme } from '@/contexts/ThemeContext';
+import { useStyle } from '@/contexts/ThemeContext';
 import { Product } from '@/types';
 import CachedImage from './CachedImage';
 
@@ -46,7 +46,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   showTags = true,
   compact = false,
 }) => {
-  const { theme, isDarkMode } = useTheme();
+  const { theme, isDarkMode } = useStyle();
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   // 価格フォーマット

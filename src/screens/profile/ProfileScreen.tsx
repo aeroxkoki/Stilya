@@ -7,14 +7,14 @@ import { Button, Card } from '@/components/common';
 import { useAuth } from '@/hooks/useAuth';
 import { useProductStore } from '@/store/productStore';
 import { ProfileStackParamList } from '@/types';
-import { useTheme } from '@/contexts/ThemeContext';
+import { useStyle } from '@/contexts/ThemeContext';
 
 type ProfileScreenNavigationProp = StackNavigationProp<ProfileStackParamList, 'ProfileHome'>;
 
 const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<ProfileScreenNavigationProp>();
   const { user, logout, loading } = useAuth();
-  const { theme } = useTheme();
+  const { theme } = useStyle();
   const { 
     favorites,
     swipeHistory,

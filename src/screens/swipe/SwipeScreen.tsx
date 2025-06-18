@@ -8,8 +8,8 @@ import { Product } from '@/types/product';
 import { useStyle } from '@/contexts/ThemeContext';
 import { useAuth } from '@/hooks/useAuth';
 import { EmptyState } from '@/components/common';
-import { useProducts } from '@/hooks/useProducts';
-import { StyledSwipeContainer } from '@/components/swipe';
+import { useProducts } from '@/contexts/ProductContext';
+import { SwipeContainer } from '@/components/swipe';
 import ActionButtons from '@/components/swipe/ActionButtons';
 import FilterModal from '@/components/recommend/FilterModal';
 import { FilterOptions } from '@/services/productService';
@@ -137,9 +137,9 @@ const SwipeScreen: React.FC = () => {
         <EmptyState
           icon="card-outline"
           title="商品がありません"
-          subtitle="新しい商品を探してみましょう"
-          actionLabel="再読み込み"
-          onAction={handleReload}
+          message="新しい商品を探してみましょう"
+          buttonText="再読み込み"
+          onButtonPress={handleReload}
         />
       </SafeAreaView>
     );
@@ -169,7 +169,7 @@ const SwipeScreen: React.FC = () => {
       {/* スワイプエリア */}
       <View style={styles.swipeContainer}>
         {currentProduct && (
-          <StyledSwipeContainer
+          <SwipeContainer
             products={products.slice(currentIndex, currentIndex + 3)}
             onSwipe={handleSwipe}
             currentIndex={currentIndex}
@@ -180,12 +180,9 @@ const SwipeScreen: React.FC = () => {
       
       {/* アクションボタン */}
       <ActionButtons
-        onDislike={() => currentProduct && handleSwipe('left', currentProduct)}
-        onLike={() => currentProduct && handleSwipe('right', currentProduct)}
-        onFavorite={handleFavorite}
-        onUndo={handleUndo}
-        isFavorite={currentProduct ? isFavorite(currentProduct.id) : false}
-        canUndo={currentIndex > 0}
+        onPressNo={() => currentProduct && handleSwipe('left', currentProduct)}
+        onPressYes={() => currentProduct && handleSwipe('right', currentProduct)}
+        disabled={!currentProduct}
       />
       
       {/* フィルターモーダル */}

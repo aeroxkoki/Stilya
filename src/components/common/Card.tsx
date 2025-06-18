@@ -5,7 +5,7 @@ import {
   ViewStyle,
   Platform,
 } from 'react-native';
-import { useTheme } from '@/contexts/ThemeContext';
+import { useStyle } from '@/contexts/ThemeContext';
 import { View, TouchableOpacity } from './StyledComponents';
 
 export interface CardProps {
@@ -29,7 +29,7 @@ const Card: React.FC<CardProps> = ({
   padding,
   testID,
 }) => {
-  const { theme, isDarkMode } = useTheme();
+  const { theme, isDarkMode } = useStyle();
 
   // 影のレベルに基づいたスタイルを取得
   const getElevationStyle = (): ViewStyle => {

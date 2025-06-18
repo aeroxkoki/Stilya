@@ -316,7 +316,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setLoading(false);
         }
       } else {
-        throw new Error(result.error || 'ログインに失敗しました');
+        throw new Error('error' in result && result.error ? result.error : 'ログインに失敗しました');
       }
     } catch (error: any) {
       console.error('Error logging in:', error);
@@ -382,7 +382,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setError('アカウント登録が完了しました。確認メールをご確認ください。');
         }
       } else {
-        throw new Error(result.error || 'アカウント登録に失敗しました');
+        throw new Error('error' in result && result.error ? result.error : 'アカウント登録に失敗しました');
       }
     } catch (error: any) {
       console.error('Error registering:', error);

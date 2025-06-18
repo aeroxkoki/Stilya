@@ -7,7 +7,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '@/contexts/ThemeContext';
+import { useStyle } from '@/contexts/ThemeContext';
 
 interface ActionButtonsProps {
   onPressNo: () => void;
@@ -24,7 +24,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
   onPressYes,
   disabled = false,
 }) => {
-  const theme = useTheme();
+  const theme = useStyle();
   const scaleNo = new Animated.Value(1);
   const scaleYes = new Animated.Value(1);
 

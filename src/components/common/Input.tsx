@@ -11,7 +11,7 @@ import {
   TextInputProps,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { useTheme } from '@/contexts/ThemeContext';
+import { useStyle } from '@/contexts/ThemeContext';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -41,7 +41,7 @@ const Input: React.FC<InputProps> = ({
   onChangeText,
   ...rest
 }) => {
-  const { theme } = useTheme();
+  const { theme } = useStyle();
   const [isFocused, setIsFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 

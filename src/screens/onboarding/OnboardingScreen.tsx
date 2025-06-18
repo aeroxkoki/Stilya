@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, SafeAreaView, FlatList, Dimensions } from 'reac
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '@/navigation/types';
-import { useTheme } from '@/contexts/ThemeContext';
+import { useStyle } from '@/contexts/ThemeContext';
 import IntroSlide from '@/components/onboarding/IntroSlide';
 import { Button } from '@/components/common';
 import { useAuth } from '@/hooks/useAuth';
@@ -67,7 +67,7 @@ const { width } = Dimensions.get('window');
 const OnboardingScreen: React.FC = () => {
   const navigation = useNavigation<OnboardingScreenNavigationProp>();
   const [currentIndex, setCurrentIndex] = useState(0);
-  const theme = useTheme();
+  const theme = useStyle();
   const { user, setUser } = useAuth();
   
   // ユーザープロファイルの初期値

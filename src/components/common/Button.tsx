@@ -10,7 +10,7 @@ import {
   Animated,
   Easing,
 } from 'react-native';
-import { useTheme } from '@/contexts/ThemeContext';
+import { useStyle } from '@/contexts/ThemeContext';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'text';
 export type ButtonSize = 'small' | 'medium' | 'large';
@@ -55,7 +55,7 @@ const Button: React.FC<ButtonProps> = ({
   const useFullWidth = fullWidth || isFullWidth;
   // isLoadingをloadingに統合（互換性のため）
   const isButtonLoading = loading || isLoading;
-  const { theme, isDarkMode } = useTheme();
+  const { theme, isDarkMode } = useStyle();
   
   // アニメーション用の値
   const scaleAnimation = useRef(new Animated.Value(1)).current;

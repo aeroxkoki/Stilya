@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
-import { useTheme } from '@/contexts/ThemeContext';
+import { useStyle } from '@/contexts/ThemeContext';
 
 interface LoadingProps {
   message?: string;
@@ -23,7 +23,7 @@ const Loading: React.FC<LoadingProps> = ({
   overlay = false,
   size = 'large',
 }) => {
-  const { theme, isDarkMode } = useTheme();
+  const { theme, isDarkMode } = useStyle();
 
   return (
     <View

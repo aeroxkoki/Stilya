@@ -5,13 +5,13 @@ import { optimizeImageUrl } from '@/utils/supabaseOptimization';
 
 interface CachedImageProps {
   source: { uri: string } | number;
-  style?: StyleProp<ImageStyle | ViewStyle>;
+  style?: StyleProp<ImageStyle>;
   className?: string;
   contentFit?: 'cover' | 'contain' | 'fill' | 'none' | 'scale-down';
   transition?: number;
   contentPosition?: string;
   placeholder?: object;
-  resizeMode?: 'cover' | 'contain' | 'stretch' | 'repeat' | 'center';
+  resizeMode?: 'cover' | 'contain' | 'stretch' | 'center';
   showLoadingIndicator?: boolean;
   highQuality?: boolean;
   [key: string]: any;
@@ -32,7 +32,7 @@ const CachedImage: React.FC<CachedImageProps> = ({
   
   // resizeModeとcontentFitの互換性を保つ
   const finalContentFit = resizeMode ? 
-    (resizeMode === 'stretch' ? 'fill' : resizeMode) : 
+    (resizeMode === 'stretch' ? 'fill' : resizeMode === 'center' ? 'contain' : resizeMode) : 
     contentFit;
   
   // 高画質モードが有効な場合、URLを最適化

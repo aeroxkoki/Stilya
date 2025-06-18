@@ -5,7 +5,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Button } from '@/components/common';
 import IntroSlide, { IntroSlideProps } from '@/components/onboarding/IntroSlide';
 import { OnboardingStackParamList } from '@/types';
-import { useTheme } from '@/contexts/ThemeContext';
+import { useStyle } from '@/contexts/ThemeContext';
 
 type Props = NativeStackScreenProps<OnboardingStackParamList, 'AppIntro'>;
 
@@ -33,7 +33,7 @@ const slides: IntroSlideProps[] = [
 const AppIntroScreen: React.FC<Props> = ({ navigation }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
-  const { theme } = useTheme();
+  const { theme } = useStyle();
 
   const handleNext = () => {
     if (currentIndex === slides.length - 1) {

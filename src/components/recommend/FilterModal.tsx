@@ -62,15 +62,16 @@ const FilterModal: React.FC<FilterModalProps> = ({
   // カテゴリー選択の切り替え
   const toggleCategory = (category: string) => {
     setFilters(prev => {
-      if (prev.categories.includes(category)) {
+      const categories = prev.categories || [];
+      if (categories.includes(category)) {
         return {
           ...prev,
-          categories: prev.categories.filter(c => c !== category)
+          categories: categories.filter(c => c !== category)
         };
       } else {
         return {
           ...prev,
-          categories: [...prev.categories, category]
+          categories: [...categories, category]
         };
       }
     });
@@ -87,15 +88,16 @@ const FilterModal: React.FC<FilterModalProps> = ({
   // タグ選択の切り替え
   const toggleTag = (tag: string) => {
     setFilters(prev => {
-      if (prev.selectedTags.includes(tag)) {
+      const selectedTags = prev.selectedTags || [];
+      if (selectedTags.includes(tag)) {
         return {
           ...prev,
-          selectedTags: prev.selectedTags.filter(t => t !== tag)
+          selectedTags: selectedTags.filter(t => t !== tag)
         };
       } else {
         return {
           ...prev,
-          selectedTags: [...prev.selectedTags, tag]
+          selectedTags: [...selectedTags, tag]
         };
       }
     });
@@ -151,12 +153,12 @@ const FilterModal: React.FC<FilterModalProps> = ({
                     key={category}
                     style={[
                       styles.tagButton,
-                      filters.categories.includes(category) ? styles.tagActive : styles.tagInactive
+                      (filters.categories || []).includes(category) ? styles.tagActive : styles.tagInactive
                     ]}
                     onPress={() => toggleCategory(category)}
                   >
                     <Text
-                      style={filters.categories.includes(category) ? styles.tagTextActive : styles.tagTextInactive}
+                      style={((filters.categories || []).includes(category)) ? styles.tagTextActive : styles.tagTextInactive}
                     >
                       {CATEGORY_LABELS[category] || category}
                     </Text>
@@ -174,14 +176,14 @@ const FilterModal: React.FC<FilterModalProps> = ({
                     key={index}
                     style={[
                       styles.priceButton,
-                      filters.priceRange[0] === range[0] && filters.priceRange[1] === range[1] 
+                      filters.priceRange && filters.priceRange[0] === range[0] && filters.priceRange[1] === range[1] 
                         ? styles.priceActive : styles.priceInactive
                     ]}
                     onPress={() => selectPriceRange(range)}
                   >
                     <Text
                       style={
-                        filters.priceRange[0] === range[0] && filters.priceRange[1] === range[1]
+                        filters.priceRange && filters.priceRange[0] === range[0] && filters.priceRange[1] === range[1]
                           ? styles.priceTextActive
                           : styles.priceTextInactive
                       }
@@ -203,13 +205,13 @@ const FilterModal: React.FC<FilterModalProps> = ({
                       key={tag}
                       style={[
                         styles.styleTags,
-                        filters.selectedTags.includes(tag) ? styles.tagActive : styles.tagInactive
+                        (filters.selectedTags || []).includes(tag) ? styles.tagActive : styles.tagInactive
                       ]}
                       onPress={() => toggleTag(tag)}
                     >
                       <Text
                         style={[
-                          filters.selectedTags.includes(tag) ? styles.tagTextActive : styles.tagTextInactive,
+                          (filters.selectedTags || []).includes(tag) ? styles.tagTextActive : styles.tagTextInactive,
                           styles.smallText
                         ]}
                       >

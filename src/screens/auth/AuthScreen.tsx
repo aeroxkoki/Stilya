@@ -6,7 +6,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList, AuthStackParamList } from '@/navigation/types';
 import { StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTheme } from '@/contexts/ThemeContext';
+import { useStyle } from '@/contexts/ThemeContext';
 import { Feather } from '@expo/vector-icons';
 
 // ナビゲーションプロパティの型定義
@@ -21,7 +21,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const { login, register, loading, error, clearError } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
-  const theme = useTheme();
+  const theme = useStyle();
   const insets = useSafeAreaInsets();
 
   // フィールドが入力された時にエラーをクリア
