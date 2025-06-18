@@ -113,8 +113,8 @@ const SwipeScreen: React.FC = () => {
   const handleReload = useCallback(() => {
     setShowEmptyState(false);
     setCurrentIndex(0);
-    loadProducts();
-  }, [loadProducts]);
+    loadProducts(filters);
+  }, [loadProducts, filters]);
   
   // Undo処理
   const handleUndo = useCallback(() => {

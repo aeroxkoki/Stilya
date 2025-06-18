@@ -2,7 +2,8 @@ import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { 
   fetchProducts,
   fetchProductById,
-  fetchProductsByTags
+  fetchProductsByTags,
+  FilterOptions
 } from '@/services/productService';
 import { saveSwipeResult, getSwipeHistory as getSwipeHistoryService, SwipeData } from '@/services/swipeService';
 import { Product } from '@/types';
@@ -15,7 +16,7 @@ interface ProductContextType {
   favorites: string[]; // お気に入り商品IDのリスト
   
   // 商品データ取得
-  loadProducts: () => Promise<void>;
+  loadProducts: (filters?: FilterOptions) => Promise<void>;
   resetProducts: () => void;
   
   // スワイプ関連
@@ -45,13 +46,13 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [swipeHistory, setSwipeHistory] = useState<Product[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
 
-  const loadProducts = async () => {
+  const loadProducts = async (filters?: FilterOptions) => {
     try {
       setLoading(true);
       setError(null);
       
       // 商品データを取得
-      const result = await fetchProducts(30, 0);
+      const result = await fetchProducts(30, 0, filters);
       
       if (result.success && 'data' in result && result.data) {
         setProducts(result.data);
