@@ -52,8 +52,8 @@
 # MVPブランドの同期
 ./sync/sync-mvp-brands.js
 
-# テスト実行
-./testing/run-tests.js
+# 商品データチェック
+./testing/check-products.js
 ```
 
 ## 📝 注意事項
