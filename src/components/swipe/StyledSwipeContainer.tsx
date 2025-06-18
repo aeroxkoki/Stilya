@@ -63,6 +63,9 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
   const currentIndex = externalIndex !== undefined ? externalIndex : internalIndex;
   const currentProduct = products[currentIndex];
 
+  // スワイプ方向を保持する状態
+  const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
+
   // アニメーション値
   const position = useRef(new Animated.ValueXY()).current;
   const swipeIndicatorOpacity = useRef(new Animated.Value(0)).current;
@@ -132,6 +135,7 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
       // ポジションをリセット
       position.setValue({ x: 0, y: 0 });
       swipeIndicatorOpacity.setValue(0);
+      setSwipeDirection(null);
     },
   });
 
@@ -149,6 +153,15 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
         // スワイプインジケーターのopacityを更新
         const opacity = Math.min(Math.abs(gestureState.dx) / SWIPE_THRESHOLD, 1);
         swipeIndicatorOpacity.setValue(opacity);
+        
+        // スワイプ方向の判定
+        if (gestureState.dx > SWIPE_THRESHOLD) {
+          setSwipeDirection('right');
+        } else if (gestureState.dx < -SWIPE_THRESHOLD) {
+          setSwipeDirection('left');
+        } else {
+          setSwipeDirection(null);
+        }
       },
       onPanResponderRelease: (_, gestureState) => {
         position.flattenOffset();
@@ -431,7 +444,7 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
       
       <Animated.View
         style={[styles.cardContainer, animatedCardStyle]}
-        {...(useEnhancedCard ? {} : panResponder.panHandlers)}
+        {...panResponder.panHandlers}
         testID="animated-card-container"
       >
         {currentProduct && (
@@ -444,6 +457,8 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
               onSwipeRight={isConnected === false ? undefined : handleYesButtonPress}
               onSave={handleSaveProduct}
               isSaved={savedProductIds.has(currentProduct.id)}
+              animatedStyle={animatedCardStyle}
+              swipeDirection={swipeDirection}
               testID="current-swipe-card"
             />
           ) : (

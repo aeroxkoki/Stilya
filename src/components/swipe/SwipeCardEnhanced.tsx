@@ -5,8 +5,7 @@ import {
   TouchableOpacity, 
   StyleSheet, 
   Dimensions, 
-  Animated, 
-  PanResponder
+  Animated
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,13 +22,13 @@ interface SwipeCardEnhancedProps {
   onSave?: () => void;
   isSaved?: boolean;
   testID?: string;
+  animatedStyle?: any; // 親からアニメーションスタイルを受け取る
+  swipeDirection?: 'left' | 'right' | null; // 親からスワイプ方向を受け取る
 }
 
 const { width, height } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.9;
 const CARD_HEIGHT = height * 0.65;
-const SWIPE_THRESHOLD = width * 0.25;
-const ROTATION_ANGLE = 5; // 回転角度（度）
 
 const SwipeCardEnhanced: React.FC<SwipeCardEnhancedProps> = ({ 
   product, 
@@ -39,24 +38,12 @@ const SwipeCardEnhanced: React.FC<SwipeCardEnhancedProps> = ({
   onLongPress,
   onSave,
   isSaved = false,
-  testID
+  testID,
+  animatedStyle,
+  swipeDirection
 }) => {
   // StyleContextからテーマを取得
   const { theme, styleType } = useStyle();
-  
-  // アニメーション用の状態
-  const [isPressed, setIsPressed] = useState(false);
-  const position = useRef(new Animated.ValueXY()).current;
-  const rotate = position.x.interpolate({
-    inputRange: [-width / 2, 0, width / 2],
-    outputRange: [`-${ROTATION_ANGLE}deg`, '0deg', `${ROTATION_ANGLE}deg`],
-    extrapolate: 'clamp',
-  });
-  const opacity = position.x.interpolate({
-    inputRange: [-width / 2, -SWIPE_THRESHOLD, SWIPE_THRESHOLD, width / 2],
-    outputRange: [0.8, 1, 1, 0.8],
-    extrapolate: 'clamp',
-  });
   
   // カードの透明度アニメーション
   const cardOpacity = useRef(new Animated.Value(0)).current;
@@ -78,71 +65,6 @@ const SwipeCardEnhanced: React.FC<SwipeCardEnhancedProps> = ({
       useNativeDriver: true
     }).start();
   }, []);
-  
-  // スワイプ判定の状態
-  const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
-  
-  // PanResponderの設定
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
-        setIsPressed(true);
-      },
-      onPanResponderMove: (_, gestureState) => {
-        position.setValue({ x: gestureState.dx, y: gestureState.dy });
-        // スワイプ方向の判定
-        if (gestureState.dx > SWIPE_THRESHOLD) {
-          setSwipeDirection('right');
-        } else if (gestureState.dx < -SWIPE_THRESHOLD) {
-          setSwipeDirection('left');
-        } else {
-          setSwipeDirection(null);
-        }
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        setIsPressed(false);
-        
-        // スワイプ閾値を超えたらカードを飛ばす
-        if (gestureState.dx > SWIPE_THRESHOLD) {
-          finishSwipe('right');
-        } else if (gestureState.dx < -SWIPE_THRESHOLD) {
-          finishSwipe('left');
-        } else {
-          resetPosition();
-        }
-      },
-    })
-  ).current;
-  
-  // カードを元の位置に戻す
-  const resetPosition = () => {
-    Animated.spring(position, {
-      toValue: { x: 0, y: 0 },
-      friction: 5,
-      useNativeDriver: true,
-    }).start();
-    setSwipeDirection(null);
-  };
-  
-  // スワイプ完了時の処理
-  const finishSwipe = (direction: 'left' | 'right') => {
-    const x = direction === 'right' ? width + 100 : -width - 100;
-    Animated.timing(position, {
-      toValue: { x, y: 0 },
-      duration: 300,
-      useNativeDriver: true,
-    }).start(() => {
-      if (direction === 'left' && onSwipeLeft) {
-        onSwipeLeft();
-      } else if (direction === 'right' && onSwipeRight) {
-        onSwipeRight();
-      }
-      // 再利用のためにカードの位置をリセット
-      position.setValue({ x: 0, y: 0 });
-      setSwipeDirection(null);
-    });
-  };
   
   // スワイプレイヤーの色（方向によって変化）
   const getSwipeOverlayColor = () => {
@@ -175,19 +97,19 @@ const SwipeCardEnhanced: React.FC<SwipeCardEnhancedProps> = ({
   // imageUrlとimage_urlの両方の形式に対応
   const imageUrl = product.imageUrl || product.image_url || 'https://via.placeholder.com/350x500?text=No+Image';
 
+  // 親からアニメーションスタイルが提供されない場合のデフォルトスタイル
+  const defaultAnimatedStyle = {
+    transform: [
+      { scale: cardScale }
+    ],
+    opacity: cardOpacity,
+  };
+
   return (
     <Animated.View 
       style={[
         styles.container,
-        {
-          transform: [
-            { translateX: position.x },
-            { translateY: position.y },
-            { rotate },
-            { scale: cardScale }
-          ],
-          opacity: cardOpacity,
-        },
+        animatedStyle || defaultAnimatedStyle,
         { 
           backgroundColor: theme.colors.card.background,
           borderRadius: theme.radius.l,
@@ -199,7 +121,6 @@ const SwipeCardEnhanced: React.FC<SwipeCardEnhancedProps> = ({
         },
       ]}
       testID={testID || 'swipe-card-enhanced'}
-      {...panResponder.panHandlers}
     >
       <TouchableOpacity
         style={styles.cardContent}
@@ -207,7 +128,6 @@ const SwipeCardEnhanced: React.FC<SwipeCardEnhancedProps> = ({
         onLongPress={onLongPress}
         delayLongPress={500}
         activeOpacity={0.95}
-        disabled={isPressed}
         testID="swipe-card-touch"
       >
         {/* 商品画像 */}
@@ -286,7 +206,7 @@ const SwipeCardEnhanced: React.FC<SwipeCardEnhancedProps> = ({
               elevation: theme.shadows.small.elevation,
             }
           ]}
-          onPress={() => finishSwipe('left')}
+          onPress={onSwipeLeft}
           testID="swipe-left-button"
         >
           <Ionicons name="close" size={28} color="#F87171" />
@@ -326,7 +246,7 @@ const SwipeCardEnhanced: React.FC<SwipeCardEnhancedProps> = ({
               elevation: theme.shadows.small.elevation,
             }
           ]}
-          onPress={() => finishSwipe('right')}
+          onPress={onSwipeRight}
           testID="swipe-right-button"
         >
           <Ionicons name="heart" size={28} color="#3B82F6" />
