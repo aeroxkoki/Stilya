@@ -73,7 +73,8 @@ export const fetchProducts = async (limit: number = 20, offset: number = 0, filt
       }
     }
     
-    const { data, error } = await query
+    const { data, error, count } = await query
+      .select('*', { count: 'exact' })
       .order('priority', { ascending: true, nullsFirst: false }) // 優先度の高い順（1が最高）
       .order('last_synced', { ascending: false }) // 更新日時の新しい順
       .range(offset, offset + limit - 1);
@@ -85,7 +86,25 @@ export const fetchProducts = async (limit: number = 20, offset: number = 0, filt
       return { success: true, data: products };
     }
     
-    // Supabaseにデータがない、またはエラーの場合、楽天APIから取得
+    // Supabaseにデータがない場合、サンプルデータを挿入
+    if (!error && count === 0) {
+      console.log('[ProductService] No products found, inserting sample data...');
+      await insertSampleProducts();
+      
+      // サンプルデータ挿入後、再度取得を試みる
+      const { data: newData } = await query
+        .order('priority', { ascending: true, nullsFirst: false })
+        .order('last_synced', { ascending: false })
+        .range(offset, offset + limit - 1);
+      
+      if (newData && newData.length > 0) {
+        const products = newData.map(normalizeProduct);
+        console.log(`[ProductService] Fetched ${products.length} sample products`);
+        return { success: true, data: products };
+      }
+    }
+    
+    // エラーの場合、楽天APIから取得
     console.log('[ProductService] No products in Supabase or error occurred, fetching from Rakuten API...');
     if (error) {
       console.error('[ProductService] Supabase error:', error);
@@ -471,4 +490,190 @@ export const fetchSeasonalProducts = async (
   return fetchScoredProducts(userId, limit, offset, {
     enableSeasonalFilter: true
   });
+};
+
+/**
+ * サンプル商品を挿入（初期データ）
+ */
+const insertSampleProducts = async () => {
+  const sampleProducts = [
+    {
+      id: `sample_001_${Date.now()}`,
+      title: 'オーバーサイズTシャツ',
+      brand: 'UNIQLO',
+      price: 2990,
+      image_url: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400',
+      description: 'ゆったりとしたシルエットのTシャツ',
+      tags: ['カジュアル', 'ユニセックス', 'コットン', 'トップス'],
+      category: 'トップス',
+      affiliate_url: 'https://www.uniqlo.com/',
+      source: 'manual',
+      priority: 1,
+      is_active: true,
+      last_synced: new Date().toISOString(),
+      created_at: new Date().toISOString()
+    },
+    {
+      id: `sample_002_${Date.now()}_2`,
+      title: 'スキニーデニムパンツ',
+      brand: 'ZARA',
+      price: 5990,
+      image_url: 'https://images.unsplash.com/photo-1542272454315-4c01d7abdf4a?w=400',
+      description: 'スリムフィットのデニムパンツ',
+      tags: ['カジュアル', 'デニム', 'ストレッチ', 'ボトムス'],
+      category: 'ボトムス',
+      affiliate_url: 'https://www.zara.com/',
+      source: 'manual',
+      priority: 2,
+      is_active: true,
+      last_synced: new Date().toISOString(),
+      created_at: new Date().toISOString()
+    },
+    {
+      id: `sample_003_${Date.now()}_3`,
+      title: 'プリーツスカート',
+      brand: 'GU',
+      price: 2490,
+      image_url: 'https://images.unsplash.com/photo-1583496661160-fb5886a0aaaa?w=400',
+      description: 'エレガントなプリーツスカート',
+      tags: ['フェミニン', 'オフィス', 'プリーツ', 'スカート'],
+      category: 'スカート',
+      affiliate_url: 'https://www.gu-global.com/',
+      source: 'manual',
+      priority: 3,
+      is_active: true,
+      last_synced: new Date().toISOString(),
+      created_at: new Date().toISOString()
+    },
+    {
+      id: `sample_004_${Date.now()}_4`,
+      title: 'ニットセーター',
+      brand: 'H&M',
+      price: 3990,
+      image_url: 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=400',
+      description: '暖かいウールブレンドのニットセーター',
+      tags: ['カジュアル', 'ニット', '秋冬', 'トップス'],
+      category: 'トップス',
+      affiliate_url: 'https://www2.hm.com/',
+      source: 'manual',
+      priority: 4,
+      is_active: true,
+      last_synced: new Date().toISOString(),
+      created_at: new Date().toISOString()
+    },
+    {
+      id: `sample_005_${Date.now()}_5`,
+      title: 'ワイドパンツ',
+      brand: 'UNIQLO',
+      price: 3990,
+      image_url: 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=400',
+      description: 'ゆったりとしたシルエットのワイドパンツ',
+      tags: ['カジュアル', 'ワイド', 'コンフォート', 'ボトムス'],
+      category: 'ボトムス',
+      affiliate_url: 'https://www.uniqlo.com/',
+      source: 'manual',
+      priority: 5,
+      is_active: true,
+      last_synced: new Date().toISOString(),
+      created_at: new Date().toISOString()
+    },
+    {
+      id: `sample_006_${Date.now()}_6`,
+      title: 'ストライプシャツ',
+      brand: 'GAP',
+      price: 4990,
+      image_url: 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=400',
+      description: 'クラシックなストライプパターンのシャツ',
+      tags: ['ビジネス', 'ストライプ', 'コットン', 'トップス'],
+      category: 'トップス',
+      affiliate_url: 'https://www.gap.co.jp/',
+      source: 'manual',
+      priority: 6,
+      is_active: true,
+      last_synced: new Date().toISOString(),
+      created_at: new Date().toISOString()
+    },
+    {
+      id: `sample_007_${Date.now()}_7`,
+      title: 'フレアスカート',
+      brand: 'FOREVER21',
+      price: 3490,
+      image_url: 'https://images.unsplash.com/photo-1594633312515-7ad9334a2349?w=400',
+      description: '動きやすいフレアシルエットのスカート',
+      tags: ['フェミニン', 'カジュアル', 'フレア', 'スカート'],
+      category: 'スカート',
+      affiliate_url: 'https://www.forever21.co.jp/',
+      source: 'manual',
+      priority: 7,
+      is_active: true,
+      last_synced: new Date().toISOString(),
+      created_at: new Date().toISOString()
+    },
+    {
+      id: `sample_008_${Date.now()}_8`,
+      title: 'チノパンツ',
+      brand: 'MUJI',
+      price: 3990,
+      image_url: 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=400',
+      description: 'ベーシックなチノパンツ',
+      tags: ['ベーシック', 'チノ', 'オフィス', 'ボトムス'],
+      category: 'ボトムス',
+      affiliate_url: 'https://www.muji.com/',
+      source: 'manual',
+      priority: 8,
+      is_active: true,
+      last_synced: new Date().toISOString(),
+      created_at: new Date().toISOString()
+    },
+    {
+      id: `sample_009_${Date.now()}_9`,
+      title: 'パーカー',
+      brand: 'NIKE',
+      price: 6990,
+      image_url: 'https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?w=400',
+      description: 'スポーティーなパーカー',
+      tags: ['スポーツ', 'カジュアル', 'パーカー', 'トップス'],
+      category: 'トップス',
+      affiliate_url: 'https://www.nike.com/jp/',
+      source: 'manual',
+      priority: 9,
+      is_active: true,
+      last_synced: new Date().toISOString(),
+      created_at: new Date().toISOString()
+    },
+    {
+      id: `sample_010_${Date.now()}_10`,
+      title: 'ワンピース',
+      brand: 'ZARA',
+      price: 7990,
+      image_url: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=400',
+      description: 'エレガントなワンピース',
+      tags: ['フォーマル', 'エレガント', 'ワンピース'],
+      category: 'ワンピース',
+      affiliate_url: 'https://www.zara.com/',
+      source: 'manual',
+      priority: 10,
+      is_active: true,
+      last_synced: new Date().toISOString(),
+      created_at: new Date().toISOString()
+    }
+  ];
+  
+  try {
+    const { error } = await supabase
+      .from('external_products')
+      .insert(sampleProducts);
+    
+    if (error) {
+      console.error('[ProductService] Error inserting sample products:', error);
+      // 既存のサンプルデータがある場合はエラーを無視
+      if (error.message?.includes('duplicate key')) {
+        console.log('[ProductService] Sample products already exist');
+      }
+    } else {
+      console.log(`[ProductService] Successfully inserted ${sampleProducts.length} sample products`);
+    }
+  } catch (error) {
+    console.error('[ProductService] Unexpected error inserting sample products:', error);
+  }
 };
