@@ -7,7 +7,6 @@ import { MainTabParamList } from '@/types';
 import SwipeNavigator from './SwipeNavigator';
 import RecommendNavigator from './RecommendNavigator';
 import ProfileNavigator from './ProfileNavigator';
-import ReportNavigator from './ReportNavigator';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -23,8 +22,6 @@ const MainNavigator: React.FC = () => {
             iconName = focused ? 'card' : 'card-outline';
           } else if (route.name === 'Recommend') {
             iconName = focused ? 'star' : 'star-outline';
-          } else if (route.name === 'Report') {
-            iconName = focused ? 'bar-chart' : 'bar-chart-outline';
           } else if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline';
           } else {
@@ -54,11 +51,6 @@ const MainNavigator: React.FC = () => {
         name="Recommend"
         component={RecommendNavigator}
         options={{ title: 'おすすめ' }}
-      />
-      <Tab.Screen
-        name="Report"
-        component={ReportNavigator}
-        options={{ title: 'レポート' }}
       />
       <Tab.Screen
         name="Profile"

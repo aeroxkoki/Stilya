@@ -42,16 +42,10 @@ export type ProfileStackParamList = {
   SupabaseDiagnostic: undefined;
 };
 
-// Report Stack
-export type ReportStackParamList = {
-  Report: undefined;
-};
-
 // Main Tab Navigator
 export type MainTabParamList = {
   Swipe: NavigatorScreenParams<SwipeStackParamList>;
   Recommend: NavigatorScreenParams<RecommendStackParamList>;
-  Report: NavigatorScreenParams<ReportStackParamList>;
   Profile: NavigatorScreenParams<ProfileStackParamList>;
 };
 
@@ -92,15 +86,6 @@ export type ProfileScreenProps<T extends keyof ProfileStackParamList> =
     StackScreenProps<ProfileStackParamList, T>,
     CompositeScreenProps<
       BottomTabScreenProps<MainTabParamList, 'Profile'>,
-      StackScreenProps<RootStackParamList>
-    >
-  >;
-
-export type ReportScreenProps<T extends keyof ReportStackParamList> = 
-  CompositeScreenProps<
-    StackScreenProps<ReportStackParamList, T>,
-    CompositeScreenProps<
-      BottomTabScreenProps<MainTabParamList, 'Report'>,
       StackScreenProps<RootStackParamList>
     >
   >;
