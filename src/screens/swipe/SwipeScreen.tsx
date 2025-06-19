@@ -22,7 +22,7 @@ type SwipeScreenNavigationProp = StackNavigationProp<SwipeStackParamList, 'Swipe
 const SwipeScreen: React.FC = () => {
   const navigation = useNavigation<SwipeScreenNavigationProp>();
   const { user } = useAuth();
-  const { styleType } = useStyle();
+  const { theme } = useStyle();
   
   // 商品とスワイプ状態の管理
   const { 
@@ -146,10 +146,10 @@ const SwipeScreen: React.FC = () => {
   // ローディング表示
   if (isLoading && products.length === 0) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#3B82F6" />
-          <Text style={styles.loadingText}>商品を読み込み中...</Text>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={[styles.loadingText, { color: theme.colors.text.secondary }]}>商品を読み込み中...</Text>
         </View>
       </SafeAreaView>
     );
@@ -158,7 +158,7 @@ const SwipeScreen: React.FC = () => {
   // エラー表示
   if (error && products.length === 0) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <EmptyState
           icon="alert-circle-outline"
           title="エラーが発生しました"
@@ -173,7 +173,7 @@ const SwipeScreen: React.FC = () => {
   // 空の状態
   if (showEmptyState || (!isLoading && products.length === 0)) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <EmptyState
           icon="card-outline"
           title="商品がありません"
@@ -188,40 +188,40 @@ const SwipeScreen: React.FC = () => {
   // 現在の商品がない場合
   if (!currentProduct) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#3B82F6" />
-          <Text style={styles.loadingText}>商品を準備中...</Text>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={[styles.loadingText, { color: theme.colors.text.secondary }]}>商品を準備中...</Text>
         </View>
       </SafeAreaView>
     );
   }
   
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* ヘッダー */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
         <TouchableOpacity
           style={styles.headerButton}
           onPress={() => setShowFilterModal(true)}
         >
-          <Ionicons name="options-outline" size={24} color="#374151" />
+          <Ionicons name="options-outline" size={24} color={theme.colors.text.primary} />
         </TouchableOpacity>
         
-        <Text style={styles.headerTitle}>Stilya</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.text.primary }]}>Stilya</Text>
         
         <TouchableOpacity
           style={styles.headerButton}
           onPress={() => navigation.navigate('ProductDetail', { productId: currentProduct?.id || '', from: 'swipe' })}
         >
-          <Ionicons name="information-circle-outline" size={24} color="#374151" />
+          <Ionicons name="information-circle-outline" size={24} color={theme.colors.text.primary} />
         </TouchableOpacity>
       </View>
       
       {/* 進捗インジケーター */}
       {totalFetched > 0 && (
         <View style={styles.progressContainer}>
-          <Text style={styles.progressText}>
+          <Text style={[styles.progressText, { color: theme.colors.text.secondary }]}>
             {currentIndex + 1} / {totalFetched} {hasMore ? '+' : ''}
           </Text>
         </View>
@@ -265,7 +265,6 @@ const SwipeScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
   header: {
     flexDirection: 'row',
@@ -274,7 +273,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
   },
   headerButton: {
     padding: 8,
@@ -282,7 +280,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1F2937',
   },
   progressContainer: {
     paddingHorizontal: 20,
@@ -291,7 +288,6 @@ const styles = StyleSheet.create({
   },
   progressText: {
     fontSize: 14,
-    color: '#6B7280',
   },
   swipeContainer: {
     flex: 1,
@@ -306,7 +302,6 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#6B7280',
   },
 });
 

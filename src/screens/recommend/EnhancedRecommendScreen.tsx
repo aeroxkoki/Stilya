@@ -20,6 +20,7 @@ import {
 } from '@/components/recommend';
 import { Button, Card } from '@/components/common';
 import { useAuth } from '@/hooks/useAuth';
+import { useStyle } from '@/contexts/ThemeContext';
 import { 
   getEnhancedRecommendations, 
   getOutfitRecommendations 
@@ -35,6 +36,7 @@ type NavigationProp = RecommendScreenProps<'RecommendHome'>['navigation'];
 const EnhancedRecommendScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
+  const { theme } = useStyle();
   
   // 状態管理
   const [isLoading, setIsLoading] = useState(true);
@@ -123,17 +125,17 @@ const EnhancedRecommendScreen: React.FC = () => {
   // ローディング表示
   if (isLoading && recommendations.recommended.length === 0 && recommendations.trending.length === 0) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <ActivityIndicator size="large" color="#3B82F6" />
-          <Text style={{ marginTop: 16, color: '#666' }}>おすすめ商品を読み込み中...</Text>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={[styles.loadingText, { color: theme.colors.text.secondary }]}>おすすめ商品を読み込み中...</Text>
         </View>
       </SafeAreaView>
     );
   }
   
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <ScrollView
         style={{ flex: 1 }}
         refreshControl={
@@ -146,33 +148,33 @@ const EnhancedRecommendScreen: React.FC = () => {
         {/* ヘッダー */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.headerTitle}>Stilya</Text>
-            <Text style={styles.headerSubtitle}>
+            <Text style={[styles.headerTitle, { color: theme.colors.text.primary }]}>Stilya</Text>
+            <Text style={[styles.headerSubtitle, { color: theme.colors.text.secondary }]}>
               あなたにピッタリのアイテム
             </Text>
           </View>
           
           {/* 検索ボタン（実際の機能は省略） */}
           <TouchableOpacity 
-            style={styles.searchButton}
+            style={[styles.searchButton, { backgroundColor: theme.colors.surface }]}
             onPress={() => {
               // 検索画面へ遷移するコードを追加
               console.log('Search button pressed');
             }}
           >
-            <Ionicons name="search-outline" size={22} color="#333" />
+            <Ionicons name="search-outline" size={22} color={theme.colors.text.primary} />
           </TouchableOpacity>
         </View>
         
         {/* ログインしていない場合 */}
         {!user && (
-          <View style={styles.promptCard}>
-            <Text style={styles.promptText}>
+          <View style={[styles.promptCard, { backgroundColor: theme.colors.primary + '15' }]}>
+            <Text style={[styles.promptText, { color: theme.colors.text.primary }]}>
               ログインすると、あなたの好みに合わせた商品をおすすめできます。
             </Text>
             <Button 
               onPress={handleGoToSwipe}
-              style={{ backgroundColor: '#3B82F6', marginTop: 8 }}
+              style={{ backgroundColor: theme.colors.primary, marginTop: 8 }}
             >
               まずはスワイプしてみる
             </Button>
@@ -181,43 +183,43 @@ const EnhancedRecommendScreen: React.FC = () => {
         
         {/* エラー表示 */}
         {error && (
-          <View style={styles.errorCard}>
-            <Ionicons name="alert-circle-outline" size={24} color="#EF4444" />
-            <Text style={styles.errorText}>{error}</Text>
+          <View style={[styles.errorCard, { backgroundColor: theme.colors.error + '15' }]}>
+            <Ionicons name="alert-circle-outline" size={24} color={theme.colors.error} />
+            <Text style={[styles.errorText, { color: theme.colors.error }]}>{error}</Text>
             <TouchableOpacity 
-              style={styles.retryButton}
+              style={[styles.retryButton, { backgroundColor: theme.colors.background }]}
               onPress={loadData}
             >
-              <Text style={styles.retryButtonText}>再読み込み</Text>
+              <Text style={[styles.retryButtonText, { color: theme.colors.error }]}>再読み込み</Text>
             </TouchableOpacity>
           </View>
         )}
         
         {/* タブナビゲーション */}
-        <View style={styles.tabBar}>
+        <View style={[styles.tabBar, { backgroundColor: theme.colors.surface }]}>
           <TouchableOpacity
-            style={[styles.tab, activeTab === 'all' && styles.activeTab]}
+            style={[styles.tab, activeTab === 'all' && { backgroundColor: theme.colors.background }]}
             onPress={() => handleTabChange('all')}
           >
-            <Text style={[styles.tabText, activeTab === 'all' && styles.activeTabText]}>すべて</Text>
+            <Text style={[styles.tabText, { color: theme.colors.text.secondary }, activeTab === 'all' && { color: theme.colors.text.primary }]}>すべて</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.tab, activeTab === 'outfits' && styles.activeTab]}
+            style={[styles.tab, activeTab === 'outfits' && { backgroundColor: theme.colors.background }]}
             onPress={() => handleTabChange('outfits')}
           >
-            <Text style={[styles.tabText, activeTab === 'outfits' && styles.activeTabText]}>コーデ</Text>
+            <Text style={[styles.tabText, { color: theme.colors.text.secondary }, activeTab === 'outfits' && { color: theme.colors.text.primary }]}>コーデ</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.tab, activeTab === 'forYou' && styles.activeTab]}
+            style={[styles.tab, activeTab === 'forYou' && { backgroundColor: theme.colors.background }]}
             onPress={() => handleTabChange('forYou')}
           >
-            <Text style={[styles.tabText, activeTab === 'forYou' && styles.activeTabText]}>あなたへ</Text>
+            <Text style={[styles.tabText, { color: theme.colors.text.secondary }, activeTab === 'forYou' && { color: theme.colors.text.primary }]}>あなたへ</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.tab, activeTab === 'trending' && styles.activeTab]}
+            style={[styles.tab, activeTab === 'trending' && { backgroundColor: theme.colors.background }]}
             onPress={() => handleTabChange('trending')}
           >
-            <Text style={[styles.tabText, activeTab === 'trending' && styles.activeTabText]}>トレンド</Text>
+            <Text style={[styles.tabText, { color: theme.colors.text.secondary }, activeTab === 'trending' && { color: theme.colors.text.primary }]}>トレンド</Text>
           </TouchableOpacity>
         </View>
         
@@ -228,9 +230,9 @@ const EnhancedRecommendScreen: React.FC = () => {
             {outfits.length > 0 && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>おすすめコーディネート</Text>
+                  <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>おすすめコーディネート</Text>
                   <TouchableOpacity onPress={() => handleTabChange('outfits')}>
-                    <Text style={styles.seeAllText}>すべて見る</Text>
+                    <Text style={[styles.seeAllText, { color: theme.colors.primary }]}>すべて見る</Text>
                   </TouchableOpacity>
                 </View>
                 
@@ -287,7 +289,7 @@ const EnhancedRecommendScreen: React.FC = () => {
         {/* コーディネートタブ */}
         {activeTab === 'outfits' && (
           <View style={styles.fullWidthSection}>
-            <Text style={styles.sectionTitle}>おすすめコーディネート</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>おすすめコーディネート</Text>
             {outfits.length > 0 ? (
               outfits.map((outfit, index) => (
                 <OutfitRecommendation
@@ -300,12 +302,12 @@ const EnhancedRecommendScreen: React.FC = () => {
               ))
             ) : (
               <View style={styles.emptyState}>
-                <Text style={styles.emptyStateText}>
+                <Text style={[styles.emptyStateText, { color: theme.colors.text.secondary }]}>
                   コーディネートがありません。もっとスワイプして好みを教えてください。
                 </Text>
                 <Button
                   onPress={handleGoToSwipe}
-                  style={{ backgroundColor: '#3B82F6', marginTop: 12 }}
+                  style={{ backgroundColor: theme.colors.primary, marginTop: 12 }}
                 >
                   スワイプする
                 </Button>
@@ -317,7 +319,7 @@ const EnhancedRecommendScreen: React.FC = () => {
         {/* あなたへのおすすめタブ */}
         {activeTab === 'forYou' && (
           <View style={styles.gridSection}>
-            <Text style={styles.sectionTitle}>あなたへのおすすめ</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>あなたへのおすすめ</Text>
             
             {recommendations.forYou.length > 0 ? (
               <View style={styles.productGrid}>
@@ -333,15 +335,15 @@ const EnhancedRecommendScreen: React.FC = () => {
                         style={styles.productImage}
                       />
                       <View style={styles.productInfo}>
-                        <Text style={styles.productTitle} numberOfLines={1}>
+                        <Text style={[styles.productTitle, { color: theme.colors.text.primary }]} numberOfLines={1}>
                           {product.title}
                         </Text>
                         {product.brand && (
-                          <Text style={styles.productBrand} numberOfLines={1}>
+                          <Text style={[styles.productBrand, { color: theme.colors.text.secondary }]} numberOfLines={1}>
                             {product.brand}
                           </Text>
                         )}
-                        <Text style={styles.productPrice}>
+                        <Text style={[styles.productPrice, { color: theme.colors.text.primary }]}>
                           ¥{product.price.toLocaleString()}
                         </Text>
                       </View>
@@ -351,12 +353,12 @@ const EnhancedRecommendScreen: React.FC = () => {
               </View>
             ) : (
               <View style={styles.emptyState}>
-                <Text style={styles.emptyStateText}>
+                <Text style={[styles.emptyStateText, { color: theme.colors.text.secondary }]}>
                   まだおすすめがありません。スワイプして好みを教えてください。
                 </Text>
                 <Button
                   onPress={handleGoToSwipe}
-                  style={{ backgroundColor: '#3B82F6', marginTop: 12 }}
+                  style={{ backgroundColor: theme.colors.primary, marginTop: 12 }}
                 >
                   スワイプする
                 </Button>
@@ -368,7 +370,7 @@ const EnhancedRecommendScreen: React.FC = () => {
         {/* トレンドタブ */}
         {activeTab === 'trending' && (
           <View style={styles.gridSection}>
-            <Text style={styles.sectionTitle}>今週のトレンドアイテム</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>今週のトレンドアイテム</Text>
             
             {recommendations.trending.length > 0 ? (
               <View style={styles.productGrid}>
@@ -384,15 +386,15 @@ const EnhancedRecommendScreen: React.FC = () => {
                         style={styles.productImage}
                       />
                       <View style={styles.productInfo}>
-                        <Text style={styles.productTitle} numberOfLines={1}>
+                        <Text style={[styles.productTitle, { color: theme.colors.text.primary }]} numberOfLines={1}>
                           {product.title}
                         </Text>
                         {product.brand && (
-                          <Text style={styles.productBrand} numberOfLines={1}>
+                          <Text style={[styles.productBrand, { color: theme.colors.text.secondary }]} numberOfLines={1}>
                             {product.brand}
                           </Text>
                         )}
-                        <Text style={styles.productPrice}>
+                        <Text style={[styles.productPrice, { color: theme.colors.text.primary }]}>
                           ¥{product.price.toLocaleString()}
                         </Text>
                       </View>
@@ -402,12 +404,12 @@ const EnhancedRecommendScreen: React.FC = () => {
               </View>
             ) : (
               <View style={styles.emptyState}>
-                <Text style={styles.emptyStateText}>
+                <Text style={[styles.emptyStateText, { color: theme.colors.text.secondary }]}>
                   トレンドアイテムの読み込みに失敗しました。
                 </Text>
                 <Button
                   onPress={loadData}
-                  style={{ backgroundColor: '#3B82F6', marginTop: 12 }}
+                  style={{ backgroundColor: theme.colors.primary, marginTop: 12 }}
                 >
                   再試行
                 </Button>
@@ -422,15 +424,15 @@ const EnhancedRecommendScreen: React.FC = () => {
          recommendations.trending.length === 0 && 
          recommendations.forYou.length === 0 && (
           <View style={styles.emptyState}>
-            <Ionicons name="heart-outline" size={64} color="#9CA3AF" />
-            <Text style={styles.emptyStateTitle}>おすすめがありません</Text>
-            <Text style={styles.emptyStateText}>
+            <Ionicons name="heart-outline" size={64} color={theme.colors.text.hint} />
+            <Text style={[styles.emptyStateTitle, { color: theme.colors.text.primary }]}>おすすめがありません</Text>
+            <Text style={[styles.emptyStateText, { color: theme.colors.text.secondary }]}>
               スワイプして「好き」「興味なし」を教えると、
               AIがあなたの好みを学習します。
             </Text>
             <Button
               onPress={handleGoToSwipe}
-              style={{ backgroundColor: '#3B82F6', marginTop: 16 }}
+              style={{ backgroundColor: theme.colors.primary, marginTop: 16 }}
             >
               スワイプする
             </Button>
@@ -442,6 +444,17 @@ const EnhancedRecommendScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  centerContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -452,23 +465,19 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#111827',
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#6B7280',
     marginTop: 2,
   },
   searchButton: {
     width: 40,
     height: 40,
-    backgroundColor: '#F3F4F6',
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
   promptCard: {
-    backgroundColor: '#EBF5FF',
     marginHorizontal: 16,
     marginBottom: 16,
     padding: 16,
@@ -476,11 +485,9 @@ const styles = StyleSheet.create({
   },
   promptText: {
     fontSize: 14,
-    color: '#1F2937',
     lineHeight: 20,
   },
   errorCard: {
-    backgroundColor: '#FEF2F2',
     marginHorizontal: 16,
     marginBottom: 16,
     padding: 16,
@@ -492,18 +499,15 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 8,
     fontSize: 14,
-    color: '#B91C1C',
   },
   retryButton: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: 'white',
     borderRadius: 16,
     marginLeft: 8,
   },
   retryButtonText: {
     fontSize: 12,
-    color: '#EF4444',
     fontWeight: '500',
   },
   tabBar: {
@@ -511,7 +515,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 16,
     borderRadius: 8,
-    backgroundColor: '#F3F4F6',
     padding: 4,
   },
   tab: {
@@ -520,22 +523,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 6,
   },
-  activeTab: {
-    backgroundColor: 'white',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 1,
-    elevation: 1,
-  },
   tabText: {
     fontSize: 14,
-    color: '#6B7280',
     fontWeight: '500',
-  },
-  activeTabText: {
-    color: '#111827',
-    fontWeight: '600',
   },
   section: {
     marginBottom: 24,
@@ -550,13 +540,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#111827',
     marginLeft: 16,
     marginBottom: 12,
   },
   seeAllText: {
     fontSize: 14,
-    color: '#3B82F6',
     fontWeight: '500',
   },
   outfitsContainer: {
@@ -598,18 +586,15 @@ const styles = StyleSheet.create({
   productTitle: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#1F2937',
     marginBottom: 4,
   },
   productBrand: {
     fontSize: 11,
-    color: '#6B7280',
     marginBottom: 4,
   },
   productPrice: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#111827',
   },
   emptyState: {
     alignItems: 'center',
@@ -619,12 +604,10 @@ const styles = StyleSheet.create({
   emptyStateTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1F2937',
     marginVertical: 8,
   },
   emptyStateText: {
     fontSize: 14,
-    color: '#6B7280',
     textAlign: 'center',
     lineHeight: 20,
   },
