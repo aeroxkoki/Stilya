@@ -2,6 +2,7 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { MainTabParamList } from '@/types';
+import { useStyle } from '@/contexts/ThemeContext';
 
 // ナビゲーター
 import SwipeNavigator from './SwipeNavigator';
@@ -11,6 +12,8 @@ import ProfileNavigator from './ProfileNavigator';
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 const MainNavigator: React.FC = () => {
+  const { theme } = useStyle();
+  
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -30,11 +33,14 @@ const MainNavigator: React.FC = () => {
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#3B82F6',
-        tabBarInactiveTintColor: 'gray',
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.text.secondary,
         tabBarStyle: { 
           paddingBottom: 5,
           height: 60,
+          backgroundColor: theme.colors.background,
+          borderTopColor: theme.colors.border,
+          borderTopWidth: 1,
         },
         tabBarLabelStyle: {
           fontSize: 12,

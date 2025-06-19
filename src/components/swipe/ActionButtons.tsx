@@ -24,7 +24,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
   onPressYes,
   disabled = false,
 }) => {
-  const theme = useStyle();
+  const { theme } = useStyle();
   const scaleNo = new Animated.Value(1);
   const scaleYes = new Animated.Value(1);
 
