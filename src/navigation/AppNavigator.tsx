@@ -16,6 +16,7 @@ import MainNavigator from './MainNavigator';
 console.log('[AppNavigator.tsx] 3. スクリーンインポート開始');
 import AuthScreen from '../screens/auth/AuthScreen';
 import ProductDetailScreen from '../screens/detail/ProductDetailScreen';
+import { useStyle } from '@/contexts/ThemeContext';
 console.log('[AppNavigator.tsx] 4. スクリーンインポート完了');
 
 // 型定義
@@ -30,6 +31,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 // ルートナビゲーター
 const AppNavigator = () => {
+  const { theme } = useStyle();
   console.log('[AppNavigator.tsx] 5. AppNavigator関数実行');
   
   const { user, loading } = useAuth();
@@ -47,7 +49,7 @@ const AppNavigator = () => {
         flex: 1, 
         justifyContent: 'center', 
         alignItems: 'center',
-        backgroundColor: '#ffffff'
+        backgroundColor: theme.colors.background
       }}>
         <ActivityIndicator size="large" color="#3b82f6" />
         <Text style={{ marginTop: 16, color: '#6b7280' }}>読み込み中...</Text>
@@ -62,7 +64,7 @@ const AppNavigator = () => {
       screenOptions={{ 
         headerShown: false,
         contentStyle: {
-          backgroundColor: '#ffffff',
+          backgroundColor: theme.colors.background,
         }
       }}
     >

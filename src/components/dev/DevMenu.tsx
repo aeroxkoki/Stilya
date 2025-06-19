@@ -13,12 +13,14 @@ import { useAuth } from '@/hooks/useAuth';
 import { runDiagnostics, formatDiagnosticsResult } from '@/tests/diagnostics';
 import { supabase } from '@/services/supabase';
 import { NetworkDebugScreen } from '@/screens/NetworkDebugScreen';
+import { useStyle } from '@/contexts/ThemeContext';
 
 interface DevMenuProps {
   onClose: () => void;
 }
 
 export const DevMenu: React.FC<DevMenuProps> = ({ onClose }) => {
+  const { theme } = useStyle();
   const [isLoading, setIsLoading] = useState(false);
   const [showNetworkDebug, setShowNetworkDebug] = useState(false);
   const { user } = useAuth();
@@ -122,7 +124,7 @@ export const DevMenu: React.FC<DevMenuProps> = ({ onClose }) => {
         >
           <View style={{ flex: 1, paddingTop: 50 }}>
             <TouchableOpacity 
-              style={{ padding: 15, backgroundColor: '#f0f0f0' }}
+              style={{ padding: 15, backgroundColor: theme.colors.surface }}
               onPress={() => setShowNetworkDebug(false)}
             >
               <Text style={{ fontSize: 16 }}>← 戻る</Text>
@@ -210,20 +212,20 @@ const styles = StyleSheet.create({
   },
   closeText: {
     fontSize: 20,
-    color: '#666',
+    color: theme.colors.secondary,
   },
   content: {
     padding: 15,
   },
   userInfo: {
-    backgroundColor: '#f0f0f0',
+    backgroundColor: theme.colors.surface,
     padding: 10,
     borderRadius: 5,
     marginBottom: 15,
   },
   userText: {
     fontSize: 14,
-    color: '#666',
+    color: theme.colors.secondary,
   },
   menuItem: {
     padding: 15,
@@ -236,9 +238,9 @@ const styles = StyleSheet.create({
   },
   menuItemText: {
     fontSize: 16,
-    color: '#333',
+    color: theme.colors.text.primary,
   },
   menuItemTextDisabled: {
-    color: '#999',
+    color: theme.colors.text.hint,
   },
 });

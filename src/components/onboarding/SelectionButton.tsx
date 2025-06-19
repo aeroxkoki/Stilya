@@ -3,6 +3,7 @@ import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '@/components/common';
 import { View, Text, TouchableOpacity } from '../common/StyledComponents';
+import { useStyle } from '@/contexts/ThemeContext';
 
 interface SelectionButtonProps {
   title: string;
@@ -19,6 +20,7 @@ const SelectionButton: React.FC<SelectionButtonProps> = ({
   onPress,
   icon,
 }) => {
+  const { theme } = useStyle();
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -57,8 +59,8 @@ const styles = StyleSheet.create({
   },
   card: {
     borderWidth: 1,
-    borderColor: '#E5E5E5',
-    backgroundColor: '#FFFFFF',
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.background,
   },
   cardSelected: {
     borderColor: '#3B82F6',

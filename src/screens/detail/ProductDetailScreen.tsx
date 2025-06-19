@@ -20,6 +20,7 @@ import { Button } from '@/components/common';
 import { RecommendReason, SimilarProducts } from '@/components/recommend';
 import { useProductStore } from '@/store/productStore';
 import { useAuth } from '@/hooks/useAuth';
+import { useStyle } from '@/contexts/ThemeContext';
 import { formatPrice, getSimilarProducts } from '@/utils';
 import { useRecommendations } from '@/hooks/useRecommendations';
 import { useRecordClick } from '@/hooks/useRecordClick';
@@ -44,6 +45,7 @@ const ProductDetailScreen: React.FC = () => {
   const navigation = useNavigation<ProductDetailScreenNavigationProp>();
   const { productId } = route.params || {};
   const { user } = useAuth();
+  const { theme } = useStyle();
   const { 
     products, 
     loading, 
@@ -54,10 +56,10 @@ const ProductDetailScreen: React.FC = () => {
   if (!productId) {
     console.error('[ProductDetailScreen] No productId provided in route params');
     return (
-      <SafeAreaView style={{ flex: 1 }}>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
-          <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 8 }}>エラーが発生しました</Text>
-          <Text style={{ fontSize: 14, color: '#666', textAlign: 'center', marginBottom: 16 }}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={styles.centerContainer}>
+          <Text style={[styles.errorTitle, { color: theme.colors.text.primary }]}>エラーが発生しました</Text>
+          <Text style={[styles.errorMessage, { color: theme.colors.text.secondary }]}>
             商品情報が正しく読み込まれませんでした
           </Text>
           <Button onPress={() => navigation.goBack()}>戻る</Button>
@@ -188,40 +190,43 @@ const ProductDetailScreen: React.FC = () => {
         message: shareMessage
       };
       
-      // iOSの場合のみurlを追加
-      if (Platform.OS === 'ios' && product.affiliateUrl) {
-        shareContent.url = product.affiliateUrl;
+      if (Platform.OS === 'ios') {
+        shareContent.url = deepLink;
       }
       
-      await Share.share(shareContent);
+      const result = await Share.share(shareContent, {
+        dialogTitle: '商品をシェア',
+      });
       
-      // シェアイベントを記録
-      if (user && user.id) {
-        trackShare(product.id, Platform.OS, user.id)
-          .catch(err => console.error('Failed to track share:', err));
+      if (result.action === Share.sharedAction) {
+        // シェアイベントの記録
+        await trackShare(product.id, 'share_button', user?.id || '');
       }
     } catch (error) {
-      console.error('シェアに失敗しました:', error);
+      console.error('シェアエラー:', error);
     }
   };
   
-  // 類似商品のタップ
+  // お気に入りに追加
+  const handleFavoritePress = () => {
+    // TODO: お気に入り機能の実装
+    console.log('お気に入りに追加');
+  };
+  
+  // 類似商品を選択
   const handleSimilarProductPress = (similarProduct: Product) => {
     navigation.push('ProductDetail', { productId: similarProduct.id });
   };
   
-  // 戻るボタン
-  const handleBackPress = () => {
-    navigation.goBack();
-  };
-  
   // ローディング表示
-  if (loading && !product) {
+  if (loading || !product) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#3B82F6" />
-          <Text style={styles.loadingText}>商品情報を読み込み中...</Text>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={[styles.loadingText, { color: theme.colors.text.secondary }]}>
+            商品情報を読み込み中...
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -230,150 +235,117 @@ const ProductDetailScreen: React.FC = () => {
   // エラー表示
   if (error && !product) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorTitle}>エラーが発生しました</Text>
-          <Text style={styles.errorText}>{error}</Text>
-          <Button onPress={handleBackPress}>戻る</Button>
-        </View>
-      </SafeAreaView>
-    );
-  }
-  
-  // 商品が見つからない場合
-  if (!product) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.notFoundContainer}>
-          <Text style={styles.notFoundTitle}>商品が見つかりません</Text>
-          <Text style={styles.notFoundText}>
-            この商品は利用できないか、削除された可能性があります。
-          </Text>
-          <Button onPress={handleBackPress}>戻る</Button>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={styles.centerContainer}>
+          <Text style={[styles.errorTitle, { color: theme.colors.text.primary }]}>エラーが発生しました</Text>
+          <Text style={[styles.errorMessage, { color: theme.colors.text.secondary }]}>{error}</Text>
+          <Button onPress={() => navigation.goBack()}>戻る</Button>
         </View>
       </SafeAreaView>
     );
   }
   
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView}>
-        {/* 画像部分 */}
-        <View style={styles.imageContainer}>
-          <Image 
-            source={{ uri: product.imageUrl ? product.imageUrl : '' }} 
-            style={styles.image} 
-            resizeMode="cover"
-          />
-          
-          {/* 戻るボタン */}
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={handleBackPress}
-          >
-            <Ionicons name="arrow-back" size={24} color="white" />
-          </TouchableOpacity>
-          
-          {/* シェアボタン */}
-          <TouchableOpacity 
-            style={styles.shareButton}
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      {/* ヘッダー */}
+      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
+        </TouchableOpacity>
+        
+        <Text style={[styles.headerTitle, { color: theme.colors.text.primary }]}>商品詳細</Text>
+        
+        <View style={styles.headerRight}>
+          <TouchableOpacity
+            style={styles.headerButton}
             onPress={handleShare}
           >
-            <Ionicons name="share-outline" size={24} color="white" />
+            <Ionicons name="share-outline" size={24} color={theme.colors.text.primary} />
           </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={handleFavoritePress}
+          >
+            <Ionicons name="heart-outline" size={24} color={theme.colors.text.primary} />
+          </TouchableOpacity>
+        </View>
+      </View>
+      
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* 商品画像 */}
+        <View style={[styles.imageContainer, { backgroundColor: theme.colors.surface }]}>
+          <Image
+            source={{ uri: product.imageUrl }}
+            style={styles.productImage}
+            resizeMode="cover"
+          />
         </View>
         
         {/* 商品情報 */}
-        <View style={styles.contentContainer}>
-          {/* 商品タイトルと価格 */}
-          <View style={styles.productHeader}>
-            <View style={styles.productInfo}>
-              <Text style={styles.productTitle} numberOfLines={2}>
-                {product.title}
-              </Text>
-              {product.brand && (
-                <Text style={styles.brandName}>
-                  {product.brand}
-                </Text>
-              )}
-            </View>
-            <Text style={styles.price}>
-              {formatPrice(product.price)}
-            </Text>
-          </View>
-          
-          {/* おすすめ理由（ログイン済みユーザーのみ） */}
-          {user && userPreference && (
-            <RecommendReason
-              product={product}
-              userPreference={userPreference}
-            />
+        <View style={styles.infoContainer}>
+          {product.brand && (
+            <Text style={[styles.brand, { color: theme.colors.text.secondary }]}>{product.brand}</Text>
           )}
+          <Text style={[styles.title, { color: theme.colors.text.primary }]}>{product.title}</Text>
+          <Text style={[styles.price, { color: theme.colors.primary }]}>{formatPrice(product.price)}</Text>
           
           {/* タグ */}
           {product.tags && product.tags.length > 0 && (
             <View style={styles.tagsContainer}>
               {product.tags.map((tag, index) => (
-                <View 
-                  key={index} 
-                  style={styles.tag}
+                <View
+                  key={index}
+                  style={[styles.tag, { backgroundColor: theme.colors.surface }]}
                 >
-                  <Text style={styles.tagText}>
-                    {tag}
-                  </Text>
+                  <Text style={[styles.tagText, { color: theme.colors.text.secondary }]}>{tag}</Text>
                 </View>
               ))}
             </View>
           )}
           
-          {/* 購入ボタン */}
-          <Button 
-            onPress={handleBuyPress}
-            style={styles.buyButton}
-          >
-            <View style={styles.buyButtonContent}>
-              <Ionicons name="cart-outline" size={20} color="white" style={{ marginRight: 8 }} />
-              <Text style={styles.buyButtonText}>購入する</Text>
-            </View>
-          </Button>
-          
-          {/* 商品説明（ここでは仮のテキスト） */}
-          <View style={styles.descriptionSection}>
-            <Text style={styles.sectionTitle}>商品情報</Text>
-            <Text style={styles.descriptionText}>
-              この商品の詳細情報を確認するには、「購入する」ボタンをタップして販売サイトをご覧ください。
-              {'\n\n'}
-              ※ 価格や送料、在庫状況などは販売サイトにて最新の情報をご確認ください。
-            </Text>
-          </View>
-          
-          {/* 類似商品（コンポーネント化） */}
-          {similarProducts.length > 0 && (
-            <SimilarProducts
-              products={similarProducts}
-              onProductPress={handleSimilarProductPress}
-              title="類似アイテム"
-            />
-          )}
-          
-          {/* 出典情報 */}
-          {product.source && (
-            <View style={styles.sourceContainer}>
-              <Text style={styles.sourceText}>
-                出典: {product.source}
+          {/* 商品説明 */}
+          {product.description && (
+            <View style={styles.descriptionContainer}>
+              <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>商品説明</Text>
+              <Text style={[styles.description, { color: theme.colors.text.secondary }]}>
+                {product.description}
               </Text>
             </View>
           )}
         </View>
+        
+        {/* レコメンド理由 */}
+        {userPreference && (
+          <RecommendReason
+            product={product}
+            userPreference={userPreference}
+          />
+        )}
+        
+        {/* 類似商品 */}
+        {similarProducts.length > 0 && (
+          <SimilarProducts
+            products={similarProducts}
+            onProductPress={handleSimilarProductPress}
+          />
+        )}
       </ScrollView>
       
-      {/* 下部の購入ボタン（スクロール時も常に表示） */}
-      <View style={styles.bottomBar}>
-        <Button onPress={handleBuyPress} style={styles.bottomBuyButton}>
-          <View style={styles.bottomBuyButtonContent}>
-            <Ionicons name="cart-outline" size={20} color="white" style={{ marginRight: 8 }} />
-            <Text style={styles.buyButtonText}>購入する</Text>
-          </View>
+      {/* 購入ボタン */}
+      <View style={[styles.bottomContainer, { 
+        backgroundColor: theme.colors.background,
+        borderTopColor: theme.colors.border 
+      }]}>
+        <Button
+          onPress={handleBuyPress}
+          fullWidth
+          size="large"
+          style={styles.buyButton}
+        >
+          購入サイトで見る
         </Button>
       </View>
     </SafeAreaView>
@@ -383,191 +355,106 @@ const ProductDetailScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  errorMessage: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  headerButton: {
+    padding: 8,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  headerRight: {
+    flexDirection: 'row',
   },
   scrollView: {
     flex: 1,
   },
   imageContainer: {
-    position: 'relative',
-  },
-  image: {
-    width: '100%',
+    width: width,
     height: width,
   },
-  backButton: {
-    position: 'absolute',
-    top: 50,
-    left: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderRadius: 25,
-    width: 50,
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
+  productImage: {
+    width: '100%',
+    height: '100%',
   },
-  shareButton: {
-    position: 'absolute',
-    top: 50,
-    right: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderRadius: 25,
-    width: 50,
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
+  infoContainer: {
+    padding: 16,
   },
-  contentContainer: {
-    padding: 20,
+  brand: {
+    fontSize: 14,
+    marginBottom: 4,
   },
-  productHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 20,
-  },
-  productInfo: {
-    flex: 1,
-    marginRight: 10,
-  },
-  productTitle: {
+  title: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 4,
-    color: '#1a1a1a',
-  },
-  brandName: {
-    fontSize: 14,
-    color: '#666',
+    marginBottom: 8,
   },
   price: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#3B82F6',
+    marginBottom: 16,
   },
   tagsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginVertical: 15,
+    marginBottom: 16,
   },
   tag: {
-    backgroundColor: '#f0f0f0',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 15,
+    borderRadius: 16,
     marginRight: 8,
     marginBottom: 8,
   },
   tagText: {
     fontSize: 12,
-    color: '#666',
   },
-  buyButton: {
-    marginTop: 20,
-  },
-  buyButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buyButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  descriptionSection: {
-    marginTop: 30,
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+  descriptionContainer: {
+    marginTop: 16,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#1a1a1a',
+    marginBottom: 8,
   },
-  descriptionText: {
+  description: {
     fontSize: 14,
     lineHeight: 20,
-    color: '#666',
   },
-  sourceContainer: {
-    marginTop: 30,
-    paddingTop: 20,
+  bottomContainer: {
+    padding: 16,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-    alignItems: 'center',
   },
-  sourceText: {
-    fontSize: 12,
-    color: '#999',
-  },
-  bottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    paddingBottom: 30,
-  },
-  bottomBuyButton: {
-    width: '100%',
-  },
-  bottomBuyButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 14,
-    color: '#666',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  errorTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#1a1a1a',
-  },
-  errorText: {
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 20,
-    color: '#666',
-  },
-  notFoundContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  notFoundTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#1a1a1a',
-  },
-  notFoundText: {
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 20,
-    color: '#666',
+  buyButton: {
+    marginBottom: Platform.OS === 'ios' ? 0 : 16,
   },
 });
 

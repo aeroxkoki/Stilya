@@ -2,11 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNetwork } from '@/contexts/NetworkContext';
+import { useStyle } from '@/contexts/ThemeContext';
 
 /**
  * オフライン状態を表示するバナーコンポーネント
  */
 const OfflineNotice: React.FC = () => {
+  const { theme } = useStyle();
   const { isConnected, lastSync } = useNetwork();
   const [slideAnim] = useState(new Animated.Value(-100)); // 初期位置は画面外
 
@@ -101,7 +103,7 @@ const styles = StyleSheet.create({
     paddingBottom:.16,
     paddingHorizontal: 16,
     zIndex: 100,
-    shadowColor: '#000',
+    shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
@@ -127,7 +129,7 @@ const styles = StyleSheet.create({
   },
   syncInfo: {
     fontSize: 10,
-    color: '#888',
+    color: theme.colors.text.hint,
     marginTop: 4,
     fontStyle: 'italic',
   },

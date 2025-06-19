@@ -2,8 +2,10 @@ import React from 'react';
 import { View, Text, Button, StyleSheet, ScrollView, Alert } from 'react-native';
 import { testSupabaseConnection, supabase } from '../services/supabase';
 import { SUPABASE_URL, RAKUTEN_APP_ID, RAKUTEN_AFFILIATE_ID } from '../utils/env';
+import { useStyle } from '@/contexts/ThemeContext';
 
 export const NetworkDebugScreen: React.FC = () => {
+  const { theme } = useStyle();
   const [results, setResults] = React.useState<string[]>([]);
   const [testing, setTesting] = React.useState(false);
 
@@ -116,7 +118,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.colors.surface,
   },
   title: {
     fontSize: 24,

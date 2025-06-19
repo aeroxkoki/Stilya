@@ -49,6 +49,7 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
   currentIndex: externalIndex,
   useEnhancedCard = true, // デフォルトで強化版カードを使用
 }) => {
+  const { theme } = useStyle();
   const { user } = useAuth();
   const { isConnected } = useNetwork();
   const { theme, styleType } = useStyle();
@@ -584,7 +585,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    shadowColor: '#000',
+    shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
@@ -600,7 +601,7 @@ const styles = StyleSheet.create({
     bottom: 16,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    shadowColor: '#000',
+    shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
@@ -621,7 +622,7 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
   offlineBannerText: {
-    color: '#FFFFFF',
+    color: theme.colors.background,
     fontWeight: '600',
     fontSize: 14,
     marginLeft: 6,
@@ -657,7 +658,7 @@ const styles = StyleSheet.create({
     left: 20,
   },
   indicatorText: {
-    color: '#FFFFFF',
+    color: theme.colors.background,
     fontWeight: 'bold',
     fontSize: 24,
   },

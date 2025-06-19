@@ -18,6 +18,7 @@ import { ProductCard, Button } from '@/components/common';
 import { useProductStore } from '@/store/productStore';
 import { useAuthStore } from '@/store/authStore';
 import { Product, ProfileStackParamList } from '@/types';
+import { useStyle } from '@/contexts/ThemeContext';
 
 const { width } = Dimensions.get('window');
 const COLUMN_NUM = 2;
@@ -26,6 +27,7 @@ const CARD_WIDTH = (width - 32 - 8 * (COLUMN_NUM - 1)) / COLUMN_NUM; // Padding 
 type NavigationProp = StackNavigationProp<ProfileStackParamList>;
 
 const FavoritesScreen: React.FC = () => {
+  const { theme } = useStyle();
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuthStore();
   const { 
@@ -313,7 +315,7 @@ const styles = StyleSheet.create({
     height: 30,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 1.5,

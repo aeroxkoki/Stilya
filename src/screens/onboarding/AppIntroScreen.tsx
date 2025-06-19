@@ -81,14 +81,14 @@ const AppIntroScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={handleBack}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
         </TouchableOpacity>
         
         <TouchableOpacity onPress={handleSkip}>
-          <Text style={styles.skipText}>スキップ</Text>
+          <Text style={[styles.skipText, { color: theme.colors.text.secondary }]}>スキップ</Text>
         </TouchableOpacity>
       </View>
 
@@ -118,7 +118,7 @@ const AppIntroScreen: React.FC<Props> = ({ navigation }) => {
             style={[
               styles.paginationDot,
               {
-                backgroundColor: index === currentIndex ? theme.colors.primary : '#E5E5E5'
+                backgroundColor: index === currentIndex ? theme.colors.primary : theme.colors.border
               }
             ]}
           />
@@ -137,7 +137,6 @@ const AppIntroScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
   header: {
     flexDirection: 'row',
@@ -148,7 +147,6 @@ const styles = StyleSheet.create({
   },
   skipText: {
     fontSize: 16,
-    color: '#666666',
   },
   pagination: {
     flexDirection: 'row',

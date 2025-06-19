@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/common';
 import { FilterOptions } from '@/services/productService';
+import { useStyle } from '@/contexts/ThemeContext';
 
 interface FilterModalProps {
   visible: boolean;
@@ -52,6 +53,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
   initialFilters,
   availableTags
 }) => {
+  const { theme } = useStyle();
   // フィルター状態
   const [filters, setFilters] = useState<FilterOptions>(initialFilters || {
     categories: [],
@@ -313,7 +315,7 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   tagTextInactive: {
-    color: '#333333',
+    color: theme.colors.text.primary,
   },
   smallText: {
     fontSize: 14,
@@ -337,7 +339,7 @@ const styles = StyleSheet.create({
     color: '#1d4ed8',
   },
   priceTextInactive: {
-    color: '#333333',
+    color: theme.colors.text.primary,
   },
   buttonContainer: {
     flexDirection: 'row',

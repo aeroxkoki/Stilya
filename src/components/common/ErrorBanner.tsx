@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useStyle } from '@/contexts/ThemeContext';
 
 interface ErrorBannerProps {
   message: string;
@@ -20,6 +21,7 @@ const ErrorBanner: React.FC<ErrorBannerProps> = ({
   autoHideDuration = 5000, // デフォルトで5秒後に自動で消える
   showIcon = true,
 }) => {
+  const { theme } = useStyle();
   const [opacity] = useState(new Animated.Value(0));
   const [isVisible, setIsVisible] = useState(true);
 
@@ -142,7 +144,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginHorizontal: 16,
     marginVertical: 8,
-    shadowColor: '#000',
+    shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,

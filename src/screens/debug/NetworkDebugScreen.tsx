@@ -9,6 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
+import { useStyle } from '@/contexts/ThemeContext';
 
 interface NetworkTestResult {
   test: string;
@@ -18,6 +19,7 @@ interface NetworkTestResult {
 }
 
 export const NetworkDebugScreen: React.FC = () => {
+  const { theme } = useStyle();
   const [isRunning, setIsRunning] = useState(false);
   const [results, setResults] = useState<NetworkTestResult[]>([]);
 
@@ -211,7 +213,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.colors.surface,
   },
   title: {
     fontSize: 24,
@@ -261,13 +263,13 @@ const styles = StyleSheet.create({
   },
   resultMessage: {
     fontSize: 12,
-    color: '#666',
+    color: theme.colors.secondary,
     fontFamily: 'Courier',
   },
   infoSection: {
     marginTop: 30,
     padding: 15,
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.background,
     borderRadius: 8,
   },
   infoTitle: {
@@ -278,6 +280,6 @@ const styles = StyleSheet.create({
   infoText: {
     fontSize: 14,
     marginBottom: 5,
-    color: '#666',
+    color: theme.colors.secondary,
   },
 });

@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import { useStyle } from '@/contexts/ThemeContext';
 import { Product } from '@/types';
 import { formatPrice } from '@/utils';
 import { Button } from '@/components/common';
@@ -37,6 +38,8 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({
   onSwipeLeft,
   onSwipeRight,
 }) => {
+  const { theme } = useStyle();
+  
   if (!product) return null;
 
   const imageUrl = product.imageUrl || product.image_url || 'https://via.placeholder.com/350x500?text=No+Image';
@@ -51,16 +54,16 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({
       <TouchableWithoutFeedback onPress={onClose}>
         <View style={styles.overlay}>
           <TouchableWithoutFeedback>
-            <View style={styles.modalContainer}>
+            <View style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
               {/* ヘッダー */}
-              <View style={styles.header}>
-                <Text style={styles.headerTitle}>クイックビュー</Text>
+              <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
+                <Text style={[styles.headerTitle, { color: theme.colors.text.primary }]}>クイックビュー</Text>
                 <TouchableOpacity
                   style={styles.closeButton}
                   onPress={onClose}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  <Ionicons name="close" size={24} color="#6B7280" />
+                  <Ionicons name="close" size={24} color={theme.colors.text.secondary} />
                 </TouchableOpacity>
               </View>
 
@@ -69,7 +72,7 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({
                 showsVerticalScrollIndicator={false}
               >
                 {/* 商品画像 */}
-                <View style={styles.imageContainer}>
+                <View style={[styles.imageContainer, { backgroundColor: theme.colors.surface }]}>
                   <Image
                     source={{ uri: imageUrl }}
                     style={styles.image}
@@ -79,11 +82,11 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({
 
                 {/* 商品情報 */}
                 <View style={styles.productInfo}>
-                  <Text style={styles.productTitle}>{product.title}</Text>
+                  <Text style={[styles.productTitle, { color: theme.colors.text.primary }]}>{product.title}</Text>
                   {product.brand && (
-                    <Text style={styles.productBrand}>{product.brand}</Text>
+                    <Text style={[styles.productBrand, { color: theme.colors.text.secondary }]}>{product.brand}</Text>
                   )}
-                  <Text style={styles.productPrice}>
+                  <Text style={[styles.productPrice, { color: theme.colors.text.primary }]}>
                     {formatPrice(product.price)}
                   </Text>
 
@@ -91,8 +94,8 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({
                   {product.tags && product.tags.length > 0 && (
                     <View style={styles.tagsContainer}>
                       {product.tags.map((tag, index) => (
-                        <View key={index} style={styles.tag}>
-                          <Text style={styles.tagText}>{tag}</Text>
+                        <View key={index} style={[styles.tag, { backgroundColor: theme.colors.surface }]}>
+                          <Text style={[styles.tagText, { color: theme.colors.text.secondary }]}>{tag}</Text>
                         </View>
                       ))}
                     </View>
@@ -101,37 +104,51 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({
                   {/* カテゴリ情報 */}
                   {product.category && (
                     <View style={styles.categoryContainer}>
-                      <Ionicons name="pricetag-outline" size={16} color="#6B7280" />
-                      <Text style={styles.categoryText}>{product.category}</Text>
+                      <Ionicons name="pricetag-outline" size={16} color={theme.colors.text.secondary} />
+                      <Text style={[styles.categoryText, { color: theme.colors.text.secondary }]}>{product.category}</Text>
                     </View>
                   )}
                 </View>
               </ScrollView>
 
               {/* アクションボタン */}
-              <View style={styles.actions}>
+              <View style={[styles.actions, { borderTopColor: theme.colors.border }]}>
                 {/* スワイプボタン */}
                 <View style={styles.swipeActions}>
                   <TouchableOpacity
-                    style={[styles.swipeButton, styles.noButton]}
+                    style={[
+                      styles.swipeButton, 
+                      styles.noButton,
+                      { 
+                        backgroundColor: `${theme.colors.error}10`,
+                        borderColor: `${theme.colors.error}30`,
+                      }
+                    ]}
                     onPress={() => {
                       onSwipeLeft();
                       onClose();
                     }}
                   >
-                    <Ionicons name="close" size={28} color="#F87171" />
-                    <Text style={styles.swipeButtonText}>スキップ</Text>
+                    <Ionicons name="close" size={28} color={theme.colors.error} />
+                    <Text style={[styles.swipeButtonText, { color: theme.colors.text.primary }]}>スキップ</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={[styles.swipeButton, styles.yesButton]}
+                    style={[
+                      styles.swipeButton, 
+                      styles.yesButton,
+                      { 
+                        backgroundColor: `${theme.colors.primary}10`,
+                        borderColor: `${theme.colors.primary}30`,
+                      }
+                    ]}
                     onPress={() => {
                       onSwipeRight();
                       onClose();
                     }}
                   >
-                    <Ionicons name="heart" size={28} color="#3B82F6" />
-                    <Text style={styles.swipeButtonText}>いいね</Text>
+                    <Ionicons name="heart" size={28} color={theme.colors.primary} />
+                    <Text style={[styles.swipeButtonText, { color: theme.colors.text.primary }]}>いいね</Text>
                   </TouchableOpacity>
                 </View>
 
@@ -141,11 +158,11 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({
                     onViewDetails();
                     onClose();
                   }}
-                  style={styles.detailButton}
+                  style={[styles.detailButton, { backgroundColor: theme.colors.primary }]}
                 >
                   <View style={styles.detailButtonContent}>
-                    <Ionicons name="eye-outline" size={20} color="white" />
-                    <Text style={styles.detailButtonText}>詳細を見る</Text>
+                    <Ionicons name="eye-outline" size={20} color={theme.colors.text.inverse} />
+                    <Text style={[styles.detailButtonText, { color: theme.colors.text.inverse }]}>詳細を見る</Text>
                   </View>
                 </Button>
               </View>
@@ -167,7 +184,6 @@ const styles = StyleSheet.create({
   modalContainer: {
     width: MODAL_WIDTH,
     maxHeight: MODAL_HEIGHT,
-    backgroundColor: 'white',
     borderRadius: 16,
     overflow: 'hidden',
   },
@@ -178,12 +194,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#111827',
   },
   closeButton: {
     padding: 4,
@@ -194,7 +208,6 @@ const styles = StyleSheet.create({
   imageContainer: {
     width: '100%',
     height: 300,
-    backgroundColor: '#F3F4F6',
   },
   image: {
     width: '100%',
@@ -206,18 +219,15 @@ const styles = StyleSheet.create({
   productTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#111827',
     marginBottom: 4,
   },
   productBrand: {
     fontSize: 14,
-    color: '#6B7280',
     marginBottom: 8,
   },
   productPrice: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#111827',
     marginBottom: 16,
   },
   tagsContainer: {
@@ -226,7 +236,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   tag: {
-    backgroundColor: '#E5E7EB',
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -235,7 +244,6 @@ const styles = StyleSheet.create({
   },
   tagText: {
     fontSize: 12,
-    color: '#374151',
   },
   categoryContainer: {
     flexDirection: 'row',
@@ -244,13 +252,11 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     fontSize: 14,
-    color: '#6B7280',
     marginLeft: 4,
   },
   actions: {
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
   },
   swipeActions: {
     flexDirection: 'row',
@@ -267,23 +273,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   noButton: {
-    backgroundColor: '#FEF2F2',
-    borderColor: '#FECACA',
     marginRight: 8,
   },
   yesButton: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#BFDBFE',
     marginLeft: 8,
   },
   swipeButtonText: {
     fontSize: 14,
     fontWeight: '500',
     marginLeft: 8,
-    color: '#374151',
   },
   detailButton: {
-    backgroundColor: '#3B82F6',
     borderRadius: 8,
   },
   detailButtonContent: {
@@ -292,7 +292,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   detailButtonText: {
-    color: 'white',
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,

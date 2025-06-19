@@ -18,6 +18,7 @@ import { useStyle } from '@/contexts/ThemeContext';
 import { StyleType, styleThemes } from '@/styles/theme';
 
 const SettingsScreen: React.FC = () => {
+  const { theme } = useStyle();
   const navigation = useNavigation();
   const { user, logout } = useAuth();
   const { isDarkMode, toggleDarkMode, styleType, setStyleType } = useStyle();
@@ -515,7 +516,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   saveButtonText: {
-    color: '#fff',
+    color: theme.colors.background,
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -549,7 +550,7 @@ const styles = StyleSheet.create({
   modalContent: {
     width: '85%',
     padding: 20,
-    shadowColor: '#000',
+    shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
@@ -608,7 +609,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   confirmButtonText: {
-    color: '#fff',
+    color: theme.colors.background,
     fontSize: 16,
     fontWeight: 'bold',
   },

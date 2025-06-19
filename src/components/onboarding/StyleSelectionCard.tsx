@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { StyleType, styleThemes } from '@/styles/theme';
+import { useStyle } from '@/contexts/ThemeContext';
 
 interface StyleSelectionCardProps {
   styleType: StyleType;
@@ -19,6 +20,7 @@ const StyleSelectionCard: React.FC<StyleSelectionCardProps> = ({
   onSelect,
   testID,
 }) => {
+  const { theme } = useStyle();
   const theme = styleThemes[styleType];
   
   // スタイルごとの表示名とアイコン
@@ -120,8 +122,8 @@ const styles = StyleSheet.create({
     width: CARD_WIDTH,
     padding: 16,
     marginVertical: 8,
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
+    backgroundColor: theme.colors.background,
+    shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -168,7 +170,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   previewButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.background,
     fontSize: 14,
     fontWeight: '500',
   },

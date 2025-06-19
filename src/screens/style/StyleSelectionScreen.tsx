@@ -73,6 +73,7 @@ const styleOptions: {id: StyleType; name: string; description: string}[] = [
 ];
 
 const StyleSelectionScreen: React.FC<Props> = ({ navigation }) => {
+  const { theme } = useStyle();
   const { styleType, setStyleType } = useStyle();
   const [selectedStyle, setSelectedStyle] = useState<StyleType>(styleType);
   
@@ -240,7 +241,7 @@ const StyleSelectionScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.colors.background,
   },
   header: {
     paddingHorizontal: 20,
@@ -254,7 +255,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    color: '#666666',
+    color: theme.colors.secondary,
     lineHeight: 22,
   },
   scrollView: {
@@ -269,7 +270,7 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: 'white',
-    shadowColor: '#000',
+    shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,

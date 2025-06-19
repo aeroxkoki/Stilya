@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, ViewStyle } from 'react-native';
 import { Product } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
+import { useStyle } from '@/contexts/ThemeContext';
 
 interface OutfitRecommendationProps {
   outfit: {
@@ -21,6 +22,7 @@ const OutfitRecommendation: React.FC<OutfitRecommendationProps> = ({
   layout = 'card',
   style,
 }) => {
+  const { theme } = useStyle();
   const { top, bottom, outerwear, accessories } = outfit;
   
   // コーディネートが無効な場合は表示しない
@@ -195,7 +197,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 12,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -212,7 +214,7 @@ const styles = StyleSheet.create({
   mainImage: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.colors.surface,
   },
   subImagesContainer: {
     flex: 1,
@@ -220,7 +222,7 @@ const styles = StyleSheet.create({
   },
   subImage: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.colors.surface,
   },
   placeholderItem: {
     alignItems: 'center',
@@ -246,7 +248,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 12,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -262,7 +264,7 @@ const styles = StyleSheet.create({
   fullMainImage: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.colors.surface,
   },
   fullSubImagesContainer: {
     flex: 1,
@@ -270,7 +272,7 @@ const styles = StyleSheet.create({
   },
   fullSubImage: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.colors.surface,
   },
   fullInfo: {
     padding: 16,

@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    shadowColor: '#000',
+    shadowColor: theme.colors.primary,
     shadowOffset: {
       width: 0,
       height: 2,

@@ -11,8 +11,10 @@ import {
 import { supabase, testSupabaseConnection } from '@/services/supabase';
 import { fetchProducts } from '@/services/productService';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/utils/env';
+import { useStyle } from '@/contexts/ThemeContext';
 
 export const DebugSupabaseScreen: React.FC = () => {
+  const { theme } = useStyle();
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<any>({});
   
@@ -166,7 +168,7 @@ export const DebugSupabaseScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.colors.surface,
     padding: 16,
   },
   header: {
@@ -195,14 +197,14 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 10,
-    color: '#666',
+    color: theme.colors.secondary,
   },
   section: {
     backgroundColor: 'white',
     padding: 16,
     marginBottom: 12,
     borderRadius: 8,
-    shadowColor: '#000',
+    shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
@@ -215,7 +217,7 @@ const styles = StyleSheet.create({
   },
   resultText: {
     fontSize: 14,
-    color: '#333',
+    color: theme.colors.text.primary,
     marginVertical: 2,
   },
   errorSection: {

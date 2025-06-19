@@ -5,10 +5,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/common';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { OnboardingStackParamList } from '@/types';
+import { useStyle } from '@/contexts/ThemeContext';
 
 type Props = NativeStackScreenProps<OnboardingStackParamList, 'Complete'>;
 
 const CompleteScreen: React.FC<Props> = ({ navigation }) => {
+  const { theme } = useStyle();
   const { gender, stylePreference, ageGroup, saveUserProfile, isLoading, error } = useOnboarding();
   const [isSaving, setIsSaving] = useState(false);
 
@@ -128,7 +130,7 @@ const CompleteScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.background,
   },
   content: {
     flex: 1,

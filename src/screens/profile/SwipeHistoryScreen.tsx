@@ -18,6 +18,7 @@ import { ProductCard, Button } from '@/components/common';
 import { useProducts } from '@/contexts/ProductContext';
 import { useAuth } from '@/hooks/useAuth';
 import { Product, ProfileStackParamList } from '@/types';
+import { useStyle } from '@/contexts/ThemeContext';
 
 const { width } = Dimensions.get('window');
 const COLUMN_NUM = 2;
@@ -26,6 +27,7 @@ const CARD_WIDTH = (width - 32 - 8 * (COLUMN_NUM - 1)) / COLUMN_NUM; // Padding 
 type NavigationProp = StackNavigationProp<ProfileStackParamList>;
 
 const SwipeHistoryScreen: React.FC = () => {
+  const { theme } = useStyle();
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
   const { 
@@ -280,7 +282,7 @@ const SwipeHistoryScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -328,7 +330,7 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   filterButtonTextActive: {
-    color: '#FFFFFF',
+    color: theme.colors.background,
   },
   contentContainer: {
     flex: 1,
@@ -379,7 +381,7 @@ const styles = StyleSheet.create({
     height: 30,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 1.5,
@@ -398,7 +400,7 @@ const styles = StyleSheet.create({
   resultBadgeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.colors.background,
   },
   footerContainer: {
     paddingVertical: 16,

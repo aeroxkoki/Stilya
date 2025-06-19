@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, ViewStyle } from 'react-native';
 import { Product } from '@/types';
+import { useStyle } from '@/contexts/ThemeContext';
 
 interface ProductHorizontalListProps {
   title: string;
@@ -23,6 +24,7 @@ const ProductHorizontalList: React.FC<ProductHorizontalListProps> = ({
   emptyMessage = 'No products available',
   style,
 }) => {
+  const { theme } = useStyle();
   // 商品が無い場合は何も表示しない
   if (!products || products.length === 0) {
     return null;
@@ -108,7 +110,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 12,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -117,7 +119,7 @@ const styles = StyleSheet.create({
   productImage: {
     width: '100%',
     height: 180,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.colors.surface,
   },
   productInfo: {
     padding: 12,

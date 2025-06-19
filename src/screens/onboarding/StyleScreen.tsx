@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/common';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { OnboardingStackParamList } from '@/types';
+import { useStyle } from '@/contexts/ThemeContext';
 
 type Props = NativeStackScreenProps<OnboardingStackParamList, 'Style'>;
 
@@ -59,6 +60,7 @@ const styleOptions: StyleOption[] = [
 ];
 
 const StyleScreen: React.FC<Props> = ({ navigation }) => {
+  const { theme } = useStyle();
   const { stylePreference, setStylePreference, nextStep, prevStep } = useOnboarding();
   const [selectedStyles, setSelectedStyles] = useState<string[]>(stylePreference);
 
@@ -165,7 +167,7 @@ const StyleScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.background,
   },
   content: {
     flex: 1,
@@ -214,8 +216,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#E5E5E5',
-    backgroundColor: '#fff',
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.background,
   },
   cardSelected: {
     borderWidth: 2,
@@ -255,7 +257,7 @@ const styles = StyleSheet.create({
   buttonContainer: {
     paddingHorizontal: 16,
     paddingVertical: 20,
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.background,
     borderTopWidth: 1,
     borderTopColor: '#E5E5E5',
   },

@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { Product } from '@/types';
 import { formatPrice } from '@/utils';
+import { useStyle } from '@/contexts/ThemeContext';
 
 interface SwipeCardProps {
   product: Product;
@@ -30,6 +31,7 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
   isSaved = false,
   testID
 }) => {
+  const { theme } = useStyle();
   // imageUrlとimage_urlの両方の形式に対応
   const imageUrl = product.imageUrl || product.image_url || 'https://via.placeholder.com/350x500?text=No+Image';
   
@@ -136,7 +138,7 @@ const styles = StyleSheet.create({
     height: CARD_HEIGHT,
     borderRadius: 12,
     backgroundColor: 'white',
-    shadowColor: '#000',
+    shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 5,
@@ -225,7 +227,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 3,
