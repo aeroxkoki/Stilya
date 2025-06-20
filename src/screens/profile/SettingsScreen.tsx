@@ -18,10 +18,9 @@ import { useStyle } from '@/contexts/ThemeContext';
 import { StyleType, styleThemes } from '@/styles/theme';
 
 const SettingsScreen: React.FC = () => {
-  const { theme } = useStyle();
   const navigation = useNavigation();
   const { user, logout } = useAuth();
-  const { isDarkMode, toggleDarkMode, styleType, setStyleType } = useStyle();
+  const { theme, isDarkMode, toggleDarkMode, styleType, setStyleType } = useStyle();
   const [pushNotifications, setPushNotifications] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(true);
   

@@ -53,8 +53,7 @@ const STYLE_FEATURES: Record<StyleType, string[]> = {
 type StyleSelectionScreenProps = NativeStackScreenProps<OnboardingStackParamList, 'StyleSelection'>;
 
 const StyleSelectionScreen: React.FC<StyleSelectionScreenProps> = ({ navigation }) => {
-  const { theme } = useStyle();
-  const { styleType, setStyleType } = useStyle();
+  const { theme, styleType, setStyleType } = useStyle();
   const [selectedStyle, setSelectedStyle] = useState<StyleType>(styleType);
   const { width } = Dimensions.get('window');
 
@@ -196,19 +195,19 @@ const StyleSelectionScreen: React.FC<StyleSelectionScreenProps> = ({ navigation 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#ffffff',
     padding: 20,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 10,
-    color: theme.colors.text.primary,
+    color: '#1A1A1A',
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
-    color: theme.colors.secondary,
+    color: '#666666',
     marginBottom: 30,
     textAlign: 'center',
   },
@@ -216,9 +215,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   styleCard: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#ffffff',
     marginBottom: 15,
-    shadowColor: theme.colors.primary,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -251,7 +250,7 @@ const styles = StyleSheet.create({
   },
   styleDescription: {
     fontSize: 14,
-    color: theme.colors.secondary,
+    color: '#666666',
   },
   featuresContainer: {
     marginBottom: 60,
@@ -260,7 +259,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 10,
-    color: theme.colors.text.primary,
+    color: '#1A1A1A',
   },
   featuresCard: {
     padding: 15,
