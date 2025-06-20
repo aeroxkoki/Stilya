@@ -35,7 +35,6 @@ const StyledSwipeCard: React.FC<StyledSwipeCardProps> = ({
   testID,
   isSaved: propIsSaved
 }) => {
-  const { theme } = useStyle();
   const { user } = useAuth();
   const { theme, styleType } = useStyle();
   const [isSaved, setIsSaved] = useState(propIsSaved || false);
@@ -400,7 +399,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginHorizontal: 15,
-    shadowColor: theme.colors.primary,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.25,
     shadowRadius: 5,
