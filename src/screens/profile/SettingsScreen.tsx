@@ -516,7 +516,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   saveButtonText: {
-    color: theme.colors.background,
+    color: '#ffffff',
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -550,7 +550,7 @@ const styles = StyleSheet.create({
   modalContent: {
     width: '85%',
     padding: 20,
-    shadowColor: theme.colors.primary,
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
@@ -609,7 +609,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   confirmButtonText: {
-    color: theme.colors.background,
+    color: '#ffffff',
     fontSize: 16,
     fontWeight: 'bold',
   },

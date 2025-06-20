@@ -1,3 +1,19 @@
+// Fashion styles (for onboarding)
+export type FashionStyle = 'casual' | 'street' | 'mode' | 'natural' | 'classic' | 'feminine';
+
+// App theme styles 
+export type StyleType = 'minimal' | 'natural' | 'bold';
+
+// Style to theme mapping
+export const fashionStyleToTheme: Record<FashionStyle, StyleType> = {
+  'casual': 'natural',
+  'street': 'bold',
+  'mode': 'minimal',
+  'natural': 'natural',
+  'classic': 'minimal',
+  'feminine': 'natural',
+};
+
 // ユーザー情報
 export interface User {
   id: string;
@@ -8,7 +24,7 @@ export interface User {
   ageGroup?: string;
   nickname?: string; // SettingsScreenのエラー修正用に追加
   onboardingCompleted?: boolean; // オンボーディング完了フラグ
-  uiStyle?: 'minimal' | 'natural' | 'bold'; // UIスタイル設定
+  uiStyle?: StyleType; // UIスタイル設定
 }
 
 // 商品情報 - product.tsを参照

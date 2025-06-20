@@ -73,8 +73,7 @@ const styleOptions: {id: StyleType; name: string; description: string}[] = [
 ];
 
 const StyleSelectionScreen: React.FC<Props> = ({ navigation }) => {
-  const { theme } = useStyle();
-  const { styleType, setStyleType } = useStyle();
+  const { theme, styleType, setStyleType } = useStyle();
   const [selectedStyle, setSelectedStyle] = useState<StyleType>(styleType);
   
   // アニメーション値
@@ -114,19 +113,19 @@ const StyleSelectionScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <StatusBar style="dark" />
       
       <View style={styles.header}>
-        <Text style={styles.title}>スタイルの選択</Text>
-        <Text style={styles.subtitle}>
+        <Text style={[styles.title, { color: theme.colors.text.primary }]}>スタイルの選択</Text>
+        <Text style={[styles.subtitle, { color: theme.colors.text.secondary }]}>
           あなたの好みに合わせたデザインでアプリを使いましょう
         </Text>
       </View>
       
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {styleOptions.map((option) => {
-          const theme = styleThemes[option.id];
+          const optionTheme = styleThemes[option.id];
           const product = sampleProducts[option.id];
           const isSelected = selectedStyle === option.id;
           
@@ -144,9 +143,10 @@ const StyleSelectionScreen: React.FC<Props> = ({ navigation }) => {
                 style={[
                   styles.card,
                   { 
-                    borderRadius: theme.radius.l,
-                    borderColor: isSelected ? theme.colors.primary : '#e0e0e0',
-                    borderWidth: isSelected ? 2 : 1
+                    borderRadius: optionTheme.radius.l,
+                    borderColor: isSelected ? optionTheme.colors.primary : '#e0e0e0',
+                    borderWidth: isSelected ? 2 : 1,
+                    shadowColor: optionTheme.colors.primary,
                   }
                 ]}
                 activeOpacity={0.9}
@@ -157,7 +157,7 @@ const StyleSelectionScreen: React.FC<Props> = ({ navigation }) => {
                   <View 
                     style={[
                       styles.previewImage,
-                      { backgroundColor: theme.colors.surface }
+                      { backgroundColor: optionTheme.colors.surface }
                     ]}
                   >
                     <Image 
@@ -183,14 +183,14 @@ const StyleSelectionScreen: React.FC<Props> = ({ navigation }) => {
                 <View 
                   style={[
                     styles.styleInfo,
-                    { backgroundColor: isSelected ? theme.colors.background : '#ffffff' }
+                    { backgroundColor: isSelected ? optionTheme.colors.background : '#ffffff' }
                   ]}
                 >
                   <View style={styles.styleHeader}>
                     <Text 
                       style={[
                         styles.styleName,
-                        { color: theme.colors.primary }
+                        { color: optionTheme.colors.primary }
                       ]}
                     >
                       {option.name}
@@ -200,7 +200,7 @@ const StyleSelectionScreen: React.FC<Props> = ({ navigation }) => {
                       <View 
                         style={[
                           styles.selectedBadge,
-                          { backgroundColor: theme.colors.primary }
+                          { backgroundColor: optionTheme.colors.primary }
                         ]}
                       >
                         <Ionicons name="checkmark" size={16} color="#fff" />
@@ -211,7 +211,7 @@ const StyleSelectionScreen: React.FC<Props> = ({ navigation }) => {
                   <Text 
                     style={[
                       styles.styleDescription,
-                      { color: theme.colors.text.secondary }
+                      { color: optionTheme.colors.text.secondary }
                     ]}
                   >
                     {option.description}
@@ -223,7 +223,7 @@ const StyleSelectionScreen: React.FC<Props> = ({ navigation }) => {
         })}
       </ScrollView>
       
-      <View style={styles.footer}>
+      <View style={[styles.footer, { borderTopColor: theme.colors.border }]}>
         <Button 
           isFullWidth
           onPress={handleSaveStyle}
@@ -241,7 +241,6 @@ const StyleSelectionScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
   },
   header: {
     paddingHorizontal: 20,
@@ -250,12 +249,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1A1A1A',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: theme.colors.secondary,
     lineHeight: 22,
   },
   scrollView: {
@@ -270,7 +267,6 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: 'white',
-    shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -356,7 +352,6 @@ const styles = StyleSheet.create({
   footer: {
     padding: 20,
     borderTopWidth: 1,
-    borderTopColor: '#E5E5E5',
   },
 });
 

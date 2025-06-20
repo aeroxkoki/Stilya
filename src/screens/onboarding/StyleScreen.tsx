@@ -86,20 +86,20 @@ const StyleScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={styles.content}>
         {/* ヘッダー */}
         <View style={styles.header}>
           <TouchableOpacity onPress={handleBack}>
-            <Ionicons name="arrow-back" size={24} color="#333" />
+            <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
           </TouchableOpacity>
-          <Text style={styles.stepIndicator}>2/4</Text>
+          <Text style={[styles.stepIndicator, { color: theme.colors.text.secondary }]}>2/4</Text>
         </View>
 
         {/* タイトル */}
         <View style={styles.titleContainer}>
-          <Text style={styles.title}>好きなスタイルを選んでください</Text>
-          <Text style={styles.subtitle}>
+          <Text style={[styles.title, { color: theme.colors.text.primary }]}>好きなスタイルを選んでください</Text>
+          <Text style={[styles.subtitle, { color: theme.colors.text.secondary }]}>
             複数選択可能です。あなたの好みに合わせたアイテムを提案します。
           </Text>
         </View>
@@ -119,6 +119,10 @@ const StyleScreen: React.FC<Props> = ({ navigation }) => {
                   <View
                     style={[
                       styles.card,
+                      { 
+                        borderColor: isSelected ? theme.colors.primary : theme.colors.border,
+                        backgroundColor: theme.colors.card.background 
+                      },
                       isSelected && styles.cardSelected
                     ]}
                   >
@@ -129,16 +133,20 @@ const StyleScreen: React.FC<Props> = ({ navigation }) => {
                     />
                     {isSelected && (
                       <View style={styles.checkmarkContainer}>
-                        <View style={styles.checkmarkBadge}>
+                        <View style={[styles.checkmarkBadge, { backgroundColor: theme.colors.primary }]}>
                           <Ionicons name="checkmark" size={16} color="#fff" />
                         </View>
                       </View>
                     )}
                     <View style={styles.cardContent}>
-                      <Text style={[styles.styleName, isSelected && styles.styleNameSelected]}>
+                      <Text style={[
+                        styles.styleName, 
+                        { color: theme.colors.text.primary },
+                        isSelected && [styles.styleNameSelected, { color: theme.colors.primary }]
+                      ]}>
                         {style.name}
                       </Text>
-                      <Text style={styles.styleDescription} numberOfLines={2}>
+                      <Text style={[styles.styleDescription, { color: theme.colors.text.secondary }]} numberOfLines={2}>
                         {style.description}
                       </Text>
                     </View>
@@ -150,7 +158,10 @@ const StyleScreen: React.FC<Props> = ({ navigation }) => {
         </ScrollView>
 
         {/* 次へボタン */}
-        <View style={styles.buttonContainer}>
+        <View style={[styles.buttonContainer, { 
+          backgroundColor: theme.colors.background,
+          borderTopColor: theme.colors.border 
+        }]}>
           <Button
             isFullWidth
             onPress={handleNext}
@@ -167,7 +178,6 @@ const StyleScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
   },
   content: {
     flex: 1,
@@ -216,8 +226,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#FFFFFF',
   },
   cardSelected: {
     borderWidth: 2,
@@ -257,7 +266,7 @@ const styles = StyleSheet.create({
   buttonContainer: {
     paddingHorizontal: 16,
     paddingVertical: 20,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#E5E5E5',
   },

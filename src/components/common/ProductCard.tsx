@@ -46,7 +46,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
   showTags = true,
   compact = false,
 }) => {
-  const { theme } = useStyle();
   const { theme, isDarkMode } = useStyle();
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
@@ -256,7 +255,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: theme.colors.primary,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 2,

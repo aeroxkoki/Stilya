@@ -1,18 +1,51 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, SafeAreaView, ActivityIndicator, Alert, StyleSheet } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/common';
 import { useOnboarding } from '@/contexts/OnboardingContext';
-import { OnboardingStackParamList } from '@/types';
+import { OnboardingStackParamList, fashionStyleToTheme, FashionStyle, StyleType } from '@/types';
 import { useStyle } from '@/contexts/ThemeContext';
 
 type Props = NativeStackScreenProps<OnboardingStackParamList, 'Complete'>;
 
 const CompleteScreen: React.FC<Props> = ({ navigation }) => {
-  const { theme } = useStyle();
+  const { theme, setStyleType } = useStyle();
   const { gender, stylePreference, ageGroup, saveUserProfile, isLoading, error } = useOnboarding();
   const [isSaving, setIsSaving] = useState(false);
+
+  // スタイル選択に基づいてテーマを決定
+  useEffect(() => {
+    if (stylePreference.length > 0) {
+      // 選択されたファッションスタイルからテーマを決定
+      const themeCounts: Record<StyleType, number> = {
+        minimal: 0,
+        natural: 0,
+        bold: 0,
+      };
+
+      // 選択された各スタイルに対応するテーマをカウント
+      stylePreference.forEach(style => {
+        const themeType = fashionStyleToTheme[style as FashionStyle];
+        if (themeType) {
+          themeCounts[themeType]++;
+        }
+      });
+
+      // 最も多く選ばれたテーマを適用
+      let selectedTheme: StyleType = 'minimal';
+      let maxCount = 0;
+      Object.entries(themeCounts).forEach(([theme, count]) => {
+        if (count > maxCount) {
+          maxCount = count;
+          selectedTheme = theme as StyleType;
+        }
+      });
+
+      // テーマを設定
+      setStyleType(selectedTheme);
+    }
+  }, [stylePreference, setStyleType]);
 
   // スタイル名のマッピング
   const styleMap: Record<string, string> = {
@@ -64,42 +97,42 @@ const CompleteScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={styles.content}>
         {/* タイトル */}
         <View style={styles.titleContainer}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="checkmark" size={48} color="#10B981" />
+          <View style={[styles.iconContainer, { backgroundColor: theme.colors.surface }]}>
+            <Ionicons name="checkmark" size={48} color={theme.colors.success} />
           </View>
-          <Text style={styles.title}>
+          <Text style={[styles.title, { color: theme.colors.text.primary }]}>
             プロフィール設定完了！
           </Text>
-          <Text style={styles.subtitle}>
+          <Text style={[styles.subtitle, { color: theme.colors.text.secondary }]}>
             あなたの好みに合わせた商品をご提案します
           </Text>
         </View>
 
         {/* プロフィール概要 */}
-        <View style={styles.profileSummary}>
-          <Text style={styles.sectionTitle}>プロフィール概要</Text>
+        <View style={[styles.profileSummary, { backgroundColor: theme.colors.surface }]}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>プロフィール概要</Text>
           
-          <View style={styles.profileItem}>
-            <Text style={styles.profileLabel}>性別</Text>
-            <Text style={styles.profileValue}>
+          <View style={[styles.profileItem, { borderBottomColor: theme.colors.border }]}>
+            <Text style={[styles.profileLabel, { color: theme.colors.text.secondary }]}>性別</Text>
+            <Text style={[styles.profileValue, { color: theme.colors.text.primary }]}>
               {gender ? genderMap[gender] || gender : '未設定'}
             </Text>
           </View>
           
-          <View style={styles.profileItem}>
-            <Text style={styles.profileLabel}>好きなスタイル</Text>
-            <Text style={styles.profileValue}>
+          <View style={[styles.profileItem, { borderBottomColor: theme.colors.border }]}>
+            <Text style={[styles.profileLabel, { color: theme.colors.text.secondary }]}>好きなスタイル</Text>
+            <Text style={[styles.profileValue, { color: theme.colors.text.primary }]}>
               {stylePreference.length > 0 ? getStyleNames() : '未設定'}
             </Text>
           </View>
           
-          <View style={styles.profileItem}>
-            <Text style={styles.profileLabel}>年代</Text>
-            <Text style={styles.profileValue}>
+          <View style={[styles.profileItem, { borderBottomColor: theme.colors.border }]}>
+            <Text style={[styles.profileLabel, { color: theme.colors.text.secondary }]}>年代</Text>
+            <Text style={[styles.profileValue, { color: theme.colors.text.primary }]}>
               {ageGroup ? ageGroupMap[ageGroup] || ageGroup : '未設定'}
             </Text>
           </View>
@@ -107,13 +140,13 @@ const CompleteScreen: React.FC<Props> = ({ navigation }) => {
 
         {/* エラーメッセージ */}
         {error && (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{error}</Text>
+          <View style={[styles.errorContainer, { backgroundColor: theme.colors.error + '20' }]}>
+            <Text style={[styles.errorText, { color: theme.colors.error }]}>{error}</Text>
           </View>
         )}
 
         {/* 完了ボタン */}
-        <View style={styles.buttonContainer}>
+        <View style={[styles.buttonContainer, { backgroundColor: theme.colors.background, borderTopColor: theme.colors.border }]}>
           <Button
             isFullWidth
             onPress={handleComplete}
@@ -130,7 +163,6 @@ const CompleteScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
   },
   content: {
     flex: 1,
@@ -145,7 +177,6 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#E6FFFA',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
@@ -153,16 +184,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1F2937',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#6B7280',
     textAlign: 'center',
   },
   profileSummary: {
-    backgroundColor: '#F9FAFB',
     padding: 20,
     borderRadius: 12,
     marginBottom: 24,
@@ -170,7 +198,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1F2937',
     marginBottom: 16,
   },
   profileItem: {
@@ -179,25 +206,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
   },
   profileLabel: {
     fontSize: 16,
-    color: '#6B7280',
   },
   profileValue: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#1F2937',
   },
   errorContainer: {
-    backgroundColor: '#FEE2E2',
     padding: 16,
     borderRadius: 8,
     marginBottom: 20,
   },
   errorText: {
-    color: '#DC2626',
     fontSize: 14,
   },
   buttonContainer: {
@@ -205,6 +227,7 @@ const styles = StyleSheet.create({
     bottom: 30,
     left: 20,
     right: 20,
+    borderTopWidth: 1,
   },
 });
 
