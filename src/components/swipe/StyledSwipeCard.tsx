@@ -148,7 +148,7 @@ const StyledSwipeCard: React.FC<StyledSwipeCardProps> = ({
         { 
           borderRadius: theme.radius.l,
           backgroundColor: theme.colors.card.background,
-          shadowColor: theme.colors.card.shadow,
+          shadowColor: theme.colors.card.shadow || '#000', // テーマの影の色を使用
           transform: [{ scale: scaleAnim }]
         }
       ]} 
@@ -229,6 +229,7 @@ const StyledSwipeCard: React.FC<StyledSwipeCardProps> = ({
                 borderRadius: styleType === 'natural' ? 40 : 32,
                 width: styleType === 'natural' ? 70 : 64,
                 height: styleType === 'natural' ? 70 : 64,
+                shadowColor: theme.colors.card.shadow || '#000', // テーマの影の色を使用
               }
             ]}
             onPress={onSwipeLeft}
@@ -254,6 +255,7 @@ const StyledSwipeCard: React.FC<StyledSwipeCardProps> = ({
                 backgroundColor: isSaved ? `${theme.colors.warning}20` : 'white',
                 borderWidth: isSaved ? 1 : 0,
                 borderColor: isSaved ? theme.colors.warning : 'transparent',
+                shadowColor: theme.colors.card.shadow || '#000', // テーマの影の色を使用
               }
             ]}
             onPress={handleSavePress}
@@ -285,6 +287,7 @@ const StyledSwipeCard: React.FC<StyledSwipeCardProps> = ({
                 borderRadius: styleType === 'natural' ? 40 : 32,
                 width: styleType === 'natural' ? 70 : 64,
                 height: styleType === 'natural' ? 70 : 64,
+                shadowColor: theme.colors.card.shadow || '#000', // テーマの影の色を使用
               }
             ]}
             onPress={onSwipeRight}

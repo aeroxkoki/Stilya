@@ -425,7 +425,8 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
             styles.loadingMoreContainer,
             { 
               backgroundColor: `${theme.colors.card.background}F0`,
-              borderRadius: theme.radius.m
+              borderRadius: theme.radius.m,
+              shadowColor: theme.colors.card.shadow || '#000' // テーマの影の色を使用
             }
           ]} 
           testID="loading-more"
@@ -521,7 +522,8 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
           styles.remainingContainer,
           { 
             backgroundColor: `${theme.colors.card.background}E6`,
-            borderRadius: theme.radius.m
+            borderRadius: theme.radius.m,
+            shadowColor: theme.colors.card.shadow || '#000' // テーマの影の色を使用
           }
         ]} 
         testID="remaining-counter"
