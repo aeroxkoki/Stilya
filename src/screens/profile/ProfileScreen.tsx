@@ -21,6 +21,15 @@ const ProfileScreen: React.FC = () => {
     getFavorites,
     getSwipeHistory
   } = useProductStore();
+  
+  // 動的スタイルを生成
+  const dynamicStyles = {
+    avatarText: {
+      fontSize: 32,
+      fontWeight: 'bold' as const,
+      color: theme.colors.background,
+    },
+  };
 
   // 初回表示時にデータを取得
   useEffect(() => {
@@ -122,7 +131,7 @@ const ProfileScreen: React.FC = () => {
           <Card>
             <View style={styles.profileContainer}>
               <View style={[styles.avatar, { backgroundColor: theme.colors.primary }]}>
-                <Text style={styles.avatarText}>
+                <Text style={dynamicStyles.avatarText}>
                   {user?.email?.charAt(0).toUpperCase() || 'U'}
                 </Text>
               </View>
@@ -292,9 +301,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   avatarText: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: theme.colors.background,
+    // Placeholder - dynamic styles used instead
   },
   userName: {
     fontSize: 18,
