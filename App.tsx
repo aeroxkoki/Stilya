@@ -1,14 +1,8 @@
-// Debug: App.tsx loading
-console.log('[DEBUG] App.tsx loading started');
-
 import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { TouchableOpacity, Text, View, LogBox } from 'react-native';
-
-// Debug: Before imports
-console.log('[DEBUG] Before component imports');
 
 // Components and Navigation
 import AppNavigator from './src/navigation/AppNavigator';
@@ -21,9 +15,6 @@ import { DevMenu } from './src/components/dev/DevMenu';
 
 // Supabase
 import { initializeSupabaseListeners, cleanupSupabaseListeners } from './src/services/supabase';
-
-// Debug: After imports
-console.log('[DEBUG] All imports completed');
 
 // 開発環境での診断
 if (__DEV__) {

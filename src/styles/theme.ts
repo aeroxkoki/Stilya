@@ -398,5 +398,3 @@ export const styleThemes: Record<StyleType, Theme> = {
   bold: boldTheme,
 };
 
-// デフォルトテーマをエクスポート
-export default lightTheme;
