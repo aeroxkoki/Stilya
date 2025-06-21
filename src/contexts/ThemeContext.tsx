@@ -98,11 +98,8 @@ export const StyleProvider: React.FC<StyleProviderProps> = ({ children }) => {
     setStyleType: handleSetStyleType,
   };
 
-  // 設定がロードされるまでは何も表示しない（フラッシュを防ぐため）
-  if (!isLoaded) {
-    return null;
-  }
-
+  // 設定がロードされるまでもデフォルトテーマで表示
+  // (白い画面を防ぐため、nullを返さない)
   return (
     <StyleContext.Provider value={contextValue}>
       {children}

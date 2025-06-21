@@ -7,15 +7,18 @@ import FavoritesScreen from '@/screens/profile/FavoritesScreen';
 import SwipeHistoryScreen from '@/screens/profile/SwipeHistoryScreen';
 import ProductDetailScreen from '@/screens/detail/ProductDetailScreen';
 import { DebugSupabaseScreen } from '@/screens/debug/SupabaseDiagnosticScreen';
+import { useStyle } from '@/contexts/ThemeContext';
 
 const Stack = createStackNavigator<ProfileStackParamList>();
 
 const ProfileNavigator: React.FC = () => {
+  const { theme } = useStyle();
+  
   return (
     <Stack.Navigator
       screenOptions={{
         headerShown: false,
-        cardStyle: { backgroundColor: 'white' },
+        cardStyle: { backgroundColor: theme.colors.background },
       }}
     >
       <Stack.Screen name="ProfileHome" component={ProfileScreen} />

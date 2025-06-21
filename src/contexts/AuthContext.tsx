@@ -135,19 +135,34 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const initialize = async () => {
     console.log('[AuthContext.tsx] 5. initialize関数実行開始');
+    console.log('[AuthContext.tsx] 5.1. 現在の時刻:', new Date().toISOString());
     try {
       setLoading(true);
       setError(null);
       
+      console.log('[AuthContext.tsx] 5.2. ネットワーク接続チェック開始');
       // ネットワーク接続をチェック
       try {
         // 詳細なネットワーク診断を実行
         if (__DEV__) {
-          const diagnostics = await runNetworkDiagnostics();
-          logDiagnosticResults(diagnostics);
+          console.log('[AuthContext.tsx] 5.3. ネットワーク診断開始');
+          // タイムアウトを設定してネットワーク診断を実行
+          const diagnosticsPromise = runNetworkDiagnostics();
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Network diagnostics timeout')), 3000)
+          );
+          
+          try {
+            const diagnostics = await Promise.race([diagnosticsPromise, timeoutPromise]) as any;
+            logDiagnosticResults(diagnostics);
+          } catch (diagError) {
+            console.log('[AuthContext.tsx] 5.3.1. ネットワーク診断タイムアウトまたはエラー:', diagError);
+          }
         }
         
+        console.log('[AuthContext.tsx] 5.4. Supabase接続テスト開始');
         const connectionTest = await testSupabaseConnection();
+        console.log('[AuthContext.tsx] 5.5. Supabase接続テスト結果:', connectionTest);
         if (!connectionTest) {
           throw new Error('Supabaseへの接続に失敗しました。インターネット接続を確認してください。');
         }
@@ -159,8 +174,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return;
       }
       
+      console.log('[AuthContext.tsx] 5.6. セッション取得開始');
       // セッションを取得
       const { data: { session } } = await supabase.auth.getSession();
+      console.log('[AuthContext.tsx] 5.7. セッション取得結果:', !!session);
       
       if (session) {
         // セッションの有効期限をチェック
@@ -252,13 +269,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       } else {
         // セッションがない場合はログアウト状態
+        console.log('[AuthContext.tsx] 5.8. セッションなし - ログアウト状態');
         setUser(null);
         setSession(null);
         setLoading(false);
         setIsInitialized(true);
       }
+      console.log('[AuthContext.tsx] 5.9. initialize関数完了');
     } catch (error) {
-      console.error('Error initializing auth:', error);
+      console.error('[AuthContext.tsx] 5.10. Error initializing auth:', error);
       setError('セッションの初期化に失敗しました');
       setLoading(false);
       setIsInitialized(true);
