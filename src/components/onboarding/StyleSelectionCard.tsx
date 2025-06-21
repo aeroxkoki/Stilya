@@ -20,8 +20,28 @@ const StyleSelectionCard: React.FC<StyleSelectionCardProps> = ({
   onSelect,
   testID,
 }) => {
-  const { theme } = useStyle();
-  const theme = styleThemes[styleType];
+  const { theme: currentTheme } = useStyle();
+  const styleTheme = styleThemes[styleType];
+  
+  // 動的スタイルを生成
+  const dynamicStyles = {
+    container: {
+      width: CARD_WIDTH,
+      padding: 16,
+      marginVertical: 8,
+      backgroundColor: currentTheme.colors.background,
+      shadowColor: styleTheme.colors.primary,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 2,
+    },
+    previewButtonText: {
+      color: currentTheme.colors.background,
+      fontSize: 14,
+      fontWeight: '500' as const,
+    },
+  };
   
   // スタイルごとの表示名とアイコン
   const styleInfo: Record<StyleType, { name: string; icon: string; description: string }> = {
@@ -45,11 +65,11 @@ const StyleSelectionCard: React.FC<StyleSelectionCardProps> = ({
   return (
     <TouchableOpacity
       style={[
-        styles.container,
+        dynamicStyles.container,
         {
-          borderColor: theme.colors.primary,
-          borderRadius: theme.radius.m,
-          backgroundColor: isSelected ? `${theme.colors.primary}10` : 'transparent',
+          borderColor: styleTheme.colors.primary,
+          borderRadius: styleTheme.radius.m,
+          backgroundColor: isSelected ? `${styleTheme.colors.primary}10` : 'transparent',
           borderWidth: isSelected ? 2 : 1,
         },
       ]}
@@ -61,28 +81,28 @@ const StyleSelectionCard: React.FC<StyleSelectionCardProps> = ({
         <View style={[
           styles.iconContainer,
           {
-            backgroundColor: `${theme.colors.primary}20`,
-            borderRadius: theme.radius.s,
+            backgroundColor: `${styleTheme.colors.primary}20`,
+            borderRadius: styleTheme.radius.s,
           }
         ]}>
           <Ionicons
             name={styleInfo[styleType].icon as any}
             size={32}
-            color={theme.colors.primary}
+            color={styleTheme.colors.primary}
           />
         </View>
         
         <View style={styles.textContainer}>
-          <Text style={[styles.title, { color: theme.colors.text.primary }]}>
+          <Text style={[styles.title, { color: currentTheme.colors.text.primary }]}>
             {styleInfo[styleType].name}
           </Text>
-          <Text style={[styles.description, { color: theme.colors.text.secondary }]}>
+          <Text style={[styles.description, { color: currentTheme.colors.text.secondary }]}>
             {styleInfo[styleType].description}
           </Text>
         </View>
         
         {isSelected && (
-          <View style={[styles.checkmark, { backgroundColor: theme.colors.primary }]}>
+          <View style={[styles.checkmark, { backgroundColor: styleTheme.colors.primary }]}>
             <Ionicons name="checkmark" size={16} color="#FFFFFF" />
           </View>
         )}
@@ -92,19 +112,19 @@ const StyleSelectionCard: React.FC<StyleSelectionCardProps> = ({
       <View style={[
         styles.previewContainer,
         { 
-          backgroundColor: theme.colors.background,
-          borderRadius: theme.radius.s,
+          backgroundColor: currentTheme.colors.background,
+          borderRadius: styleTheme.radius.s,
         }
       ]}>
         {/* ボタンプレビュー */}
         <View style={[
           styles.previewButton,
           { 
-            backgroundColor: theme.colors.button.primary,
-            borderRadius: theme.radius.s,
+            backgroundColor: styleTheme.colors.button.primary,
+            borderRadius: styleTheme.radius.s,
           }
         ]}>
-          <Text style={styles.previewButtonText}>ボタン</Text>
+          <Text style={dynamicStyles.previewButtonText}>ボタン</Text>
         </View>
         
         {/* テキスト要素プレビュー */}
@@ -119,15 +139,7 @@ const StyleSelectionCard: React.FC<StyleSelectionCardProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    width: CARD_WIDTH,
-    padding: 16,
-    marginVertical: 8,
-    backgroundColor: theme.colors.background,
-    shadowColor: theme.colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    // Placeholder - dynamic styles used instead
   },
   content: {
     flexDirection: 'row',
@@ -170,9 +182,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   previewButtonText: {
-    color: theme.colors.background,
-    fontSize: 14,
-    fontWeight: '500',
+    // Placeholder - dynamic styles used instead
   },
   previewTextContainer: {
     flex: 1,
