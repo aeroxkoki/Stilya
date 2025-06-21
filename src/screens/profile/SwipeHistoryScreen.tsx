@@ -46,6 +46,38 @@ const SwipeHistoryScreen: React.FC = () => {
   const [page, setPage] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
   
+  // 動的スタイルを生成
+  const dynamicStyles = {
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    filterButtonTextActive: {
+      color: theme.colors.background,
+    },
+    favoriteButton: {
+      position: 'absolute' as const,
+      top: 8,
+      right: 8,
+      backgroundColor: 'white',
+      borderRadius: 15,
+      width: 30,
+      height: 30,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      shadowColor: theme.colors.primary,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.2,
+      shadowRadius: 1.5,
+      elevation: 2,
+    },
+    resultBadgeText: {
+      fontSize: 12,
+      fontWeight: '600' as const,
+      color: theme.colors.background,
+    },
+  };
+  
   // 初回表示時とフィルター変更時にデータを取得
   useEffect(() => {
     const loadSwipeHistory = async () => {
@@ -148,19 +180,19 @@ const SwipeHistoryScreen: React.FC = () => {
         style={[styles.filterButton, filter === 'all' && styles.filterButtonActive]}
         onPress={() => setFilter('all')}
       >
-        <Text style={[styles.filterButtonText, filter === 'all' && styles.filterButtonTextActive]}>すべて</Text>
+        <Text style={[styles.filterButtonText, filter === 'all' && dynamicStyles.filterButtonTextActive]}>すべて</Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={[styles.filterButton, filter === 'yes' && styles.filterButtonActive]}
         onPress={() => setFilter('yes')}
       >
-        <Text style={[styles.filterButtonText, filter === 'yes' && styles.filterButtonTextActive]}>Yes</Text>
+        <Text style={[styles.filterButtonText, filter === 'yes' && dynamicStyles.filterButtonTextActive]}>Yes</Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={[styles.filterButton, filter === 'no' && styles.filterButtonActive]}
         onPress={() => setFilter('no')}
       >
-        <Text style={[styles.filterButtonText, filter === 'no' && styles.filterButtonTextActive]}>No</Text>
+        <Text style={[styles.filterButtonText, filter === 'no' && dynamicStyles.filterButtonTextActive]}>No</Text>
       </TouchableOpacity>
     </View>
   );
@@ -180,7 +212,7 @@ const SwipeHistoryScreen: React.FC = () => {
   // ローディング表示
   if (loading && !refreshing) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={dynamicStyles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={handleBackPress}>
             <Ionicons name="arrow-back" size={24} color="#000" />
@@ -197,7 +229,7 @@ const SwipeHistoryScreen: React.FC = () => {
   }
   
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={dynamicStyles.container}>
       {/* ヘッダー */}
       <View style={styles.header}>
         <TouchableOpacity onPress={handleBackPress}>
@@ -252,7 +284,7 @@ const SwipeHistoryScreen: React.FC = () => {
                         { backgroundColor: index % 2 === 0 ? '#3B82F6' : '#F87171' } // 偶数番目はYes
                       ]}
                     >
-                      <Text style={styles.resultBadgeText}>
+                      <Text style={dynamicStyles.resultBadgeText}>
                         {index % 2 === 0 ? 'Yes' : 'No'}
                       </Text>
                     </View>
@@ -260,7 +292,7 @@ const SwipeHistoryScreen: React.FC = () => {
                   
                   {/* お気に入りボタン */}
                   <TouchableOpacity
-                    style={styles.favoriteButton}
+                    style={dynamicStyles.favoriteButton}
                     onPress={() => handleToggleFavorite(item.id)}
                   >
                     <Ionicons 
@@ -282,7 +314,6 @@ const SwipeHistoryScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -330,7 +361,7 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   filterButtonTextActive: {
-    color: theme.colors.background,
+    // Placeholder - dynamic styles used instead
   },
   contentContainer: {
     flex: 1,
@@ -372,20 +403,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   favoriteButton: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: 'white',
-    borderRadius: 15,
-    width: 30,
-    height: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: theme.colors.primary,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.5,
-    elevation: 2,
+    // Placeholder - dynamic styles used instead
   },
   resultBadge: {
     position: 'absolute',
@@ -398,9 +416,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   resultBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: theme.colors.background,
+    // Placeholder - dynamic styles used instead
   },
   footerContainer: {
     paddingVertical: 16,

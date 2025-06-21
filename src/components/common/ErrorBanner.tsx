@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginHorizontal: 16,
     marginVertical: 8,
-    shadowColor: theme.colors.primary,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,

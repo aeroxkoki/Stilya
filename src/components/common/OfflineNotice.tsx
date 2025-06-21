@@ -67,6 +67,7 @@ const OfflineNotice: React.FC = () => {
         styles.container,
         {
           transform: [{ translateY: slideAnim }],
+          shadowColor: theme.colors.primary,
         },
       ]}
       testID="offline-notice"
@@ -84,7 +85,9 @@ const OfflineNotice: React.FC = () => {
             インターネットに接続されていません。一部の機能が制限されます。
           </Text>
           {lastSync && (
-            <Text style={styles.syncInfo}>{getLastSyncText()}</Text>
+            <Text style={[styles.syncInfo, { color: theme.colors.text.hint }]}>
+              {getLastSyncText()}
+            </Text>
           )}
         </View>
       </View>
@@ -100,10 +103,9 @@ const styles = StyleSheet.create({
     right: 0,
     backgroundColor: '#FFF8E1',
     paddingTop: 45, // ステータスバーの高さを考慮
-    paddingBottom:.16,
+    paddingBottom: 16,
     paddingHorizontal: 16,
     zIndex: 100,
-    shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
@@ -129,7 +131,6 @@ const styles = StyleSheet.create({
   },
   syncInfo: {
     fontSize: 10,
-    color: theme.colors.text.hint,
     marginTop: 4,
     fontStyle: 'italic',
   },

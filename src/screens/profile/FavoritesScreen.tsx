@@ -43,6 +43,106 @@ const FavoritesScreen: React.FC = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [sortOrder, setSortOrder] = useState<'recent' | 'price_high' | 'price_low'>('recent');
   
+  // 動的スタイルを生成
+  const dynamicStyles = {
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    header: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'space-between' as const,
+      paddingHorizontal: 16,
+      paddingVertical: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+    },
+    headerTitle: {
+      fontSize: 18,
+      fontWeight: 'bold' as const,
+      color: theme.colors.text.primary,
+    },
+    headerCount: {
+      fontSize: 16,
+      color: theme.colors.text.secondary,
+      marginLeft: 8,
+    },
+    headerTitleContainer: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+    },
+    headerActions: {
+      flexDirection: 'row' as const,
+      gap: 12,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+    },
+    loadingText: {
+      marginTop: 16,
+      fontSize: 16,
+      color: theme.colors.text.secondary,
+    },
+    sortStatus: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      backgroundColor: theme.colors.surface,
+    },
+    sortStatusText: {
+      fontSize: 12,
+      color: theme.colors.text.hint,
+    },
+    contentContainer: {
+      flex: 1,
+    },
+    emptyContainer: {
+      flex: 1,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      paddingHorizontal: 32,
+    },
+    emptyTitle: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: theme.colors.text.primary,
+      marginTop: 16,
+    },
+    emptySubtitle: {
+      fontSize: 14,
+      color: theme.colors.text.secondary,
+      textAlign: 'center' as const,
+      marginTop: 8,
+    },
+    favoriteButton: {
+      position: 'absolute' as const,
+      top: 8,
+      right: 8,
+      backgroundColor: 'white',
+      borderRadius: 15,
+      width: 30,
+      height: 30,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      shadowColor: theme.colors.primary,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.2,
+      shadowRadius: 1.5,
+      elevation: 2,
+    },
+    footerContainer: {
+      paddingVertical: 16,
+      alignItems: 'center' as const,
+    },
+    footerText: {
+      marginTop: 8,
+      fontSize: 14,
+      color: theme.colors.text.secondary,
+    },
+  };
+  
   // 初回表示時にデータを取得
   useEffect(() => {
     const loadFavorites = async () => {
@@ -195,9 +295,9 @@ const FavoritesScreen: React.FC = () => {
     if (!loadingMore) return null;
     
     return (
-      <View >
+      <View style={dynamicStyles.footerContainer}>
         <ActivityIndicator size="small" color="#3B82F6" />
-        <Text >読み込み中...</Text>
+        <Text style={dynamicStyles.footerText}>読み込み中...</Text>
       </View>
     );
   };
@@ -205,35 +305,35 @@ const FavoritesScreen: React.FC = () => {
   // ローディング表示
   if (loading && !refreshing) {
     return (
-      <SafeAreaView >
-        <View >
+      <SafeAreaView style={dynamicStyles.container}>
+        <View style={dynamicStyles.header}>
           <TouchableOpacity onPress={handleBackPress}>
             <Ionicons name="arrow-back" size={24} color="#000" />
           </TouchableOpacity>
-          <Text >お気に入り</Text>
+          <Text style={dynamicStyles.headerTitle}>お気に入り</Text>
           <View style={{ width: 24 }} /> {/* バランス用の空のビュー */}
         </View>
-        <View >
+        <View style={dynamicStyles.loadingContainer}>
           <ActivityIndicator size="large" color="#3B82F6" />
-          <Text >読み込み中...</Text>
+          <Text style={dynamicStyles.loadingText}>読み込み中...</Text>
         </View>
       </SafeAreaView>
     );
   }
   
   return (
-    <SafeAreaView >
+    <SafeAreaView style={dynamicStyles.container}>
       {/* ヘッダー */}
-      <View >
+      <View style={dynamicStyles.header}>
         <TouchableOpacity onPress={handleBackPress}>
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <View >
-          <Text >お気に入り</Text>
-          <Text >({favorites.length})</Text>
+        <View style={dynamicStyles.headerTitleContainer}>
+          <Text style={dynamicStyles.headerTitle}>お気に入り</Text>
+          <Text style={dynamicStyles.headerCount}>({favorites.length})</Text>
         </View>
-        <View >
-          <TouchableOpacity onPress={handleShowSortOptions} >
+        <View style={dynamicStyles.headerActions}>
+          <TouchableOpacity onPress={handleShowSortOptions} style={{ padding: 4 }}>
             <Ionicons name="filter-outline" size={24} color="#6B7280" />
           </TouchableOpacity>
           <TouchableOpacity onPress={handleClearAll}>
@@ -243,8 +343,8 @@ const FavoritesScreen: React.FC = () => {
       </View>
       
       {/* ソート状態表示 */}
-      <View >
-        <Text >
+      <View style={dynamicStyles.sortStatus}>
+        <Text style={dynamicStyles.sortStatusText}>
           {sortOrder === 'recent' ? '最新順' : 
            sortOrder === 'price_high' ? '価格が高い順' : '価格が低い順'}
            で表示中
@@ -252,12 +352,12 @@ const FavoritesScreen: React.FC = () => {
       </View>
       
       {/* 商品リスト */}
-      <View >
+      <View style={dynamicStyles.contentContainer}>
         {favorites.length === 0 ? (
-          <View >
+          <View style={dynamicStyles.emptyContainer}>
             <Ionicons name="heart-outline" size={64} color="#E5E7EB" />
-            <Text >お気に入りはまだありません</Text>
-            <Text >
+            <Text style={dynamicStyles.emptyTitle}>お気に入りはまだありません</Text>
+            <Text style={dynamicStyles.emptySubtitle}>
               スワイプ画面で「いいね」した商品や詳細画面でお気に入り登録した商品がここに表示されます
             </Text>
           </View>
@@ -281,7 +381,7 @@ const FavoritesScreen: React.FC = () => {
                     onPress={() => handleProductPress(item)}
                   />
                   <TouchableOpacity
-                    style={styles.favoriteButton}
+                    style={dynamicStyles.favoriteButton}
                     onPress={() => handleRemoveFavorite(item.id)}
                   >
                     <Ionicons name="heart" size={20} color="#EC4899" />
@@ -306,20 +406,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   favoriteButton: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: 'white',
-    borderRadius: 15,
-    width: 30,
-    height: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: theme.colors.primary,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.5,
-    elevation: 2,
+    // Placeholder - dynamic styles used instead
   },
 });
 
