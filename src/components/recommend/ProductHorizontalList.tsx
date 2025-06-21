@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 12,
     overflow: 'hidden',
-    shadowColor: theme.colors.primary,
+    shadowColor: '#000',  // theme.colors.primary の代わりに固定値
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
   productImage: {
     width: '100%',
     height: 180,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#F5F5F5',  // theme.colors.surface の代わりに固定値
   },
   productInfo: {
     padding: 12,

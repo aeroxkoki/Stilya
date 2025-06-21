@@ -155,8 +155,8 @@ export const NetworkDebugScreen: React.FC = () => {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>ネットワーク診断</Text>
+    <ScrollView style={[styles.container, { backgroundColor: theme.colors.surface }]}>
+      <Text style={[styles.title, { color: theme.colors.text.primary }]}>ネットワーク診断</Text>
       
       <TouchableOpacity
         style={[styles.button, isRunning && styles.buttonDisabled]}
@@ -185,23 +185,23 @@ export const NetworkDebugScreen: React.FC = () => {
             {result.status === 'success' ? '✅' : '❌'} {result.status}
           </Text>
           {result.message && (
-            <Text style={styles.resultMessage}>{result.message}</Text>
+            <Text style={[styles.resultMessage, { color: theme.colors.secondary }]}>{result.message}</Text>
           )}
         </TouchableOpacity>
       ))}
 
-      <View style={styles.infoSection}>
+      <View style={[styles.infoSection, { backgroundColor: theme.colors.background }]}>
         <Text style={styles.infoTitle}>トラブルシューティング</Text>
-        <Text style={styles.infoText}>
+        <Text style={[styles.infoText, { color: theme.colors.secondary }]}>
           • 実機でエラーが出る場合は、Wi-Fi/モバイルデータを確認してください
         </Text>
-        <Text style={styles.infoText}>
+        <Text style={[styles.infoText, { color: theme.colors.secondary }]}>
           • VPNを使用している場合は無効にしてください
         </Text>
-        <Text style={styles.infoText}>
+        <Text style={[styles.infoText, { color: theme.colors.secondary }]}>
           • 企業ネットワークの場合、ファイアウォール設定を確認してください
         </Text>
-        <Text style={styles.infoText}>
+        <Text style={[styles.infoText, { color: theme.colors.secondary }]}>
           • アプリを完全に終了して再起動してください
         </Text>
       </View>
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#F5F5F5',  // theme.colors.surface の代わりに固定値
   },
   title: {
     fontSize: 24,
@@ -263,13 +263,13 @@ const styles = StyleSheet.create({
   },
   resultMessage: {
     fontSize: 12,
-    color: theme.colors.secondary,
+    color: '#666666',  // theme.colors.secondary の代わりに固定値
     fontFamily: 'Courier',
   },
   infoSection: {
     marginTop: 30,
     padding: 15,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#FFFFFF',  // theme.colors.background の代わりに固定値
     borderRadius: 8,
   },
   infoTitle: {
@@ -280,6 +280,6 @@ const styles = StyleSheet.create({
   infoText: {
     fontSize: 14,
     marginBottom: 5,
-    color: theme.colors.secondary,
+    color: '#666666',  // theme.colors.secondary の代わりに固定値
   },
 });

@@ -59,8 +59,8 @@ const styles = StyleSheet.create({
   },
   card: {
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.background,
+    borderColor: '#E5E5E5',  // theme.colors.border の代わりに固定値
+    backgroundColor: '#FFFFFF',  // theme.colors.background の代わりに固定値
   },
   cardSelected: {
     borderColor: '#3B82F6',

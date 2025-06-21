@@ -88,10 +88,10 @@ export const DebugSupabaseScreen: React.FC = () => {
   const renderResult = (title: string, value: any) => {
     if (typeof value === 'object' && value !== null) {
       return (
-        <View style={styles.section}>
+        <View style={[styles.section, { shadowColor: theme.colors.card.shadow }]}>
           <Text style={styles.sectionTitle}>{title}</Text>
           {Object.entries(value).map(([key, val]) => (
-            <Text key={key} style={styles.resultText}>
+            <Text key={key} style={[styles.resultText, { color: theme.colors.text.primary }]}>
               {key}: {String(val)}
             </Text>
           ))}
@@ -100,9 +100,9 @@ export const DebugSupabaseScreen: React.FC = () => {
     }
     
     return (
-      <View style={styles.section}>
+      <View style={[styles.section, { shadowColor: theme.colors.card.shadow }]}>
         <Text style={styles.sectionTitle}>{title}</Text>
-        <Text style={styles.resultText}>{String(value)}</Text>
+        <Text style={[styles.resultText, { color: theme.colors.text.primary }]}>{String(value)}</Text>
       </View>
     );
   };
@@ -120,9 +120,9 @@ export const DebugSupabaseScreen: React.FC = () => {
   };
   
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.colors.surface }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>Supabase診断</Text>
+        <Text style={[styles.title, { color: theme.colors.text.primary }]}>Supabase診断</Text>
         <TouchableOpacity 
           style={styles.button} 
           onPress={runDiagnostics}
@@ -135,7 +135,7 @@ export const DebugSupabaseScreen: React.FC = () => {
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" />
-          <Text style={styles.loadingText}>診断中...</Text>
+          <Text style={[styles.loadingText, { color: theme.colors.secondary }]}>診断中...</Text>
         </View>
       ) : (
         <>
@@ -168,7 +168,7 @@ export const DebugSupabaseScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#F5F5F5',  // theme.colors.surface の代わりに固定値
     padding: 16,
   },
   header: {
@@ -197,14 +197,14 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 10,
-    color: theme.colors.secondary,
+    // color はインラインスタイルで適用
   },
   section: {
     backgroundColor: 'white',
     padding: 16,
     marginBottom: 12,
     borderRadius: 8,
-    shadowColor: theme.colors.primary,
+    shadowColor: '#000',  // theme.colors.primary の代わりに固定値
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   },
   resultText: {
     fontSize: 14,
-    color: theme.colors.text.primary,
+    // color はインラインスタイルで適用する必要がある場合に対応
     marginVertical: 2,
   },
   errorSection: {

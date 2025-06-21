@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 12,
     overflow: 'hidden',
-    shadowColor: theme.colors.primary,
+    shadowColor: '#000',  // theme.colors.primary の代わりに固定値
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
   mainImage: {
     width: '100%',
     height: '100%',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#F5F5F5',  // theme.colors.surface の代わりに固定値
   },
   subImagesContainer: {
     flex: 1,
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
   },
   subImage: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#F5F5F5',  // theme.colors.surface の代わりに固定値
   },
   placeholderItem: {
     alignItems: 'center',
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 12,
     overflow: 'hidden',
-    shadowColor: theme.colors.primary,
+    shadowColor: '#000',  // theme.colors.primary の代わりに固定値
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
   fullMainImage: {
     width: '100%',
     height: '100%',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#F5F5F5',  // theme.colors.surface の代わりに固定値
   },
   fullSubImagesContainer: {
     flex: 1,
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
   },
   fullSubImage: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#F5F5F5',  // theme.colors.surface の代わりに固定値
   },
   fullInfo: {
     padding: 16,

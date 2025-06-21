@@ -94,8 +94,8 @@ export const NetworkDebugScreen: React.FC = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Network Debug</Text>
+    <View style={[styles.container, { backgroundColor: theme.colors.surface }]}>
+      <Text style={[styles.title, { color: theme.colors.text.primary }]}>Network Debug</Text>
       
       <Button
         title={testing ? "Testing..." : "Run Network Tests"}
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#F5F5F5',  // theme.colors.surface の代わりに固定値
   },
   title: {
     fontSize: 24,
