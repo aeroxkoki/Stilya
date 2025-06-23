@@ -13,7 +13,7 @@ import { SwipeContainer } from '@/components/swipe';
 import ActionButtons from '@/components/swipe/ActionButtons';
 import FilterModal from '@/components/recommend/FilterModal';
 import { FilterOptions } from '@/services/productService';
-import { addToFavorites, removeFromFavorites, getFavorites } from '@/services/favoriteService';
+import { getFavorites, toggleFavorite } from '@/services/favoriteService';
 
 // ナビゲーションの型定義
 type SwipeScreenNavigationProp = StackNavigationProp<SwipeStackParamList, 'SwipeHome'>;
@@ -74,7 +74,7 @@ const SwipeScreen: React.FC = () => {
     const loadFavorites = async () => {
       if (user) {
         const userFavorites = await getFavorites(user.id);
-        setFavorites(userFavorites.map(f => f.productId));
+        setFavorites(userFavorites);
       }
     };
     loadFavorites();
@@ -117,12 +117,11 @@ const SwipeScreen: React.FC = () => {
     
     try {
       const isFavorite = favorites.includes(currentProduct.id);
+      await toggleFavorite(user.id, currentProduct.id);
       
       if (isFavorite) {
-        await removeFromFavorites(user.id, currentProduct.id);
         setFavorites(favorites.filter(id => id !== currentProduct.id));
       } else {
-        await addToFavorites(user.id, currentProduct.id);
         setFavorites([...favorites, currentProduct.id]);
       }
     } catch (error) {
