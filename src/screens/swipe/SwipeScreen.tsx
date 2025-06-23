@@ -36,7 +36,6 @@ const SwipeScreen: React.FC = () => {
     refreshProducts,
     handleSwipe: swipeProduct,
     hasMore,
-    totalFetched,
     setFilters: setProductFilters
   } = useProducts();
   
