@@ -160,13 +160,45 @@ export const syncOfflineSwipes = async (): Promise<boolean> => {
     const offlineSwipes: SwipeData[] = JSON.parse(storedData);
     if (offlineSwipes.length === 0) return true; // 同期するデータなし
 
-    // バッチで同期
+    // 同期前に存在する商品IDを確認
+    const productIds = [...new Set(offlineSwipes.map(swipe => swipe.productId))];
+    console.log('[syncOfflineSwipes] Checking product IDs:', productIds);
+    
+    // external_productsテーブルから存在する商品IDを取得
+    const { data: existingProducts, error: checkError } = await supabase
+      .from('external_products')
+      .select('id')
+      .in('id', productIds);
+    
+    if (checkError) {
+      console.error('[syncOfflineSwipes] Error checking products:', checkError);
+      throw checkError;
+    }
+    
+    const existingProductIds = new Set(existingProducts?.map(p => p.id) || []);
+    console.log('[syncOfflineSwipes] Existing product IDs:', Array.from(existingProductIds));
+    
+    // 存在する商品のスワイプのみフィルタリング
+    const validSwipes = offlineSwipes.filter(swipe => 
+      existingProductIds.has(swipe.productId)
+    );
+    
+    console.log(`[syncOfflineSwipes] Valid swipes: ${validSwipes.length}/${offlineSwipes.length}`);
+    
+    if (validSwipes.length === 0) {
+      console.log('[syncOfflineSwipes] No valid swipes to sync');
+      // 無効なデータはクリア
+      await AsyncStorage.removeItem(OFFLINE_SWIPE_STORAGE_KEY);
+      return true;
+    }
+
+    // バッチで同期（有効なスワイプのみ）
     const { error } = await supabase.from('swipes').insert(
-      offlineSwipes.map((swipe) => ({
+      validSwipes.map((swipe) => ({
         user_id: swipe.userId,
         product_id: swipe.productId,
         result: swipe.result,
-        created_at: swipe.createdAt || new Date().toISOString(), // createdAtがない場合に備えて
+        created_at: swipe.createdAt || new Date().toISOString(),
       }))
     );
 
@@ -174,6 +206,7 @@ export const syncOfflineSwipes = async (): Promise<boolean> => {
 
     // 同期完了後、オフラインデータをクリア
     await AsyncStorage.removeItem(OFFLINE_SWIPE_STORAGE_KEY);
+    console.log('[syncOfflineSwipes] Successfully synced swipes');
     return true;
   } catch (error) {
     console.error('Error syncing offline swipes:', error);
@@ -288,5 +321,17 @@ export const getSwipedProductIds = async (
   } catch (error) {
     console.error('Error getting swiped product IDs:', error);
     return [];
+  }
+};
+
+/**
+ * オフラインスワイプデータをクリアする（デバッグ用）
+ */
+export const clearOfflineSwipes = async (): Promise<void> => {
+  try {
+    await AsyncStorage.removeItem(OFFLINE_SWIPE_STORAGE_KEY);
+    console.log('[clearOfflineSwipes] Offline swipe data cleared');
+  } catch (error) {
+    console.error('Error clearing offline swipes:', error);
   }
 };

@@ -14,6 +14,7 @@ import { runDiagnostics, formatDiagnosticsResult } from '@/tests/diagnostics';
 import { supabase } from '@/services/supabase';
 import { NetworkDebugScreen } from '@/screens/NetworkDebugScreen';
 import { useStyle } from '@/contexts/ThemeContext';
+import { forceCleanupOfflineData } from '@/utils/offlineDataCleanup';
 
 interface DevMenuProps {
   onClose: () => void;
@@ -94,6 +95,11 @@ export const DevMenu: React.FC<DevMenuProps> = ({ onClose }) => {
     { 
       title: '🗑️ キャッシュクリア', 
       action: () => handleAction('キャッシュクリア', clearCache),
+      disabled: false,
+    },
+    { 
+      title: '📴 オフラインデータクリア', 
+      action: () => handleAction('オフラインデータクリア', forceCleanupOfflineData),
       disabled: false,
     },
     { 

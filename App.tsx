@@ -15,6 +15,7 @@ import { DevMenu } from './src/components/dev/DevMenu';
 
 // Supabase
 import { initializeSupabaseListeners, cleanupSupabaseListeners } from './src/services/supabase';
+import { cleanupOfflineData } from './src/utils/offlineDataCleanup';
 
 // 開発環境での診断
 if (__DEV__) {
@@ -39,6 +40,11 @@ const App: React.FC = () => {
   useEffect(() => {
     // Initialize Supabase listeners
     initializeSupabaseListeners();
+    
+    // Cleanup offline data on app start
+    cleanupOfflineData().catch(error => {
+      console.error('[App] Failed to cleanup offline data:', error);
+    });
     
     // Cleanup on unmount
     return () => {
