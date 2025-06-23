@@ -21,7 +21,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const { login, register, loading, error, clearError } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
-  const theme = useStyle();
+  const { theme } = useStyle();
   const insets = useSafeAreaInsets();
 
   // フィールドが入力された時にエラーをクリア

@@ -67,7 +67,7 @@ const { width } = Dimensions.get('window');
 const OnboardingScreen: React.FC = () => {
   const navigation = useNavigation<OnboardingScreenNavigationProp>();
   const [currentIndex, setCurrentIndex] = useState(0);
-  const theme = useStyle();
+  const { theme } = useStyle();
   const { user, setUser } = useAuth();
   
   // ユーザープロファイルの初期値
