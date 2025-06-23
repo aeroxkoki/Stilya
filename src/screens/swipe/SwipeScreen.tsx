@@ -247,6 +247,8 @@ const SwipeScreen: React.FC = () => {
       <ActionButtons
         onPressNo={() => currentProduct && handleSwipe(currentProduct, 'left')}
         onPressYes={() => currentProduct && handleSwipe(currentProduct, 'right')}
+        onPressSave={handleFavorite}
+        isSaved={currentProduct ? favorites.includes(currentProduct.id) : false}
         disabled={!currentProduct}
       />
       

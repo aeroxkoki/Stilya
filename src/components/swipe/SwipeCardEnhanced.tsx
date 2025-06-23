@@ -191,67 +191,6 @@ const SwipeCardEnhanced: React.FC<SwipeCardEnhancedProps> = ({
           {getSwipeIndicator()}
         </View>
       </TouchableOpacity>
-      
-      {/* アクションボタン */}
-      <View style={styles.actionButtons}>
-        <TouchableOpacity 
-          style={[
-            styles.actionButton, 
-            {
-              backgroundColor: theme.colors.surface,
-              shadowColor: theme.shadows.small.shadowColor,
-              shadowOffset: theme.shadows.small.shadowOffset,
-              shadowOpacity: theme.shadows.small.shadowOpacity,
-              shadowRadius: theme.shadows.small.shadowRadius,
-              elevation: theme.shadows.small.elevation,
-            }
-          ]}
-          onPress={onSwipeLeft}
-          testID="swipe-left-button"
-        >
-          <Ionicons name="close" size={28} color="#F87171" />
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[
-            styles.actionButton, 
-            {
-              backgroundColor: theme.colors.surface,
-              shadowColor: theme.shadows.small.shadowColor,
-              shadowOffset: theme.shadows.small.shadowOffset,
-              shadowOpacity: theme.shadows.small.shadowOpacity,
-              shadowRadius: theme.shadows.small.shadowRadius,
-              elevation: theme.shadows.small.elevation,
-            }
-          ]}
-          onPress={onSave}
-          testID="save-button"
-        >
-          <Ionicons 
-            name={isSaved ? "bookmark" : "bookmark-outline"} 
-            size={24} 
-            color={isSaved ? theme.colors.success : theme.colors.text.secondary} 
-          />
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[
-            styles.actionButton, 
-            {
-              backgroundColor: theme.colors.surface,
-              shadowColor: theme.shadows.small.shadowColor,
-              shadowOffset: theme.shadows.small.shadowOffset,
-              shadowOpacity: theme.shadows.small.shadowOpacity,
-              shadowRadius: theme.shadows.small.shadowRadius,
-              elevation: theme.shadows.small.elevation,
-            }
-          ]}
-          onPress={onSwipeRight}
-          testID="swipe-right-button"
-        >
-          <Ionicons name="heart" size={28} color="#3B82F6" />
-        </TouchableOpacity>
-      </View>
     </Animated.View>
   );
 };
@@ -328,23 +267,6 @@ const styles = StyleSheet.create({
   },
   yesIndicator: {
     transform: [{ rotate: '10deg' }],
-  },
-  actionButtons: {
-    position: 'absolute',
-    bottom: 20,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-evenly',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-  },
-  actionButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 });
 

@@ -12,6 +12,8 @@ import { useStyle } from '@/contexts/ThemeContext';
 interface ActionButtonsProps {
   onPressNo: () => void;
   onPressYes: () => void;
+  onPressSave?: () => void;
+  isSaved?: boolean;
   disabled?: boolean;
 }
 
@@ -22,11 +24,14 @@ const ICON_SIZE = 30;
 const ActionButtons: React.FC<ActionButtonsProps> = ({
   onPressNo,
   onPressYes,
+  onPressSave,
+  isSaved = false,
   disabled = false,
 }) => {
   const { theme } = useStyle();
   const scaleNo = new Animated.Value(1);
   const scaleYes = new Animated.Value(1);
+  const scaleSave = new Animated.Value(1);
 
   const animatePress = (scale: Animated.Value, callback: () => void) => {
     Animated.sequence([
@@ -53,6 +58,12 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
   const handlePressYes = () => {
     if (!disabled) {
       animatePress(scaleYes, onPressYes);
+    }
+  };
+
+  const handlePressSave = () => {
+    if (!disabled && onPressSave) {
+      animatePress(scaleSave, onPressSave);
     }
   };
 
@@ -88,6 +99,39 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
           />
         </TouchableOpacity>
       </Animated.View>
+
+      {/* 保存ボタン */}
+      {onPressSave && (
+        <Animated.View
+          style={[
+            styles.buttonWrapper,
+            {
+              transform: [{ scale: scaleSave }],
+            },
+          ]}
+        >
+          <TouchableOpacity
+            style={[
+              styles.button,
+              styles.saveButton,
+              {
+                backgroundColor: theme.colors.card.background,
+                borderColor: isSaved ? theme.colors.primary : theme.colors.border,
+              },
+              disabled && styles.disabledButton,
+            ]}
+            onPress={handlePressSave}
+            disabled={disabled}
+            testID="action-button-save"
+          >
+            <Ionicons
+              name={isSaved ? "bookmark" : "bookmark-outline"}
+              size={ICON_SIZE - 4}
+              color={disabled ? theme.colors.text.disabled : (isSaved ? theme.colors.primary : theme.colors.text.secondary)}
+            />
+          </TouchableOpacity>
+        </Animated.View>
+      )}
 
       {/* YESボタン */}
       <Animated.View
@@ -151,6 +195,9 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   noButton: {
+    // 個別のスタイル（必要に応じて）
+  },
+  saveButton: {
     // 個別のスタイル（必要に応じて）
   },
   yesButton: {
