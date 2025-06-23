@@ -177,6 +177,7 @@ npm run test:e2e
 
 - [開発ガイド](docs/guides/DEVELOPMENT_GUIDELINES.md)
 - [データベース設計](docs/DATABASE_INITIALIZATION_GUIDE.md)
+- [データベース移行ガイド](docs/database-migration-guide.md) 🆕
 - [テストガイド](docs/testing/TESTING_GUIDE.md)
 - [リリースチェックリスト](docs/MVP_RELEASE_CHECKLIST.md)
 - [Supabase無料枠最適化](docs/SUPABASE_FREE_TIER_OPTIMIZATION.md)
