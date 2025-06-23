@@ -351,31 +351,6 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
         </View>
       )}
       
-      {/* 追加ローディング */}
-      {loadingMore && (
-        <View 
-          style={[
-            styles.loadingMoreContainer,
-            { 
-              backgroundColor: `${theme.colors.card.background}F0`,
-              borderRadius: theme.radius.m,
-              shadowColor: theme.colors.card.shadow || '#000' // テーマの影の色を使用
-            }
-          ]} 
-          testID="loading-more"
-        >
-          <ActivityIndicator size="small" color={theme.colors.primary} />
-          <Text 
-            style={[
-              styles.loadingMoreText,
-              { color: theme.colors.text.secondary }
-            ]}
-          >
-            もっと読み込み中...
-          </Text>
-        </View>
-      )}
-      
       <Animated.View
         style={[styles.cardContainer, animatedCardStyle]}
         {...panResponder.panHandlers}
@@ -445,28 +420,6 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
         )}
       </Animated.View>
       
-      {/* 残りカード数表示 */}
-      <View 
-        style={[
-          styles.remainingContainer,
-          { 
-            backgroundColor: `${theme.colors.card.background}E6`,
-            borderRadius: theme.radius.m,
-            shadowColor: theme.colors.card.shadow || '#000' // テーマの影の色を使用
-          }
-        ]} 
-        testID="remaining-counter"
-      >
-        <Text 
-          style={[
-            styles.remainingText,
-            { color: theme.colors.text.secondary }
-          ]}
-        >
-          残り {products.length - currentIndex} / {products.length} 件
-        </Text>
-      </View>
-
       {/* クイックビューモーダル */}
       <QuickViewModal
         visible={showQuickView}
@@ -506,39 +459,6 @@ const styles = StyleSheet.create({
     height: '70%',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  loadingMoreContainer: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-    zIndex: 10,
-  },
-  loadingMoreText: {
-    marginLeft: 8,
-    fontSize: 14,
-  },
-  remainingContainer: {
-    position: 'absolute',
-    bottom: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  remainingText: {
-    fontSize: 12,
   },
   offlineBanner: {
     position: 'absolute',

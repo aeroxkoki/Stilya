@@ -217,15 +217,6 @@ const SwipeScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
       
-      {/* 進捗インジケーター */}
-      {totalFetched > 0 && (
-        <View style={styles.progressContainer}>
-          <Text style={[styles.progressText, { color: theme.colors.text.secondary }]}>
-            {currentIndex + 1} / {totalFetched} {hasMore ? '+' : ''}
-          </Text>
-        </View>
-      )}
-      
       {/* スワイプエリア */}
       <View style={styles.swipeContainer}>
         {currentProduct && (
@@ -281,14 +272,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-  },
-  progressContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    alignItems: 'center',
-  },
-  progressText: {
-    fontSize: 14,
   },
   swipeContainer: {
     flex: 1,
