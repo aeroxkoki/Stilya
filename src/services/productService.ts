@@ -22,6 +22,7 @@ const normalizeProduct = (dbProduct: any): Product => {
     affiliateUrl: dbProduct.affiliate_url,
     source: dbProduct.source,
     createdAt: dbProduct.created_at,
+    isUsed: dbProduct.is_used || false, // 中古品フラグ
   };
 };
 
@@ -32,6 +33,7 @@ export interface FilterOptions {
   categories?: string[];
   priceRange?: [number, number];
   selectedTags?: string[];
+  includeUsed?: boolean; // 中古品を含むかどうか（デフォルト: false）
 }
 
 /**
@@ -72,6 +74,12 @@ export const fetchProducts = async (limit: number = 20, offset: number = 0, filt
       if (filters.selectedTags && filters.selectedTags.length > 0) {
         query = query.or(filters.selectedTags.map(tag => `tags.cs.{${tag}}`).join(','));
       }
+      
+      // 中古品フィルター（デフォルトは新品のみ）
+      if (filters.includeUsed === false || filters.includeUsed === undefined) {
+        query = query.eq('is_used', false);
+      }
+      // includeUsed === true の場合は、フィルターを適用しない（新品・中古品両方を含む）
     }
     
     const { data, error, count } = await query
@@ -197,6 +205,7 @@ const saveProductsToSupabase = async (products: Product[]) => {
       affiliate_url: product.affiliateUrl,
       source: product.source,
       is_active: true,
+      is_used: product.isUsed || false, // 中古品フラグ
       created_at: new Date().toISOString(),
     }));
     
@@ -356,6 +365,11 @@ export const fetchPersonalizedProducts = async (
       // 追加タグフィルター（配列のORマッチ）
       if (filters.selectedTags && filters.selectedTags.length > 0) {
         query = query.or(filters.selectedTags.map(tag => `tags.cs.{${tag}}`).join(','));
+      }
+      
+      // 中古品フィルター（デフォルトは新品のみ）
+      if (filters.includeUsed === false || filters.includeUsed === undefined) {
+        query = query.eq('is_used', false);
       }
     }
 

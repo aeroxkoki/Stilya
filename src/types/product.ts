@@ -19,6 +19,9 @@ export interface Product {
   isSale?: boolean; // セール中フラグ
   rating?: number; // レビュー評価（1-5）
   reviewCount?: number; // レビュー数
+  // 中古品フラグ
+  isUsed?: boolean; // 中古品かどうか
+  is_used?: boolean; // Supabase DB 形式のフィールド名
 }
 
 export interface SwipeResult {

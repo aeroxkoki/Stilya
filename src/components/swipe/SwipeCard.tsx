@@ -64,6 +64,13 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
           placeholder={{ uri: 'https://via.placeholder.com/50x50?text=Loading' }}
         />
         
+        {/* 中古品ラベル */}
+        {product.isUsed && (
+          <View style={styles.usedLabel}>
+            <Text style={styles.usedLabelText}>中古</Text>
+          </View>
+        )}
+        
         <View style={styles.productInfo}>
           <View style={styles.productHeader}>
             <View style={styles.productDetails}>
@@ -152,6 +159,20 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     flex: 1,
+  },
+  usedLabel: {
+    position: 'absolute',
+    top: 16,
+    left: 16,
+    backgroundColor: 'rgba(245, 158, 11, 0.9)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  usedLabelText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   productInfo: {
     position: 'absolute',

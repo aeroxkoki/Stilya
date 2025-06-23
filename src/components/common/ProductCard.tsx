@@ -114,6 +114,16 @@ const ProductCard: React.FC<ProductCardProps> = ({
             resizeMode="cover"
           />
           
+          {/* 中古品ラベル */}
+          {product.isUsed && (
+            <View style={[
+              styles.usedLabel,
+              { backgroundColor: theme.colors.status.warning || 'rgba(245, 158, 11, 0.9)' }
+            ]}>
+              <Text style={styles.usedLabelText}>中古</Text>
+            </View>
+          )}
+          
           {showFavoriteButton && (
             <TouchableOpacity
               style={[
@@ -260,6 +270,19 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 2,
     elevation: 2,
+  },
+  usedLabel: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  usedLabelText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   infoContainer: {
     padding: 12,

@@ -58,7 +58,8 @@ const FilterModal: React.FC<FilterModalProps> = ({
   const [filters, setFilters] = useState<FilterOptions>(initialFilters || {
     categories: [],
     priceRange: [0, Infinity],
-    selectedTags: []
+    selectedTags: [],
+    includeUsed: false // デフォルトは新品のみ
   });
 
   // カテゴリー選択の切り替え
@@ -110,7 +111,8 @@ const FilterModal: React.FC<FilterModalProps> = ({
     setFilters({
       categories: [],
       priceRange: [0, Infinity],
-      selectedTags: []
+      selectedTags: [],
+      includeUsed: false
     });
   };
 
@@ -194,6 +196,35 @@ const FilterModal: React.FC<FilterModalProps> = ({
                     </Text>
                   </TouchableOpacity>
                 ))}
+              </View>
+            </View>
+            
+            {/* 商品の状態セクション */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>商品の状態</Text>
+              <View style={styles.conditionContainer}>
+                <TouchableOpacity
+                  style={[
+                    styles.conditionButton,
+                    !filters.includeUsed ? styles.conditionActive : styles.conditionInactive
+                  ]}
+                  onPress={() => setFilters(prev => ({ ...prev, includeUsed: false }))}
+                >
+                  <Text style={!filters.includeUsed ? styles.conditionTextActive : styles.conditionTextInactive}>
+                    新品のみ
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.conditionButton,
+                    filters.includeUsed ? styles.conditionActive : styles.conditionInactive
+                  ]}
+                  onPress={() => setFilters(prev => ({ ...prev, includeUsed: true }))}
+                >
+                  <Text style={filters.includeUsed ? styles.conditionTextActive : styles.conditionTextInactive}>
+                    すべて
+                  </Text>
+                </TouchableOpacity>
               </View>
             </View>
             
@@ -340,6 +371,33 @@ const styles = StyleSheet.create({
   },
   priceTextInactive: {
     color: '#1A1A1A', // theme.colors.text.primary の代わりに固定値
+  },
+  conditionContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  conditionButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  conditionActive: {
+    backgroundColor: '#2563eb',
+    borderColor: '#2563eb',
+  },
+  conditionInactive: {
+    backgroundColor: '#f9fafb',
+    borderColor: '#e5e7eb',
+  },
+  conditionTextActive: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  conditionTextInactive: {
+    color: '#1A1A1A',
   },
   buttonContainer: {
     flexDirection: 'row',

@@ -12,6 +12,26 @@ const RATE_LIMIT_DELAY = 1000; // 1秒の遅延
 const MAX_RETRIES = 3; // 最大リトライ回数
 const RETRY_DELAY = 5000; // リトライ時の待機時間（5秒）
 
+// 中古品判定のヘルパー関数
+const isUsedProduct = (product: any): boolean => {
+  const title = (product.itemName || '').toLowerCase();
+  const shopName = (product.shopName || '').toLowerCase();
+  
+  // 中古関連キーワード
+  const usedKeywords = ['中古', 'used', 'ユーズド', 'セカンドハンド', 'リユース', 'アウトレット'];
+  const hasUsedKeyword = usedKeywords.some(keyword => 
+    title.includes(keyword) || shopName.includes(keyword)
+  );
+  
+  // 中古専門ショップ
+  const usedShops = ['セカンドストリート', 'メルカリ', 'ラクマ', '2nd street', 'リサイクル'];
+  const isUsedShop = usedShops.some(shop => 
+    shopName.includes(shop.toLowerCase())
+  );
+  
+  return hasUsedKeyword || isUsedShop;
+};
+
 // APIコールの間隔を管理
 let lastApiCallTime = 0;
 
@@ -216,6 +236,7 @@ export const fetchRakutenFashionProducts = async (
           affiliateUrl: productItem.affiliateUrl || productItem.itemUrl || '',
           source: 'rakuten',
           createdAt: new Date().toISOString(),
+          isUsed: isUsedProduct(productItem), // 中古品判定
         };
       })
       .filter((product: Product | null) => product !== null); // 無効な商品を除外
