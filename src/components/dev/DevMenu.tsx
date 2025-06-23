@@ -124,7 +124,7 @@ export const DevMenu: React.FC<DevMenuProps> = ({ onClose }) => {
         >
           <View style={{ flex: 1, paddingTop: 50 }}>
             <TouchableOpacity 
-              style={{ padding: 15, backgroundColor: theme.colors.surface }}
+              style={{ padding: 15, backgroundColor: '#F5F5F5' }}
               onPress={() => setShowNetworkDebug(false)}
             >
               <Text style={{ fontSize: 16 }}>← 戻る</Text>
@@ -212,20 +212,20 @@ const styles = StyleSheet.create({
   },
   closeText: {
     fontSize: 20,
-    color: theme.colors.secondary,
+    color: '#666666', // theme.colors.secondary の代わりに固定値
   },
   content: {
     padding: 15,
   },
   userInfo: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#F5F5F5', // theme.colors.surface の代わりに固定値
     padding: 10,
     borderRadius: 5,
     marginBottom: 15,
   },
   userText: {
     fontSize: 14,
-    color: theme.colors.secondary,
+    color: '#666666', // theme.colors.secondary の代わりに固定値
   },
   menuItem: {
     padding: 15,
@@ -238,9 +238,9 @@ const styles = StyleSheet.create({
   },
   menuItemText: {
     fontSize: 16,
-    color: theme.colors.text.primary,
+    color: '#1A1A1A', // theme.colors.text.primary の代わりに固定値
   },
   menuItemTextDisabled: {
-    color: theme.colors.text.hint,
+    color: '#999999', // theme.colors.text.hint の代わりに固定値
   },
 });

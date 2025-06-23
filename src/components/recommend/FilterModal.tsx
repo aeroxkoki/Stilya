@@ -315,7 +315,7 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   tagTextInactive: {
-    color: theme.colors.text.primary,
+    color: '#1A1A1A', // theme.colors.text.primary の代わりに固定値
   },
   smallText: {
     fontSize: 14,
@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
     color: '#1d4ed8',
   },
   priceTextInactive: {
-    color: theme.colors.text.primary,
+    color: '#1A1A1A', // theme.colors.text.primary の代わりに固定値
   },
   buttonContainer: {
     flexDirection: 'row',
