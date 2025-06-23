@@ -35,7 +35,6 @@ interface StyleProviderProps {
 export const StyleProvider: React.FC<StyleProviderProps> = ({ children }) => {
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [styleType, setStyleType] = useState<StyleType>('minimal');
-  const [isLoaded, setIsLoaded] = useState<boolean>(false);
 
   // 初期設定の読み込み
   useEffect(() => {
@@ -54,8 +53,6 @@ export const StyleProvider: React.FC<StyleProviderProps> = ({ children }) => {
         }
       } catch (error) {
         console.error('Failed to load theme settings:', error);
-      } finally {
-        setIsLoaded(true);
       }
     };
 

@@ -143,9 +143,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.log('[AuthContext.tsx] 5.2. ネットワーク接続チェック開始');
       // ネットワーク接続をチェック
       try {
-        // 詳細なネットワーク診断を実行
-        if (__DEV__) {
-          console.log('[AuthContext.tsx] 5.3. ネットワーク診断開始');
+        // 開発環境でのネットワーク診断は、環境変数で明示的に有効化された場合のみ実行
+        if (__DEV__ && process.env.EXPO_PUBLIC_ENABLE_NETWORK_DIAGNOSTICS === 'true') {
+          console.log('[AuthContext.tsx] 5.3. ネットワーク診断開始（オプトイン）');
           // タイムアウトを設定してネットワーク診断を実行
           const diagnosticsPromise = runNetworkDiagnostics();
           const timeoutPromise = new Promise((_, reject) => 
@@ -161,10 +161,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
         
         console.log('[AuthContext.tsx] 5.4. Supabase接続テスト開始');
-        const connectionTest = await testSupabaseConnection();
+        // Supabase接続テストも簡略化（タイムアウト付き）
+        const connectionPromise = testSupabaseConnection();
+        const connectionTimeout = new Promise((resolve) => 
+          setTimeout(() => resolve(false), 2000)
+        );
+        
+        const connectionTest = await Promise.race([connectionPromise, connectionTimeout]);
         console.log('[AuthContext.tsx] 5.5. Supabase接続テスト結果:', connectionTest);
+        
+        // 接続テストが失敗しても、続行する（オフライン対応）
         if (!connectionTest) {
-          throw new Error('Supabaseへの接続に失敗しました。インターネット接続を確認してください。');
+          console.warn('[AuthContext.tsx] Supabase接続テストに失敗しましたが、続行します');
         }
       } catch (networkError: any) {
         console.error('[AuthContext] Network error:', networkError);
