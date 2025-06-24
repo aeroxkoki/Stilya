@@ -5,6 +5,7 @@ import { sortProductsByScore, filterOutOfSeasonProducts } from '@/utils/productS
 import { getUserPreferences } from './userPreferenceService';
 import { optimizeImageUrl, API_OPTIMIZATION } from '@/utils/supabaseOptimization';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/utils/env';
+import { shuffleArray, ensureProductDiversity, getTimeBasedOffset } from '@/utils/randomUtils';
 
 /**
  * DBの商品データをアプリ用の形式に正規化
@@ -732,5 +733,152 @@ const insertSampleProducts = async () => {
     }
   } catch (error) {
     console.error('[ProductService] Unexpected error inserting sample products:', error);
+  }
+};
+
+/**
+ * ランダム性を持った商品取得（探索用）
+ * ユーザー体験を向上させるため、毎回異なる順序で商品を表示
+ */
+export const fetchRandomizedProducts = async (
+  limit: number = 20,
+  offset: number = 0,
+  filters?: FilterOptions,
+  seed?: string
+) => {
+  try {
+    console.log('[ProductService] Fetching randomized products...');
+    
+    // 時間ベースのオフセットを生成（ページングと組み合わせ）
+    const timeOffset = getTimeBasedOffset();
+    const adjustedOffset = offset + timeOffset;
+    
+    // 多めに商品を取得（シャッフルと多様性確保のため）
+    const poolSize = limit * 3;
+    
+    let query = supabase
+      .from('external_products')
+      .select('*')
+      .eq('is_active', true);
+    
+    // フィルター条件を適用
+    if (filters) {
+      if (filters.categories && filters.categories.length > 0) {
+        query = query.in('category', filters.categories);
+      }
+      
+      if (filters.priceRange) {
+        const [minPrice, maxPrice] = filters.priceRange;
+        if (minPrice > 0) {
+          query = query.gte('price', minPrice);
+        }
+        if (maxPrice < Infinity) {
+          query = query.lte('price', maxPrice);
+        }
+      }
+      
+      if (filters.selectedTags && filters.selectedTags.length > 0) {
+        query = query.or(filters.selectedTags.map(tag => `tags.cs.{${tag}}`).join(','));
+      }
+      
+      if (filters.includeUsed === false || filters.includeUsed === undefined) {
+        query = query.eq('is_used', false);
+      }
+    }
+    
+    // ランダム性を持たせるため、異なる順序で取得
+    const randomOrder = Math.random() > 0.5 ? 'created_at' : 'last_synced';
+    const randomDirection = Math.random() > 0.5;
+    
+    const { data, error } = await query
+      .order(randomOrder, { ascending: randomDirection })
+      .range(adjustedOffset % 1000, (adjustedOffset % 1000) + poolSize - 1);
+    
+    if (error) {
+      console.error('[ProductService] Error fetching randomized products:', error);
+      return { success: false, error: error.message };
+    }
+    
+    if (!data || data.length === 0) {
+      return { success: true, data: [] };
+    }
+    
+    // 商品をシャッフル
+    let products = shuffleArray(data, seed);
+    
+    // 商品の多様性を確保
+    products = ensureProductDiversity(products, {
+      maxSameCategory: 2,
+      maxSameBrand: 2,
+      windowSize: 5
+    });
+    
+    // 必要な数だけ取得
+    const normalizedProducts = products
+      .slice(0, limit)
+      .map(normalizeProduct);
+    
+    console.log(`[ProductService] Fetched ${normalizedProducts.length} randomized products`);
+    return { success: true, data: normalizedProducts };
+    
+  } catch (error: any) {
+    console.error('[ProductService] Error in fetchRandomizedProducts:', error);
+    return { success: false, error: error.message || 'Failed to fetch randomized products' };
+  }
+};
+
+/**
+ * 探索モードと推薦モードをミックスした商品取得
+ * スワイプ画面用：70% ランダム + 30% 推薦
+ */
+export const fetchMixedProducts = async (
+  userId: string | null,
+  limit: number = 20,
+  offset: number = 0,
+  filters?: FilterOptions
+) => {
+  try {
+    const randomCount = Math.floor(limit * 0.7);
+    const personalizedCount = limit - randomCount;
+    
+    // ユーザーがログインしている場合のシード生成
+    const seed = userId ? `${userId}-${new Date().toDateString()}` : undefined;
+    
+    // 並列で両方の商品を取得
+    const [randomResult, personalizedResult] = await Promise.all([
+      fetchRandomizedProducts(randomCount, offset, filters, seed),
+      userId 
+        ? fetchPersonalizedProducts(userId, personalizedCount, offset, filters)
+        : fetchProducts(personalizedCount, offset, filters)
+    ]);
+    
+    const randomProducts = randomResult.success && randomResult.data ? randomResult.data : [];
+    const personalizedProducts = personalizedResult.success && personalizedResult.data ? personalizedResult.data : [];
+    
+    // 商品をミックス（交互に配置）
+    const mixedProducts: Product[] = [];
+    const maxLength = Math.max(randomProducts.length, personalizedProducts.length);
+    
+    for (let i = 0; i < maxLength; i++) {
+      if (i < randomProducts.length) {
+        mixedProducts.push(randomProducts[i]);
+      }
+      if (i < personalizedProducts.length) {
+        mixedProducts.push(personalizedProducts[i]);
+      }
+    }
+    
+    // 重複を除去
+    const uniqueProducts = mixedProducts.filter((product, index, self) =>
+      index === self.findIndex(p => p.id === product.id)
+    );
+    
+    console.log(`[ProductService] Mixed products - Random: ${randomProducts.length}, Personalized: ${personalizedProducts.length}`);
+    return { success: true, data: uniqueProducts.slice(0, limit) };
+    
+  } catch (error: any) {
+    console.error('[ProductService] Error in fetchMixedProducts:', error);
+    // エラー時は通常の商品取得にフォールバック
+    return fetchProducts(limit, offset, filters);
   }
 };

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { fetchProducts, fetchProductsByTags, fetchScoredProducts, FilterOptions } from '@/services/productService';
+import { fetchProducts, fetchProductsByTags, fetchScoredProducts, FilterOptions, fetchMixedProducts } from '@/services/productService';
 import { Product } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import { getSwipeHistory } from '@/services/swipeService';
@@ -119,8 +119,13 @@ export const useProducts = (): UseProductsReturn => {
       
       console.log('[useProducts] Loading products - page:', currentPage, 'offset:', currentPage * pageSize);
       
-      // 現在のフィルターを使用して商品を取得
-      const response = await fetchProducts(pageSize, currentPage * pageSize, filtersRef.current);
+      // ミックス商品取得機能を使用（ランダム性と推薦のバランス）
+      const response = await fetchMixedProducts(
+        user?.id || null,
+        pageSize,
+        currentPage * pageSize,
+        filtersRef.current
+      );
       
       // レスポンスの検証
       if (!response?.success) {

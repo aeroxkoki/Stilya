@@ -1,6 +1,7 @@
 import { supabase, handleSupabaseError, handleSupabaseSuccess, TABLES } from './supabase';
 import { Product, UserPreference } from '../types';
 import { FilterOptions } from './productService';
+import { addScoreNoise, shuffleArray, ensureProductDiversity } from '../utils/randomUtils';
 
 export class RecommendationService {
   // Analyze user preferences based on swipe history
@@ -130,11 +131,14 @@ export class RecommendationService {
 
       const swipedProductIds = swipedData?.map(s => s.product_id) || [];
 
+      // 多めに商品を取得してランダム性を確保
+      const poolSize = limit * 3;
+      
       // Query products matching user preferences
       let query = supabase
         .from(TABLES.EXTERNAL_PRODUCTS)
         .select('*')
-        .limit(limit)
+        .limit(poolSize)
         .order('created_at', { ascending: false });
 
       // Exclude already swiped products
@@ -155,39 +159,63 @@ export class RecommendationService {
 
       // Score and sort products based on preference matching
       const scoredProducts = (data || []).map((product: Product) => {
-        let productScore = 0;
+        let baseScore = 0;
 
         // Tag matching score
         if (product.tags && preferences.likedTags) {
           const matchingTags = product.tags.filter(tag => 
             preferences.likedTags.includes(tag)
           ).length;
-          productScore += matchingTags * 3;
+          baseScore += matchingTags * 3;
         }
 
         // Category matching score
         if (product.category && preferences.preferredCategories.includes(product.category)) {
-          productScore += 2;
+          baseScore += 2;
         }
 
         // Brand matching score
         if (preferences.brands && preferences.brands.includes(product.brand)) {
-          productScore += 1;
+          baseScore += 1;
         }
 
         // Price range score
         const priceRange = preferences.price_range || preferences.avgPriceRange;
         if (product.price >= priceRange.min && 
             product.price <= priceRange.max) {
-          productScore += 1;
+          baseScore += 1;
         }
 
-        return { ...product, score: productScore };
+        // ランダムノイズを追加（スコアの30%の範囲でランダム化）
+        const finalScore = addScoreNoise(baseScore, 0.3);
+
+        return { ...product, score: finalScore };
       });
 
-      // Sort by score and remove score property
-      const recommendations = scoredProducts
-        .sort((a, b) => b.score - a.score)
+      // Sort by score
+      let sortedProducts = scoredProducts.sort((a, b) => b.score - a.score);
+      
+      // トップ商品を取得した後、少しシャッフルして多様性を確保
+      const topProducts = sortedProducts.slice(0, limit * 1.5);
+      const remainingProducts = sortedProducts.slice(limit * 1.5);
+      
+      // トップ商品の中でランダム性を加える（完全にランダムではなく、上位グループ内でシャッフル）
+      const shuffledTop = shuffleArray(topProducts.slice(0, Math.floor(limit * 0.7)));
+      const shuffledRemaining = shuffleArray(topProducts.slice(Math.floor(limit * 0.7)));
+      
+      // 再結合
+      const finalProducts = [...shuffledTop, ...shuffledRemaining, ...remainingProducts];
+      
+      // 多様性を確保
+      const diverseProducts = ensureProductDiversity(finalProducts, {
+        maxSameCategory: 2,
+        maxSameBrand: 2,
+        windowSize: 5
+      });
+      
+      // Remove score property and return
+      const recommendations = diverseProducts
+        .slice(0, limit)
         .map(({ score: _score, ...product }) => product);
 
       return handleSupabaseSuccess(recommendations);
