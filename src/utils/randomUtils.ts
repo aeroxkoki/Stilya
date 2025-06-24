@@ -63,6 +63,12 @@ export const ensureProductDiversity = <T extends { category?: string; brand?: st
   const recentBrands: string[] = [];
   
   for (const product of products) {
+    // productがnullまたはundefinedの場合はスキップ
+    if (product == null) {
+      console.warn('[ensureProductDiversity] Null or undefined product detected, skipping');
+      continue;
+    }
+    
     // カテゴリとブランドの出現回数をカウント
     const categoryCount = product.category 
       ? recentCategories.filter(c => c === product.category).length 

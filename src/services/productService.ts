@@ -803,8 +803,16 @@ export const fetchRandomizedProducts = async (
       return { success: true, data: [] };
     }
     
+    // null/undefinedの商品をフィルタリング
+    const validProducts = data.filter(product => product != null);
+    
+    if (validProducts.length === 0) {
+      console.warn('[ProductService] No valid products after filtering null/undefined');
+      return { success: true, data: [] };
+    }
+    
     // 商品をシャッフル
-    let products = shuffleArray(data, seed);
+    let products = shuffleArray(validProducts, seed);
     
     // 商品の多様性を確保
     products = ensureProductDiversity(products, {
