@@ -1,6 +1,6 @@
 import { Product } from '@/types';
 import { getRecommendations, analyzeUserPreferences } from './recommendationService';
-import { fetchProducts, fetchProductsByTags, FilterOptions } from './productService';
+import { fetchProducts, fetchProductsByTags, FilterOptions, fetchRandomizedProducts } from './productService';
 
 interface OutfitRecommendation {
   top: Product | null;
@@ -35,8 +35,8 @@ export const getEnhancedRecommendations = async (
     const [internalRecsResult, trendingProducts, userPrefs] = await Promise.all([
       // 内部DBからの推薦（ユーザーのスワイプ履歴に基づく）
       getRecommendations(userId, Math.floor(limit / 2), defaultFilters),
-      // トレンド商品（external_productsから最新の商品を取得）
-      fetchProducts(Math.floor(limit / 2), 0, defaultFilters),
+      // トレンド商品（ランダム性を加えて取得）
+      fetchRandomizedProducts(Math.floor(limit / 2), 0, defaultFilters, `trending-${new Date().toDateString()}`),
       // ユーザーの好み分析
       analyzeUserPreferences(userId)
     ]);
@@ -66,9 +66,14 @@ export const getEnhancedRecommendations = async (
       }
     }
 
-    // データが少ない場合は補完（external_productsから）
+    // データが少ない場合は補完（ランダム性を加えて取得）
     if (forYouProducts.length < Math.floor(limit / 4)) {
-      const additionalProducts = await fetchProducts(Math.floor(limit / 4), 0, defaultFilters);
+      const additionalProducts = await fetchRandomizedProducts(
+        Math.floor(limit / 4), 
+        0, 
+        defaultFilters,
+        `foryou-additional-${userId}-${new Date().toDateString()}`
+      );
       const additionalProductsList = additionalProducts.success && 'data' in additionalProducts && additionalProducts.data ? additionalProducts.data : [];
       forYouProducts = [...forYouProducts, ...additionalProductsList].slice(0, Math.floor(limit / 2));
     }
