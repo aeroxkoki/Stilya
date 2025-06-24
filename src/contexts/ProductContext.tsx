@@ -31,13 +31,17 @@ interface ProductContextType {
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
 
-export const useProducts = () => {
+export const useProductContext = () => {
   const context = useContext(ProductContext);
   if (!context) {
-    throw new Error('useProducts must be used within a ProductProvider');
+    throw new Error('useProductContext must be used within a ProductProvider');
   }
   return context;
 };
+
+// 後方互換性のためのエイリアス（非推奨）
+// TODO: 全ての参照を useProductContext に更新後、このエイリアスを削除
+export const useProducts = useProductContext;
 
 export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [products, setProducts] = useState<Product[]>([]);

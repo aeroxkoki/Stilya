@@ -15,7 +15,8 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { ProductCard, Button } from '@/components/common';
-import { useProducts } from '@/contexts/ProductContext';
+import { useSwipeHistory } from '@/hooks/useSwipeHistory';
+import { useFavorites } from '@/hooks/useFavorites';
 import { useAuth } from '@/hooks/useAuth';
 import { Product, ProfileStackParamList } from '@/types';
 import { useStyle } from '@/contexts/ThemeContext';
@@ -30,18 +31,25 @@ const SwipeHistoryScreen: React.FC = () => {
   const { theme } = useStyle();
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
+  
+  // スワイプ履歴の管理
   const { 
     swipeHistory, 
-    getSwipeHistory, 
     loading,
+    refreshing,
+    getSwipeHistory,
+    refreshHistory
+  } = useSwipeHistory();
+  
+  // お気に入り機能
+  const {
     addToFavorites,
-    isFavorite,
-    removeFromFavorites
-  } = useProducts();
+    removeFromFavorites,
+    isFavorite
+  } = useFavorites();
   
   // フィルタリング用の状態
   const [filter, setFilter] = useState<'all' | 'yes' | 'no'>('all');
-  const [refreshing, setRefreshing] = useState(false);
   const [filteredHistory, setFilteredHistory] = useState<Product[]>([]);
   const [page, setPage] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
