@@ -16,6 +16,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '@/hooks/useAuth';
 import { useStyle } from '@/contexts/ThemeContext';
 import { StyleType, styleThemes } from '@/styles/theme';
+import { cleanupDuplicateSwipes } from '@/services/swipeService';
 
 const SettingsScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -68,6 +69,36 @@ const SettingsScreen: React.FC = () => {
   const handleSaveStyle = () => {
     setStyleType(selectedStyle);
     setShowStyleModal(false);
+  };
+  
+  // データクリーンアップ処理
+  const handleCleanupData = async () => {
+    if (!user) return;
+    
+    Alert.alert(
+      'データのクリーンアップ',
+      'スワイプ履歴の重複データを削除します。この操作は元に戻せません。',
+      [
+        { text: 'キャンセル', style: 'cancel' },
+        {
+          text: '実行',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const success = await cleanupDuplicateSwipes(user.id);
+              if (success) {
+                Alert.alert('完了', 'データのクリーンアップが完了しました。');
+              } else {
+                Alert.alert('エラー', 'クリーンアップ処理中にエラーが発生しました。');
+              }
+            } catch (error) {
+              console.error('Cleanup error:', error);
+              Alert.alert('エラー', 'クリーンアップ処理に失敗しました。');
+            }
+          }
+        }
+      ]
+    );
   };
   
   // ログアウト処理
@@ -293,18 +324,33 @@ const SettingsScreen: React.FC = () => {
           
           {/* データベース診断（開発用） */}
           {__DEV__ && (
-            <TouchableOpacity 
-              style={[styles.settingItem, { borderBottomColor: isDarkMode ? '#333' : '#f0f0f0' }]}
-              onPress={() => navigation.navigate('SupabaseDiagnostic' as never)}
-            >
-              <View style={styles.settingTextContainer}>
-                <Text style={[styles.settingLabel, { color: isDarkMode ? '#fff' : '#333' }]}>データベース診断</Text>
-                <Text style={[styles.settingDescription, { color: isDarkMode ? '#aaa' : '#777' }]}>
-                  開発用：接続状態を確認します
-                </Text>
-              </View>
-              <Ionicons name="bug-outline" size={20} color={isDarkMode ? '#aaa' : '#999'} />
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity 
+                style={[styles.settingItem, { borderBottomColor: isDarkMode ? '#333' : '#f0f0f0' }]}
+                onPress={() => navigation.navigate('SupabaseDiagnostic' as never)}
+              >
+                <View style={styles.settingTextContainer}>
+                  <Text style={[styles.settingLabel, { color: isDarkMode ? '#fff' : '#333' }]}>データベース診断</Text>
+                  <Text style={[styles.settingDescription, { color: isDarkMode ? '#aaa' : '#777' }]}>
+                    開発用：接続状態を確認します
+                  </Text>
+                </View>
+                <Ionicons name="bug-outline" size={20} color={isDarkMode ? '#aaa' : '#999'} />
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.settingItem, { borderBottomColor: isDarkMode ? '#333' : '#f0f0f0' }]}
+                onPress={handleCleanupData}
+              >
+                <View style={styles.settingTextContainer}>
+                  <Text style={[styles.settingLabel, { color: isDarkMode ? '#fff' : '#333' }]}>データクリーンアップ</Text>
+                  <Text style={[styles.settingDescription, { color: isDarkMode ? '#aaa' : '#777' }]}>
+                    重複したスワイプデータを削除します
+                  </Text>
+                </View>
+                <Ionicons name="trash-outline" size={20} color={isDarkMode ? '#aaa' : '#999'} />
+              </TouchableOpacity>
+            </>
           )}
         </View>
         
