@@ -17,6 +17,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useStyle } from '@/contexts/ThemeContext';
 import { StyleType, styleThemes } from '@/styles/theme';
 import { cleanupDuplicateSwipes } from '@/services/swipeService';
+import { runDatabaseDiagnostics, cleanupInvalidProducts } from '@/utils/diagnostics';
 
 const SettingsScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -93,6 +94,54 @@ const SettingsScreen: React.FC = () => {
               }
             } catch (error) {
               console.error('Cleanup error:', error);
+              Alert.alert('エラー', 'クリーンアップ処理に失敗しました。');
+            }
+          }
+        }
+      ]
+    );
+  };
+  
+  // データベース整合性診断処理
+  const handleDatabaseDiagnostics = async () => {
+    Alert.alert(
+      'データベース診断',
+      'データベースの整合性をチェックします。コンソールログを確認してください。',
+      [
+        { text: 'キャンセル', style: 'cancel' },
+        {
+          text: '実行',
+          onPress: async () => {
+            try {
+              console.log('Starting database diagnostics...');
+              await runDatabaseDiagnostics();
+              Alert.alert('完了', 'データベース診断が完了しました。コンソールログを確認してください。');
+            } catch (error) {
+              console.error('Diagnostics error:', error);
+              Alert.alert('エラー', '診断中にエラーが発生しました。');
+            }
+          }
+        }
+      ]
+    );
+  };
+  
+  // 不正データのクリーンアップ処理
+  const handleInvalidDataCleanup = async () => {
+    Alert.alert(
+      '不正データのクリーンアップ',
+      '不完全な商品データを削除します。この操作は元に戻せません。',
+      [
+        { text: 'キャンセル', style: 'cancel' },
+        {
+          text: '実行',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await cleanupInvalidProducts();
+              Alert.alert('完了', '不正データのクリーンアップが完了しました。');
+            } catch (error) {
+              console.error('Invalid data cleanup error:', error);
               Alert.alert('エラー', 'クリーンアップ処理に失敗しました。');
             }
           }
@@ -330,9 +379,9 @@ const SettingsScreen: React.FC = () => {
                 onPress={() => navigation.navigate('SupabaseDiagnostic' as never)}
               >
                 <View style={styles.settingTextContainer}>
-                  <Text style={[styles.settingLabel, { color: isDarkMode ? '#fff' : '#333' }]}>データベース診断</Text>
+                  <Text style={[styles.settingLabel, { color: isDarkMode ? '#fff' : '#333' }]}>データベース診断画面</Text>
                   <Text style={[styles.settingDescription, { color: isDarkMode ? '#aaa' : '#777' }]}>
-                    開発用：接続状態を確認します
+                    開発用：接続状態を視覚的に確認します
                   </Text>
                 </View>
                 <Ionicons name="bug-outline" size={20} color={isDarkMode ? '#aaa' : '#999'} />
@@ -340,15 +389,41 @@ const SettingsScreen: React.FC = () => {
               
               <TouchableOpacity 
                 style={[styles.settingItem, { borderBottomColor: isDarkMode ? '#333' : '#f0f0f0' }]}
+                onPress={handleDatabaseDiagnostics}
+              >
+                <View style={styles.settingTextContainer}>
+                  <Text style={[styles.settingLabel, { color: isDarkMode ? '#fff' : '#333' }]}>データベース整合性チェック</Text>
+                  <Text style={[styles.settingDescription, { color: isDarkMode ? '#aaa' : '#777' }]}>
+                    商品データの整合性をチェックします
+                  </Text>
+                </View>
+                <Ionicons name="analytics-outline" size={20} color={isDarkMode ? '#aaa' : '#999'} />
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.settingItem, { borderBottomColor: isDarkMode ? '#333' : '#f0f0f0' }]}
                 onPress={handleCleanupData}
               >
                 <View style={styles.settingTextContainer}>
-                  <Text style={[styles.settingLabel, { color: isDarkMode ? '#fff' : '#333' }]}>データクリーンアップ</Text>
+                  <Text style={[styles.settingLabel, { color: isDarkMode ? '#fff' : '#333' }]}>スワイプ履歴のクリーンアップ</Text>
                   <Text style={[styles.settingDescription, { color: isDarkMode ? '#aaa' : '#777' }]}>
                     重複したスワイプデータを削除します
                   </Text>
                 </View>
-                <Ionicons name="trash-outline" size={20} color={isDarkMode ? '#aaa' : '#999'} />
+                <Ionicons name="refresh-outline" size={20} color={isDarkMode ? '#aaa' : '#999'} />
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.settingItem, { borderBottomColor: isDarkMode ? '#333' : '#f0f0f0' }]}
+                onPress={handleInvalidDataCleanup}
+              >
+                <View style={styles.settingTextContainer}>
+                  <Text style={[styles.settingLabel, { color: '#ff6b6b' }]}>不正商品データのクリーンアップ</Text>
+                  <Text style={[styles.settingDescription, { color: isDarkMode ? '#aaa' : '#777' }]}>
+                    不完全な商品データを削除します（危険）
+                  </Text>
+                </View>
+                <Ionicons name="trash-outline" size={20} color="#ff6b6b" />
               </TouchableOpacity>
             </>
           )}

@@ -4,6 +4,7 @@
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../utils/env';
 import { supabase } from './supabase';
 import { fetchProducts } from './productService';
+import { runDatabaseDiagnostics, cleanupInvalidProducts } from '../utils/diagnostics';
 
 export const runAppDiagnostics = async () => {
   console.log('🚀 Stilya App Diagnostics Starting...');
@@ -48,6 +49,15 @@ export const runAppDiagnostics = async () => {
       dataCount: productResult.data?.length || 0,
       error: productResult.error
     });
+    
+    // 5. データベース整合性チェック（新規追加）
+    console.log('\n🔍 データベース整合性チェック:');
+    await runDatabaseDiagnostics();
+    
+    // 6. 不正データのクリーンアップ（オプション）
+    // 自動クリーンアップを有効にする場合はコメントを外す
+    // console.log('\n🧹 不正データのクリーンアップ:');
+    // await cleanupInvalidProducts();
     
   } catch (error: any) {
     console.error('❌ 診断中にエラー:', error.message);
