@@ -90,16 +90,12 @@ const SwipeHistoryScreen: React.FC = () => {
   useEffect(() => {
     const loadSwipeHistory = async () => {
       if (user) {
-        if (filter === 'all') {
-          await getSwipeHistory(user.id);
-        } else {
-          await getSwipeHistory(user.id, filter);
-        }
+        await getSwipeHistory(filter);
       }
     };
     
     loadSwipeHistory();
-  }, [user, filter]);
+  }, [user, filter, getSwipeHistory]);
   
   // スワイプ履歴がロードされたらフィルタリング（重複を除去）
   useEffect(() => {
@@ -139,14 +135,8 @@ const SwipeHistoryScreen: React.FC = () => {
   const handleRefresh = async () => {
     if (!user) return;
     
-    setRefreshing(true);
     setPage(1); // ページをリセット
-    if (filter === 'all') {
-      await getSwipeHistory(user.id);
-    } else {
-      await getSwipeHistory(user.id, filter);
-    }
-    setRefreshing(false);
+    await refreshHistory();
   };
   
   // もっと読み込むハンドラー
