@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from './useAuth';
-import { getFavorites, addFavorite, removeFavorite } from '@/services/favoriteService';
+import { getFavorites, toggleFavorite } from '@/services/favoriteService';
 
 interface UseFavoritesReturn {
   favorites: string[];
@@ -41,38 +41,39 @@ export const useFavorites = (): UseFavoritesReturn => {
     if (!user) return;
 
     try {
-      // 楽観的更新
-      setFavorites(prev => {
-        if (!prev.includes(productId)) {
-          return [...prev, productId];
-        }
-        return prev;
-      });
+      const isCurrentlyFavorite = favorites.includes(productId);
+      if (!isCurrentlyFavorite) {
+        // 楽観的更新
+        setFavorites(prev => [...prev, productId]);
 
-      // APIコール
-      await addFavorite(user.id, productId);
+        // APIコール
+        await toggleFavorite(user.id, productId);
+      }
     } catch (error) {
       console.error('[useFavorites] Error adding to favorites:', error);
       // エラー時はロールバック
       await loadFavorites();
     }
-  }, [user, loadFavorites]);
+  }, [user, favorites, loadFavorites]);
 
   const removeFromFavorites = useCallback(async (productId: string) => {
     if (!user) return;
 
     try {
-      // 楽観的更新
-      setFavorites(prev => prev.filter(id => id !== productId));
+      const isCurrentlyFavorite = favorites.includes(productId);
+      if (isCurrentlyFavorite) {
+        // 楽観的更新
+        setFavorites(prev => prev.filter(id => id !== productId));
 
-      // APIコール
-      await removeFavorite(user.id, productId);
+        // APIコール
+        await toggleFavorite(user.id, productId);
+      }
     } catch (error) {
       console.error('[useFavorites] Error removing from favorites:', error);
       // エラー時はロールバック
       await loadFavorites();
     }
-  }, [user, loadFavorites]);
+  }, [user, favorites, loadFavorites]);
 
   const isFavorite = useCallback((productId: string): boolean => {
     return favorites.includes(productId);
