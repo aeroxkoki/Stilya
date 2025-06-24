@@ -107,17 +107,27 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
       const swipeData = await getSwipeHistoryService(userId, filterResult);
       
       if (swipeData && swipeData.length > 0) {
-        // 商品IDのリストを抽出
-        const productIds = swipeData.map(swipe => swipe.productId);
+        // 商品IDのリストを抽出（重複を除去）
+        const uniqueProductIds = [...new Set(swipeData.map(swipe => swipe.productId))];
         
         // 商品詳細を取得
-        const productPromises = productIds.map(id => fetchProductById(id));
+        const productPromises = uniqueProductIds.map(id => fetchProductById(id));
         const productResults = await Promise.all(productPromises);
         
-        // 成功した商品のみをフィルタリング
-        const validProducts: Product[] = productResults
-          .filter(result => result.success && 'data' in result && result.data)
-          .map(result => (result as any).data);
+        // 成功した商品のみをフィルタリング（idの重複チェックも実施）
+        const validProducts: Product[] = [];
+        const seenIds = new Set<string>();
+        
+        productResults.forEach(result => {
+          if (result.success && 'data' in result && result.data) {
+            const product = (result as any).data;
+            // IDが正しい形式で、重複していないことを確認
+            if (product.id && !product.id.includes('undo-row') && !seenIds.has(product.id)) {
+              seenIds.add(product.id);
+              validProducts.push(product);
+            }
+          }
+        });
         
         setSwipeHistory(validProducts);
       } else {

@@ -93,14 +93,19 @@ const SwipeHistoryScreen: React.FC = () => {
     loadSwipeHistory();
   }, [user, filter]);
   
-  // スワイプ履歴がロードされたらフィルタリング
+  // スワイプ履歴がロードされたらフィルタリング（重複を除去）
   useEffect(() => {
     if (swipeHistory.length > 0) {
+      // 重複を除去（idベースでユニークにする）
+      const uniqueProducts = swipeHistory.filter((product, index, self) =>
+        index === self.findIndex((p) => p.id === product.id)
+      );
+      
       // 簡易的なページネーション (1ページあたり20件)
       const ITEMS_PER_PAGE = 20;
       const startIndex = 0;
       const endIndex = page * ITEMS_PER_PAGE;
-      setFilteredHistory(swipeHistory.slice(startIndex, endIndex));
+      setFilteredHistory(uniqueProducts.slice(startIndex, endIndex));
     } else {
       setFilteredHistory([]);
     }
@@ -260,7 +265,7 @@ const SwipeHistoryScreen: React.FC = () => {
         ) : (
           <FlatList
             data={filteredHistory}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item, index) => `swipe-${item.id}-${index}`}
             numColumns={COLUMN_NUM}
             contentContainerStyle={styles.listContainer}
             refreshControl={
@@ -269,6 +274,10 @@ const SwipeHistoryScreen: React.FC = () => {
             onEndReached={handleLoadMore}
             onEndReachedThreshold={0.5}
             ListFooterComponent={renderFooter}
+            removeClippedSubviews={true}
+            initialNumToRender={10}
+            maxToRenderPerBatch={10}
+            windowSize={10}
             renderItem={({ item, index }) => (
               <View style={styles.cardContainer}>
                 <View>
