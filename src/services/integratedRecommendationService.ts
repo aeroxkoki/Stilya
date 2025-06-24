@@ -34,7 +34,7 @@ export const getEnhancedRecommendations = async (
     // 並列でデータを取得
     const [internalRecsResult, trendingProducts, userPrefs] = await Promise.all([
       // 内部DBからの推薦（ユーザーのスワイプ履歴に基づく）
-      getRecommendations(userId, Math.floor(limit / 2)),
+      getRecommendations(userId, Math.floor(limit / 2), defaultFilters),
       // トレンド商品（external_productsから最新の商品を取得）
       fetchProducts(Math.floor(limit / 2), 0, defaultFilters),
       // ユーザーの好み分析
@@ -55,7 +55,8 @@ export const getEnhancedRecommendations = async (
       // タグベースで関連商品を取得（external_productsから）
       const tagResult = await fetchProductsByTags(
         userPrefs.data.likedTags,
-        Math.floor(limit / 2)
+        Math.floor(limit / 2),
+        defaultFilters
       );
       forYouProducts = tagResult.success && 'data' in tagResult && tagResult.data ? tagResult.data : [];
       

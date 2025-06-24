@@ -91,8 +91,8 @@ const storeActions = {
     updateStore({ loading: true, error: null });
     
     try {
-      // fetchProductsByTags を使用
-      const result = await fetchProductsByTags(tags, 20);
+      // fetchProductsByTags を使用（フィルターオプションを渡す）
+      const result = await fetchProductsByTags(tags, 20, { includeUsed: false });
       
       if (result.success && 'data' in result && result.data) {
         updateStore({ products: result.data, loading: false });

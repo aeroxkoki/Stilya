@@ -243,14 +243,40 @@ export const fetchProductById = async (productId: string) => {
 /**
  * タグで商品を検索
  */
-export const fetchProductsByTags = async (tags: string[], limit: number = 20) => {
+export const fetchProductsByTags = async (tags: string[], limit: number = 20, filters?: FilterOptions) => {
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('external_products')
       .select('*')
       .eq('is_active', true)
       .contains('tags', tags)
       .limit(limit);
+    
+    // フィルター条件を適用
+    if (filters) {
+      // 中古品フィルター（デフォルトは新品のみ）
+      if (filters.includeUsed === false || filters.includeUsed === undefined) {
+        query = query.eq('is_used', false);
+      }
+      
+      // 価格範囲フィルター
+      if (filters.priceRange) {
+        const [minPrice, maxPrice] = filters.priceRange;
+        if (minPrice > 0) {
+          query = query.gte('price', minPrice);
+        }
+        if (maxPrice < Infinity) {
+          query = query.lte('price', maxPrice);
+        }
+      }
+      
+      // カテゴリーフィルター
+      if (filters.categories && filters.categories.length > 0) {
+        query = query.in('category', filters.categories);
+      }
+    }
+    
+    const { data, error } = await query;
     
     if (error) {
       return { success: false, error: error.message };

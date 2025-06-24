@@ -1,5 +1,6 @@
 import { supabase, handleSupabaseError, handleSupabaseSuccess, TABLES } from './supabase';
 import { Product, UserPreference } from '../types';
+import { FilterOptions } from './productService';
 
 export class RecommendationService {
   // Analyze user preferences based on swipe history
@@ -110,7 +111,7 @@ export class RecommendationService {
   }
 
   // Get personalized recommendations based on user preferences
-  static async getPersonalizedRecommendations(userId: string, limit: number = 20) {
+  static async getPersonalizedRecommendations(userId: string, limit: number = 20, filters?: FilterOptions) {
     try {
       const preferencesResult = await RecommendationService.analyzeUserPreferences(userId);
       
