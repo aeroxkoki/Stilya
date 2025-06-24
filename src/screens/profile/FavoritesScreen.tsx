@@ -405,9 +405,6 @@ const styles = StyleSheet.create({
     margin: 4,
     marginBottom: 16,
   },
-  favoriteButton: {
-    // Placeholder - dynamic styles used instead
-  },
 });
 
 export default FavoritesScreen;

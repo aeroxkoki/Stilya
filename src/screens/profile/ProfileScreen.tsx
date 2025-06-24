@@ -300,9 +300,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  avatarText: {
-    // Placeholder - dynamic styles used instead
-  },
   userName: {
     fontSize: 18,
     fontWeight: '600',

@@ -138,9 +138,6 @@ const StyleSelectionCard: React.FC<StyleSelectionCardProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: {
-    // Placeholder - dynamic styles used instead
-  },
   content: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -180,9 +177,6 @@ const styles = StyleSheet.create({
   previewButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-  },
-  previewButtonText: {
-    // Placeholder - dynamic styles used instead
   },
   previewTextContainer: {
     flex: 1,

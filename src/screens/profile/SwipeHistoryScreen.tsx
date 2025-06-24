@@ -367,9 +367,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#6B7280',
   },
-  filterButtonTextActive: {
-    // Placeholder - dynamic styles used instead
-  },
   contentContainer: {
     flex: 1,
   },
@@ -409,9 +406,6 @@ const styles = StyleSheet.create({
     margin: 4,
     marginBottom: 16,
   },
-  favoriteButton: {
-    // Placeholder - dynamic styles used instead
-  },
   resultBadge: {
     position: 'absolute',
     top: 8,
@@ -421,9 +415,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  resultBadgeText: {
-    // Placeholder - dynamic styles used instead
   },
   footerContainer: {
     paddingVertical: 16,
