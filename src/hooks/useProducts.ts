@@ -145,11 +145,27 @@ export const useProducts = (): UseProductsReturn => {
       console.log('[useProducts] After filtering swiped products:', filteredProducts.length);
 
       // 結果が十分でない場合の処理
-      if (filteredProducts.length === 0 && newProducts.length > 0) {
-        // スワイプ済みを除外した結果、商品がない場合は次のページを試みる
-        console.log('[useProducts] All products were swiped, trying next page...');
+      if (filteredProducts.length < pageSize / 2 && hasMoreProducts) {
+        // フィルタリング後の商品が少ない場合、追加で商品を取得
+        console.log('[useProducts] Not enough products after filtering, fetching more...');
         if (!reset) {
           setPage(prevPage => prevPage + 1);
+          
+          // 現在のフィルタリング済み商品を一時的に保存
+          setProductsData(prev => {
+            const updatedProducts = reset 
+              ? filteredProducts 
+              : [...prev.products, ...filteredProducts.filter(
+                  p => !prev.products.some(existing => existing.id === p.id)
+                )];
+
+            return {
+              products: updatedProducts,
+              hasMore: hasMoreProducts,
+              totalFetched: prev.totalFetched + filteredProducts.length
+            };
+          });
+          
           loadingRef.current = false;
           // 再帰的に次のページを読み込む
           setTimeout(() => loadProducts(false), 100);

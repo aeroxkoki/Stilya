@@ -790,9 +790,11 @@ export const fetchRandomizedProducts = async (
     const randomOrder = Math.random() > 0.5 ? 'created_at' : 'last_synced';
     const randomDirection = Math.random() > 0.5;
     
+    // offsetの計算を修正 - 全商品範囲から取得
+    const actualOffset = offset + timeOffset;
     const { data, error } = await query
       .order(randomOrder, { ascending: randomDirection })
-      .range(adjustedOffset % 1000, (adjustedOffset % 1000) + poolSize - 1);
+      .range(actualOffset, actualOffset + poolSize - 1);
     
     if (error) {
       console.error('[ProductService] Error fetching randomized products:', error);
@@ -863,26 +865,42 @@ export const fetchMixedProducts = async (
     const randomProducts = randomResult.success && randomResult.data ? randomResult.data : [];
     const personalizedProducts = personalizedResult.success && personalizedResult.data ? personalizedResult.data : [];
     
+    // 重複を事前に除去
+    const productIdSet = new Set<string>();
+    const uniqueRandomProducts: Product[] = [];
+    const uniquePersonalizedProducts: Product[] = [];
+    
+    // ランダム商品の重複除去
+    randomProducts.forEach(product => {
+      if (!productIdSet.has(product.id)) {
+        productIdSet.add(product.id);
+        uniqueRandomProducts.push(product);
+      }
+    });
+    
+    // パーソナライズ商品の重複除去
+    personalizedProducts.forEach(product => {
+      if (!productIdSet.has(product.id)) {
+        productIdSet.add(product.id);
+        uniquePersonalizedProducts.push(product);
+      }
+    });
+    
     // 商品をミックス（交互に配置）
     const mixedProducts: Product[] = [];
-    const maxLength = Math.max(randomProducts.length, personalizedProducts.length);
+    const maxLength = Math.max(uniqueRandomProducts.length, uniquePersonalizedProducts.length);
     
     for (let i = 0; i < maxLength; i++) {
-      if (i < randomProducts.length) {
-        mixedProducts.push(randomProducts[i]);
+      if (i < uniqueRandomProducts.length) {
+        mixedProducts.push(uniqueRandomProducts[i]);
       }
-      if (i < personalizedProducts.length) {
-        mixedProducts.push(personalizedProducts[i]);
+      if (i < uniquePersonalizedProducts.length) {
+        mixedProducts.push(uniquePersonalizedProducts[i]);
       }
     }
     
-    // 重複を除去
-    const uniqueProducts = mixedProducts.filter((product, index, self) =>
-      index === self.findIndex(p => p.id === product.id)
-    );
-    
-    console.log(`[ProductService] Mixed products - Random: ${randomProducts.length}, Personalized: ${personalizedProducts.length}`);
-    return { success: true, data: uniqueProducts.slice(0, limit) };
+    console.log(`[ProductService] Mixed products - Random: ${uniqueRandomProducts.length}, Personalized: ${uniquePersonalizedProducts.length}, Total unique: ${mixedProducts.length}`);
+    return { success: true, data: mixedProducts.slice(0, limit) };
     
   } catch (error: any) {
     console.error('[ProductService] Error in fetchMixedProducts:', error);
