@@ -80,7 +80,8 @@ export const saveSwipeResult = async (
           product_id: productId,
           result,
         },
-      ]);
+      ])
+      .select('id'); // IDを返すように指定
 
     if (error) throw error;
 
@@ -215,6 +216,46 @@ export const syncOfflineSwipes = async (): Promise<boolean> => {
 };
 
 /**
+ * 有効なスワイプデータかどうかを検証
+ */
+const isValidSwipeData = (item: any): boolean => {
+  // 基本的な必須フィールドの存在確認
+  if (!item || !item.id || !item.product_id || !item.user_id) {
+    return false;
+  }
+  
+  // IDの形式チェック（Supabaseの内部メタデータを除外）
+  const idStr = item.id.toString();
+  const productIdStr = item.product_id.toString();
+  
+  // 不正なパターンをチェック
+  const invalidPatterns = [
+    'undo-row',
+    'undo_row',
+    'UNDO',
+    'replica',
+    'REPLICA',
+    'tmp_',
+    'temp_',
+    '__'
+  ];
+  
+  for (const pattern of invalidPatterns) {
+    if (idStr.includes(pattern) || productIdStr.includes(pattern)) {
+      return false;
+    }
+  }
+  
+  // UUIDまたは既知の形式であることを確認
+  const validIdPattern = /^[a-zA-Z0-9\-_]+$/;
+  if (!validIdPattern.test(idStr) || !validIdPattern.test(productIdStr)) {
+    return false;
+  }
+  
+  return true;
+};
+
+/**
  * ユーザーのスワイプ履歴を取得する
  * @param userId ユーザーID
  * @param result オプションの結果フィルタ ('yes' or 'no')
@@ -225,10 +266,10 @@ export const getSwipeHistory = async (userId: string, result?: SwipeResult): Pro
     // オンラインデータ取得
     const networkOffline = await isOffline();
     if (!networkOffline) {
-      // APIクエリを構築
+      // APIクエリを構築（必要なフィールドのみ選択）
       let query = supabase
         .from('swipes')
-        .select('*')
+        .select('id, user_id, product_id, result, created_at')
         .eq('user_id', userId);
       
       // 結果でフィルタリング（オプション）
@@ -236,31 +277,58 @@ export const getSwipeHistory = async (userId: string, result?: SwipeResult): Pro
         query = query.eq('result', result);
       }
       
-      // 順序付けして取得
-      const { data, error } = await query.order('created_at', { ascending: false });
+      // 順序付けして取得（最新100件まで）
+      const { data, error } = await query
+        .order('created_at', { ascending: false })
+        .limit(100);
 
       if (error) throw error;
 
-      const onlineSwipes = data.map((item) => ({
-        id: item.id,
-        userId: item.user_id,
-        productId: item.product_id,
-        result: item.result as SwipeResult,
-        createdAt: item.created_at,
-      }));
+      // デバッグ: 生データを確認
+      if (__DEV__ && data && data.length > 0) {
+        console.log('[getSwipeHistory] Raw data sample:', JSON.stringify(data[0], null, 2));
+        console.log('[getSwipeHistory] Total items:', data.length);
+        
+        // 不正なIDをチェック
+        const invalidItems = data.filter(item => !isValidSwipeData(item));
+        
+        if (invalidItems.length > 0) {
+          console.warn('[getSwipeHistory] Found invalid items:', invalidItems.length);
+          console.warn('[getSwipeHistory] Invalid sample:', invalidItems[0]);
+        }
+      }
+
+      // 有効なデータのみをフィルタリングしてマッピング
+      const onlineSwipes = data
+        .filter(isValidSwipeData)
+        .map((item) => ({
+          id: item.id.toString(),
+          userId: item.user_id,
+          productId: item.product_id,
+          result: item.result as SwipeResult,
+          createdAt: item.created_at,
+        }));
 
       // オフラインデータとマージ
       const offlineSwipes = await getOfflineSwipes(userId, result);
       
-      // 重複を排除してマージ
-      const allSwipes = [...onlineSwipes];
-      offlineSwipes.forEach(offlineSwipe => {
-        if (!allSwipes.some(s => s.productId === offlineSwipe.productId)) {
-          allSwipes.push(offlineSwipe);
+      // 重複を排除してマージ（商品IDベース）
+      const swipeMap = new Map<string, SwipeData>();
+      
+      // オンラインデータを先に追加（優先）
+      onlineSwipes.forEach(swipe => {
+        swipeMap.set(swipe.productId, swipe);
+      });
+      
+      // オフラインデータを追加（重複しないもののみ）
+      offlineSwipes.forEach(swipe => {
+        if (!swipeMap.has(swipe.productId)) {
+          swipeMap.set(swipe.productId, swipe);
         }
       });
       
-      return allSwipes;
+      // Mapから配列に変換して返す
+      return Array.from(swipeMap.values());
     } else {
       // オフラインならローカルデータのみ
       return await getOfflineSwipes(userId, result);
@@ -311,13 +379,8 @@ export const getSwipedProductIds = async (
   try {
     const swipeHistory = await getSwipeHistory(userId, result);
     
-    if (result) {
-      // 既にフィルタリング済みの結果から抽出
-      return swipeHistory.map((swipe) => swipe.productId);
-    } else {
-      // すべてのスワイプを含む
-      return swipeHistory.map((swipe) => swipe.productId);
-    }
+    // 重複を除去して商品IDのみを返す
+    return [...new Set(swipeHistory.map((swipe) => swipe.productId))];
   } catch (error) {
     console.error('Error getting swiped product IDs:', error);
     return [];
@@ -333,5 +396,60 @@ export const clearOfflineSwipes = async (): Promise<void> => {
     console.log('[clearOfflineSwipes] Offline swipe data cleared');
   } catch (error) {
     console.error('Error clearing offline swipes:', error);
+  }
+};
+
+/**
+ * 重複したスワイプをクリーンアップ（管理者用）
+ */
+export const cleanupDuplicateSwipes = async (userId: string): Promise<boolean> => {
+  try {
+    // まず全てのスワイプを取得
+    const { data, error } = await supabase
+      .from('swipes')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    
+    // 商品IDごとに最新のスワイプのみを保持
+    const latestSwipesByProduct = new Map<string, any>();
+    const duplicateIds: string[] = [];
+    
+    data.forEach(swipe => {
+      if (isValidSwipeData(swipe)) {
+        const existing = latestSwipesByProduct.get(swipe.product_id);
+        if (!existing) {
+          latestSwipesByProduct.set(swipe.product_id, swipe);
+        } else {
+          // 重複したレコードのIDを記録
+          duplicateIds.push(swipe.id);
+        }
+      } else {
+        // 無効なデータも削除対象
+        duplicateIds.push(swipe.id);
+      }
+    });
+    
+    // 重複したレコードを削除
+    if (duplicateIds.length > 0) {
+      const { error: deleteError } = await supabase
+        .from('swipes')
+        .delete()
+        .in('id', duplicateIds);
+      
+      if (deleteError) {
+        console.error('[cleanupDuplicateSwipes] Delete error:', deleteError);
+        return false;
+      }
+      
+      console.log(`[cleanupDuplicateSwipes] Deleted ${duplicateIds.length} duplicate/invalid swipes`);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('[cleanupDuplicateSwipes] Error:', error);
+    return false;
   }
 };

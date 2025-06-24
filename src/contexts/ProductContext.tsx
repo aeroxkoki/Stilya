@@ -110,25 +110,36 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
         // 商品IDのリストを抽出（重複を除去）
         const uniqueProductIds = [...new Set(swipeData.map(swipe => swipe.productId))];
         
-        // 商品詳細を取得
-        const productPromises = uniqueProductIds.map(id => fetchProductById(id));
-        const productResults = await Promise.all(productPromises);
+        console.log(`[ProductContext] Fetching ${uniqueProductIds.length} unique products from ${swipeData.length} swipes`);
         
-        // 成功した商品のみをフィルタリング（idの重複チェックも実施）
+        // 商品詳細を取得（バッチ処理）
+        const batchSize = 10; // 一度に取得する商品数
         const validProducts: Product[] = [];
         const seenIds = new Set<string>();
         
-        productResults.forEach(result => {
-          if (result.success && 'data' in result && result.data) {
-            const product = (result as any).data;
-            // IDが正しい形式で、重複していないことを確認
-            if (product.id && !product.id.includes('undo-row') && !seenIds.has(product.id)) {
-              seenIds.add(product.id);
-              validProducts.push(product);
-            }
+        for (let i = 0; i < uniqueProductIds.length; i += batchSize) {
+          const batch = uniqueProductIds.slice(i, i + batchSize);
+          const productPromises = batch.map(id => fetchProductById(id));
+          
+          try {
+            const productResults = await Promise.all(productPromises);
+            
+            productResults.forEach(result => {
+              if (result.success && 'data' in result && result.data) {
+                const product = (result as any).data;
+                // IDが正しい形式で、重複していないことを確認
+                if (product.id && !seenIds.has(product.id)) {
+                  seenIds.add(product.id);
+                  validProducts.push(product);
+                }
+              }
+            });
+          } catch (batchError) {
+            console.error(`[ProductContext] Error fetching batch ${i / batchSize}:`, batchError);
           }
-        });
+        }
         
+        console.log(`[ProductContext] Successfully loaded ${validProducts.length} products`);
         setSwipeHistory(validProducts);
       } else {
         setSwipeHistory([]);
