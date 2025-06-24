@@ -26,6 +26,8 @@ import {
   getOutfitRecommendations 
 } from '@/services/integratedRecommendationService';
 import { Product } from '@/types';
+import { FilterOptions } from '@/services/productService';
+import FilterModal from '@/components/recommend/FilterModal';
 
 const { width } = Dimensions.get('window');
 
@@ -59,6 +61,11 @@ const EnhancedRecommendScreen: React.FC = () => {
   
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('all');
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [filters, setFilters] = useState<FilterOptions>({
+    includeUsed: false // デフォルトは新品のみ
+  });
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
   
   // データ読み込み
   const loadData = useCallback(async () => {
@@ -68,10 +75,10 @@ const EnhancedRecommendScreen: React.FC = () => {
       setIsLoading(true);
       setError(null);
       
-      // 並列でデータを取得
+      // 並列でデータを取得（フィルターを適用）
       const [recommendationResults, outfitResults] = await Promise.all([
-        getEnhancedRecommendations(user.id, 20),
-        getOutfitRecommendations(user.id, 5)
+        getEnhancedRecommendations(user.id, 20, [], filters),
+        getOutfitRecommendations(user.id, 5, filters)
       ]);
       
       setRecommendations({
@@ -81,13 +88,22 @@ const EnhancedRecommendScreen: React.FC = () => {
       });
       
       setOutfits(outfitResults.outfits);
+      
+      // 利用可能なタグを抽出
+      const tags = new Set<string>();
+      [...recommendationResults.recommended, ...recommendationResults.trending, ...recommendationResults.forYou].forEach(product => {
+        if (product.tags && Array.isArray(product.tags)) {
+          product.tags.forEach(tag => tags.add(tag));
+        }
+      });
+      setAvailableTags(Array.from(tags));
     } catch (err: any) {
       console.error('Failed to load recommendations:', err);
       setError(err.message || 'レコメンデーションの取得に失敗しました');
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, filters]);
   
   // 初回読み込み
   useEffect(() => {
@@ -122,6 +138,12 @@ const EnhancedRecommendScreen: React.FC = () => {
     setActiveTab(tab);
   };
   
+  // フィルター適用
+  const handleApplyFilter = useCallback((newFilters: FilterOptions) => {
+    setFilters(newFilters);
+    setShowFilterModal(false);
+  }, []);
+  
   // ローディング表示
   if (isLoading && recommendations.recommended.length === 0 && recommendations.trending.length === 0) {
     return (
@@ -147,23 +169,33 @@ const EnhancedRecommendScreen: React.FC = () => {
       >
         {/* ヘッダー */}
         <View style={styles.header}>
-          <View>
+          <View style={styles.headerLeft}>
             <Text style={[styles.headerTitle, { color: theme.colors.text.primary }]}>Stilya</Text>
             <Text style={[styles.headerSubtitle, { color: theme.colors.text.secondary }]}>
               あなたにピッタリのアイテム
             </Text>
           </View>
           
-          {/* 検索ボタン（実際の機能は省略） */}
-          <TouchableOpacity 
-            style={[styles.searchButton, { backgroundColor: theme.colors.surface }]}
-            onPress={() => {
-              // 検索画面へ遷移するコードを追加
-              console.log('Search button pressed');
-            }}
-          >
-            <Ionicons name="search-outline" size={22} color={theme.colors.text.primary} />
-          </TouchableOpacity>
+          <View style={styles.headerRight}>
+            {/* フィルターボタン */}
+            <TouchableOpacity 
+              style={[styles.headerButton, { backgroundColor: theme.colors.surface }]}
+              onPress={() => setShowFilterModal(true)}
+            >
+              <Ionicons name="options-outline" size={22} color={theme.colors.text.primary} />
+            </TouchableOpacity>
+            
+            {/* 検索ボタン（実際の機能は省略） */}
+            <TouchableOpacity 
+              style={[styles.headerButton, { backgroundColor: theme.colors.surface, marginLeft: 8 }]}
+              onPress={() => {
+                // 検索画面へ遷移するコードを追加
+                console.log('Search button pressed');
+              }}
+            >
+              <Ionicons name="search-outline" size={22} color={theme.colors.text.primary} />
+            </TouchableOpacity>
+          </View>
         </View>
         
         {/* ログインしていない場合 */}
@@ -439,6 +471,15 @@ const EnhancedRecommendScreen: React.FC = () => {
           </View>
         )}
       </ScrollView>
+      
+      {/* フィルターモーダル */}
+      <FilterModal
+        visible={showFilterModal}
+        onClose={() => setShowFilterModal(false)}
+        onApply={handleApplyFilter}
+        initialFilters={filters}
+        availableTags={availableTags}
+      />
     </SafeAreaView>
   );
 };
@@ -470,7 +511,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 2,
   },
-  searchButton: {
+  headerLeft: {
+    flex: 1,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
