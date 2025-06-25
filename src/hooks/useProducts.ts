@@ -143,6 +143,8 @@ export const useProducts = (): UseProductsReturn => {
       );
       
       console.log('[useProducts] After filtering swiped products:', filteredProducts.length);
+      console.log('[useProducts] Current page:', currentPage, 'Offset:', currentPage * pageSize);
+      console.log('[useProducts] Total products loaded so far:', productsData.products.length);
 
       // 商品が取得できなかった場合の判定を先に行う
       const hasMoreProducts = newProducts.length >= pageSize;
@@ -251,6 +253,8 @@ export const useProducts = (): UseProductsReturn => {
   const handleSwipe = useCallback(async (product: Product, direction: 'left' | 'right') => {
     if (!product || !user) return;
     
+    console.log('[useProducts] handleSwipe called - currentIndex:', currentIndex, 'productsLength:', productsData.products.length);
+    
     // スワイプデータを記録（非同期、待たない）
     const result = direction === 'right' ? 'yes' : 'no';
     recordSwipe(user.id, product.id, result).catch(err => {
@@ -263,10 +267,12 @@ export const useProducts = (): UseProductsReturn => {
     // 次の商品へ
     setCurrentIndex(prevIndex => {
       const nextIndex = prevIndex + 1;
+      console.log('[useProducts] Next index:', nextIndex, 'hasMore:', productsData.hasMore);
       
       // 残りの商品が少なくなったら追加ロード
       // 非同期で処理（UIをブロックしない）
       if (productsData.products.length - nextIndex <= 5 && productsData.hasMore && !loadingRef.current) {
+        console.log('[useProducts] Triggering loadMore - remaining products:', productsData.products.length - nextIndex);
         InteractionManager.runAfterInteractions(() => {
           loadMore();
         });
@@ -274,7 +280,7 @@ export const useProducts = (): UseProductsReturn => {
       
       return nextIndex;
     });
-  }, [productsData.products.length, productsData.hasMore, loadMore, user]);
+  }, [currentIndex, productsData.products.length, productsData.hasMore, loadMore, user]);
 
   // フィルターをセットして商品を再読み込み
   const setFilters = useCallback((newFilters: FilterOptions) => {
