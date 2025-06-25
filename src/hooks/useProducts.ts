@@ -49,7 +49,8 @@ export const useProducts = (): UseProductsReturn => {
   const [filters, setActiveFilters] = useState<FilterOptions>({
     categories: [],
     priceRange: [0, Infinity],
-    selectedTags: []
+    selectedTags: [],
+    includeUsed: true // デフォルトで中古品も含める
   });
   
   const pageSize = 20;
@@ -61,6 +62,7 @@ export const useProducts = (): UseProductsReturn => {
   const swipedProductsRef = useRef<Set<string>>(new Set());
   const filtersRef = useRef(filters);
   const retryCountRef = useRef(0);
+  const recycleCountRef = useRef(0); // リサイクル回数をトラック
   
   // フィルターの参照を更新
   useEffect(() => {
@@ -79,6 +81,7 @@ export const useProducts = (): UseProductsReturn => {
         const swipeHistory = await getSwipeHistory(user.id);
         const swipedIds = new Set(swipeHistory.map(swipe => swipe.productId));
         swipedProductsRef.current = swipedIds;
+        console.log('[useProducts] Initial swipe history loaded:', swipedIds.size, 'items');
       } catch (err) {
         console.error('Error fetching initial swipe history:', err);
       }
@@ -102,6 +105,7 @@ export const useProducts = (): UseProductsReturn => {
         currentPage = 0;
         setPage(0);
         retryCountRef.current = 0;
+        recycleCountRef.current = 0;
         setProductsData({
           products: [],
           hasMore: true,
@@ -126,6 +130,7 @@ export const useProducts = (): UseProductsReturn => {
       console.log('[useProducts] Loading products - page:', currentPage, 'offset:', currentPage * pageSize);
       console.log('[useProducts] Swipe history size:', swipedProductsRef.current.size);
       console.log('[useProducts] All products seen:', productsData.allProductIds.size);
+      console.log('[useProducts] Filters:', filtersRef.current);
       
       // ミックス商品取得機能を使用（ランダム性と推薦のバランス）
       const response = await fetchMixedProducts(
@@ -145,20 +150,29 @@ export const useProducts = (): UseProductsReturn => {
       const newProducts = response?.data || [];
       console.log('[useProducts] Fetched products:', newProducts.length);
       
-      // 既に見た商品とスワイプ済みの商品を除外
-      const filteredProducts = newProducts.filter(
-        product => !swipedProductsRef.current.has(product.id) && !productsData.allProductIds.has(product.id)
-      );
+      // リサイクルモードでなければ、スワイプ済みの商品を除外
+      let filteredProducts = newProducts;
+      if (recycleCountRef.current === 0) {
+        filteredProducts = newProducts.filter(
+          product => !swipedProductsRef.current.has(product.id) && !productsData.allProductIds.has(product.id)
+        );
+      } else {
+        // リサイクルモードでは、allProductIdsのみチェック（スワイプ済みでも表示）
+        filteredProducts = newProducts.filter(
+          product => !productsData.allProductIds.has(product.id)
+        );
+      }
       
       console.log('[useProducts] After filtering:', filteredProducts.length);
       console.log('[useProducts] Current page:', currentPage, 'Offset:', currentPage * pageSize);
       console.log('[useProducts] Total products loaded so far:', productsData.products.length);
+      console.log('[useProducts] Recycle mode:', recycleCountRef.current > 0 ? 'ON' : 'OFF');
 
       // 商品が取得できなかった場合の判定
       const hasMoreProducts = newProducts.length >= pageSize;
 
       // 結果が十分でない場合の処理
-      if (filteredProducts.length === 0 && hasMoreProducts && retryCountRef.current < maxRetries) {
+      if (filteredProducts.length === 0 && hasMoreProducts && retryCountRef.current < maxRetries && recycleCountRef.current === 0) {
         console.log('[useProducts] No new products after filtering, retrying...');
         retryCountRef.current++;
         
@@ -171,20 +185,28 @@ export const useProducts = (): UseProductsReturn => {
         }
       }
       
-      // リトライ上限に達した場合、商品をリサイクル
-      if (filteredProducts.length === 0 && retryCountRef.current >= maxRetries) {
-        console.log('[useProducts] Max retries reached, recycling products...');
+      // リトライ上限に達した場合、リサイクルモードに切り替え
+      if (filteredProducts.length === 0 && retryCountRef.current >= maxRetries && recycleCountRef.current === 0) {
+        console.log('[useProducts] Max retries reached, switching to recycle mode...');
         
-        // スワイプ済み商品から古いものを再利用
-        const recycleCount = Math.min(pageSize, swipedProductsRef.current.size);
-        const swipedArray = Array.from(swipedProductsRef.current);
-        const recycledIds = swipedArray.slice(0, recycleCount);
+        // リサイクルモードを有効化
+        recycleCountRef.current = 1;
         
-        // 古いスワイプ履歴を削除
-        recycledIds.forEach(id => swipedProductsRef.current.delete(id));
+        // スワイプ履歴をクリア（リサイクルのため）
+        console.log('[useProducts] Clearing swipe history for recycling...');
+        swipedProductsRef.current.clear();
+        
+        // 全商品IDもクリア
+        setProductsData(prev => ({
+          ...prev,
+          allProductIds: new Set()
+        }));
         
         // リトライカウントをリセット
         retryCountRef.current = 0;
+        
+        // ページをリセットして最初から再取得
+        setPage(0);
         
         // 再度商品を取得
         loadingRef.current = false;
@@ -207,7 +229,7 @@ export const useProducts = (): UseProductsReturn => {
 
         return {
           products: updatedProducts,
-          hasMore: hasMoreProducts || retryCountRef.current < maxRetries,
+          hasMore: hasMoreProducts || retryCountRef.current < maxRetries || recycleCountRef.current > 0,
           totalFetched: prev.totalFetched + filteredProducts.length,
           allProductIds: newAllProductIds
         };
@@ -280,8 +302,10 @@ export const useProducts = (): UseProductsReturn => {
       console.error('Error recording swipe:', err);
     });
     
-    // スワイプ済みリストに追加（メモリ上のキャッシュ）
-    swipedProductsRef.current.add(product.id);
+    // リサイクルモードでなければ、スワイプ済みリストに追加
+    if (recycleCountRef.current === 0) {
+      swipedProductsRef.current.add(product.id);
+    }
     
     // 次の商品へ
     setCurrentIndex(prevIndex => {
@@ -307,7 +331,8 @@ export const useProducts = (): UseProductsReturn => {
     const hasChanged = 
       JSON.stringify(newFilters.categories) !== JSON.stringify(filters.categories) ||
       JSON.stringify(newFilters.priceRange) !== JSON.stringify(filters.priceRange) ||
-      JSON.stringify(newFilters.selectedTags) !== JSON.stringify(filters.selectedTags);
+      JSON.stringify(newFilters.selectedTags) !== JSON.stringify(filters.selectedTags) ||
+      newFilters.includeUsed !== filters.includeUsed;
     
     if (hasChanged) {
       setActiveFilters(newFilters);
@@ -320,6 +345,7 @@ export const useProducts = (): UseProductsReturn => {
         allProductIds: new Set()
       });
       setCurrentIndex(0);
+      recycleCountRef.current = 0; // リサイクルモードをリセット
       // 新しいフィルターで再読み込み
       loadProducts(true);
     }

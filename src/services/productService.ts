@@ -76,11 +76,11 @@ export const fetchProducts = async (limit: number = 20, offset: number = 0, filt
         query = query.or(filters.selectedTags.map(tag => `tags.cs.{${tag}}`).join(','));
       }
       
-      // 中古品フィルター（デフォルトは新品のみ）
-      if (filters.includeUsed === false || filters.includeUsed === undefined) {
+      // 中古品フィルター（デフォルトは新品・中古品両方を含む）
+      if (filters.includeUsed === false) {
         query = query.eq('is_used', false);
       }
-      // includeUsed === true の場合は、フィルターを適用しない（新品・中古品両方を含む）
+      // includeUsed === true または undefined の場合は、フィルターを適用しない（新品・中古品両方を含む）
     }
     
     const { data, error, count } = await query
@@ -255,10 +255,11 @@ export const fetchProductsByTags = async (tags: string[], limit: number = 20, fi
     
     // フィルター条件を適用
     if (filters) {
-      // 中古品フィルター（デフォルトは新品のみ）
-      if (filters.includeUsed === false || filters.includeUsed === undefined) {
+      // 中古品フィルター（デフォルトは新品・中古品両方を含む）
+      if (filters.includeUsed === false) {
         query = query.eq('is_used', false);
       }
+      // includeUsed === true または undefined の場合は、フィルターを適用しない（新品・中古品両方を含む）
       
       // 価格範囲フィルター
       if (filters.priceRange) {
@@ -394,10 +395,11 @@ export const fetchPersonalizedProducts = async (
         query = query.or(filters.selectedTags.map(tag => `tags.cs.{${tag}}`).join(','));
       }
       
-      // 中古品フィルター（デフォルトは新品のみ）
-      if (filters.includeUsed === false || filters.includeUsed === undefined) {
+      // 中古品フィルター（デフォルトは新品・中古品両方を含む）
+      if (filters.includeUsed === false) {
         query = query.eq('is_used', false);
       }
+      // includeUsed === true または undefined の場合は、フィルターを適用しない（新品・中古品両方を含む）
     }
 
     // まず、総商品数を取得してoffsetの上限を設定
@@ -789,9 +791,11 @@ export const fetchRandomizedProducts = async (
         query = query.or(filters.selectedTags.map(tag => `tags.cs.{${tag}}`).join(','));
       }
       
-      if (filters.includeUsed === false || filters.includeUsed === undefined) {
+      // 中古品フィルター（デフォルトは新品・中古品両方を含む）
+      if (filters.includeUsed === false) {
         query = query.eq('is_used', false);
       }
+      // includeUsed === true または undefined の場合は、フィルターを適用しない（新品・中古品両方を含む）
     }
     
     // ランダム性を持たせるため、異なる順序で取得
