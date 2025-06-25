@@ -803,8 +803,38 @@ export const fetchRandomizedProducts = async (
     const randomDirection = Math.random() > 0.5;
     
     // フィルター条件を考慮した総商品数を取得
-    const { count: totalCount } = await query
-      .select('id', { count: 'exact', head: true });
+    // 注意: count取得のために別クエリを作成（クエリチェーンの問題を回避）
+    let countQuery = supabase
+      .from('external_products')
+      .select('id', { count: 'exact', head: true })
+      .eq('is_active', true);
+    
+    // カウント用クエリにも同じフィルターを適用
+    if (filters) {
+      if (filters.categories && filters.categories.length > 0) {
+        countQuery = countQuery.in('category', filters.categories);
+      }
+      
+      if (filters.priceRange) {
+        const [minPrice, maxPrice] = filters.priceRange;
+        if (minPrice > 0) {
+          countQuery = countQuery.gte('price', minPrice);
+        }
+        if (maxPrice < Infinity) {
+          countQuery = countQuery.lte('price', maxPrice);
+        }
+      }
+      
+      if (filters.selectedTags && filters.selectedTags.length > 0) {
+        countQuery = countQuery.or(filters.selectedTags.map(tag => `tags.cs.{${tag}}`).join(','));
+      }
+      
+      if (filters.includeUsed === false) {
+        countQuery = countQuery.eq('is_used', false);
+      }
+    }
+    
+    const { count: totalCount } = await countQuery;
     
     console.log(`[ProductService] Total products with filters: ${totalCount}`);
     
@@ -877,18 +907,20 @@ export const fetchMixedProducts = async (
   try {
     console.log('[fetchMixedProducts] Called with:', { userId, limit, offset, filters });
     
-    const randomCount = Math.floor(limit * 0.7);
-    const personalizedCount = limit - randomCount;
+    // 目標の商品数を増やして、重複除去後も十分な数を確保
+    const bufferMultiplier = 1.5; // 50%多めに取得
+    const randomCount = Math.floor(limit * 0.7 * bufferMultiplier);
+    const personalizedCount = Math.floor(limit * 0.3 * bufferMultiplier);
     
     // ユーザーがログインしている場合のシード生成
     const seed = userId ? `${userId}-${new Date().toDateString()}` : undefined;
     
     // ランダム商品とパーソナライズ商品で異なるoffsetを使用
-    // これにより、より多様な商品が表示される
     const randomOffset = offset;
-    const personalizedOffset = Math.floor(offset * 1.5); // パーソナライズ商品は異なるoffsetを使用
+    const personalizedOffset = Math.floor(offset * 1.5);
     
     console.log('[fetchMixedProducts] Fetching random and personalized products...');
+    console.log('[fetchMixedProducts] Target counts - Random:', randomCount, 'Personalized:', personalizedCount);
     
     // 並列で両方の商品を取得
     const [randomResult, personalizedResult] = await Promise.all([
@@ -906,47 +938,69 @@ export const fetchMixedProducts = async (
     
     // 重複を事前に除去
     const productIdSet = new Set<string>();
-    const uniqueRandomProducts: Product[] = [];
-    const uniquePersonalizedProducts: Product[] = [];
+    const uniqueProducts: Product[] = [];
     
-    // ランダム商品の重複除去
-    randomProducts.forEach(product => {
-      if (!productIdSet.has(product.id)) {
-        productIdSet.add(product.id);
-        uniqueRandomProducts.push(product);
-      }
-    });
-    
-    // パーソナライズ商品の重複除去
-    personalizedProducts.forEach(product => {
-      if (!productIdSet.has(product.id)) {
-        productIdSet.add(product.id);
-        uniquePersonalizedProducts.push(product);
-      }
-    });
-    
-    // 商品をミックス（交互に配置）
-    const mixedProducts: Product[] = [];
-    const maxLength = Math.max(uniqueRandomProducts.length, uniquePersonalizedProducts.length);
+    // ランダム商品とパーソナライズ商品を交互に追加
+    const maxLength = Math.max(randomProducts.length, personalizedProducts.length);
     
     for (let i = 0; i < maxLength; i++) {
-      if (i < uniqueRandomProducts.length) {
-        mixedProducts.push(uniqueRandomProducts[i]);
+      // ランダム商品を追加
+      if (i < randomProducts.length && !productIdSet.has(randomProducts[i].id)) {
+        productIdSet.add(randomProducts[i].id);
+        uniqueProducts.push(randomProducts[i]);
       }
-      if (i < uniquePersonalizedProducts.length) {
-        mixedProducts.push(uniquePersonalizedProducts[i]);
+      
+      // パーソナライズ商品を追加
+      if (i < personalizedProducts.length && !productIdSet.has(personalizedProducts[i].id)) {
+        productIdSet.add(personalizedProducts[i].id);
+        uniqueProducts.push(personalizedProducts[i]);
+      }
+      
+      // 必要な数が集まったら終了
+      if (uniqueProducts.length >= limit) {
+        break;
       }
     }
     
-    console.log(`[fetchMixedProducts] Mixed products - Random: ${uniqueRandomProducts.length}, Personalized: ${uniquePersonalizedProducts.length}, Total unique: ${mixedProducts.length}`);
+    console.log(`[fetchMixedProducts] After deduplication: ${uniqueProducts.length} unique products`);
+    
+    // 商品が不足している場合、追加で取得
+    if (uniqueProducts.length < limit) {
+      console.log(`[fetchMixedProducts] Not enough products (${uniqueProducts.length}/${limit}), fetching more...`);
+      
+      // 不足分を計算
+      const shortfall = limit - uniqueProducts.length;
+      const additionalOffset = offset + Math.max(randomCount, personalizedCount);
+      
+      // 追加で商品を取得（通常のfetchProductsを使用）
+      const additionalResult = await fetchProducts(shortfall * 2, additionalOffset, filters);
+      
+      if (additionalResult.success && additionalResult.data) {
+        console.log(`[fetchMixedProducts] Additional fetch returned ${additionalResult.data.length} products`);
+        
+        // 既存の商品と重複しないものだけを追加
+        for (const product of additionalResult.data) {
+          if (!productIdSet.has(product.id)) {
+            productIdSet.add(product.id);
+            uniqueProducts.push(product);
+            
+            if (uniqueProducts.length >= limit) {
+              break;
+            }
+          }
+        }
+      }
+    }
+    
+    console.log(`[fetchMixedProducts] Final count: ${uniqueProducts.length} products`);
     
     // 結果が空の場合は通常の商品取得にフォールバック
-    if (mixedProducts.length === 0) {
+    if (uniqueProducts.length === 0) {
       console.log('[fetchMixedProducts] No mixed products, falling back to normal fetch');
       return fetchProducts(limit, offset, filters);
     }
     
-    return { success: true, data: mixedProducts.slice(0, limit) };
+    return { success: true, data: uniqueProducts.slice(0, limit) };
     
   } catch (error: any) {
     console.error('[ProductService] Error in fetchMixedProducts:', error);
