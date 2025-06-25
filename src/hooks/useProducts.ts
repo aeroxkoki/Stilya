@@ -64,11 +64,6 @@ export const useProducts = (): UseProductsReturn => {
   const retryCountRef = useRef(0);
   const recycleCountRef = useRef(0); // リサイクル回数をトラック
   
-  // フィルターの参照を更新
-  useEffect(() => {
-    filtersRef.current = filters;
-  }, [filters]);
-  
   // 現在表示中の商品
   const currentProduct = productsData.products[currentIndex];
 
@@ -348,7 +343,10 @@ export const useProducts = (): UseProductsReturn => {
       newFilters.includeUsed !== filters.includeUsed;
     
     if (hasChanged) {
+      // filtersRefを即座に更新（loadProductsが正しいフィルターを使用するため）
+      filtersRef.current = newFilters;
       setActiveFilters(newFilters);
+      
       // フィルター変更時は明示的にリセット
       setPage(0);
       setProductsData({
@@ -359,8 +357,16 @@ export const useProducts = (): UseProductsReturn => {
       });
       setCurrentIndex(0);
       recycleCountRef.current = 0; // リサイクルモードをリセット
+      retryCountRef.current = 0; // リトライカウントもリセット
+      
+      // スワイプ履歴は保持するが、新しい商品取得のために一時的にクリア
+      const tempSwipedProducts = new Set(swipedProductsRef.current);
+      
       // 新しいフィルターで再読み込み
-      loadProducts(true);
+      loadProducts(true).then(() => {
+        // 読み込み完了後にスワイプ履歴を復元
+        swipedProductsRef.current = tempSwipedProducts;
+      });
     }
   }, [filters, loadProducts]);
 

@@ -915,12 +915,13 @@ export const fetchMixedProducts = async (
     // ユーザーがログインしている場合のシード生成
     const seed = userId ? `${userId}-${new Date().toDateString()}` : undefined;
     
-    // ランダム商品とパーソナライズ商品で異なるoffsetを使用
+    // フィルター変更時は同じoffsetを使用（重複を防ぐため）
     const randomOffset = offset;
-    const personalizedOffset = Math.floor(offset * 1.5);
+    const personalizedOffset = offset; // 修正: 同じoffsetを使用
     
     console.log('[fetchMixedProducts] Fetching random and personalized products...');
     console.log('[fetchMixedProducts] Target counts - Random:', randomCount, 'Personalized:', personalizedCount);
+    console.log('[fetchMixedProducts] Using offset:', offset);
     
     // 並列で両方の商品を取得
     const [randomResult, personalizedResult] = await Promise.all([
@@ -952,20 +953,25 @@ export const fetchMixedProducts = async (
     const productIdSet = new Set<string>();
     const uniqueProducts: Product[] = [];
     
+    // フィルター変更時は、両方の商品リストをシャッフルして混ぜる
+    // これにより、毎回異なる順序で商品が表示される
+    const shuffledRandom = [...randomProducts].sort(() => Math.random() - 0.5);
+    const shuffledPersonalized = [...personalizedProducts].sort(() => Math.random() - 0.5);
+    
     // ランダム商品とパーソナライズ商品を交互に追加
-    const maxLength = Math.max(randomProducts.length, personalizedProducts.length);
+    const maxLength = Math.max(shuffledRandom.length, shuffledPersonalized.length);
     
     for (let i = 0; i < maxLength; i++) {
       // ランダム商品を追加
-      if (i < randomProducts.length && !productIdSet.has(randomProducts[i].id)) {
-        productIdSet.add(randomProducts[i].id);
-        uniqueProducts.push(randomProducts[i]);
+      if (i < shuffledRandom.length && !productIdSet.has(shuffledRandom[i].id)) {
+        productIdSet.add(shuffledRandom[i].id);
+        uniqueProducts.push(shuffledRandom[i]);
       }
       
       // パーソナライズ商品を追加
-      if (i < personalizedProducts.length && !productIdSet.has(personalizedProducts[i].id)) {
-        productIdSet.add(personalizedProducts[i].id);
-        uniqueProducts.push(personalizedProducts[i]);
+      if (i < shuffledPersonalized.length && !productIdSet.has(shuffledPersonalized[i].id)) {
+        productIdSet.add(shuffledPersonalized[i].id);
+        uniqueProducts.push(shuffledPersonalized[i]);
       }
       
       // 必要な数が集まったら終了
