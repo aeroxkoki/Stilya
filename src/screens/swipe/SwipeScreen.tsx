@@ -243,15 +243,6 @@ const SwipeScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
       
-      {/* デバッグ情報（開発環境のみ） */}
-      {__DEV__ && (
-        <View style={[styles.debugInfo, { backgroundColor: theme.colors.card }]}>
-          <Text style={[styles.debugText, { color: theme.colors.text.secondary }]}>
-            商品数: {products.length} | 現在: {currentIndex + 1} | もっと: {hasMore ? 'Yes' : 'No'}
-          </Text>
-        </View>
-      )}
-      
       {/* スワイプエリア */}
       <View style={styles.swipeContainer}>
         {currentProduct && (
@@ -321,16 +312,6 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-  },
-  debugInfo: {
-    padding: 10,
-    marginHorizontal: 20,
-    marginVertical: 5,
-    borderRadius: 8,
-  },
-  debugText: {
-    fontSize: 12,
-    fontFamily: 'monospace',
   },
 });
 
