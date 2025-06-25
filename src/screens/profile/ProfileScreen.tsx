@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { View, Text, SafeAreaView, TouchableOpacity, ScrollView, Alert, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, SafeAreaView, TouchableOpacity, ScrollView, Alert, StyleSheet, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useProductStore } from '@/store/productStore';
 import { ProfileStackParamList } from '@/types';
 import { useStyle } from '@/contexts/ThemeContext';
+import DebugProductCount from '@/components/debug/DebugProductCount';
 
 type ProfileScreenNavigationProp = StackNavigationProp<ProfileStackParamList, 'ProfileHome'>;
 
@@ -22,6 +23,9 @@ const ProfileScreen: React.FC = () => {
     getSwipeHistory
   } = useProductStore();
   
+  // デバッグモーダルの表示状態
+  const [showDebugModal, setShowDebugModal] = useState(false);
+  
   // 動的スタイルを生成
   const dynamicStyles = {
     avatarText: {
@@ -31,72 +35,47 @@ const ProfileScreen: React.FC = () => {
     },
   };
 
-  // 初回表示時にデータを取得
   useEffect(() => {
-    const loadData = async () => {
-      if (user) {
-        try {
-          // お気に入りとスワイプ履歴を取得
-          await Promise.all([
-            getFavorites(user.id),
-            getSwipeHistory(user.id)
-          ]);
-        } catch (error) {
-          console.error('データ取得エラー:', error);
-        }
-      }
-    };
-    
-    loadData();
+    if (user) {
+      getFavorites();
+      getSwipeHistory();
+    }
   }, [user]);
 
   const handleLogout = async () => {
     Alert.alert(
-      'ログアウト',
-      'ログアウトしてもよろしいですか？',
+      'ログアウト確認',
+      '本当にログアウトしますか？',
       [
         {
           text: 'キャンセル',
-          style: 'cancel'
+          style: 'cancel',
         },
         {
           text: 'ログアウト',
           style: 'destructive',
           onPress: async () => {
-            try {
-              await logout();
-            } catch (error) {
-              console.error('Logout error:', error);
-              Alert.alert('エラー', 'ログアウトに失敗しました');
-            }
-          }
-        }
-      ]
+            await logout();
+          },
+        },
+      ],
     );
   };
 
-  // 性別のマッピング
-  const genderMap: Record<string, string> = {
-    male: '男性',
-    female: '女性',
-    other: 'その他',
-  };
-  
-  // 各画面への遷移
   const handleNavigateToFavorites = () => {
     navigation.navigate('Favorites');
   };
-  
+
   const handleNavigateToSwipeHistory = () => {
     navigation.navigate('SwipeHistory');
   };
-  
+
   const handleNavigateToSettings = () => {
-    navigation.navigate('Settings');
+    navigation.navigate('AccountSettings');
   };
-  
+
   const handleNavigateToHelp = () => {
-    // MVPでは簡易的にアラートを表示
+    // TODO: ヘルプページの実装
     Alert.alert(
       'ヘルプ・サポート',
       'お問い合わせは support@stilya.jp までご連絡ください。\n\nバージョン: 0.1.0 (MVP)',
@@ -115,6 +94,12 @@ const ProfileScreen: React.FC = () => {
       </SafeAreaView>
     );
   }
+
+  const genderMap = {
+    male: '男性',
+    female: '女性',
+    other: 'その他',
+  };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -151,30 +136,28 @@ const ProfileScreen: React.FC = () => {
               </View>
               <View style={styles.infoRow}>
                 <Text style={[styles.infoLabel, { color: theme.colors.text.secondary }]}>
-                  年代
+                  年齢
                 </Text>
                 <Text style={[styles.infoValue, { color: theme.colors.text.primary }]}>
-                  {user?.ageGroup || '未設定'}
+                  {user?.age_range || '未設定'}
                 </Text>
               </View>
               <View style={styles.infoRow}>
                 <Text style={[styles.infoLabel, { color: theme.colors.text.secondary }]}>
-                  登録日
+                  好みのスタイル
                 </Text>
                 <Text style={[styles.infoValue, { color: theme.colors.text.primary }]}>
-                  {user?.createdAt
-                    ? new Date(user.createdAt).toLocaleDateString('ja-JP')
-                    : '不明'}
+                  {user?.preferred_styles?.join(', ') || '未設定'}
                 </Text>
               </View>
             </View>
           </Card>
         </View>
 
-        {/* アクティビティ */}
+        {/* 活動情報 */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>
-            アクティビティ
+            活動
           </Text>
           <Card variant="outlined">
             <TouchableOpacity 
@@ -245,6 +228,32 @@ const ProfileScreen: React.FC = () => {
           </Card>
         </View>
 
+        {/* 開発環境のみ表示されるデバッグセクション */}
+        {__DEV__ && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>
+              開発者ツール
+            </Text>
+            <Card variant="outlined">
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => setShowDebugModal(true)}
+              >
+                <Ionicons name="bug-outline" size={20} color="#6B7280" style={{ marginRight: 12 }} />
+                <View style={styles.menuItemContent}>
+                  <Text style={[styles.menuItemText, { color: theme.colors.text.primary }]}>
+                    商品統計情報
+                  </Text>
+                  <Text style={[styles.menuItemSubtext, { color: theme.colors.text.secondary }]}>
+                    データベースの商品数を確認
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#6B7280" />
+              </TouchableOpacity>
+            </Card>
+          </View>
+        )}
+
         {/* ログアウトボタン */}
         <View style={styles.logoutSection}>
           <Button
@@ -257,6 +266,28 @@ const ProfileScreen: React.FC = () => {
           </Button>
         </View>
       </ScrollView>
+
+      {/* デバッグモーダル */}
+      {__DEV__ && (
+        <Modal
+          visible={showDebugModal}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setShowDebugModal(false)}
+        >
+          <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: theme.colors.text.primary }]}>
+                商品統計情報
+              </Text>
+              <TouchableOpacity onPress={() => setShowDebugModal(false)}>
+                <Ionicons name="close" size={24} color={theme.colors.text.primary} />
+              </TouchableOpacity>
+            </View>
+            <DebugProductCount />
+          </SafeAreaView>
+        </Modal>
+      )}
     </SafeAreaView>
   );
 };
@@ -345,6 +376,22 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
+  },
+  modalContainer: {
+    flex: 1,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
   },
 });
 
