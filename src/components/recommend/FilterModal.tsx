@@ -59,7 +59,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
     categories: [],
     priceRange: [0, Infinity],
     selectedTags: [],
-    includeUsed: true // デフォルトで中古品も含める
+    includeUsed: false // デフォルトは新品のみ
   });
 
   // カテゴリー選択の切り替え
@@ -112,7 +112,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
       categories: [],
       priceRange: [0, Infinity],
       selectedTags: [],
-      includeUsed: true
+      includeUsed: false
     });
   };
 

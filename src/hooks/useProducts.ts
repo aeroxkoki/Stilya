@@ -50,7 +50,7 @@ export const useProducts = (): UseProductsReturn => {
     categories: [],
     priceRange: [0, Infinity],
     selectedTags: [],
-    includeUsed: true // デフォルトで中古品も含める
+    includeUsed: false // デフォルトは新品のみ
   });
   
   const pageSize = 20;
