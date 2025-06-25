@@ -220,10 +220,10 @@ const SwipeScreen: React.FC = () => {
       <View style={styles.swipeContainer}>
         {currentProduct && (
           <SwipeContainer
-            products={products.slice(currentIndex, currentIndex + 3)}
+            products={products}
             isLoading={isLoading}
             onSwipe={handleSwipe}
-            currentIndex={0}
+            currentIndex={currentIndex}
             onCardPress={(product) => navigation.navigate('ProductDetail', { productId: product.id, from: 'swipe' })}
             onLoadMore={loadMore}
             hasMoreProducts={hasMore}
