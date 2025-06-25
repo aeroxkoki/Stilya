@@ -144,6 +144,9 @@ export const useProducts = (): UseProductsReturn => {
       
       console.log('[useProducts] After filtering swiped products:', filteredProducts.length);
 
+      // 商品が取得できなかった場合の判定を先に行う
+      const hasMoreProducts = newProducts.length >= pageSize;
+
       // 結果が十分でない場合の処理
       if (filteredProducts.length < pageSize / 2 && hasMoreProducts) {
         // フィルタリング後の商品が少ない場合、追加で商品を取得
@@ -172,9 +175,6 @@ export const useProducts = (): UseProductsReturn => {
           return;
         }
       }
-
-      // 商品が取得できなかった場合
-      const hasMoreProducts = newProducts.length >= pageSize;
 
       // 商品データを更新
       setProductsData(prev => {

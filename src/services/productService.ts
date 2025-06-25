@@ -400,10 +400,18 @@ export const fetchPersonalizedProducts = async (
       }
     }
 
+    // まず、総商品数を取得してoffsetの上限を設定
+    const { count: totalCount } = await query
+      .select('id', { count: 'exact', head: true });
+    
+    // offsetが商品数を超えないように調整
+    const maxOffset = Math.max(0, (totalCount || 0) - limit);
+    const safeOffset = Math.min(offset, maxOffset);
+
     const { data, error } = await query
       .order('priority', { ascending: true, nullsFirst: false })
       .order('last_synced', { ascending: false })
-      .range(offset, offset + limit - 1);
+      .range(safeOffset, safeOffset + limit - 1);
 
     if (!error && data && data.length > 0) {
       const products = data.map(normalizeProduct);
@@ -790,8 +798,18 @@ export const fetchRandomizedProducts = async (
     const randomOrder = Math.random() > 0.5 ? 'created_at' : 'last_synced';
     const randomDirection = Math.random() > 0.5;
     
-    // offsetの計算を修正 - 全商品範囲から取得
-    const actualOffset = offset + timeOffset;
+    // まず、データベースの総商品数を取得
+    const { count: totalCount } = await supabase
+      .from('external_products')
+      .select('id', { count: 'exact', head: true })
+      .eq('is_active', true);
+    
+    // データベースの商品数を考慮したoffset計算（循環）
+    const maxOffset = Math.max(0, (totalCount || 0) - poolSize);
+    const actualOffset = maxOffset > 0 ? (offset + timeOffset) % maxOffset : 0;
+    
+    console.log(`[ProductService] Total products: ${totalCount}, actualOffset: ${actualOffset}, poolSize: ${poolSize}`);
+    
     const { data, error } = await query
       .order(randomOrder, { ascending: randomDirection })
       .range(actualOffset, actualOffset + poolSize - 1);
@@ -854,12 +872,17 @@ export const fetchMixedProducts = async (
     // ユーザーがログインしている場合のシード生成
     const seed = userId ? `${userId}-${new Date().toDateString()}` : undefined;
     
+    // ランダム商品とパーソナライズ商品で異なるoffsetを使用
+    // これにより、より多様な商品が表示される
+    const randomOffset = offset;
+    const personalizedOffset = Math.floor(offset * 1.5); // パーソナライズ商品は異なるoffsetを使用
+    
     // 並列で両方の商品を取得
     const [randomResult, personalizedResult] = await Promise.all([
-      fetchRandomizedProducts(randomCount, offset, filters, seed),
+      fetchRandomizedProducts(randomCount, randomOffset, filters, seed),
       userId 
-        ? fetchPersonalizedProducts(userId, personalizedCount, offset, filters)
-        : fetchProducts(personalizedCount, offset, filters)
+        ? fetchPersonalizedProducts(userId, personalizedCount, personalizedOffset, filters)
+        : fetchProducts(personalizedCount, personalizedOffset, filters)
     ]);
     
     const randomProducts = randomResult.success && randomResult.data ? randomResult.data : [];
