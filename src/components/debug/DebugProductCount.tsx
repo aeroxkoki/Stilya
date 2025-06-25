@@ -78,18 +78,37 @@ const DebugProductCount: React.FC = () => {
   };
   
   const clearSwipeHistory = async () => {
-    try {
-      const { error } = await supabase
-        .from('swipes')
-        .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000'); // 全件削除（ダミーID以外）
-      
-      if (error) throw error;
-      alert('スワイプ履歴をクリアしました');
-    } catch (err) {
-      console.error('Error clearing swipe history:', err);
-      alert('スワイプ履歴のクリアに失敗しました');
+    // 開発環境のみで実行可能
+    if (!__DEV__) {
+      alert('この機能は開発環境でのみ利用可能です');
+      return;
     }
+    
+    Alert.alert(
+      '確認',
+      'すべてのスワイプ履歴を削除しますか？この操作は取り消せません。',
+      [
+        { text: 'キャンセル', style: 'cancel' },
+        {
+          text: '削除',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('swipes')
+                .delete()
+                .neq('id', '00000000-0000-0000-0000-000000000000'); // 全件削除（ダミーID以外）
+              
+              if (error) throw error;
+              alert('スワイプ履歴をクリアしました');
+            } catch (err) {
+              console.error('Error clearing swipe history:', err);
+              alert('スワイプ履歴のクリアに失敗しました');
+            }
+          }
+        }
+      ]
+    );
   };
   
   useEffect(() => {

@@ -875,6 +875,8 @@ export const fetchMixedProducts = async (
   filters?: FilterOptions
 ) => {
   try {
+    console.log('[fetchMixedProducts] Called with:', { userId, limit, offset, filters });
+    
     const randomCount = Math.floor(limit * 0.7);
     const personalizedCount = limit - randomCount;
     
@@ -886,6 +888,8 @@ export const fetchMixedProducts = async (
     const randomOffset = offset;
     const personalizedOffset = Math.floor(offset * 1.5); // パーソナライズ商品は異なるoffsetを使用
     
+    console.log('[fetchMixedProducts] Fetching random and personalized products...');
+    
     // 並列で両方の商品を取得
     const [randomResult, personalizedResult] = await Promise.all([
       fetchRandomizedProducts(randomCount, randomOffset, filters, seed),
@@ -893,6 +897,9 @@ export const fetchMixedProducts = async (
         ? fetchPersonalizedProducts(userId, personalizedCount, personalizedOffset, filters)
         : fetchProducts(personalizedCount, personalizedOffset, filters)
     ]);
+    
+    console.log('[fetchMixedProducts] Random result:', randomResult?.success, randomResult?.data?.length);
+    console.log('[fetchMixedProducts] Personalized result:', personalizedResult?.success, personalizedResult?.data?.length);
     
     const randomProducts = randomResult.success && randomResult.data ? randomResult.data : [];
     const personalizedProducts = personalizedResult.success && personalizedResult.data ? personalizedResult.data : [];
@@ -931,7 +938,14 @@ export const fetchMixedProducts = async (
       }
     }
     
-    console.log(`[ProductService] Mixed products - Random: ${uniqueRandomProducts.length}, Personalized: ${uniquePersonalizedProducts.length}, Total unique: ${mixedProducts.length}`);
+    console.log(`[fetchMixedProducts] Mixed products - Random: ${uniqueRandomProducts.length}, Personalized: ${uniquePersonalizedProducts.length}, Total unique: ${mixedProducts.length}`);
+    
+    // 結果が空の場合は通常の商品取得にフォールバック
+    if (mixedProducts.length === 0) {
+      console.log('[fetchMixedProducts] No mixed products, falling back to normal fetch');
+      return fetchProducts(limit, offset, filters);
+    }
+    
     return { success: true, data: mixedProducts.slice(0, limit) };
     
   } catch (error: any) {

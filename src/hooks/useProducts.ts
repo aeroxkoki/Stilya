@@ -141,13 +141,21 @@ export const useProducts = (): UseProductsReturn => {
       );
       
       // レスポンスの検証
-      if (!response?.success) {
-        setError(response?.error || '商品データの取得に失敗しました');
+      if (!response) {
+        console.error('[useProducts] No response from fetchMixedProducts');
+        setError('商品データの取得に失敗しました');
         loadingRef.current = false;
         return;
       }
       
-      const newProducts = response?.data || [];
+      if (!response.success) {
+        console.error('[useProducts] fetchMixedProducts failed:', response.error);
+        setError(response.error || '商品データの取得に失敗しました');
+        loadingRef.current = false;
+        return;
+      }
+      
+      const newProducts = response.data || [];
       console.log('[useProducts] Fetched products:', newProducts.length);
       
       // リサイクルモードでなければ、スワイプ済みの商品を除外
@@ -263,10 +271,15 @@ export const useProducts = (): UseProductsReturn => {
 
   // 初回マウント時に商品データを取得（認証初期化完了後）
   useEffect(() => {
-    if (isInitialized && !loadingRef.current) {
+    console.log('[useProducts] Init effect - isInitialized:', isInitialized, 'loadingRef:', loadingRef.current);
+    
+    // 初期化が完了していない場合でも、商品を取得する
+    // ユーザー認証は商品表示には不要
+    if (!loadingRef.current && productsData.products.length === 0) {
+      console.log('[useProducts] Starting initial load (auth not required for products)...');
       loadProducts(true);
     }
-  }, [isInitialized]); // loadProductsを依存関係から除外
+  }, []); // 依存関係を空にして、マウント時に一度だけ実行
 
   // 追加データ読み込み
   const loadMore = useCallback(async (reset = false) => {

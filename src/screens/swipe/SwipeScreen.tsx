@@ -21,7 +21,7 @@ type SwipeScreenNavigationProp = StackNavigationProp<SwipeStackParamList, 'Swipe
 // スワイプ画面コンポーネント
 const SwipeScreen: React.FC = () => {
   const navigation = useNavigation<SwipeScreenNavigationProp>();
-  const { user } = useAuth();
+  const { user, isInitialized } = useAuth();
   const { theme } = useStyle();
   
   // 商品とスワイプ状態の管理
@@ -45,6 +45,21 @@ const SwipeScreen: React.FC = () => {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [filters, setFilters] = useState<FilterOptions>({});
   const [availableTags, setAvailableTags] = useState<string[]>([]);
+  
+  // デバッグ用の状態表示
+  useEffect(() => {
+    console.log('[SwipeScreen] Debug Info:', {
+      userExists: !!user,
+      userId: user?.id,
+      isInitialized,
+      productsLength: products.length,
+      currentIndex,
+      currentProduct: currentProduct?.title,
+      isLoading,
+      error,
+      hasMore
+    });
+  }, [user, isInitialized, products.length, currentIndex, currentProduct, isLoading, error, hasMore]);
   
   // 初期データロード
   useEffect(() => {
@@ -141,6 +156,18 @@ const SwipeScreen: React.FC = () => {
     setShowFilterModal(false);
   }, [setProductFilters]);
   
+  // 認証状態の確認
+  if (!isInitialized) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={[styles.loadingText, { color: theme.colors.text.secondary }]}>初期化中...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+  
   // ローディング表示
   if (isLoading && products.length === 0) {
     return (
@@ -216,6 +243,15 @@ const SwipeScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
       
+      {/* デバッグ情報（開発環境のみ） */}
+      {__DEV__ && (
+        <View style={[styles.debugInfo, { backgroundColor: theme.colors.card }]}>
+          <Text style={[styles.debugText, { color: theme.colors.text.secondary }]}>
+            商品数: {products.length} | 現在: {currentIndex + 1} | もっと: {hasMore ? 'Yes' : 'No'}
+          </Text>
+        </View>
+      )}
+      
       {/* スワイプエリア */}
       <View style={styles.swipeContainer}>
         {currentProduct && (
@@ -285,6 +321,16 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
+  },
+  debugInfo: {
+    padding: 10,
+    marginHorizontal: 20,
+    marginVertical: 5,
+    borderRadius: 8,
+  },
+  debugText: {
+    fontSize: 12,
+    fontFamily: 'monospace',
   },
 });
 
