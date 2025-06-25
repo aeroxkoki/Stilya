@@ -11,6 +11,7 @@ interface ProductsState {
   products: Product[];
   hasMore: boolean;
   totalFetched: number;
+  allProductIds: Set<string>; // 全商品IDを追跡
 }
 
 interface UseProductsReturn {
@@ -37,7 +38,8 @@ export const useProducts = (): UseProductsReturn => {
   const [productsData, setProductsData] = useState<ProductsState>({
     products: [],
     hasMore: true,
-    totalFetched: 0
+    totalFetched: 0,
+    allProductIds: new Set()
   });
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -51,12 +53,14 @@ export const useProducts = (): UseProductsReturn => {
   });
   
   const pageSize = 20;
+  const maxRetries = 5; // 最大リトライ回数
   
   // 画像プリフェッチ用
   const { prefetchImages } = useImagePrefetch();
   const loadingRef = useRef(false);
   const swipedProductsRef = useRef<Set<string>>(new Set());
   const filtersRef = useRef(filters);
+  const retryCountRef = useRef(0);
   
   // フィルターの参照を更新
   useEffect(() => {
@@ -97,10 +101,12 @@ export const useProducts = (): UseProductsReturn => {
         setCurrentIndex(0);
         currentPage = 0;
         setPage(0);
+        retryCountRef.current = 0;
         setProductsData({
           products: [],
           hasMore: true,
-          totalFetched: 0
+          totalFetched: 0,
+          allProductIds: new Set()
         });
         setError(null);
         // リセット時はスワイプ履歴を再取得
@@ -118,11 +124,13 @@ export const useProducts = (): UseProductsReturn => {
       setIsLoading(prevState => reset ? true : prevState);
       
       console.log('[useProducts] Loading products - page:', currentPage, 'offset:', currentPage * pageSize);
+      console.log('[useProducts] Swipe history size:', swipedProductsRef.current.size);
+      console.log('[useProducts] All products seen:', productsData.allProductIds.size);
       
       // ミックス商品取得機能を使用（ランダム性と推薦のバランス）
       const response = await fetchMixedProducts(
         user?.id || null,
-        pageSize,
+        pageSize * 2, // 多めに取得
         currentPage * pageSize,
         filtersRef.current
       );
@@ -137,49 +145,58 @@ export const useProducts = (): UseProductsReturn => {
       const newProducts = response?.data || [];
       console.log('[useProducts] Fetched products:', newProducts.length);
       
-      // スワイプ済みの商品を除外
+      // 既に見た商品とスワイプ済みの商品を除外
       const filteredProducts = newProducts.filter(
-        product => !swipedProductsRef.current.has(product.id)
+        product => !swipedProductsRef.current.has(product.id) && !productsData.allProductIds.has(product.id)
       );
       
-      console.log('[useProducts] After filtering swiped products:', filteredProducts.length);
+      console.log('[useProducts] After filtering:', filteredProducts.length);
       console.log('[useProducts] Current page:', currentPage, 'Offset:', currentPage * pageSize);
       console.log('[useProducts] Total products loaded so far:', productsData.products.length);
 
-      // 商品が取得できなかった場合の判定を先に行う
+      // 商品が取得できなかった場合の判定
       const hasMoreProducts = newProducts.length >= pageSize;
 
       // 結果が十分でない場合の処理
-      if (filteredProducts.length < pageSize / 2 && hasMoreProducts) {
-        // フィルタリング後の商品が少ない場合、追加で商品を取得
-        console.log('[useProducts] Not enough products after filtering, fetching more...');
+      if (filteredProducts.length === 0 && hasMoreProducts && retryCountRef.current < maxRetries) {
+        console.log('[useProducts] No new products after filtering, retrying...');
+        retryCountRef.current++;
+        
         if (!reset) {
           setPage(prevPage => prevPage + 1);
-          
-          // 現在のフィルタリング済み商品を一時的に保存
-          setProductsData(prev => {
-            const updatedProducts = reset 
-              ? filteredProducts 
-              : [...prev.products, ...filteredProducts.filter(
-                  p => !prev.products.some(existing => existing.id === p.id)
-                )];
-
-            return {
-              products: updatedProducts,
-              hasMore: hasMoreProducts,
-              totalFetched: prev.totalFetched + filteredProducts.length
-            };
-          });
-          
           loadingRef.current = false;
           // 再帰的に次のページを読み込む
           setTimeout(() => loadProducts(false), 100);
           return;
         }
       }
+      
+      // リトライ上限に達した場合、商品をリサイクル
+      if (filteredProducts.length === 0 && retryCountRef.current >= maxRetries) {
+        console.log('[useProducts] Max retries reached, recycling products...');
+        
+        // スワイプ済み商品から古いものを再利用
+        const recycleCount = Math.min(pageSize, swipedProductsRef.current.size);
+        const swipedArray = Array.from(swipedProductsRef.current);
+        const recycledIds = swipedArray.slice(0, recycleCount);
+        
+        // 古いスワイプ履歴を削除
+        recycledIds.forEach(id => swipedProductsRef.current.delete(id));
+        
+        // リトライカウントをリセット
+        retryCountRef.current = 0;
+        
+        // 再度商品を取得
+        loadingRef.current = false;
+        setTimeout(() => loadProducts(false), 100);
+        return;
+      }
 
       // 商品データを更新
       setProductsData(prev => {
+        const newAllProductIds = new Set(prev.allProductIds);
+        filteredProducts.forEach(p => newAllProductIds.add(p.id));
+        
         const updatedProducts = reset 
           ? filteredProducts 
           : [...prev.products, ...filteredProducts.filter(
@@ -190,14 +207,16 @@ export const useProducts = (): UseProductsReturn => {
 
         return {
           products: updatedProducts,
-          hasMore: hasMoreProducts,
-          totalFetched: prev.totalFetched + filteredProducts.length
+          hasMore: hasMoreProducts || retryCountRef.current < maxRetries,
+          totalFetched: prev.totalFetched + filteredProducts.length,
+          allProductIds: newAllProductIds
         };
       });
       
       // ページを進める（resetでない場合のみ）
-      if (!reset) {
+      if (!reset && filteredProducts.length > 0) {
         setPage(prevPage => prevPage + 1);
+        retryCountRef.current = 0; // 成功したらリトライカウントをリセット
       }
       
       // 画像をプリフェッチ（バックグラウンドで、UIブロックなし）
@@ -218,7 +237,7 @@ export const useProducts = (): UseProductsReturn => {
       setRefreshing(false);
       loadingRef.current = false;
     }
-  }, [page, pageSize, productsData.hasMore, prefetchImages, user]);
+  }, [page, pageSize, productsData.hasMore, productsData.allProductIds, prefetchImages, user]);
 
   // 初回マウント時に商品データを取得（認証初期化完了後）
   useEffect(() => {
@@ -297,7 +316,8 @@ export const useProducts = (): UseProductsReturn => {
       setProductsData({
         products: [],
         hasMore: true,
-        totalFetched: 0
+        totalFetched: 0,
+        allProductIds: new Set()
       });
       setCurrentIndex(0);
       // 新しいフィルターで再読み込み
