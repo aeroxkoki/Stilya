@@ -949,9 +949,29 @@ export const fetchMixedProducts = async (
     console.log('[fetchMixedProducts] Random product IDs:', randomProducts.slice(0, 5).map(p => p.id));
     console.log('[fetchMixedProducts] Personalized product IDs:', personalizedProducts.slice(0, 5).map(p => p.id));
     
-    // 重複を事前に除去
+    // 重複を事前に除去（IDとタイトルの両方でチェック）
     const productIdSet = new Set<string>();
+    const productTitleSet = new Set<string>();
     const uniqueProducts: Product[] = [];
+    
+    // 重複検出用のヘルパー関数
+    const isDuplicate = (product: Product): boolean => {
+      const normalizedTitle = product.title.toLowerCase().trim();
+      
+      // IDによる重複チェック
+      if (productIdSet.has(product.id)) {
+        console.log(`[fetchMixedProducts] Duplicate ID detected: ${product.id} - ${product.title}`);
+        return true;
+      }
+      
+      // タイトルによる重複チェック（価格情報の有無に関わらず）
+      if (productTitleSet.has(normalizedTitle)) {
+        console.log(`[fetchMixedProducts] Duplicate title detected: ${product.title} (ID: ${product.id})`);
+        return true;
+      }
+      
+      return false;
+    };
     
     // フィルター変更時は、両方の商品リストをシャッフルして混ぜる
     // これにより、毎回異なる順序で商品が表示される
@@ -963,14 +983,16 @@ export const fetchMixedProducts = async (
     
     for (let i = 0; i < maxLength; i++) {
       // ランダム商品を追加
-      if (i < shuffledRandom.length && !productIdSet.has(shuffledRandom[i].id)) {
+      if (i < shuffledRandom.length && !isDuplicate(shuffledRandom[i])) {
         productIdSet.add(shuffledRandom[i].id);
+        productTitleSet.add(shuffledRandom[i].title.toLowerCase().trim());
         uniqueProducts.push(shuffledRandom[i]);
       }
       
       // パーソナライズ商品を追加
-      if (i < shuffledPersonalized.length && !productIdSet.has(shuffledPersonalized[i].id)) {
+      if (i < shuffledPersonalized.length && !isDuplicate(shuffledPersonalized[i])) {
         productIdSet.add(shuffledPersonalized[i].id);
+        productTitleSet.add(shuffledPersonalized[i].title.toLowerCase().trim());
         uniqueProducts.push(shuffledPersonalized[i]);
       }
       
@@ -998,8 +1020,9 @@ export const fetchMixedProducts = async (
         
         // 既存の商品と重複しないものだけを追加
         for (const product of additionalResult.data) {
-          if (!productIdSet.has(product.id)) {
+          if (!isDuplicate(product)) {
             productIdSet.add(product.id);
+            productTitleSet.add(product.title.toLowerCase().trim());
             uniqueProducts.push(product);
             
             if (uniqueProducts.length >= limit) {
