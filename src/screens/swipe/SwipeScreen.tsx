@@ -46,6 +46,9 @@ const SwipeScreen: React.FC = () => {
   const [filters, setFilters] = useState<FilterOptions>({});
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   
+  // 表示済み商品IDを追跡（デバッグ用）
+  const [displayedProductIds, setDisplayedProductIds] = useState<Set<string>>(new Set());
+  
   // デバッグ用の状態表示
   useEffect(() => {
     console.log('[SwipeScreen] Debug Info:', {
@@ -55,11 +58,24 @@ const SwipeScreen: React.FC = () => {
       productsLength: products.length,
       currentIndex,
       currentProduct: currentProduct?.title,
+      currentProductId: currentProduct?.id,
       isLoading,
       error,
-      hasMore
+      hasMore,
+      displayedProductsCount: displayedProductIds.size
     });
-  }, [user, isInitialized, products.length, currentIndex, currentProduct, isLoading, error, hasMore]);
+    
+    // 現在の商品が既に表示されたかチェック
+    if (currentProduct) {
+      if (displayedProductIds.has(currentProduct.id)) {
+        console.error(`[SwipeScreen] 🚨 重複検出: 商品ID ${currentProduct.id} (${currentProduct.title}) が再度表示されています！`);
+        console.log('[SwipeScreen] 表示済み商品ID一覧:', Array.from(displayedProductIds));
+        console.log('[SwipeScreen] 現在の商品リスト:', products.map(p => ({ id: p.id, title: p.title })));
+      } else {
+        setDisplayedProductIds(prev => new Set(prev).add(currentProduct.id));
+      }
+    }
+  }, [user, isInitialized, products.length, currentIndex, currentProduct, isLoading, error, hasMore, displayedProductIds]);
   
   // 初期データロード
   useEffect(() => {
@@ -111,6 +127,8 @@ const SwipeScreen: React.FC = () => {
   const handleSwipe = useCallback(async (product: Product, direction: 'left' | 'right') => {
     if (!user) return;
     
+    console.log(`[SwipeScreen] スワイプ: ${direction} - ${product.title} (ID: ${product.id})`);
+    
     // useProductsフックのhandleSwipeを使用
     await swipeProduct(product, direction);
     
@@ -145,13 +163,17 @@ const SwipeScreen: React.FC = () => {
   
   // ロードし直し
   const handleReload = useCallback(() => {
+    console.log('[SwipeScreen] リロード開始');
     setShowEmptyState(false);
+    setDisplayedProductIds(new Set()); // 表示済みIDをリセット
     resetProducts();
   }, [resetProducts]);
   
   // フィルター適用
   const handleApplyFilter = useCallback((newFilters: FilterOptions) => {
+    console.log('[SwipeScreen] フィルター適用:', newFilters);
     setFilters(newFilters);
+    setDisplayedProductIds(new Set()); // 表示済みIDをリセット
     setProductFilters(newFilters);
     setShowFilterModal(false);
   }, [setProductFilters]);
