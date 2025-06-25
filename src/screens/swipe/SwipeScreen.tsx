@@ -210,8 +210,8 @@ const SwipeScreen: React.FC = () => {
     );
   }
   
-  // 現在の商品がない場合
-  if (!currentProduct) {
+  // 現在の商品がない場合（商品リストが空でない場合のみローディング表示）
+  if (!currentProduct && products.length > 0) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <View style={styles.loadingContainer}>
