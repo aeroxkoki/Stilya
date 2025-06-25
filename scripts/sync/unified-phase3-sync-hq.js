@@ -759,17 +759,28 @@ async function syncProducts() {
   - ブランド総数: ${PHASE3_BRANDS.length}`);
 }
 
-// ブランド選択関数
+// ブランド選択関数（改善版：ローテーション機能追加）
 function selectBrandsToSync() {
   let brands = [...PHASE3_BRANDS];
+
+  // 日付ベースの優先度シフト（ブランド多様性の改善）
+  const dayOfWeek = new Date().getDay();
+  const priorityShift = dayOfWeek % 8; // 0-7の値
+  
+  // 優先度のローテーション適用
+  brands = brands.map(brand => ({
+    ...brand,
+    effectivePriority: (brand.priority + priorityShift) % 8,
+    originalPriority: brand.priority
+  }));
 
   // モードによるフィルタリング
   switch (SYNC_MODE) {
     case 'mvp':
-      brands = brands.filter(b => b.priority <= 2);
+      brands = brands.filter(b => b.originalPriority <= 2);
       break;
     case 'extended':
-      brands = brands.filter(b => b.priority <= 4);
+      brands = brands.filter(b => b.originalPriority <= 4);
       break;
     case 'seasonal':
       // 季節に応じたタグを持つブランドを優先
@@ -790,7 +801,7 @@ function selectBrandsToSync() {
   // 優先度フィルター
   if (PRIORITY_FILTER !== 'all') {
     const priority = parseInt(PRIORITY_FILTER);
-    brands = brands.filter(b => b.priority === priority);
+    brands = brands.filter(b => b.originalPriority === priority);
   }
 
   // 特定ブランド指定
@@ -799,7 +810,8 @@ function selectBrandsToSync() {
     brands = brands.filter(b => targetNames.includes(b.name));
   }
 
-  return brands;
+  // effectivePriorityでソート（ローテーション後の優先度）
+  return brands.sort((a, b) => a.effectivePriority - b.effectivePriority);
 }
 
 // 季節優先ブランド選択
@@ -820,7 +832,7 @@ function prioritizeSeasonalBrands(brands) {
   });
 }
 
-// 商品数決定関数
+// 商品数決定関数（改善版：容量に応じた動的調整）
 function determineProductCount(brand, syncHistory) {
   const history = syncHistory[brand.name];
   const daysSinceLastSync = history ? 
@@ -853,17 +865,34 @@ function determineProductCount(brand, syncHistory) {
       }
   }
 
-  // 容量警告時は制限
+  // 容量警告時は制限（改善版：優先度に応じた削減率）
   if (CAPACITY_WARNING) {
-    baseCount = Math.floor(baseCount * 0.5);
+    // 優先度の低いブランドはより大幅に削減
+    if (brand.priority > 5) {
+      baseCount = Math.floor(baseCount * 0.2); // 80%削減
+    } else if (brand.priority > 3) {
+      baseCount = Math.floor(baseCount * 0.3); // 70%削減
+    } else if (brand.priority > 1) {
+      baseCount = Math.floor(baseCount * 0.5); // 50%削減
+    } else {
+      baseCount = Math.floor(baseCount * 0.7); // 30%削減（優先ブランドは削減を抑える）
+    }
   }
 
   return Math.max(baseCount, 100); // 最低100件
 }
 
-// ブランド商品同期関数
+// ブランド商品同期関数（改善版：重複防止）
 async function syncBrandProducts(brand, targetCount) {
-  const productIds = new Set();
+  // まず既存の商品IDを取得して重複チェック用のSetを作成
+  const { data: existingProducts } = await supabase
+    .from('external_products')
+    .select('product_id')
+    .eq('source_brand', brand.name)
+    .eq('is_active', true);
+  
+  const existingProductIds = new Set(existingProducts?.map(p => p.product_id) || []);
+  const newProductIds = new Set();
   let totalSynced = 0;
   
   // 検索キーワードの生成
@@ -873,12 +902,24 @@ async function syncBrandProducts(brand, targetCount) {
     if (totalSynced >= targetCount) break;
     
     const remaining = targetCount - totalSynced;
-    const products = await fetchProductsFromRakuten(keyword, remaining);
+    const products = await fetchProductsFromRakuten(keyword, remaining, brand);
     
     for (const product of products) {
-      if (productIds.has(product.productId)) continue;
+      // 改善版productId生成（商品名の正規化）
+      const normalizedTitle = product.title
+        .replace(/[【】\[\]（）\s]/g, '') // 記号除去
+        .substring(0, 20); // 最初の20文字
+      const improvedProductId = `${brand.name}_${normalizedTitle}_${product.price}`;
       
-      productIds.add(product.productId);
+      // 重複チェック（既存商品と新規追加分の両方）
+      if (existingProductIds.has(improvedProductId) || newProductIds.has(improvedProductId)) {
+        continue;
+      }
+      
+      newProductIds.add(improvedProductId);
+      
+      // 改善版productIdを使用
+      product.productId = improvedProductId;
       
       // 商品データの拡張
       const enhancedProduct = enhanceProductData(product, brand);
@@ -895,8 +936,8 @@ async function syncBrandProducts(brand, targetCount) {
   return totalSynced;
 }
 
-// 楽天APIから商品取得（高画質版）
-async function fetchProductsFromRakuten(keyword, limit) {
+// 楽天APIから商品取得（高画質版・改善版：中古品除外）
+async function fetchProductsFromRakuten(keyword, limit, brand) {
   const maxPerPage = 30;
   const pages = Math.ceil(limit / maxPerPage);
   let allProducts = [];
@@ -912,43 +953,56 @@ async function fetchProductsFromRakuten(keyword, limit) {
         page: page,
         sort: '-updateTimestamp',
         genreId: '100371', // レディースファッション
-        imageFlag: 1 // 画像があるもののみ
+        imageFlag: 1, // 画像があるもののみ
+        minPrice: 1000, // 1000円以下は除外（中古品の可能性）
       };
+      
+      // ブランド公式ショップがある場合は優先
+      if (brand.shopCode) {
+        params.shopCode = brand.shopCode;
+      }
 
       const response = await axios.get(url, { params });
       
       if (response.data.Items && response.data.Items.length > 0) {
-        const products = response.data.Items.map(item => {
-          // 高画質画像URLの選択（優先順位）
-          const imageUrl = 
-            item.Item.shopOfTheYearFlag ? 
-              (item.Item.mediumImageUrls[0]?.imageUrl?.replace('/128x128/', '/') || '') :
-              (item.Item.mediumImageUrls[0]?.imageUrl || '');
-          
-          // 追加の画像URLも保存（将来的な複数画像表示用）
-          const additionalImages = item.Item.mediumImageUrls
-            .slice(1, 4)
-            .map(img => img?.imageUrl?.replace('/128x128/', '/') || '')
-            .filter(url => url);
+        const products = response.data.Items
+          .filter(item => {
+            // 中古品フィルタリング
+            const excludeKeywords = ['中古', 'USED', 'リユース', 'アウトレット', 'B級品', '訳あり', 'ジャンク'];
+            const title = item.Item.itemName + ' ' + (item.Item.catchcopy || '');
+            return !excludeKeywords.some(keyword => title.includes(keyword));
+          })
+          .map(item => {
+            // 高画質画像URLの選択（優先順位）
+            const imageUrl = 
+              item.Item.shopOfTheYearFlag ? 
+                (item.Item.mediumImageUrls[0]?.imageUrl?.replace('/128x128/', '/') || '') :
+                (item.Item.mediumImageUrls[0]?.imageUrl || '');
+            
+            // 追加の画像URLも保存（将来的な複数画像表示用）
+            const additionalImages = item.Item.mediumImageUrls
+              .slice(1, 4)
+              .map(img => img?.imageUrl?.replace('/128x128/', '/') || '')
+              .filter(url => url);
 
-          return {
-            productId: `rakuten_${item.Item.itemCode}`,
-            title: item.Item.itemName,
-            price: item.Item.itemPrice,
-            imageUrl: imageUrl,
-            additionalImages: additionalImages,
-            thumbnailUrl: item.Item.smallImageUrls[0]?.imageUrl || '', // サムネイル用
-            productUrl: item.Item.itemUrl,
-            shopName: item.Item.shopName,
-            shopCode: item.Item.shopCode,
-            catchCopy: item.Item.catchcopy || '',
-            reviewAverage: item.Item.reviewAverage || 0,
-            reviewCount: item.Item.reviewCount || 0,
-            itemCaption: item.Item.itemCaption || '', // 商品説明
-            availability: item.Item.availability || 1,
-            taxFlag: item.Item.taxFlag || 0
-          };
-        });
+            return {
+              productId: `rakuten_${item.Item.itemCode}`,
+              title: item.Item.itemName,
+              price: item.Item.itemPrice,
+              imageUrl: imageUrl,
+              additionalImages: additionalImages,
+              thumbnailUrl: item.Item.smallImageUrls[0]?.imageUrl || '', // サムネイル用
+              productUrl: item.Item.itemUrl,
+              shopName: item.Item.shopName,
+              shopCode: item.Item.shopCode,
+              catchCopy: item.Item.catchcopy || '',
+              reviewAverage: item.Item.reviewAverage || 0,
+              reviewCount: item.Item.reviewCount || 0,
+              itemCaption: item.Item.itemCaption || '', // 商品説明
+              availability: item.Item.availability || 1,
+              taxFlag: item.Item.taxFlag || 0
+            };
+          });
         
         allProducts = allProducts.concat(products);
       }
@@ -1016,7 +1070,7 @@ function generateMLTags(product, brand) {
   return [...new Set(tags)].slice(0, 30); // 最大30タグ
 }
 
-// レコメンドスコア計算
+// レコメンドスコア計算（改善版：季節商品優先度強化）
 function calculateRecommendationScore(product, brand) {
   let score = 50; // 基準スコア
 
@@ -1033,9 +1087,28 @@ function calculateRecommendationScore(product, brand) {
   const priceMatch = isPriceInRange(product.price, brand.priceRange);
   if (priceMatch) score += 10;
 
-  // 季節適合度
-  if (CURRENT_SEASON && isSeasonalProduct(product, CURRENT_SEASON)) {
-    score += 15;
+  // 季節適合度（改善版：季節商品に大きなボーナス）
+  if (CURRENT_SEASON && CURRENT_SEASON !== 'all') {
+    const seasonalTags = generateSeasonalTags(product, CURRENT_SEASON);
+    // 季節キーワードのマッチ数に応じてボーナス付与
+    if (seasonalTags.length > 0) {
+      score += 15 + (seasonalTags.length * 5); // 基本15点 + タグ数×5点
+    }
+    
+    // 季節外れの商品にはペナルティ
+    const oppositeSeasons = {
+      spring: 'autumn',
+      summer: 'winter',
+      autumn: 'spring',
+      winter: 'summer'
+    };
+    const oppositeSeason = oppositeSeasons[CURRENT_SEASON];
+    if (oppositeSeason) {
+      const oppositeSeasonalTags = generateSeasonalTags(product, oppositeSeason);
+      if (oppositeSeasonalTags.length > 0) {
+        score -= oppositeSeasonalTags.length * 10; // 季節外れのペナルティ
+      }
+    }
   }
 
   return Math.min(Math.max(score, 0), 100);

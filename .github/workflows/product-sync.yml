@@ -240,7 +240,34 @@ jobs:
           echo "### Starting sync with mode: $SYNC_MODE" >> $GITHUB_STEP_SUMMARY
           
           # Phase 3拡張スクリプトの実行（高画質版）
-          node scripts/sync/unified-phase3-sync-hq.js || echo "Sync completed with warnings"
+          node scripts/sync/unified-phase3-sync-hq.js > sync_output.log 2>&1
+          SYNC_EXIT_CODE=$?
+          
+          # エラー詳細の抽出（改善版）
+          if [ $SYNC_EXIT_CODE -ne 0 ]; then
+            echo "### ⚠️ 同期エラー詳細" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            tail -n 50 sync_output.log >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            
+            # 失敗ブランドの抽出
+            echo "### 失敗ブランド:" >> $GITHUB_STEP_SUMMARY
+            grep "❌" sync_output.log | head -10 >> $GITHUB_STEP_SUMMARY || echo "詳細なエラー情報なし"
+            
+            # エラー率の計算
+            TOTAL_BRANDS=$(grep "🏷️" sync_output.log | wc -l)
+            FAILED_BRANDS=$(grep "❌" sync_output.log | wc -l)
+            if [ $TOTAL_BRANDS -gt 0 ]; then
+              ERROR_RATE=$((FAILED_BRANDS * 100 / TOTAL_BRANDS))
+              echo "- エラー率: ${ERROR_RATE}% (${FAILED_BRANDS}/${TOTAL_BRANDS})" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "✅ 同期が正常に完了しました" >> $GITHUB_STEP_SUMMARY
+            # 成功統計の表示
+            grep "📊 同期完了レポート" -A 5 sync_output.log >> $GITHUB_STEP_SUMMARY || true
+          fi
+          
+          exit $SYNC_EXIT_CODE
         env:
           EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
