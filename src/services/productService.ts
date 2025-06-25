@@ -798,17 +798,22 @@ export const fetchRandomizedProducts = async (
     const randomOrder = Math.random() > 0.5 ? 'created_at' : 'last_synced';
     const randomDirection = Math.random() > 0.5;
     
-    // まず、データベースの総商品数を取得
-    const { count: totalCount } = await supabase
-      .from('external_products')
-      .select('id', { count: 'exact', head: true })
-      .eq('is_active', true);
+    // フィルター条件を考慮した総商品数を取得
+    const { count: totalCount } = await query
+      .select('id', { count: 'exact', head: true });
     
-    // データベースの商品数を考慮したoffset計算（循環）
-    const maxOffset = Math.max(0, (totalCount || 0) - poolSize);
-    const actualOffset = maxOffset > 0 ? (offset + timeOffset) % maxOffset : 0;
+    console.log(`[ProductService] Total products with filters: ${totalCount}`);
     
-    console.log(`[ProductService] Total products: ${totalCount}, actualOffset: ${actualOffset}, poolSize: ${poolSize}`);
+    // offset計算を簡潔に（総商品数を超えないように）
+    let actualOffset = offset + timeOffset;
+    
+    // 商品数を超えた場合はランダムな位置から開始
+    if (totalCount && actualOffset >= totalCount) {
+      actualOffset = Math.floor(Math.random() * Math.max(0, totalCount - poolSize));
+      console.log(`[ProductService] Offset exceeded total, using random: ${actualOffset}`);
+    }
+    
+    console.log(`[ProductService] Final offset: ${actualOffset}, poolSize: ${poolSize}`);
     
     const { data, error } = await query
       .order(randomOrder, { ascending: randomDirection })
