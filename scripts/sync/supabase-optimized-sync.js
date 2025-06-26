@@ -79,18 +79,18 @@ async function optimizeForFreeTier() {
   
   const { data: oldProducts } = await supabase
     .from('external_products')
-    .select('product_id')
+    .select('id')  // product_idカラムは存在しない
     .eq('is_active', false)
     .lt('last_synced', sevenDaysAgo.toISOString())
     .order('last_synced', { ascending: true })
     .limit(SUPABASE_FREE_TIER.cleanupBatchSize);
   
   if (oldProducts && oldProducts.length > 0) {
-    const productIds = oldProducts.map(p => p.product_id);
+    const productIds = oldProducts.map(p => p.id);  // idカラムを使用
     await supabase
       .from('external_products')
       .delete()
-      .in('product_id', productIds);
+      .in('id', productIds);  // idカラムで削除
     
     console.log(`  ${productIds.length}件の古い商品を削除`);
   }
@@ -98,17 +98,17 @@ async function optimizeForFreeTier() {
   // 2. 低品質商品の削除（レビューが少なく、スコアが低い）
   const { data: lowQualityProducts } = await supabase
     .from('external_products')
-    .select('product_id')
+    .select('id')  // product_idカラムは存在しない
     .lt('recommendation_score', 20)
     .lt('review_count', 5)
     .limit(SUPABASE_FREE_TIER.cleanupBatchSize);
   
   if (lowQualityProducts && lowQualityProducts.length > 0) {
-    const productIds = lowQualityProducts.map(p => p.product_id);
+    const productIds = lowQualityProducts.map(p => p.id);  // idカラムを使用
     await supabase
       .from('external_products')
       .delete()
-      .in('product_id', productIds);
+      .in('id', productIds);  // idカラムで削除
     
     console.log(`  ${productIds.length}件の低品質商品を削除`);
   }
@@ -168,7 +168,7 @@ async function saveProductToDatabase(product) {
     const { error } = await supabase
       .from('external_products')
       .upsert({
-        product_id: product.productId,
+        id: product.productId,  // product_idカラムは存在しない、idカラムを使用
         title: product.title,
         price: product.price,
         image_url: product.imageUrl,
@@ -190,7 +190,7 @@ async function saveProductToDatabase(product) {
         has_large_image: product.hasLargeImage,
         image_quality: product.imageQuality
       }, {
-        onConflict: 'product_id'
+        onConflict: 'id'  // idカラムで競合チェック
       });
 
     if (error) {
