@@ -137,12 +137,18 @@ export class RecommendationService {
       const preferences = preferencesResult.data;
 
       // Get swiped product IDs to exclude
-      const { data: swipedData } = await supabase
+      const { data: swipedData, error: swipeError } = await supabase
         .from(TABLES.SWIPES)
         .select('product_id')
         .eq('user_id', userId);
 
+      if (swipeError) {
+        console.error('[getPersonalizedRecommendations] Error fetching swipes:', swipeError);
+        return handleSupabaseError(swipeError);
+      }
+
       const swipedProductIds = swipedData?.map(s => s.product_id) || [];
+      console.log('[getPersonalizedRecommendations] Swiped product IDs:', swipedProductIds.length);
 
       // 多めに商品を取得してランダム性を確保
       const poolSize = limit * 3;
@@ -151,22 +157,40 @@ export class RecommendationService {
       let query = supabase
         .from(TABLES.EXTERNAL_PRODUCTS)
         .select('*')
+        .eq('is_active', true)  // アクティブな商品のみを取得
         .limit(poolSize)
         .order('created_at', { ascending: false });
 
+      // デバッグ用：クエリパラメータを確認
+      console.log('[getPersonalizedRecommendations] Query parameters:', {
+        table: TABLES.EXTERNAL_PRODUCTS,
+        poolSize,
+        swipedProductIdsCount: swipedProductIds.length,
+        likedTagsCount: preferences.likedTags.length
+      });
+
       // Exclude already swiped products
       if (swipedProductIds.length > 0) {
-        query = query.not('id', 'in', `(${swipedProductIds.join(',')})`);
+        // Supabaseのnot演算子に配列を直接渡す
+        query = query.not('id', 'in', swipedProductIds);
       }
 
       // Filter by preferred tags (using overlaps operator)
       if (preferences.likedTags.length > 0) {
+        console.log('[getPersonalizedRecommendations] Filtering by tags:', preferences.likedTags);
         query = query.overlaps('tags', preferences.likedTags);
       }
 
       const { data, error } = await query;
 
       if (error) {
+        console.error('[getPersonalizedRecommendations] Query error:', error);
+        console.error('[getPersonalizedRecommendations] Error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
         return handleSupabaseError(error);
       }
 

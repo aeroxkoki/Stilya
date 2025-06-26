@@ -84,6 +84,12 @@ export const testSupabaseConnection = async (): Promise<boolean> => {
 export const handleSupabaseError = (error: Error | { message: string }) => {
   const errorMessage = 'message' in error ? error.message : error.toString();
   console.error('[Supabase Error]:', errorMessage);
+  
+  // エラーの詳細情報をログに出力
+  if (error && typeof error === 'object' && 'details' in error) {
+    console.error('[Supabase Error Details]:', error);
+  }
+  
   return {
     success: false,
     error: errorMessage,
