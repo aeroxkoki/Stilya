@@ -907,10 +907,17 @@ export const fetchMixedProducts = async (
   userId: string | null,
   limit: number = 20,
   offset: number = 0,
-  filters?: FilterOptions
+  filters?: FilterOptions,
+  excludeProductIds?: string[] // 既に表示された商品IDのリスト
 ) => {
   try {
-    console.log('[fetchMixedProducts] Called with:', { userId, limit, offset, filters });
+    console.log('[fetchMixedProducts] Called with:', { 
+      userId, 
+      limit, 
+      offset, 
+      filters,
+      excludeProductIdsCount: excludeProductIds?.length || 0 
+    });
     
     // 戦略を変更：一度に多めの商品を取得して、それを分割する
     const totalPoolSize = limit * 4; // 4倍の商品を取得（重複除去のマージンを増やす）
@@ -1036,7 +1043,7 @@ export const fetchMixedProducts = async (
     
     // 重複を除去（強化版）
     const uniqueProducts: Product[] = [];
-    const seenIds = new Set<string>();
+    const seenIds = new Set<string>(excludeProductIds || []); // 既に表示された商品IDを最初から除外リストに含める
     const seenTitles = new Set<string>();
     const seenTitleBrandPairs = new Set<string>(); // タイトル+ブランドの組み合わせも追跡
     

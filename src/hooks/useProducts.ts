@@ -132,7 +132,8 @@ export const useProducts = (): UseProductsReturn => {
         user?.id || null,
         pageSize * 2, // 多めに取得
         currentPage * pageSize,
-        filtersRef.current
+        filtersRef.current,
+        Array.from(productsData.allProductIds) // 既に表示された商品IDを渡す
       );
       
       // レスポンスの検証
