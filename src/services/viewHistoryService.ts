@@ -8,10 +8,16 @@ import { recordView, recordClick as recordClickAction } from './clickService';
  * @param productId 商品ID
  */
 export const recordProductView = async (
-  userId: string,
+  userId: string | undefined | null,
   productId: string
 ): Promise<void> => {
   try {
+    // userIdの検証
+    if (!userId || userId === 'undefined' || userId === 'null') {
+      console.warn('[recordProductView] Invalid userId:', userId);
+      return;
+    }
+    
     await recordView(userId, productId);
     console.log(`Product view recorded: user=${userId}, product=${productId}`);
   } catch (error) {
@@ -27,10 +33,16 @@ export const recordProductView = async (
  * @param productId 商品ID
  */
 export const recordProductClick = async (
-  userId: string,
+  userId: string | undefined | null,
   productId: string
 ): Promise<void> => {
   try {
+    // userIdの検証
+    if (!userId || userId === 'undefined' || userId === 'null') {
+      console.warn('[recordProductClick] Invalid userId:', userId);
+      return;
+    }
+    
     await recordClickAction(userId, productId);
     console.log(`Product click recorded: user=${userId}, product=${productId}`);
   } catch (error) {
@@ -45,10 +57,16 @@ export const recordProductClick = async (
  * @param limit 取得件数
  */
 export const getViewHistory = async (
-  userId: string,
+  userId: string | undefined | null,
   limit: number = 50
 ): Promise<Array<{ productId: string; viewedAt: string }>> => {
   try {
+    // userIdの検証
+    if (!userId || userId === 'undefined' || userId === 'null') {
+      console.warn('[getViewHistory] Invalid userId:', userId);
+      return [];
+    }
+    
     // 開発モードではモックデータを返す
     if (__DEV__) {
       console.log(`[DEV] Fetching view history for user: ${userId}`);
@@ -84,10 +102,16 @@ export const getViewHistory = async (
  * @param limit 取得件数
  */
 export const getClickHistory = async (
-  userId: string,
+  userId: string | undefined | null,
   limit: number = 50
 ): Promise<Array<{ productId: string; clickedAt: string }>> => {
   try {
+    // userIdの検証
+    if (!userId || userId === 'undefined' || userId === 'null') {
+      console.warn('[getClickHistory] Invalid userId:', userId);
+      return [];
+    }
+    
     // 開発モードではモックデータを返す
     if (__DEV__) {
       console.log(`[DEV] Fetching click history for user: ${userId}`);

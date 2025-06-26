@@ -23,8 +23,14 @@ export interface PricePreference {
 /**
  * ユーザーのスワイプ履歴から価格嗜好を学習
  */
-export async function learnPricePreference(userId: string): Promise<PricePreference | null> {
+export async function learnPricePreference(userId: string | undefined | null): Promise<PricePreference | null> {
   try {
+    // userIdの検証
+    if (!userId || userId === 'undefined' || userId === 'null') {
+      console.warn('[learnPricePreference] Invalid userId:', userId);
+      return null;
+    }
+    
     // Yesスワイプした商品の価格を取得
     const { data: swipeData, error: swipeError } = await supabase
       .from('swipes')
@@ -105,8 +111,14 @@ export async function learnPricePreference(userId: string): Promise<PricePrefere
 /**
  * ユーザーの嗜好データを取得してUserPreferencesオブジェクトを構築
  */
-export async function getUserPreferences(userId: string): Promise<UserPreferences | null> {
+export async function getUserPreferences(userId: string | undefined | null): Promise<UserPreferences | null> {
   try {
+    // userIdの検証
+    if (!userId || userId === 'undefined' || userId === 'null') {
+      console.warn('[getUserPreferences] Invalid userId:', userId);
+      return null;
+    }
+    
     // タグとブランドの嗜好を取得
     const { data: swipeData } = await supabase
       .from('swipes')

@@ -5,8 +5,14 @@ import { addScoreNoise, shuffleArray, ensureProductDiversity } from '../utils/ra
 
 export class RecommendationService {
   // Analyze user preferences based on swipe history
-  static async analyzeUserPreferences(userId: string) {
+  static async analyzeUserPreferences(userId: string | undefined | null) {
     try {
+      // userIdの検証
+      if (!userId || userId === 'undefined' || userId === 'null') {
+        console.warn('[analyzeUserPreferences] Invalid userId:', userId);
+        return handleSupabaseError(new Error('Invalid user ID'));
+      }
+      
       // スワイプ履歴を取得
       const { data: swipes, error: swipeError } = await supabase
         .from(TABLES.SWIPES)
@@ -112,8 +118,15 @@ export class RecommendationService {
   }
 
   // Get personalized recommendations based on user preferences
-  static async getPersonalizedRecommendations(userId: string, limit: number = 20, filters?: FilterOptions) {
+  static async getPersonalizedRecommendations(userId: string | undefined | null, limit: number = 20, filters?: FilterOptions) {
     try {
+      // userIdの検証
+      if (!userId || userId === 'undefined' || userId === 'null') {
+        console.warn('[getPersonalizedRecommendations] Invalid userId:', userId);
+        // userIdが無効な場合は人気商品を返す
+        return await RecommendationService.getPopularProducts(limit);
+      }
+      
       const preferencesResult = await RecommendationService.analyzeUserPreferences(userId);
       
       if (!preferencesResult.success || !preferencesResult.data) {

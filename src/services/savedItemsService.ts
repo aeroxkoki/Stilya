@@ -17,8 +17,14 @@ export const savedItemsService = {
   /**
    * アイテムを保存する
    */
-  async saveItem(userId: string, productId: string): Promise<boolean> {
+  async saveItem(userId: string | undefined | null, productId: string): Promise<boolean> {
     try {
+      // userIdの検証
+      if (!userId || userId === 'undefined' || userId === 'null') {
+        console.warn('[SavedItemsService.saveItem] Invalid userId:', userId);
+        return false;
+      }
+      
       // 既に保存されているかチェック
       const { data: existing } = await supabase
         .from('saved_items')
@@ -55,8 +61,14 @@ export const savedItemsService = {
   /**
    * 保存を解除する
    */
-  async unsaveItem(userId: string, productId: string): Promise<boolean> {
+  async unsaveItem(userId: string | undefined | null, productId: string): Promise<boolean> {
     try {
+      // userIdの検証
+      if (!userId || userId === 'undefined' || userId === 'null') {
+        console.warn('[SavedItemsService.unsaveItem] Invalid userId:', userId);
+        return false;
+      }
+      
       const { error } = await supabase
         .from('saved_items')
         .delete()
@@ -79,8 +91,14 @@ export const savedItemsService = {
   /**
    * 保存されているアイテムを取得
    */
-  async getSavedItems(userId: string): Promise<SavedItem[]> {
+  async getSavedItems(userId: string | undefined | null): Promise<SavedItem[]> {
     try {
+      // userIdの検証
+      if (!userId || userId === 'undefined' || userId === 'null') {
+        console.warn('[SavedItemsService.getSavedItems] Invalid userId:', userId);
+        return [];
+      }
+      
       const { data, error } = await supabase
         .from('saved_items')
         .select(`
@@ -105,8 +123,14 @@ export const savedItemsService = {
   /**
    * セール中の保存アイテムを取得
    */
-  async getSavedItemsOnSale(userId: string): Promise<SavedItem[]> {
+  async getSavedItemsOnSale(userId: string | undefined | null): Promise<SavedItem[]> {
     try {
+      // userIdの検証
+      if (!userId || userId === 'undefined' || userId === 'null') {
+        console.warn('[SavedItemsService.getSavedItemsOnSale] Invalid userId:', userId);
+        return [];
+      }
+      
       const savedItems = await this.getSavedItems(userId);
       
       // セール中のアイテムのみをフィルタリング
@@ -123,8 +147,14 @@ export const savedItemsService = {
   /**
    * アイテムが保存されているかチェック
    */
-  async isItemSaved(userId: string, productId: string): Promise<boolean> {
+  async isItemSaved(userId: string | undefined | null, productId: string): Promise<boolean> {
     try {
+      // userIdの検証
+      if (!userId || userId === 'undefined' || userId === 'null') {
+        console.warn('[SavedItemsService.isItemSaved] Invalid userId:', userId);
+        return false;
+      }
+      
       const { data, error } = await supabase
         .from('saved_items')
         .select('id')

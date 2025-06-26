@@ -20,8 +20,14 @@ const CACHE_TIMEOUT = 60 * 60 * 1000;
 /**
  * ユーザーのお気に入り商品一覧を取得する
  */
-export const getFavorites = async (userId: string) => {
+export const getFavorites = async (userId: string | undefined | null) => {
   try {
+    // userIdの検証
+    if (!userId || userId === 'undefined' || userId === 'null') {
+      console.warn('[getFavorites] Invalid userId:', userId);
+      return [];
+    }
+    
     // キャッシュチェック
     if (
       favoriteCache[userId] &&
@@ -78,8 +84,14 @@ export const getFavorites = async (userId: string) => {
 /**
  * 商品がお気に入りに入っているか確認する
  */
-export const isFavorite = async (userId: string, productId: string): Promise<boolean> => {
+export const isFavorite = async (userId: string | undefined | null, productId: string): Promise<boolean> => {
   try {
+    // userIdの検証
+    if (!userId || userId === 'undefined' || userId === 'null') {
+      console.warn('[isFavorite] Invalid userId:', userId);
+      return false;
+    }
+    
     // キャッシュチェック
     if (
       favoriteCache[userId] &&
@@ -115,8 +127,14 @@ export const isFavorite = async (userId: string, productId: string): Promise<boo
 /**
  * お気に入りに追加/削除を切り替える
  */
-export const toggleFavorite = async (userId: string, productId: string): Promise<boolean> => {
+export const toggleFavorite = async (userId: string | undefined | null, productId: string): Promise<boolean> => {
   try {
+    // userIdの検証
+    if (!userId || userId === 'undefined' || userId === 'null') {
+      console.warn('[toggleFavorite] Invalid userId:', userId);
+      throw new Error('Invalid user ID');
+    }
+    
     // 現在のお気に入り状態を確認
     const isCurrentlyFavorite = await isFavorite(userId, productId);
     

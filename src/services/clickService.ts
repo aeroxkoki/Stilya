@@ -8,11 +8,17 @@ import { ClickLog } from '@/types';
  * @param action アクションタイプ（view, click, purchase）
  */
 export const recordAction = async (
-  userId: string,
+  userId: string | undefined | null,
   productId: string,
   action: 'view' | 'click' | 'purchase'
 ): Promise<ClickLog | null> => {
   try {
+    // userIdの検証
+    if (!userId || userId === 'undefined' || userId === 'null') {
+      console.warn('[recordAction] Invalid userId:', userId);
+      return null;
+    }
+    
     // 開発モードではモック処理としてログ出力のみ
     if (__DEV__) {
       console.log(`[DEV] Recorded ${action}: user=${userId}, product=${productId}`);
@@ -62,7 +68,7 @@ export const recordAction = async (
  * @param productId 商品ID
  */
 export const recordView = async (
-  userId: string,
+  userId: string | undefined | null,
   productId: string
 ): Promise<ClickLog | null> => {
   return recordAction(userId, productId, 'view');
@@ -74,7 +80,7 @@ export const recordView = async (
  * @param productId 商品ID
  */
 export const recordClick = async (
-  userId: string,
+  userId: string | undefined | null,
   productId: string
 ): Promise<ClickLog | null> => {
   return recordAction(userId, productId, 'click');
@@ -86,7 +92,7 @@ export const recordClick = async (
  * @param productId 商品ID
  */
 export const recordPurchase = async (
-  userId: string,
+  userId: string | undefined | null,
   productId: string
 ): Promise<ClickLog | null> => {
   return recordAction(userId, productId, 'purchase');
@@ -99,11 +105,17 @@ export const recordPurchase = async (
  * @param limit 取得数の上限
  */
 export const getActionHistory = async (
-  userId: string,
+  userId: string | undefined | null,
   action?: 'view' | 'click' | 'purchase',
   limit = 50
 ): Promise<ClickLog[]> => {
   try {
+    // userIdの検証
+    if (!userId || userId === 'undefined' || userId === 'null') {
+      console.warn('[getActionHistory] Invalid userId:', userId);
+      return [];
+    }
+    
     let query = supabase
       .from('click_logs')
       .select('*')
@@ -142,7 +154,7 @@ export const getActionHistory = async (
  * @param limit 取得数の上限
  */
 export const getClickHistory = async (
-  userId: string,
+  userId: string | undefined | null,
   limit = 50
 ): Promise<ClickLog[]> => {
   return getActionHistory(userId, 'click', limit);
