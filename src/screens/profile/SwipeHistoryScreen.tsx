@@ -227,7 +227,7 @@ const SwipeHistoryScreen: React.FC = () => {
             <Ionicons name="arrow-back" size={24} color="#000" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>スワイプ履歴</Text>
-          <View style={{ width: 24 }} /> {/* バランス用の空のビュー */}
+          <View style={{ width: 24 }} />
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#3B82F6" />
@@ -294,7 +294,7 @@ const SwipeHistoryScreen: React.FC = () => {
                     <View
                       style={[
                         styles.resultBadge,
-                        { backgroundColor: index % 2 === 0 ? '#3B82F6' : '#F87171' } // 偶数番目はYes
+                        { backgroundColor: index % 2 === 0 ? '#3B82F6' : '#F87171' }
                       ]}
                     >
                       <Text style={dynamicStyles.resultBadgeText}>

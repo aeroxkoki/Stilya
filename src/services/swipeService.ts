@@ -246,8 +246,8 @@ const isValidSwipeData = (item: any): boolean => {
     }
   }
   
-  // UUIDまたは既知の形式であることを確認
-  const validIdPattern = /^[a-zA-Z0-9\-_]+$/;
+  // UUIDまたは既知の形式であることを確認（コロンも許可）
+  const validIdPattern = /^[a-zA-Z0-9\-_:]+$/;
   if (!validIdPattern.test(idStr) || !validIdPattern.test(productIdStr)) {
     return false;
   }
