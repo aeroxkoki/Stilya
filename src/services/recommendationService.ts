@@ -174,8 +174,8 @@ export class RecommendationService {
 
       // タグによるフィルタリング（正しい構文）
       if (preferences.likedTags && preferences.likedTags.length > 0) {
-        // PostgreSQLの配列演算子&&を使用
-        query = query.filter('tags', 'cs', `{${preferences.likedTags.join(',')}}`);
+        // PostgreSQLの配列演算子&&を使用（overlaps）
+        query = query.overlaps('tags', preferences.likedTags);
       }
 
       console.log('[getPersonalizedRecommendations] Executing query...');

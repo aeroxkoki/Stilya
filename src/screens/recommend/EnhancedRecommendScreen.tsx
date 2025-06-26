@@ -226,17 +226,24 @@ const EnhancedRecommendScreen: React.FC = () => {
               activeOpacity={0.95}
               onPress={() => handleProductPress(heroProduct)}
             >
-              <Image
-                source={{ uri: heroProduct.imageUrl }}
-                style={styles.heroImage}
-                onError={(error) => {
-                  console.error('[HeroImage] Failed to load:', heroProduct.imageUrl);
-                  console.error('[HeroImage] Error:', error.nativeEvent.error);
-                }}
-                onLoad={() => {
-                  console.log('[HeroImage] Successfully loaded:', heroProduct.imageUrl);
-                }}
-              />
+              {heroProduct.imageUrl && heroProduct.imageUrl.trim() !== '' && !heroProduct.imageUrl.includes('placehold.co') ? (
+                <Image
+                  source={{ uri: heroProduct.imageUrl }}
+                  style={styles.heroImage}
+                  onError={(error) => {
+                    console.error('[HeroImage] Failed to load:', heroProduct.imageUrl);
+                    console.error('[HeroImage] Error:', error.nativeEvent.error);
+                  }}
+                  onLoad={() => {
+                    console.log('[HeroImage] Successfully loaded:', heroProduct.imageUrl);
+                  }}
+                />
+              ) : (
+                <View style={[styles.heroImage, styles.placeholderContainer]}>
+                  <Ionicons name="image-outline" size={60} color="#666" />
+                  <Text style={styles.placeholderText}>画像を読み込み中...</Text>
+                </View>
+              )}
               <LinearGradient
                 colors={['transparent', 'rgba(0,0,0,0.6)']}
                 style={styles.heroGradient}
@@ -290,17 +297,23 @@ const EnhancedRecommendScreen: React.FC = () => {
                     onPress={() => handleProductPress(item)}
                     style={styles.gridItemTouchable}
                   >
-                    <Image
-                      source={{ uri: item.imageUrl }}
-                      style={[styles.gridItemImage, { height: dimensions.height }]}
-                      onError={(error) => {
-                        console.error('[GridImage] Failed to load:', item.imageUrl);
-                        console.error('[GridImage] Error:', error.nativeEvent.error);
-                      }}
-                      onLoad={() => {
-                        console.log('[GridImage] Successfully loaded:', item.imageUrl);
-                      }}
-                    />
+                    {item.imageUrl && item.imageUrl.trim() !== '' && !item.imageUrl.includes('placehold.co') ? (
+                      <Image
+                        source={{ uri: item.imageUrl }}
+                        style={[styles.gridItemImage, { height: dimensions.height }]}
+                        onError={(error) => {
+                          console.error('[GridImage] Failed to load:', item.imageUrl);
+                          console.error('[GridImage] Error:', error.nativeEvent.error);
+                        }}
+                        onLoad={() => {
+                          console.log('[GridImage] Successfully loaded:', item.imageUrl);
+                        }}
+                      />
+                    ) : (
+                      <View style={[styles.gridItemImage, { height: dimensions.height }, styles.placeholderContainer]}>
+                        <Ionicons name="image-outline" size={40} color="#666" />
+                      </View>
+                    )}
                     {item.size === 'large' && (
                       <LinearGradient
                         colors={['transparent', 'rgba(0,0,0,0.4)']}
@@ -369,10 +382,16 @@ const EnhancedRecommendScreen: React.FC = () => {
                     activeOpacity={0.9}
                     onPress={() => handleProductPress(item)}
                   >
-                    <Image
-                      source={{ uri: item.imageUrl }}
-                      style={styles.surpriseImage}
-                    />
+                    {item.imageUrl && item.imageUrl.trim() !== '' && !item.imageUrl.includes('placehold.co') ? (
+                      <Image
+                        source={{ uri: item.imageUrl }}
+                        style={styles.surpriseImage}
+                      />
+                    ) : (
+                      <View style={[styles.surpriseImage, styles.placeholderContainer]}>
+                        <Ionicons name="image-outline" size={50} color="#666" />
+                      </View>
+                    )}
                     <View style={styles.surpriseInfo}>
                       <View style={styles.newBadge}>
                         <Text style={styles.newBadgeText}>New Discovery</Text>
@@ -608,6 +627,16 @@ const styles = StyleSheet.create({
   moreButtonSubtext: {
     fontSize: 12,
     marginTop: 4,
+  },
+  placeholderContainer: {
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  placeholderText: {
+    marginTop: 10,
+    fontSize: 14,
+    color: '#666',
   },
 });
 

@@ -11,12 +11,16 @@ import { shuffleArray, ensureProductDiversity, getTimeBasedOffset } from '@/util
  * DBの商品データをアプリ用の形式に正規化
  */
 const normalizeProduct = (dbProduct: any): Product => {
+  // imageUrlが未定義またはnullの場合のフォールバック処理
+  const imageUrl = dbProduct.image_url || dbProduct.imageUrl || '';
+  const optimizedUrl = imageUrl ? optimizeImageUrl(imageUrl) : '';
+  
   return {
     id: dbProduct.id,
     title: dbProduct.title,
     brand: dbProduct.brand,
     price: dbProduct.price,
-    imageUrl: optimizeImageUrl(dbProduct.image_url), // 高画質画像URLに最適化
+    imageUrl: optimizedUrl, // 高画質画像URLに最適化
     description: dbProduct.description,
     tags: dbProduct.tags || [],
     category: dbProduct.category,
