@@ -20,8 +20,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/hooks/useAuth';
 import { useStyle } from '@/contexts/ThemeContext';
 import { 
-  getEnhancedRecommendations, 
-  getOutfitRecommendations 
+  getEnhancedRecommendations
 } from '@/services/integratedRecommendationService';
 import { Product } from '@/types';
 import { FilterOptions } from '@/services/productService';
