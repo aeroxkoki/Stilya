@@ -189,19 +189,19 @@ const SwipeHistoryScreen: React.FC = () => {
         style={[styles.filterButton, filter === 'all' && styles.filterButtonActive]}
         onPress={() => setFilter('all')}
       >
-        <Text style={[styles.filterButtonText, filter === 'all' && dynamicStyles.filterButtonTextActive]}>すべて</Text>
+        <Text style={[styles.filterButtonText, filter === 'all' ? dynamicStyles.filterButtonTextActive : null]}>すべて</Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={[styles.filterButton, filter === 'yes' && styles.filterButtonActive]}
         onPress={() => setFilter('yes')}
       >
-        <Text style={[styles.filterButtonText, filter === 'yes' && dynamicStyles.filterButtonTextActive]}>Yes</Text>
+        <Text style={[styles.filterButtonText, filter === 'yes' ? dynamicStyles.filterButtonTextActive : null]}>Yes</Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={[styles.filterButton, filter === 'no' && styles.filterButtonActive]}
         onPress={() => setFilter('no')}
       >
-        <Text style={[styles.filterButtonText, filter === 'no' && dynamicStyles.filterButtonTextActive]}>No</Text>
+        <Text style={[styles.filterButtonText, filter === 'no' ? dynamicStyles.filterButtonTextActive : null]}>No</Text>
       </TouchableOpacity>
     </View>
   );
