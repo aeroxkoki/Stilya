@@ -229,6 +229,13 @@ const EnhancedRecommendScreen: React.FC = () => {
               <Image
                 source={{ uri: heroProduct.imageUrl }}
                 style={styles.heroImage}
+                onError={(error) => {
+                  console.error('[HeroImage] Failed to load:', heroProduct.imageUrl);
+                  console.error('[HeroImage] Error:', error.nativeEvent.error);
+                }}
+                onLoad={() => {
+                  console.log('[HeroImage] Successfully loaded:', heroProduct.imageUrl);
+                }}
               />
               <LinearGradient
                 colors={['transparent', 'rgba(0,0,0,0.6)']}
@@ -286,6 +293,13 @@ const EnhancedRecommendScreen: React.FC = () => {
                     <Image
                       source={{ uri: item.imageUrl }}
                       style={[styles.gridItemImage, { height: dimensions.height }]}
+                      onError={(error) => {
+                        console.error('[GridImage] Failed to load:', item.imageUrl);
+                        console.error('[GridImage] Error:', error.nativeEvent.error);
+                      }}
+                      onLoad={() => {
+                        console.log('[GridImage] Successfully loaded:', item.imageUrl);
+                      }}
                     />
                     {item.size === 'large' && (
                       <LinearGradient

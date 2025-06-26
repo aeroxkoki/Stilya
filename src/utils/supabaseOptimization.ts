@@ -140,28 +140,28 @@ export const optimizeImageUrl = (url: string): string => {
   try {
     // 楽天画像URLの最適化（小さいサイズから大きいサイズへ変換）
     if (url.includes('rakuten.co.jp')) {
-      // 低解像度パスを除去し、高解像度パスに置換
-      optimizedUrl = url
-        .replace(/\/128x128\//, '/600x600/') // 128x128を600x600に
-        .replace(/\/64x64\//, '/600x600/')   // 64x64を600x600に
-        .replace(/\/pc\//, '/600x600/')      // pcパスを600x600に
-        .replace(/\/thumbnail\//, '/600x600/'); // サムネイルを600x600に
-      
-      // '_ex=128x128'のようなクエリパラメータを高解像度に変更
-      if (optimizedUrl.includes('_ex=')) {
-        optimizedUrl = optimizedUrl.replace(/_ex=\d+x\d+/, '_ex=640x640');
-      } else if (optimizedUrl.includes('?')) {
-        optimizedUrl += '&_ex=640x640';
-      } else {
-        optimizedUrl += '?_ex=640x640';
+      // thumbnailパスを削除（高解像度版にアクセス）
+      if (url.includes('thumbnail.image.rakuten.co.jp')) {
+        optimizedUrl = url.replace('thumbnail.image.rakuten.co.jp', 'image.rakuten.co.jp');
       }
       
-      // 最後にスケーリングされるように、拡大パラメータを追加
-      if (!optimizedUrl.includes('_sc=')) {
-        if (optimizedUrl.includes('?')) {
-          optimizedUrl += '&_sc=1';
-        } else {
-          optimizedUrl += '?_sc=1';
+      // 低解像度パスを除去し、高解像度パスに置換
+      optimizedUrl = optimizedUrl
+        .replace(/\/128x128\//, '/') // 128x128パスを削除
+        .replace(/\/64x64\//, '/')   // 64x64パスを削除
+        .replace(/\/pc\//, '/')      // pcパスを削除
+        .replace(/\/thumbnail\//, '/'); // サムネイルパスを削除
+      
+      // @0_mallなどのプレフィックスも削除して直接アクセス
+      optimizedUrl = optimizedUrl.replace(/@0_mall\//, '');
+      
+      // _ex=128x128のようなクエリパラメータを削除または高解像度に変更
+      if (optimizedUrl.includes('_ex=')) {
+        // 既存の_exパラメータを削除
+        optimizedUrl = optimizedUrl.replace(/[?&]_ex=\d+x\d+/, '');
+        // ?が残っていない場合は追加
+        if (!optimizedUrl.includes('?') && optimizedUrl.includes('&')) {
+          optimizedUrl = optimizedUrl.replace('&', '?');
         }
       }
     }
