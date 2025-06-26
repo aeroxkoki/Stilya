@@ -158,112 +158,112 @@ export class RecommendationService {
       // 多めに商品を取得してランダム性を確保
       const poolSize = limit * 3;
       
-      // エラーの原因を特定するため、段階的にクエリを構築
-      try {
-        // まず基本的なクエリでテスト
-        let query = supabase
-          .from(TABLES.EXTERNAL_PRODUCTS)
-          .select('*')
-          .eq('is_active', true)
-          .limit(poolSize)
-          .order('created_at', { ascending: false });
+      // Supabase clientの正しい使い方でクエリを構築
+      let query = supabase
+        .from(TABLES.EXTERNAL_PRODUCTS)
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(poolSize);
 
-        // デバッグ情報
-        console.log('[getPersonalizedRecommendations] Building query with:', {
-          swipedProductIdsCount: swipedProductIds.length,
-          likedTagsCount: preferences.likedTags?.length || 0
-        });
+      // スワイプ済み商品を除外（正しい構文）
+      if (swipedProductIds.length > 0) {
+        // Supabase v2の正しい構文
+        query = query.not('id', 'in', `(${swipedProductIds.join(',')})`);
+      }
 
-        const { data, error } = await query;
+      // タグによるフィルタリング（正しい構文）
+      if (preferences.likedTags && preferences.likedTags.length > 0) {
+        // PostgreSQLの配列演算子&&を使用
+        query = query.filter('tags', 'cs', `{${preferences.likedTags.join(',')}}`);
+      }
 
-        if (error) {
-          console.error('[getPersonalizedRecommendations] Query error:', error);
-          console.error('[getPersonalizedRecommendations] Error details:', {
-            message: error.message,
-            details: error.details,
-            hint: error.hint,
-            code: error.code
-          });
-          return handleSupabaseError(error);
-        }
+      console.log('[getPersonalizedRecommendations] Executing query...');
+      
+      const { data, error } = await query;
 
-        // データが取得できた場合、フィルタリングはアプリケーション側で行う
-        let filteredProducts = data || [];
-
-        // アプリケーション側でスワイプ済み商品を除外
-        if (swipedProductIds.length > 0) {
-          filteredProducts = filteredProducts.filter(
-            product => !swipedProductIds.includes(product.id)
-          );
-        }
-
-        // Score and sort products based on preference matching
-        const scoredProducts = filteredProducts.map((product: Product) => {
-          let baseScore = 0;
-
-          // Tag matching score
-          if (product.tags && preferences.likedTags) {
-            const matchingTags = product.tags.filter(tag => 
-              preferences.likedTags.includes(tag)
-            ).length;
-            baseScore += matchingTags * 3;
-          }
-
-          // Category matching score
-          if (product.category && preferences.preferredCategories.includes(product.category)) {
-            baseScore += 2;
-          }
-
-          // Brand matching score
-          if (preferences.brands && preferences.brands.includes(product.brand)) {
-            baseScore += 1;
-          }
-
-          // Price range score
-          const priceRange = preferences.price_range || preferences.avgPriceRange;
-          if (product.price >= priceRange.min && 
-              product.price <= priceRange.max) {
-            baseScore += 1;
-          }
-
-          // ランダムノイズを追加（スコアの30%の範囲でランダム化）
-          const finalScore = addScoreNoise(baseScore, 0.3);
-
-          return { ...product, score: finalScore };
-        });
-
-        // Sort by score
-        let sortedProducts = scoredProducts.sort((a, b) => b.score - a.score);
-        
-        // トップ商品を取得した後、少しシャッフルして多様性を確保
-        const topProducts = sortedProducts.slice(0, limit * 1.5);
-        const remainingProducts = sortedProducts.slice(limit * 1.5);
-        
-        // トップ商品の中でランダム性を加える（完全にランダムではなく、上位グループ内でシャッフル）
-        const shuffledTop = shuffleArray(topProducts.slice(0, Math.floor(limit * 0.7)));
-        const shuffledRemaining = shuffleArray(topProducts.slice(Math.floor(limit * 0.7)));
-        
-        // 再結合
-        const finalProducts = [...shuffledTop, ...shuffledRemaining, ...remainingProducts];
-        
-        // 多様性を確保
-        const diverseProducts = ensureProductDiversity(finalProducts, {
-          maxSameCategory: 2,
-          maxSameBrand: 2,
-          windowSize: 5
+      if (error) {
+        console.error('[getPersonalizedRecommendations] Query error:', error);
+        console.error('[getPersonalizedRecommendations] Error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
         });
         
-        // Remove score property and return
-        const recommendations = diverseProducts
-          .slice(0, limit)
-          .map(({ score: _score, ...product }) => product);
-
-        return handleSupabaseSuccess(recommendations);
-      } catch (queryError) {
-        console.error('[getPersonalizedRecommendations] Query building error:', queryError);
-        // エラーが発生した場合は人気商品を返す
+        // エラー時は人気商品を返す
         return await RecommendationService.getPopularProducts(limit);
       }
+
+      if (!data || data.length === 0) {
+        console.log('[getPersonalizedRecommendations] No products found, returning popular products');
+        return await RecommendationService.getPopularProducts(limit);
+      }
+
+      console.log('[getPersonalizedRecommendations] Found products:', data.length);
+
+      // Score and sort products based on preference matching
+      const scoredProducts = data.map((product: Product) => {
+        let baseScore = 0;
+
+        // Tag matching score
+        if (product.tags && preferences.likedTags) {
+          const matchingTags = product.tags.filter(tag => 
+            preferences.likedTags.includes(tag)
+          ).length;
+          baseScore += matchingTags * 3;
+        }
+
+        // Category matching score
+        if (product.category && preferences.preferredCategories.includes(product.category)) {
+          baseScore += 2;
+        }
+
+        // Brand matching score
+        if (preferences.brands && preferences.brands.includes(product.brand)) {
+          baseScore += 1;
+        }
+
+        // Price range score
+        const priceRange = preferences.price_range || preferences.avgPriceRange;
+        if (product.price >= priceRange.min && 
+            product.price <= priceRange.max) {
+          baseScore += 1;
+        }
+
+        // ランダムノイズを追加（スコアの30%の範囲でランダム化）
+        const finalScore = addScoreNoise(baseScore, 0.3);
+
+        return { ...product, score: finalScore };
+      });
+
+      // Sort by score
+      let sortedProducts = scoredProducts.sort((a, b) => b.score - a.score);
+      
+      // トップ商品を取得した後、少しシャッフルして多様性を確保
+      const topProducts = sortedProducts.slice(0, limit * 1.5);
+      const remainingProducts = sortedProducts.slice(limit * 1.5);
+      
+      // トップ商品の中でランダム性を加える（完全にランダムではなく、上位グループ内でシャッフル）
+      const shuffledTop = shuffleArray(topProducts.slice(0, Math.floor(limit * 0.7)));
+      const shuffledRemaining = shuffleArray(topProducts.slice(Math.floor(limit * 0.7)));
+      
+      // 再結合
+      const finalProducts = [...shuffledTop, ...shuffledRemaining, ...remainingProducts];
+      
+      // 多様性を確保
+      const diverseProducts = ensureProductDiversity(finalProducts, {
+        maxSameCategory: 2,
+        maxSameBrand: 2,
+        windowSize: 5
+      });
+        
+      // Remove score property and return
+      const recommendations = diverseProducts
+        .slice(0, limit)
+        .map(({ score: _score, ...product }) => product);
+
+      return handleSupabaseSuccess(recommendations);
     } catch (error) {
       return handleSupabaseError(error);
     }
