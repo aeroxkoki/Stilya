@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { 
   View, 
   Text, 
@@ -9,16 +9,14 @@ import {
   TouchableOpacity,
   StyleSheet,
   Dimensions,
-  Image
+  Image,
+  Animated,
+  StatusBar
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { RecommendScreenProps } from '@/navigation/types';
 import { Ionicons } from '@expo/vector-icons';
-import { 
-  ProductHorizontalList,
-  OutfitRecommendation
-} from '@/components/recommend';
-import { Button, Card } from '@/components/common';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/hooks/useAuth';
 import { useStyle } from '@/contexts/ThemeContext';
 import { 
@@ -27,45 +25,38 @@ import {
 } from '@/services/integratedRecommendationService';
 import { Product } from '@/types';
 import { FilterOptions } from '@/services/productService';
-import FilterModal from '@/components/recommend/FilterModal';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
-// タブの種類
-type TabType = 'all' | 'outfits' | 'forYou' | 'trending';
 type NavigationProp = RecommendScreenProps<'RecommendHome'>['navigation'];
+
+// グリッドアイテムのサイズタイプ
+type GridItemSize = 'large' | 'medium' | 'small';
+
+interface GridItem extends Product {
+  size: GridItemSize;
+  animationDelay: number;
+}
 
 const EnhancedRecommendScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
   const { theme } = useStyle();
+  const scrollY = useRef(new Animated.Value(0)).current;
   
   // 状態管理
   const [isLoading, setIsLoading] = useState(true);
-  const [recommendations, setRecommendations] = useState<{
-    recommended: Product[];
-    trending: Product[];
-    forYou: Product[];
-  }>({
-    recommended: [],
-    trending: [],
-    forYou: [],
-  });
-  
-  const [outfits, setOutfits] = useState<Array<{
-    top: Product | null;
-    bottom: Product | null;
-    outerwear?: Product | null;
-    accessories?: Product | null;
-  }>>([]);
-  
+  const [heroProduct, setHeroProduct] = useState<Product | null>(null);
+  const [gridItems, setGridItems] = useState<GridItem[]>([]);
+  const [surpriseItems, setSurpriseItems] = useState<Product[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<TabType>('all');
-  const [showFilterModal, setShowFilterModal] = useState(false);
-  const [filters, setFilters] = useState<FilterOptions>({
-    includeUsed: false // デフォルトは新品のみ
+  const [filters] = useState<FilterOptions>({
+    includeUsed: false
   });
-  const [availableTags, setAvailableTags] = useState<string[]>([]);
+  
+  // アニメーション値
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
   
   // データ読み込み
   const loadData = useCallback(async () => {
@@ -75,35 +66,66 @@ const EnhancedRecommendScreen: React.FC = () => {
       setIsLoading(true);
       setError(null);
       
-      // 並列でデータを取得（フィルターを適用）
-      const [recommendationResults, outfitResults] = await Promise.all([
-        getEnhancedRecommendations(user.id, 20, [], filters),
-        getOutfitRecommendations(user.id, 5, filters)
+      const [recommendationResults] = await Promise.all([
+        getEnhancedRecommendations(user.id, 30, [], filters)
       ]);
       
-      setRecommendations({
-        recommended: recommendationResults.recommended,
-        trending: recommendationResults.trending,
-        forYou: recommendationResults.forYou,
-      });
+      const allProducts = [
+        ...recommendationResults.recommended,
+        ...recommendationResults.forYou,
+        ...recommendationResults.trending
+      ];
       
-      setOutfits(outfitResults.outfits);
+      if (allProducts.length > 0) {
+        // ヒーロープロダクト（最も推薦度の高いもの）
+        setHeroProduct(allProducts[0]);
+        
+        // グリッドアイテムの準備（2-16番目）
+        const gridProducts = allProducts.slice(1, 16);
+        const processedGridItems: GridItem[] = gridProducts.map((product, index) => {
+          let size: GridItemSize;
+          if (index === 0 || index === 5) {
+            size = 'large';
+          } else if (index % 3 === 0) {
+            size = 'medium';
+          } else {
+            size = 'small';
+          }
+          
+          return {
+            ...product,
+            size,
+            animationDelay: index * 50
+          };
+        });
+        
+        setGridItems(processedGridItems);
+        
+        // サプライズアイテム（17-20番目）
+        setSurpriseItems(allProducts.slice(16, 20));
+      }
       
-      // 利用可能なタグを抽出
-      const tags = new Set<string>();
-      [...recommendationResults.recommended, ...recommendationResults.trending, ...recommendationResults.forYou].forEach(product => {
-        if (product.tags && Array.isArray(product.tags)) {
-          product.tags.forEach(tag => tags.add(tag));
-        }
-      });
-      setAvailableTags(Array.from(tags));
+      // フェードインアニメーション
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 600,
+          useNativeDriver: true,
+        })
+      ]).start();
+      
     } catch (err: any) {
       console.error('Failed to load recommendations:', err);
       setError(err.message || 'レコメンデーションの取得に失敗しました');
     } finally {
       setIsLoading(false);
     }
-  }, [user, filters]);
+  }, [user, filters, fadeAnim, slideAnim]);
   
   // 初回読み込み
   useEffect(() => {
@@ -115,51 +137,74 @@ const EnhancedRecommendScreen: React.FC = () => {
     navigation.navigate('ProductDetail', { productId: product.id });
   };
   
-  // コーディネートタップハンドラー
-  const handleOutfitPress = (outfit: typeof outfits[0]) => {
-    // 最初の商品で詳細ページを開く（実際のアプリでは複数商品を表示する専用ページがベター）
-    const firstProduct = outfit.top || outfit.bottom || outfit.outerwear || outfit.accessories;
-    if (firstProduct) {
-      handleProductPress(firstProduct);
+  // ヘッダーの透明度アニメーション
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [0, 200],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+  
+  // グリッドアイテムのサイズ計算
+  const getItemDimensions = (size: GridItemSize) => {
+    const padding = 16;
+    const spacing = 8;
+    
+    switch (size) {
+      case 'large':
+        return {
+          width: width - padding * 2,
+          height: 400
+        };
+      case 'medium':
+        return {
+          width: (width - padding * 2 - spacing) * 0.6,
+          height: 280
+        };
+      case 'small':
+        return {
+          width: (width - padding * 2 - spacing * 2) / 3,
+          height: 160
+        };
     }
   };
-  
-  // スワイプ画面に移動
-  const handleGoToSwipe = () => {
-    // タブナビゲーターのスワイプタブに移動
-    const parentNavigation = navigation.getParent();
-    if (parentNavigation) {
-      parentNavigation.navigate('Swipe');
-    }
-  };
-  
-  // タブ切り替え
-  const handleTabChange = (tab: TabType) => {
-    setActiveTab(tab);
-  };
-  
-  // フィルター適用
-  const handleApplyFilter = useCallback((newFilters: FilterOptions) => {
-    setFilters(newFilters);
-    setShowFilterModal(false);
-  }, []);
   
   // ローディング表示
-  if (isLoading && recommendations.recommended.length === 0 && recommendations.trending.length === 0) {
+  if (isLoading && !heroProduct) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={[styles.loadingText, { color: theme.colors.text.secondary }]}>おすすめ商品を読み込み中...</Text>
         </View>
       </SafeAreaView>
     );
   }
   
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <ScrollView
-        style={{ flex: 1 }}
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <StatusBar barStyle="light-content" />
+      
+      {/* アニメーションヘッダー */}
+      <Animated.View 
+        style={[
+          styles.header, 
+          { 
+            backgroundColor: theme.colors.background,
+            opacity: headerOpacity 
+          }
+        ]}
+      >
+        <Text style={[styles.headerTitle, { color: theme.colors.text.primary }]}>
+          For You
+        </Text>
+      </Animated.View>
+      
+      <Animated.ScrollView
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
+        scrollEventThrottle={16}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl 
             refreshing={isLoading} 
@@ -167,320 +212,191 @@ const EnhancedRecommendScreen: React.FC = () => {
           />
         }
       >
-        {/* ヘッダー */}
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Text style={[styles.headerTitle, { color: theme.colors.text.primary }]}>Stilya</Text>
-            <Text style={[styles.headerSubtitle, { color: theme.colors.text.secondary }]}>
-              あなたにピッタリのアイテム
-            </Text>
-          </View>
-          
-          <View style={styles.headerRight}>
-            {/* フィルターボタン */}
+        {/* ヒーローセクション：Today's Pick */}
+        {heroProduct && (
+          <Animated.View 
+            style={[
+              styles.heroSection,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }]
+              }
+            ]}
+          >
             <TouchableOpacity 
-              style={[styles.headerButton, { backgroundColor: theme.colors.surface }]}
-              onPress={() => setShowFilterModal(true)}
+              activeOpacity={0.95}
+              onPress={() => handleProductPress(heroProduct)}
             >
-              <Ionicons name="options-outline" size={22} color={theme.colors.text.primary} />
-            </TouchableOpacity>
-            
-            {/* 検索ボタン（実際の機能は省略） */}
-            <TouchableOpacity 
-              style={[styles.headerButton, { backgroundColor: theme.colors.surface, marginLeft: 8 }]}
-              onPress={() => {
-                // 検索画面へ遷移するコードを追加
-                console.log('Search button pressed');
-              }}
-            >
-              <Ionicons name="search-outline" size={22} color={theme.colors.text.primary} />
-            </TouchableOpacity>
-          </View>
-        </View>
-        
-        {/* ログインしていない場合 */}
-        {!user && (
-          <View style={[styles.promptCard, { backgroundColor: theme.colors.primary + '15' }]}>
-            <Text style={[styles.promptText, { color: theme.colors.text.primary }]}>
-              ログインすると、あなたの好みに合わせた商品をおすすめできます。
-            </Text>
-            <Button 
-              onPress={handleGoToSwipe}
-              style={{ backgroundColor: theme.colors.primary, marginTop: 8 }}
-            >
-              まずはスワイプしてみる
-            </Button>
-          </View>
-        )}
-        
-        {/* エラー表示 */}
-        {error && (
-          <View style={[styles.errorCard, { backgroundColor: theme.colors.error + '15' }]}>
-            <Ionicons name="alert-circle-outline" size={24} color={theme.colors.error} />
-            <Text style={[styles.errorText, { color: theme.colors.error }]}>{error}</Text>
-            <TouchableOpacity 
-              style={[styles.retryButton, { backgroundColor: theme.colors.background }]}
-              onPress={loadData}
-            >
-              <Text style={[styles.retryButtonText, { color: theme.colors.error }]}>再読み込み</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-        
-        {/* タブナビゲーション */}
-        <View style={[styles.tabBar, { backgroundColor: theme.colors.surface }]}>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'all' && { backgroundColor: theme.colors.background }]}
-            onPress={() => handleTabChange('all')}
-          >
-            <Text style={[styles.tabText, { color: theme.colors.text.secondary }, activeTab === 'all' && { color: theme.colors.text.primary }]}>すべて</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'outfits' && { backgroundColor: theme.colors.background }]}
-            onPress={() => handleTabChange('outfits')}
-          >
-            <Text style={[styles.tabText, { color: theme.colors.text.secondary }, activeTab === 'outfits' && { color: theme.colors.text.primary }]}>コーデ</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'forYou' && { backgroundColor: theme.colors.background }]}
-            onPress={() => handleTabChange('forYou')}
-          >
-            <Text style={[styles.tabText, { color: theme.colors.text.secondary }, activeTab === 'forYou' && { color: theme.colors.text.primary }]}>あなたへ</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'trending' && { backgroundColor: theme.colors.background }]}
-            onPress={() => handleTabChange('trending')}
-          >
-            <Text style={[styles.tabText, { color: theme.colors.text.secondary }, activeTab === 'trending' && { color: theme.colors.text.primary }]}>トレンド</Text>
-          </TouchableOpacity>
-        </View>
-        
-        {/* コンテンツ表示（タブに応じて切り替え） */}
-        {activeTab === 'all' && (
-          <>
-            {/* おすすめコーディネート */}
-            {outfits.length > 0 && (
-              <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                  <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>おすすめコーディネート</Text>
-                  <TouchableOpacity onPress={() => handleTabChange('outfits')}>
-                    <Text style={[styles.seeAllText, { color: theme.colors.primary }]}>すべて見る</Text>
-                  </TouchableOpacity>
+              <Image
+                source={{ uri: heroProduct.imageUrl }}
+                style={styles.heroImage}
+              />
+              <LinearGradient
+                colors={['transparent', 'rgba(0,0,0,0.6)']}
+                style={styles.heroGradient}
+              >
+                <View style={styles.heroContent}>
+                  <Text style={styles.heroLabel}>Today's Pick</Text>
+                  <View style={styles.heroInfo}>
+                    <View style={styles.matchBadge}>
+                      <Ionicons name="heart" size={14} color="#fff" />
+                      <Text style={styles.matchText}>For You</Text>
+                    </View>
+                    <Text style={styles.heroPrice}>
+                      ¥{heroProduct.price.toLocaleString()}
+                    </Text>
+                  </View>
                 </View>
-                
-                <ScrollView 
-                  horizontal 
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.outfitsContainer}
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animated.View>
+        )}
+        
+        {/* Your Style セクション */}
+        <View style={styles.sectionContainer}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>
+            Your Style
+          </Text>
+          
+          {/* ダイナミックグリッド */}
+          <View style={styles.dynamicGrid}>
+            {gridItems.map((item, index) => {
+              const dimensions = getItemDimensions(item.size);
+              return (
+                <Animated.View
+                  key={item.id}
+                  style={[
+                    styles.gridItem,
+                    dimensions,
+                    {
+                      opacity: fadeAnim,
+                      transform: [{
+                        translateY: fadeAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [30, 0],
+                        })
+                      }]
+                    }
+                  ]}
                 >
-                  {outfits.slice(0, 3).map((outfit, index) => (
-                    <OutfitRecommendation
-                      key={`outfit-${index}`}
-                      outfit={outfit}
-                      onPress={() => handleOutfitPress(outfit)}
+                  <TouchableOpacity 
+                    activeOpacity={0.9}
+                    onPress={() => handleProductPress(item)}
+                    style={styles.gridItemTouchable}
+                  >
+                    <Image
+                      source={{ uri: item.imageUrl }}
+                      style={[styles.gridItemImage, { height: dimensions.height }]}
                     />
-                  ))}
-                </ScrollView>
-              </View>
-            )}
-            
-            {/* あなたへのおすすめ */}
-            {recommendations.forYou.length > 0 && (
-              <ProductHorizontalList
-                title="あなたへのおすすめ"
-                products={recommendations.forYou}
-                onProductPress={handleProductPress}
-                onSeeAllPress={() => handleTabChange('forYou')}
-                style={styles.section}
-              />
-            )}
-            
-            {/* あなたにおすすめ（内部DB） */}
-            {recommendations.recommended.length > 0 && (
-              <ProductHorizontalList
-                title="最近の傾向を反映"
-                products={recommendations.recommended}
-                onProductPress={handleProductPress}
-                style={styles.section}
-              />
-            )}
-            
-            {/* トレンドアイテム */}
-            {recommendations.trending.length > 0 && (
-              <ProductHorizontalList
-                title="今週のトレンドアイテム"
-                products={recommendations.trending}
-                onProductPress={handleProductPress}
-                onSeeAllPress={() => handleTabChange('trending')}
-                style={styles.section}
-              />
-            )}
-          </>
-        )}
-        
-        {/* コーディネートタブ */}
-        {activeTab === 'outfits' && (
-          <View style={styles.fullWidthSection}>
-            <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>おすすめコーディネート</Text>
-            {outfits.length > 0 ? (
-              outfits.map((outfit, index) => (
-                <OutfitRecommendation
-                  key={`outfit-full-${index}`}
-                  outfit={outfit}
-                  onPress={() => handleOutfitPress(outfit)}
-                  layout="full"
-                  style={styles.fullOutfitItem}
-                />
-              ))
-            ) : (
-              <View style={styles.emptyState}>
-                <Text style={[styles.emptyStateText, { color: theme.colors.text.secondary }]}>
-                  コーディネートがありません。もっとスワイプして好みを教えてください。
-                </Text>
-                <Button
-                  onPress={handleGoToSwipe}
-                  style={{ backgroundColor: theme.colors.primary, marginTop: 12 }}
-                >
-                  スワイプする
-                </Button>
-              </View>
-            )}
-          </View>
-        )}
-        
-        {/* あなたへのおすすめタブ */}
-        {activeTab === 'forYou' && (
-          <View style={styles.gridSection}>
-            <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>あなたへのおすすめ</Text>
-            
-            {recommendations.forYou.length > 0 ? (
-              <View style={styles.productGrid}>
-                {recommendations.forYou.map((product) => (
-                  <TouchableOpacity 
-                    key={`for-you-${product.id}`}
-                    style={styles.gridItem}
-                    onPress={() => handleProductPress(product)}
-                  >
-                    <Card style={styles.productCard}>
-                      <Image
-                        source={{ uri: product.imageUrl }}
-                        style={styles.productImage}
-                      />
-                      <View style={styles.productInfo}>
-                        <Text style={[styles.productTitle, { color: theme.colors.text.primary }]} numberOfLines={1}>
-                          {product.title}
-                        </Text>
-                        {product.brand && (
-                          <Text style={[styles.productBrand, { color: theme.colors.text.secondary }]} numberOfLines={1}>
-                            {product.brand}
+                    {item.size === 'large' && (
+                      <LinearGradient
+                        colors={['transparent', 'rgba(0,0,0,0.4)']}
+                        style={styles.gridItemGradient}
+                      >
+                        <View style={styles.gridItemInfo}>
+                          <Text style={styles.gridItemPrice}>
+                            ¥{item.price.toLocaleString()}
                           </Text>
-                        )}
-                        <Text style={[styles.productPrice, { color: theme.colors.text.primary }]}>
-                          ¥{product.price.toLocaleString()}
+                        </View>
+                      </LinearGradient>
+                    )}
+                    {item.size !== 'large' && (
+                      <View style={styles.smallItemInfo}>
+                        <Text style={styles.smallItemPrice}>
+                          ¥{item.price.toLocaleString()}
                         </Text>
                       </View>
-                    </Card>
+                    )}
                   </TouchableOpacity>
-                ))}
-              </View>
-            ) : (
-              <View style={styles.emptyState}>
-                <Text style={[styles.emptyStateText, { color: theme.colors.text.secondary }]}>
-                  まだおすすめがありません。スワイプして好みを教えてください。
-                </Text>
-                <Button
-                  onPress={handleGoToSwipe}
-                  style={{ backgroundColor: theme.colors.primary, marginTop: 12 }}
-                >
-                  スワイプする
-                </Button>
-              </View>
-            )}
+                </Animated.View>
+              );
+            })}
           </View>
-        )}
+        </View>
         
-        {/* トレンドタブ */}
-        {activeTab === 'trending' && (
-          <View style={styles.gridSection}>
-            <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>今週のトレンドアイテム</Text>
-            
-            {recommendations.trending.length > 0 ? (
-              <View style={styles.productGrid}>
-                {recommendations.trending.map((product) => (
-                  <TouchableOpacity 
-                    key={`trending-${product.id}`}
-                    style={styles.gridItem}
-                    onPress={() => handleProductPress(product)}
-                  >
-                    <Card style={styles.productCard}>
-                      <Image
-                        source={{ uri: product.imageUrl }}
-                        style={styles.productImage}
-                      />
-                      <View style={styles.productInfo}>
-                        <Text style={[styles.productTitle, { color: theme.colors.text.primary }]} numberOfLines={1}>
-                          {product.title}
-                        </Text>
-                        {product.brand && (
-                          <Text style={[styles.productBrand, { color: theme.colors.text.secondary }]} numberOfLines={1}>
-                            {product.brand}
-                          </Text>
-                        )}
-                        <Text style={[styles.productPrice, { color: theme.colors.text.primary }]}>
-                          ¥{product.price.toLocaleString()}
-                        </Text>
-                      </View>
-                    </Card>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            ) : (
-              <View style={styles.emptyState}>
-                <Text style={[styles.emptyStateText, { color: theme.colors.text.secondary }]}>
-                  トレンドアイテムの読み込みに失敗しました。
-                </Text>
-                <Button
-                  onPress={loadData}
-                  style={{ backgroundColor: theme.colors.primary, marginTop: 12 }}
-                >
-                  再試行
-                </Button>
-              </View>
-            )}
-          </View>
-        )}
-        
-        {/* 商品無しの場合 */}
-        {activeTab === 'all' && 
-         recommendations.recommended.length === 0 && 
-         recommendations.trending.length === 0 && 
-         recommendations.forYou.length === 0 && (
-          <View style={styles.emptyState}>
-            <Ionicons name="heart-outline" size={64} color={theme.colors.text.hint} />
-            <Text style={[styles.emptyStateTitle, { color: theme.colors.text.primary }]}>おすすめがありません</Text>
-            <Text style={[styles.emptyStateText, { color: theme.colors.text.secondary }]}>
-              スワイプして「好き」「興味なし」を教えると、
-              AIがあなたの好みを学習します。
-            </Text>
-            <Button
-              onPress={handleGoToSwipe}
-              style={{ backgroundColor: theme.colors.primary, marginTop: 16 }}
+        {/* ビジュアルブレイク：New Direction */}
+        {surpriseItems.length > 0 && (
+          <View style={styles.visualBreak}>
+            <LinearGradient
+              colors={[theme.colors.primary + '20', theme.colors.primary + '05']}
+              style={styles.gradientBreak}
             >
-              スワイプする
-            </Button>
+              <Text style={[styles.breakTitle, { color: theme.colors.primary }]}>
+                New Direction
+              </Text>
+            </LinearGradient>
           </View>
         )}
-      </ScrollView>
-      
-      {/* フィルターモーダル */}
-      <FilterModal
-        visible={showFilterModal}
-        onClose={() => setShowFilterModal(false)}
-        onApply={handleApplyFilter}
-        initialFilters={filters}
-        availableTags={availableTags}
-      />
-    </SafeAreaView>
+        
+        {/* サプライズセクション */}
+        {surpriseItems.length > 0 && (
+          <View style={styles.surpriseSection}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.surpriseScroll}
+            >
+              {surpriseItems.map((item, index) => (
+                <Animated.View
+                  key={item.id}
+                  style={[
+                    styles.surpriseItem,
+                    {
+                      opacity: fadeAnim,
+                      transform: [{
+                        rotateY: fadeAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['90deg', '0deg'],
+                        })
+                      }]
+                    }
+                  ]}
+                >
+                  <TouchableOpacity
+                    activeOpacity={0.9}
+                    onPress={() => handleProductPress(item)}
+                  >
+                    <Image
+                      source={{ uri: item.imageUrl }}
+                      style={styles.surpriseImage}
+                    />
+                    <View style={styles.surpriseInfo}>
+                      <View style={styles.newBadge}>
+                        <Text style={styles.newBadgeText}>New Discovery</Text>
+                      </View>
+                      <Text style={[styles.surprisePrice, { color: theme.colors.text.primary }]}>
+                        ¥{item.price.toLocaleString()}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                </Animated.View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+        
+        {/* スワイプ促進（控えめ） */}
+        <TouchableOpacity 
+          style={styles.moreButton}
+          onPress={() => {
+            const parentNavigation = navigation.getParent();
+            if (parentNavigation) {
+              parentNavigation.navigate('Swipe');
+            }
+          }}
+        >
+          <Text style={[styles.moreButtonText, { color: theme.colors.text.secondary }]}>
+            もっと見る
+          </Text>
+          <Text style={[styles.moreButtonSubtext, { color: theme.colors.primary }]}>
+            スワイプでもっと正確に ›
+          </Text>
+        </TouchableOpacity>
+        
+        {/* 下部の余白 */}
+        <View style={{ height: 100 }} />
+      </Animated.ScrollView>
+    </View>
   );
 };
 
@@ -493,171 +409,192 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  loadingText: {
-    marginTop: 16,
-  },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+    paddingTop: 50,
+    paddingBottom: 16,
     paddingHorizontal: 16,
-    paddingVertical: 16,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
+    textAlign: 'center',
   },
-  headerSubtitle: {
+  heroSection: {
+    width: width,
+    height: height * 0.8,
+  },
+  heroImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  heroGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 200,
+    justifyContent: 'flex-end',
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+  },
+  heroContent: {
+    gap: 12,
+  },
+  heroLabel: {
+    color: '#fff',
     fontSize: 14,
-    marginTop: 2,
+    fontWeight: '500',
+    opacity: 0.9,
   },
-  headerLeft: {
-    flex: 1,
+  heroInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  headerRight: {
+  matchBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  headerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  promptCard: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-    padding: 16,
-    borderRadius: 12,
-  },
-  promptText: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  errorCard: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-    padding: 16,
-    borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  errorText: {
-    flex: 1,
-    marginLeft: 8,
-    fontSize: 14,
-  },
-  retryButton: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 16,
-    marginLeft: 8,
+    borderRadius: 20,
+    gap: 6,
   },
-  retryButtonText: {
+  matchText: {
+    color: '#fff',
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '600',
   },
-  tabBar: {
-    flexDirection: 'row',
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 8,
-    padding: 4,
+  heroPrice: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
   },
-  tab: {
-    flex: 1,
-    paddingVertical: 8,
-    alignItems: 'center',
-    borderRadius: 6,
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  sectionContainer: {
+    marginTop: 24,
     paddingHorizontal: 16,
-    marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: 'bold',
-    marginLeft: 16,
-    marginBottom: 12,
-  },
-  seeAllText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  outfitsContainer: {
-    paddingLeft: 16,
-    paddingRight: 8,
-  },
-  fullWidthSection: {
-    paddingTop: 8,
-    paddingBottom: 24,
-  },
-  fullOutfitItem: {
-    marginHorizontal: 16,
     marginBottom: 16,
   },
-  gridSection: {
-    padding: 16,
-  },
-  productGrid: {
+  dynamicGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    gap: 8,
   },
   gridItem: {
-    width: (width - 48) / 2,
-    marginBottom: 16,
-  },
-  productCard: {
+    marginBottom: 8,
     borderRadius: 12,
     overflow: 'hidden',
   },
-  productImage: {
+  gridItemTouchable: {
+    flex: 1,
+  },
+  gridItemImage: {
     width: '100%',
-    height: 180,
     resizeMode: 'cover',
   },
-  productInfo: {
+  gridItemGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 100,
+    justifyContent: 'flex-end',
     padding: 12,
   },
-  productTitle: {
-    fontSize: 13,
-    fontWeight: '500',
-    marginBottom: 4,
+  gridItemInfo: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
   },
-  productBrand: {
-    fontSize: 11,
-    marginBottom: 4,
-  },
-  productPrice: {
-    fontSize: 14,
+  gridItemPrice: {
+    color: '#fff',
+    fontSize: 16,
     fontWeight: 'bold',
   },
-  emptyState: {
-    alignItems: 'center',
+  smallItemInfo: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  smallItemPrice: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  visualBreak: {
+    marginTop: 48,
+    marginBottom: 24,
+  },
+  gradientBreak: {
+    height: 120,
+    marginHorizontal: 16,
+    borderRadius: 16,
     justifyContent: 'center',
-    padding: 32,
+    alignItems: 'center',
   },
-  emptyStateTitle: {
+  breakTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    marginVertical: 8,
+    fontWeight: '600',
   },
-  emptyStateText: {
+  surpriseSection: {
+    marginBottom: 24,
+  },
+  surpriseScroll: {
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  surpriseItem: {
+    width: width * 0.6,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  surpriseImage: {
+    width: '100%',
+    height: 280,
+    resizeMode: 'cover',
+  },
+  surpriseInfo: {
+    padding: 12,
+  },
+  newBadge: {
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+    marginBottom: 8,
+  },
+  newBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#666',
+  },
+  surprisePrice: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  moreButton: {
+    alignItems: 'center',
+    paddingVertical: 32,
+  },
+  moreButtonText: {
     fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 20,
+  },
+  moreButtonSubtext: {
+    fontSize: 12,
+    marginTop: 4,
   },
 });
 
