@@ -25,7 +25,8 @@ export const useSwipeHistory = (): UseSwipeHistoryReturn => {
   const [currentFilter, setCurrentFilter] = useState<'yes' | 'no' | 'all'>('all');
 
   const getSwipeHistory = useCallback(async (filter: 'yes' | 'no' | 'all' = 'all') => {
-    if (!user) {
+    if (!user || !user.id) {
+      console.log('[useSwipeHistory] No user or user.id available, skipping swipe history fetch');
       setSwipeHistory([]);
       return;
     }
@@ -96,7 +97,7 @@ export const useSwipeHistory = (): UseSwipeHistoryReturn => {
 
   // 初回ロード
   useEffect(() => {
-    if (user) {
+    if (user && user.id) {
       getSwipeHistory('all');
     }
   }, [user]);

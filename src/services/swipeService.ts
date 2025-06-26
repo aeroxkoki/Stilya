@@ -261,8 +261,14 @@ const isValidSwipeData = (item: any): boolean => {
  * @param result オプションの結果フィルタ ('yes' or 'no')
  * @returns スワイプデータの配列
  */
-export const getSwipeHistory = async (userId: string, result?: SwipeResult): Promise<SwipeData[]> => {
+export const getSwipeHistory = async (userId: string | undefined | null, result?: SwipeResult): Promise<SwipeData[]> => {
   try {
+    // userIdの検証
+    if (!userId || userId === 'undefined' || userId === 'null') {
+      console.warn('[getSwipeHistory] Invalid userId:', userId);
+      return [];
+    }
+    
     // オンラインデータ取得
     const networkOffline = await isOffline();
     if (!networkOffline) {
@@ -346,8 +352,14 @@ export const getSwipeHistory = async (userId: string, result?: SwipeResult): Pro
  * @param result オプションの結果フィルタ ('yes' or 'no')
  * @returns スワイプデータの配列
  */
-const getOfflineSwipes = async (userId: string, result?: SwipeResult): Promise<SwipeData[]> => {
+const getOfflineSwipes = async (userId: string | undefined | null, result?: SwipeResult): Promise<SwipeData[]> => {
   try {
+    // userIdの検証
+    if (!userId || userId === 'undefined' || userId === 'null') {
+      console.warn('[getOfflineSwipes] Invalid userId:', userId);
+      return [];
+    }
+    
     const storedData = await AsyncStorage.getItem(OFFLINE_SWIPE_STORAGE_KEY);
     if (!storedData) return [];
 
@@ -373,10 +385,15 @@ const getOfflineSwipes = async (userId: string, result?: SwipeResult): Promise<S
  * @returns 商品IDの配列
  */
 export const getSwipedProductIds = async (
-  userId: string,
+  userId: string | undefined | null,
   result?: SwipeResult
 ): Promise<string[]> => {
   try {
+    if (!userId || userId === 'undefined' || userId === 'null') {
+      console.warn('[getSwipedProductIds] Invalid userId:', userId);
+      return [];
+    }
+    
     const swipeHistory = await getSwipeHistory(userId, result);
     
     // 重複を除去して商品IDのみを返す

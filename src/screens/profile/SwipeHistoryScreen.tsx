@@ -122,7 +122,10 @@ const SwipeHistoryScreen: React.FC = () => {
   
   // お気に入り追加/削除ハンドラー
   const handleToggleFavorite = (productId: string) => {
-    if (!user) return;
+    if (!user || !user.id) {
+      console.warn('[SwipeHistoryScreen] Cannot toggle favorite without user');
+      return;
+    }
     
     if (isFavorite(productId)) {
       removeFromFavorites(user.id, productId);
@@ -133,7 +136,10 @@ const SwipeHistoryScreen: React.FC = () => {
   
   // リフレッシュハンドラー
   const handleRefresh = async () => {
-    if (!user) return;
+    if (!user || !user.id) {
+      console.warn('[SwipeHistoryScreen] Cannot refresh without user');
+      return;
+    }
     
     setPage(1); // ページをリセット
     await refreshHistory();
