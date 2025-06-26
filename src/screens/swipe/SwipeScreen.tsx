@@ -46,8 +46,8 @@ const SwipeScreen: React.FC = () => {
   const [filters, setFilters] = useState<FilterOptions>({});
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   
-  // 表示済み商品IDを追跡（デバッグ用）
-  const [displayedProductIds, setDisplayedProductIds] = useState<Set<string>>(new Set());
+  // 表示済み商品IDの追跡は削除（useProductsフックで管理）
+  // const [displayedProductIds, setDisplayedProductIds] = useState<Set<string>>(new Set());
   
   // デバッグ用の状態表示
   useEffect(() => {
@@ -62,20 +62,21 @@ const SwipeScreen: React.FC = () => {
       isLoading,
       error,
       hasMore,
-      displayedProductsCount: displayedProductIds.size
+      // displayedProductsCount: displayedProductIds.size
     });
     
+    // 重複チェックは削除（useProductsフックが既に管理している）
     // 現在の商品が既に表示されたかチェック
-    if (currentProduct) {
-      if (displayedProductIds.has(currentProduct.id)) {
-        console.error(`[SwipeScreen] 🚨 重複検出: 商品ID ${currentProduct.id} (${currentProduct.title}) が再度表示されています！`);
-        console.log('[SwipeScreen] 表示済み商品ID一覧:', Array.from(displayedProductIds));
-        console.log('[SwipeScreen] 現在の商品リスト:', products.map(p => ({ id: p.id, title: p.title })));
-      } else {
-        setDisplayedProductIds(prev => new Set(prev).add(currentProduct.id));
-      }
-    }
-  }, [user, isInitialized, products.length, currentIndex, currentProduct, isLoading, error, hasMore, displayedProductIds]);
+    // if (currentProduct) {
+    //   if (displayedProductIds.has(currentProduct.id)) {
+    //     console.error(`[SwipeScreen] 🚨 重複検出: 商品ID ${currentProduct.id} (${currentProduct.title}) が再度表示されています！`);
+    //     console.log('[SwipeScreen] 表示済み商品ID一覧:', Array.from(displayedProductIds));
+    //     console.log('[SwipeScreen] 現在の商品リスト:', products.map(p => ({ id: p.id, title: p.title })));
+    //   } else {
+    //     setDisplayedProductIds(prev => new Set(prev).add(currentProduct.id));
+    //   }
+    // }
+  }, [user, isInitialized, products.length, currentIndex, currentProduct, isLoading, error, hasMore]);
   
   // 初期データロード
   useEffect(() => {
@@ -165,7 +166,7 @@ const SwipeScreen: React.FC = () => {
   const handleReload = useCallback(() => {
     console.log('[SwipeScreen] リロード開始');
     setShowEmptyState(false);
-    setDisplayedProductIds(new Set()); // 表示済みIDをリセット
+    // setDisplayedProductIds(new Set()); // 表示済みIDをリセット（削除）
     resetProducts();
   }, [resetProducts]);
   
@@ -173,7 +174,7 @@ const SwipeScreen: React.FC = () => {
   const handleApplyFilter = useCallback((newFilters: FilterOptions) => {
     console.log('[SwipeScreen] フィルター適用:', newFilters);
     setFilters(newFilters);
-    setDisplayedProductIds(new Set()); // 表示済みIDをリセット
+    // setDisplayedProductIds(new Set()); // 表示済みIDをリセット（削除）
     setProductFilters(newFilters);
     setShowFilterModal(false);
   }, [setProductFilters]);

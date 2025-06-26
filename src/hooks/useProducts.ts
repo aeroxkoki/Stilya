@@ -125,6 +125,7 @@ export const useProducts = (): UseProductsReturn => {
       console.log('[useProducts] Loading products - page:', currentPage, 'offset:', currentPage * pageSize);
       console.log('[useProducts] Swipe history size:', swipedProductsRef.current.size);
       console.log('[useProducts] All products seen:', productsData.allProductIds.size);
+      console.log('[useProducts] Exclude product IDs:', Array.from(productsData.allProductIds).slice(0, 10)); // 最初の10個を表示
       console.log('[useProducts] Filters:', filtersRef.current);
       
       // ミックス商品取得機能を使用（ランダム性と推薦のバランス）
@@ -153,19 +154,19 @@ export const useProducts = (): UseProductsReturn => {
       
       const newProducts = response.data || [];
       console.log('[useProducts] Fetched products:', newProducts.length);
+      console.log('[useProducts] First 5 product IDs from fetchMixedProducts:', newProducts.slice(0, 5).map(p => p.id));
       
-      // リサイクルモードでなければ、スワイプ済みの商品を除外
+      // fetchMixedProductsが既に除外処理を行っているので、ここでは追加のフィルタリングのみ行う
       let filteredProducts = newProducts;
       if (recycleCountRef.current === 0) {
+        // スワイプ済みの商品のみ除外（allProductIdsは既にfetchMixedProductsで除外済み）
+        const beforeFilterCount = filteredProducts.length;
         filteredProducts = newProducts.filter(
-          product => !swipedProductsRef.current.has(product.id) && !productsData.allProductIds.has(product.id)
+          product => !swipedProductsRef.current.has(product.id)
         );
-      } else {
-        // リサイクルモードでは、allProductIdsのみチェック（スワイプ済みでも表示）
-        filteredProducts = newProducts.filter(
-          product => !productsData.allProductIds.has(product.id)
-        );
+        console.log('[useProducts] Filtered out swiped products:', beforeFilterCount - filteredProducts.length);
       }
+      // リサイクルモードでは追加のフィルタリングは行わない
       
       console.log('[useProducts] After filtering:', filteredProducts.length);
       console.log('[useProducts] Current page:', currentPage, 'Offset:', currentPage * pageSize);
@@ -221,6 +222,13 @@ export const useProducts = (): UseProductsReturn => {
       // 商品データを更新
       setProductsData(prev => {
         const newAllProductIds = new Set(prev.allProductIds);
+        
+        // 新しい商品のIDを追加する前に、重複チェック
+        const duplicateIds = filteredProducts.filter(p => prev.allProductIds.has(p.id));
+        if (duplicateIds.length > 0) {
+          console.error('[useProducts] 🚨 重複する商品IDが検出されました:', duplicateIds.map(p => ({ id: p.id, title: p.title })));
+        }
+        
         filteredProducts.forEach(p => newAllProductIds.add(p.id));
         
         const updatedProducts = reset 
@@ -229,7 +237,15 @@ export const useProducts = (): UseProductsReturn => {
               p => !prev.products.some(existing => existing.id === p.id)
             )];
 
+        // 商品配列内の重複チェック
+        const productIds = updatedProducts.map(p => p.id);
+        const duplicateProductIds = productIds.filter((id, index) => productIds.indexOf(id) !== index);
+        if (duplicateProductIds.length > 0) {
+          console.error('[useProducts] 🚨 商品配列内に重複IDが存在:', duplicateProductIds);
+        }
+
         console.log('[useProducts] Total products after update:', updatedProducts.length);
+        console.log('[useProducts] All product IDs count:', newAllProductIds.size);
 
         return {
           products: updatedProducts,
