@@ -70,7 +70,7 @@ export const useProducts = (): UseProductsReturn => {
   // スワイプ履歴を取得（初回のみ）
   useEffect(() => {
     const fetchSwipeHistory = async () => {
-      if (!user) return;
+      if (!user || !user.id) return;
       
       try {
         const swipeHistory = await getSwipeHistory(user.id);
@@ -109,7 +109,7 @@ export const useProducts = (): UseProductsReturn => {
         });
         setError(null);
         // リセット時はスワイプ履歴を再取得
-        if (user) {
+        if (user && user.id) {
           const swipeHistory = await getSwipeHistory(user.id);
           const swipedIds = new Set(swipeHistory.map(swipe => swipe.productId));
           swipedProductsRef.current = swipedIds;
@@ -317,7 +317,7 @@ export const useProducts = (): UseProductsReturn => {
 
   // スワイプハンドラー（最適化版）
   const handleSwipe = useCallback(async (product: Product, direction: 'left' | 'right') => {
-    if (!product || !user) return;
+    if (!product || !user || !user.id) return;
     
     console.log('[useProducts] handleSwipe called - currentIndex:', currentIndex, 'productsLength:', productsData.products.length);
     

@@ -14,6 +14,7 @@ import ActionButtons from '@/components/swipe/ActionButtons';
 import FilterModal from '@/components/recommend/FilterModal';
 import { FilterOptions } from '@/services/productService';
 import { getFavorites, toggleFavorite } from '@/services/favoriteService';
+import { getSafeUserId, diagnoseUserId } from '@/utils/authUtils';
 
 // ナビゲーションの型定義
 type SwipeScreenNavigationProp = StackNavigationProp<SwipeStackParamList, 'SwipeHome'>;
@@ -103,8 +104,12 @@ const SwipeScreen: React.FC = () => {
   // お気に入りリストの初期化
   useEffect(() => {
     const loadFavorites = async () => {
-      if (user) {
-        const userFavorites = await getFavorites(user.id);
+      const userId = getSafeUserId(user);
+      if (userId) {
+        // デバッグ情報を出力
+        diagnoseUserId('SwipeScreen.loadFavorites', userId, user);
+        
+        const userFavorites = await getFavorites(userId);
         setFavorites(userFavorites);
       }
     };
@@ -146,11 +151,12 @@ const SwipeScreen: React.FC = () => {
   
   // お気に入り処理
   const handleFavorite = useCallback(async () => {
-    if (!user || !currentProduct) return;
+    const userId = getSafeUserId(user);
+    if (!userId || !currentProduct) return;
     
     try {
       const isFavorite = favorites.includes(currentProduct.id);
-      await toggleFavorite(user.id, currentProduct.id);
+      await toggleFavorite(userId, currentProduct.id);
       
       if (isFavorite) {
         setFavorites(favorites.filter(id => id !== currentProduct.id));
