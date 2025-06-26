@@ -887,11 +887,11 @@ async function syncBrandProducts(brand, targetCount) {
   // まず既存の商品IDを取得して重複チェック用のSetを作成
   const { data: existingProducts } = await supabase
     .from('external_products')
-    .select('product_id')
+    .select('id')
     .eq('source_brand', brand.name)
     .eq('is_active', true);
   
-  const existingProductIds = new Set(existingProducts?.map(p => p.product_id) || []);
+  const existingProductIds = new Set(existingProducts?.map(p => p.id) || []);
   const newProductIds = new Set();
   let totalSynced = 0;
   
@@ -905,21 +905,15 @@ async function syncBrandProducts(brand, targetCount) {
     const products = await fetchProductsFromRakuten(keyword, remaining, brand);
     
     for (const product of products) {
-      // 改善版productId生成（商品名の正規化）
-      const normalizedTitle = product.title
-        .replace(/[【】\[\]（）\s]/g, '') // 記号除去
-        .substring(0, 20); // 最初の20文字
-      const improvedProductId = `${brand.name}_${normalizedTitle}_${product.price}`;
+      // 既存のproductIdを維持（rakuten_商品コード形式）
+      // product.productIdは既にfetchProductsFromRakutenで設定済み
       
       // 重複チェック（既存商品と新規追加分の両方）
-      if (existingProductIds.has(improvedProductId) || newProductIds.has(improvedProductId)) {
+      if (existingProductIds.has(product.productId) || newProductIds.has(product.productId)) {
         continue;
       }
       
-      newProductIds.add(improvedProductId);
-      
-      // 改善版productIdを使用
-      product.productId = improvedProductId;
+      newProductIds.add(product.productId);
       
       // 商品データの拡張
       const enhancedProduct = enhanceProductData(product, brand);
@@ -1155,42 +1149,35 @@ function isSeasonalProduct(product, season) {
   return seasonalTags.length > 0;
 }
 
-// データベース保存（改善版）
+// データベース保存（修正版）
 async function saveProductToDatabase(product) {
   try {
-    // 追加画像をJSON形式で保存
-    const metadata = {
-      additionalImages: product.additionalImages || [],
-      thumbnailUrl: product.thumbnailUrl || '',
-      itemCaption: product.itemCaption || '',
-      availability: product.availability,
-      taxFlag: product.taxFlag
-    };
-
     const { error } = await supabase
       .from('external_products')
       .upsert({
-        product_id: product.productId,
+        id: product.productId, // プライマリキーはidカラム
         title: product.title,
         price: product.price,
+        brand: product.shopName || product.source_brand, // brandカラムに店舗名を保存
         image_url: product.imageUrl, // 高画質画像URL
-        product_url: product.productUrl,
+        description: product.itemCaption || product.catchCopy || '', // 商品説明
+        tags: product.ml_tags || [],
+        category: product.brand_category || null, // カテゴリ
+        genre_id: 100371, // レディースファッションのジャンルID
+        affiliate_url: product.productUrl || '', // アフィリエイトURL
         source: 'rakuten',
         source_brand: product.source_brand,
-        brand_priority: product.brand_priority,
-        brand_category: product.brand_category,
-        target_age: product.target_age,
-        price_range: product.price_range,
-        tags: product.ml_tags || [],
-        seasonal_tags: product.seasonal_tags || [],
-        recommendation_score: product.recommendation_score || 50,
-        review_average: product.reviewAverage,
-        review_count: product.reviewCount,
         is_active: product.is_active,
         last_synced: product.last_synced,
-        metadata: metadata // 追加情報
+        // レビュー関連
+        rating: product.reviewAverage || null,
+        review_count: product.reviewCount || 0,
+        // 優先度
+        priority: product.brand_priority || 999,
+        // 中古品フラグ
+        is_used: false // APIから取得した商品は新品のみ
       }, {
-        onConflict: 'product_id'
+        onConflict: 'id' // プライマリキーで競合チェック
       });
 
     if (error) {
