@@ -96,6 +96,13 @@ const SwipeCardEnhanced: React.FC<SwipeCardEnhancedProps> = ({
   
   // imageUrlとimage_urlの両方の形式に対応
   const imageUrl = product.imageUrl || product.image_url || 'https://via.placeholder.com/350x500?text=No+Image';
+  
+  // 画像読み込みエラーハンドリング
+  const [imageError, setImageError] = useState(false);
+  const handleImageError = () => {
+    console.log(`[SwipeCardEnhanced] Image load failed for: ${imageUrl}`);
+    setImageError(true);
+  };
 
   // 親からアニメーションスタイルが提供されない場合のデフォルトスタイル
   const defaultAnimatedStyle = {
@@ -132,7 +139,7 @@ const SwipeCardEnhanced: React.FC<SwipeCardEnhancedProps> = ({
       >
         {/* 商品画像 */}
         <Image
-          source={{ uri: imageUrl }}
+          source={{ uri: imageError ? 'https://via.placeholder.com/350x500?text=No+Image' : imageUrl }}
           style={styles.image}
           contentFit="cover"
           testID="product-image"
@@ -140,6 +147,7 @@ const SwipeCardEnhanced: React.FC<SwipeCardEnhancedProps> = ({
           cachePolicy="memory-disk"
           transition={300}
           placeholder={{ uri: 'https://via.placeholder.com/50x50?text=Loading' }}
+          onError={handleImageError}
         />
         
         {/* グラデーションの代わりに暗いオーバーレイを使用 */}

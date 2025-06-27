@@ -135,35 +135,11 @@ export const optimizeImageUrl = (url: string): string => {
   if (!url) return '';
   
   try {
-    // 楽天画像URLの最適化
+    // 楽天画像URLの最適化は一時的に無効化
+    // 楽天の画像サーバーは元のURLでのみ正しく動作する可能性が高い
     if (url.includes('rakuten.co.jp')) {
-      const urlObj = new URL(url);
-      
-      // 1. thumbnail.image.rakuten.co.jp → image.rakuten.co.jp に変更
-      if (urlObj.hostname === 'thumbnail.image.rakuten.co.jp') {
-        urlObj.hostname = 'image.rakuten.co.jp';
-      }
-      
-      // 2. パスのサイズ指定を削除（オリジナルサイズにアクセス）
-      urlObj.pathname = urlObj.pathname
-        .replace(/\/128x128\//g, '/')
-        .replace(/\/64x64\//g, '/')
-        .replace(/\/pc\//g, '/')
-        .replace(/\/thumbnail\//g, '/');
-      
-      // 3. クエリパラメータの最適化
-      // _exパラメータを削除（オリジナルサイズを取得）
-      urlObj.searchParams.delete('_ex');
-      
-      // 4. 不要なクエリパラメータを削除してURLをクリーンに
-      const cleanUrl = urlObj.toString();
-      
-      console.log('[ImageOptimizer] Rakuten URL optimized:', {
-        from: url,
-        to: cleanUrl
-      });
-      
-      return cleanUrl;
+      // 元のURLをそのまま返す
+      return url;
     }
     
     // ZOZOTOWN画像の最適化

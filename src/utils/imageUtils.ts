@@ -115,6 +115,13 @@ import { optimizeImageUrl } from './supabaseOptimization';
 export const getHighQualityImageUrl = (url: string, width?: number, height?: number): string => {
   if (!url) return '';
   
+  // 無効なURLの場合は元のURLを返す
+  try {
+    new URL(url);
+  } catch {
+    return url;
+  }
+  
   // supabaseOptimization.tsのoptimizeImageUrlを使用して統一
   return optimizeImageUrl(url);
 };

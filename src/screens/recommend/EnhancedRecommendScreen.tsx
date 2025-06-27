@@ -157,20 +157,11 @@ const EnhancedRecommendScreen: React.FC = () => {
   
   // 画像URLを取得（フォールバック付き）
   const getImageUrl = (product: Product): string => {
-    if (imageErrors[product.id]) {
-      // エラーが発生した場合でも、高画質URLを維持
-      const originalUrl = product.imageUrl;
-      console.warn(`[ImageError] Fallback for product ${product.id}, keeping high quality URL:`, originalUrl);
-      
-      // 楽天の場合、エラー時は元のURLを維持（低画質に戻さない）
-      return originalUrl;
-    }
     return product.imageUrl;
   };
   
   // 画像読み込みエラーハンドラー
   const handleImageError = (productId: string, imageUrl: string) => {
-    console.error(`[ImageError] Failed to load image for product ${productId}:`, imageUrl);
     setImageErrors(prev => ({ ...prev, [productId]: true }));
   };
   

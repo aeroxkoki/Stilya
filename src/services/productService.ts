@@ -15,16 +15,6 @@ const normalizeProduct = (dbProduct: any): Product => {
   const originalImageUrl = dbProduct.image_url || dbProduct.imageUrl || '';
   const optimizedUrl = originalImageUrl ? optimizeImageUrl(originalImageUrl) : '';
   
-  // デバッグ：最適化前後の画像URLを出力
-  if (originalImageUrl && originalImageUrl !== optimizedUrl) {
-    console.log('[ProductService] Image URL optimized:', {
-      id: dbProduct.id,
-      original: originalImageUrl,
-      optimized: optimizedUrl,
-      changed: originalImageUrl !== optimizedUrl
-    });
-  }
-  
   return {
     id: dbProduct.id,
     title: dbProduct.title,
