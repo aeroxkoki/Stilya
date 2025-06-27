@@ -38,10 +38,19 @@ export class RecommendationService {
         return handleSupabaseSuccess(null);
       }
 
+      // 大量のIDの場合は制限する（PostgreSQLの制限とパフォーマンスを考慮）
+      const limitedProductIds = productIds.length > 1000 
+        ? productIds.slice(-1000)  // 最新の1000個を使用
+        : productIds;
+      
+      if (productIds.length > 1000) {
+        console.log(`[analyzeUserPreferences] Using ${limitedProductIds.length} recent product IDs out of ${productIds.length} total`);
+      }
+
       const { data: products, error: productError } = await supabase
         .from(TABLES.EXTERNAL_PRODUCTS)
         .select('tags, category, price, brand')
-        .in('id', productIds);
+        .in('id', limitedProductIds);
 
       if (productError) {
         console.error('Error fetching products:', productError);
@@ -166,10 +175,15 @@ export class RecommendationService {
         .order('created_at', { ascending: false })
         .limit(poolSize);
 
-      // スワイプ済み商品を除外（正しい構文）
+      // スワイプ済み商品を除外
+      // PostgreSQLのIN句の制限を考慮（通常は10,000個まで可能だが、パフォーマンスのため1000個に制限）
       if (swipedProductIds.length > 0) {
-        // Supabase v2の正しい構文
-        query = query.not('id', 'in', `(${swipedProductIds.join(',')})`);
+        // 大量のIDの場合は、最新の1000個のみを使用
+        const recentSwipedIds = swipedProductIds.slice(-1000);
+        console.log(`[getPersonalizedRecommendations] Using ${recentSwipedIds.length} recent swiped IDs out of ${swipedProductIds.length} total`);
+        
+        // Supabase v2の正しい構文：配列を直接渡す
+        query = query.not('id', 'in', recentSwipedIds);
       }
 
       // タグによるフィルタリング（正しい構文）
