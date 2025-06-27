@@ -158,15 +158,11 @@ const EnhancedRecommendScreen: React.FC = () => {
   // 画像URLを取得（フォールバック付き）
   const getImageUrl = (product: Product): string => {
     if (imageErrors[product.id]) {
-      // エラーが発生した場合、元のサムネイルURLを返す
+      // エラーが発生した場合でも、高画質URLを維持
       const originalUrl = product.imageUrl;
-      if (originalUrl.includes('image.rakuten.co.jp')) {
-        // 高画質URLから元のサムネイルURLに戻す
-        return originalUrl
-          .replace('image.rakuten.co.jp', 'thumbnail.image.rakuten.co.jp')
-          .replace(/@0_mall\//, '@0_mall/')
-          + '?_ex=128x128';
-      }
+      console.warn(`[ImageError] Fallback for product ${product.id}, keeping high quality URL:`, originalUrl);
+      
+      // 楽天の場合、エラー時は元のURLを維持（低画質に戻さない）
       return originalUrl;
     }
     return product.imageUrl;
@@ -346,14 +342,13 @@ const EnhancedRecommendScreen: React.FC = () => {
                   >
                     {item.imageUrl && item.imageUrl.trim() !== '' && !item.imageUrl.includes('placehold.co') ? (
                       <Image
-                        source={{ uri: item.imageUrl }}
+                        source={{ uri: getImageUrl(item) }}
                         style={[styles.gridItemImage, { height: dimensions.height }]}
                         onError={(error) => {
-                          console.error('[GridImage] Failed to load:', item.imageUrl);
-                          console.error('[GridImage] Error:', error.nativeEvent.error);
+                          handleImageError(item.id, getImageUrl(item));
                         }}
                         onLoad={() => {
-                          console.log('[GridImage] Successfully loaded:', item.imageUrl);
+                          console.log('[GridImage] Successfully loaded:', getImageUrl(item));
                         }}
                       />
                     ) : (

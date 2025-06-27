@@ -226,10 +226,48 @@ export const fetchRakutenFashionProducts = async (
           title: productItem.itemName,
           price: productItem.itemPrice,
           brand: productItem.shopName || 'ブランド不明',
-          // 画像URLは大きいサイズを優先的に選択
-          imageUrl: productItem.mediumImageUrls?.length > 0 
-            ? productItem.mediumImageUrls[0].imageUrl.replace('128x128', '600x600')
-            : (productItem.imageUrl || ''),
+          // 画像URLは大きいサイズを優先的に選択（より信頼性の高い方法）
+          imageUrl: (() => {
+            let url = '';
+            
+            // 1. mediumImageUrlsがある場合は最初のURLを使用
+            if (productItem.mediumImageUrls?.length > 0) {
+              url = productItem.mediumImageUrls[0].imageUrl;
+            } 
+            // 2. それがない場合はimageUrlを使用
+            else if (productItem.imageUrl) {
+              url = productItem.imageUrl;
+            }
+            
+            // 3. URLが取得できた場合、高画質版に最適化
+            if (url) {
+              try {
+                const urlObj = new URL(url);
+                
+                // thumbnail.image → image に変更
+                if (urlObj.hostname === 'thumbnail.image.rakuten.co.jp') {
+                  urlObj.hostname = 'image.rakuten.co.jp';
+                }
+                
+                // パスのサイズ指定を削除
+                urlObj.pathname = urlObj.pathname
+                  .replace(/\/128x128\//g, '/')
+                  .replace(/\/64x64\//g, '/')
+                  .replace(/\/pc\//g, '/')
+                  .replace(/\/thumbnail\//g, '/');
+                
+                // _exパラメータを削除
+                urlObj.searchParams.delete('_ex');
+                
+                return urlObj.toString();
+              } catch (e) {
+                console.warn('[RakutenService] Failed to optimize image URL:', e);
+                return url;
+              }
+            }
+            
+            return '';
+          })(),
           description: productItem.itemCaption || '',
           tags: tags,
           category: 'ファッション',
