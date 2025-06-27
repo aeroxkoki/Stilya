@@ -2,178 +2,32 @@ import { supabase } from '@/services/supabase';
 import { fetchRakutenFashionProducts } from '@/services/rakutenService';
 
 /**
- * データベース内の画像URLが欠落している商品を修正
+ * データベース内の画像URLが欠落している商品を削除し、新しいデータで置き換える
+ * これは根本的な解決策として実装
  */
 export const fixMissingImageUrls = async () => {
-  console.log('🔧 Starting image URL fix...');
+  console.log('🔧 Starting complete image URL fix...');
   
   try {
-    // 1. 画像URLが空またはnullの商品を取得
-    const { data: productsWithoutImages, error: fetchError } = await supabase
-      .from('external_products')
-      .select('id, title, source')
-      .or('image_url.is.null,image_url.eq.')
-      .limit(100);
+    // 1. 画像URLが欠落している商品を削除
+    console.log('📥 Deleting products without valid image URLs...');
     
-    if (fetchError) {
-      console.error('Error fetching products without images:', fetchError);
-      return;
-    }
-    
-    console.log(`Found ${productsWithoutImages?.length || 0} products without images`);
-    
-    if (!productsWithoutImages || productsWithoutImages.length === 0) {
-      console.log('✅ No products need image URL fixes');
-      return;
-    }
-    
-    // 2. 楽天商品のIDを抽出
-    const rakutenProductIds = productsWithoutImages
-      .filter(p => p.source === 'rakuten' && p.id)
-      .map(p => p.id);
-    
-    if (rakutenProductIds.length === 0) {
-      console.log('No Rakuten products found that need fixing');
-      return;
-    }
-    
-    console.log(`Attempting to fix ${rakutenProductIds.length} Rakuten products`);
-    
-    // 3. 楽天APIから新しい商品データを取得
-    const { products: freshProducts } = await fetchRakutenFashionProducts(
-      undefined,
-      100371, // レディースファッション
-      1,
-      30 // 30件取得（楽天APIの最大値）
-    );
-    
-    // 4. IDベースでマッチングして画像URLを更新
-    const updates: Array<{ id: string; image_url: string }> = [];
-    
-    for (const dbProduct of productsWithoutImages) {
-      // 楽天の商品コードから画像URLを構築する別の方法を試す
-      if (dbProduct.source === 'rakuten' && dbProduct.id) {
-        // 楽天商品IDの形式: "rakuten_shopname:itemcode"
-        const parts = dbProduct.id.split(':');
-        if (parts.length === 2) {
-          const [shopAndPrefix, itemCode] = parts;
-          const shopName = shopAndPrefix.replace('rakuten_', '');
-          
-          // 楽天の標準的な画像URL形式を構築
-          // 注: これは一般的な形式であり、実際のURLは異なる場合があります
-          const possibleImageUrl = `https://thumbnail.image.rakuten.co.jp/@0_mall/${shopName}/cabinet/${itemCode.substring(0, 2)}/${itemCode}.jpg`;
-          
-          updates.push({
-            id: dbProduct.id,
-            image_url: possibleImageUrl
-          });
-          
-          console.log(`Generated image URL for ${dbProduct.id}: ${possibleImageUrl}`);
-        }
-      }
-    }
-    
-    // 5. 新しく取得した商品データから画像URLを取得
-    for (const freshProduct of freshProducts) {
-      if (freshProduct.imageUrl && rakutenProductIds.includes(freshProduct.id)) {
-        // 既存のupdatesを上書き（新しいデータを優先）
-        const existingIndex = updates.findIndex(u => u.id === freshProduct.id);
-        if (existingIndex >= 0) {
-          updates[existingIndex] = {
-            id: freshProduct.id,
-            image_url: freshProduct.imageUrl
-          };
-        } else {
-          updates.push({
-            id: freshProduct.id,
-            image_url: freshProduct.imageUrl
-          });
-        }
-      }
-    }
-    
-    // 6. データベースを更新
-    if (updates.length > 0) {
-      console.log(`Updating ${updates.length} products with image URLs`);
-      
-      // バッチ更新（1件ずつ更新）
-      let successCount = 0;
-      for (const update of updates) {
-        const { error: updateError } = await supabase
-          .from('external_products')
-          .update({ image_url: update.image_url })
-          .eq('id', update.id);
-        
-        if (updateError) {
-          console.error(`Failed to update ${update.id}:`, updateError);
-        } else {
-          successCount++;
-        }
-      }
-      
-      console.log(`✅ Successfully updated ${successCount}/${updates.length} products`);
-    }
-    
-    // 7. 完全に新しい商品データをデータベースに追加（画像URLがあるもののみ）
-    const validNewProducts = freshProducts
-      .filter(p => p.imageUrl && !rakutenProductIds.includes(p.id))
-      .map(product => ({
-        id: product.id,
-        title: product.title,
-        brand: product.brand,
-        price: product.price,
-        image_url: product.imageUrl,
-        description: product.description,
-        tags: product.tags,
-        category: product.category,
-        affiliate_url: product.affiliateUrl,
-        source: product.source,
-        is_active: true,
-        is_used: false,
-        created_at: new Date().toISOString(),
-        last_synced: new Date().toISOString()
-      }));
-    
-    if (validNewProducts.length > 0) {
-      const { error: insertError } = await supabase
-        .from('external_products')
-        .upsert(validNewProducts, { onConflict: 'id' });
-      
-      if (insertError) {
-        console.error('Error inserting new products:', insertError);
-      } else {
-        console.log(`✅ Added ${validNewProducts.length} new products with valid image URLs`);
-      }
-    }
-    
-  } catch (error) {
-    console.error('Error in fixMissingImageUrls:', error);
-  }
-  
-  console.log('🔧 Image URL fix completed');
-};
-
-/**
- * すべての商品データを再取得して更新
- */
-export const refreshAllProductData = async () => {
-  console.log('🔄 Starting complete product data refresh...');
-  
-  try {
-    // 既存の商品をすべて削除
-    const { error: deleteError } = await supabase
+    const { error: deleteError, count } = await supabase
       .from('external_products')
       .delete()
-      .neq('id', ''); // すべての商品を削除
+      .or('image_url.is.null,image_url.eq.')
+      .select(undefined, { count: 'exact' });
     
     if (deleteError) {
-      console.error('Error deleting existing products:', deleteError);
+      console.error('Error deleting products without images:', deleteError);
       return;
     }
     
-    console.log('✅ Cleared existing products');
+    console.log(`✅ Deleted ${count || 0} products without valid image URLs`);
     
-    // 新しい商品データを取得
+    // 2. 新しい商品データを取得して保存
+    console.log('📥 Fetching fresh product data from Rakuten API...');
+    
     const categories = [
       { genreId: 100371, name: 'レディースファッション' },
       { genreId: 551177, name: 'メンズファッション' },
@@ -191,18 +45,34 @@ export const refreshAllProductData = async () => {
           undefined,
           category.genreId,
           1,
-          30 // 各カテゴリから30件
+          30, // 各カテゴリから30件
+          true // forceRefresh
         );
         
         // 有効な画像URLを持つ商品のみフィルタリング
         const validProducts = products
-          .filter(p => p.imageUrl && !p.imageUrl.includes('placeholder'))
+          .filter(p => {
+            // 画像URLの検証
+            if (!p.imageUrl || p.imageUrl.trim() === '') {
+              console.warn(`Skipping product without image: ${p.title}`);
+              return false;
+            }
+            // プレースホルダーや低品質画像を除外
+            if (p.imageUrl.includes('placeholder') || 
+                p.imageUrl.includes('noimage') ||
+                p.imageUrl.includes('_ex=64x64') ||
+                p.imageUrl.includes('_ex=128x128')) {
+              console.warn(`Skipping low quality image: ${p.title}`);
+              return false;
+            }
+            return true;
+          })
           .map(product => ({
             id: product.id,
             title: product.title,
             brand: product.brand,
             price: product.price,
-            image_url: product.imageUrl,
+            image_url: product.imageUrl, // 必ず有効な値が入っている
             description: product.description,
             tags: product.tags,
             category: product.category,
@@ -216,16 +86,19 @@ export const refreshAllProductData = async () => {
           }));
         
         if (validProducts.length > 0) {
+          // upsertを使用して、既存の商品がある場合は更新
           const { error: insertError } = await supabase
             .from('external_products')
-            .insert(validProducts);
+            .upsert(validProducts, { onConflict: 'id' });
           
           if (insertError) {
             console.error(`Error inserting ${category.name}:`, insertError);
           } else {
-            console.log(`✅ Inserted ${validProducts.length} ${category.name} products`);
+            console.log(`✅ Inserted/Updated ${validProducts.length} ${category.name} products with valid images`);
             totalInserted += validProducts.length;
           }
+        } else {
+          console.warn(`⚠️ No valid products found for ${category.name}`);
         }
         
         // APIレート制限対策
@@ -236,11 +109,100 @@ export const refreshAllProductData = async () => {
       }
     }
     
-    console.log(`✅ Total products inserted: ${totalInserted}`);
+    console.log(`✅ Total products inserted with valid images: ${totalInserted}`);
+    
+    // 3. 最終的な確認
+    const { count: finalCount } = await supabase
+      .from('external_products')
+      .select('*', { count: 'exact', head: true })
+      .not('image_url', 'is', null)
+      .not('image_url', 'eq', '');
+    
+    console.log(`✅ Final count of products with valid image URLs: ${finalCount}`);
+    
+    // 4. 画像URLが空の商品が残っていないか確認
+    const { count: invalidCount } = await supabase
+      .from('external_products')
+      .select('*', { count: 'exact', head: true })
+      .or('image_url.is.null,image_url.eq.');
+    
+    if (invalidCount && invalidCount > 0) {
+      console.warn(`⚠️ Still ${invalidCount} products without valid image URLs. Running cleanup...`);
+      // 再度削除を実行
+      await supabase
+        .from('external_products')
+        .delete()
+        .or('image_url.is.null,image_url.eq.');
+    }
+    
+  } catch (error) {
+    console.error('Error in fixMissingImageUrls:', error);
+  }
+  
+  console.log('🔧 Image URL fix completed');
+};
+
+/**
+ * すべての商品データを再取得して更新（デバッグ用）
+ */
+export const refreshAllProductData = async () => {
+  console.log('🔄 Starting complete product data refresh...');
+  console.log('⚠️ This will delete all existing products and fetch new ones');
+  
+  try {
+    // 既存の商品をすべて削除
+    const { error: deleteError } = await supabase
+      .from('external_products')
+      .delete()
+      .neq('id', ''); // すべての商品を削除
+    
+    if (deleteError) {
+      console.error('Error deleting existing products:', deleteError);
+      return;
+    }
+    
+    console.log('✅ Cleared all existing products');
+    
+    // fixMissingImageUrlsを呼び出して新しいデータを取得
+    await fixMissingImageUrls();
     
   } catch (error) {
     console.error('Error in refreshAllProductData:', error);
   }
   
   console.log('🔄 Product data refresh completed');
+};
+
+/**
+ * 商品保存前の検証関数（他のサービスから使用）
+ */
+export const validateProductBeforeSave = (product: any): boolean => {
+  // 必須フィールドの検証
+  if (!product.id || !product.title || !product.price) {
+    return false;
+  }
+  
+  // 画像URLの検証
+  if (!product.image_url || product.image_url.trim() === '') {
+    return false;
+  }
+  
+  // 無効な画像URLパターンのチェック
+  const invalidPatterns = [
+    'placeholder',
+    'noimage',
+    '_ex=64x64',
+    '_ex=128x128',
+    'undefined',
+    'null'
+  ];
+  
+  const imageUrl = product.image_url.toLowerCase();
+  for (const pattern of invalidPatterns) {
+    if (imageUrl.includes(pattern)) {
+      return false;
+    }
+  }
+  
+  return true;
 };

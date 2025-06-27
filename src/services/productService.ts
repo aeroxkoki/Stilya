@@ -215,11 +215,16 @@ const saveProductsToSupabase = async (products: Product[]) => {
     // 有効な画像URLを持つ商品のみフィルタリング
     const validProducts = products.filter(product => {
       const imageUrl = product.imageUrl;
-      // 無効なURLをチェック
+      // 無効なURLをチェック（より厳格な検証）
       if (!imageUrl || imageUrl.trim() === '' || 
           imageUrl.includes('undefined') ||
           imageUrl.includes('placehold.co') ||
-          imageUrl.includes('placeholder')) {
+          imageUrl.includes('placeholder') ||
+          imageUrl.includes('noimage') ||
+          imageUrl.includes('_ex=64x64') ||
+          imageUrl.includes('_ex=128x128') ||
+          imageUrl === 'null' ||
+          imageUrl === 'undefined') {
         console.warn(`[ProductService] Skipping product with invalid image URL: ${product.title} - ${imageUrl}`);
         return false;
       }

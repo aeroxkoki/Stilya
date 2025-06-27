@@ -56,15 +56,28 @@ export const runAppDiagnostics = async () => {
     await runDatabaseDiagnostics();
     
     // 6. 画像URLの問題を検出した場合、自動修正を実行
-    const { data: brokenImages } = await supabase
+    const { data: brokenImages, count: brokenCount } = await supabase
       .from('external_products')
-      .select('id')
-      .or('image_url.is.null,image_url.eq.')
-      .limit(1);
+      .select('id', { count: 'exact', head: true })
+      .or('image_url.is.null,image_url.eq.');
     
-    if (brokenImages && brokenImages.length > 0) {
-      console.log('\n🔧 画像URLの問題を検出しました。自動修正を開始します...');
+    if (brokenCount && brokenCount > 0) {
+      console.log(`\n🔧 ${brokenCount}件の画像URLの問題を検出しました。自動修正を開始します...`);
       await fixMissingImageUrls();
+      
+      // 修正後の状態を確認
+      const { count: fixedCount } = await supabase
+        .from('external_products')
+        .select('id', { count: 'exact', head: true })
+        .or('image_url.is.null,image_url.eq.');
+      
+      if (fixedCount === 0) {
+        console.log('✅ すべての画像URL問題が修正されました');
+      } else {
+        console.log(`⚠️ まだ${fixedCount}件の画像URL問題が残っています`);
+      }
+    } else {
+      console.log('✅ 画像URLに問題はありません');
     }
     
     // 7. 不正データのクリーンアップ（オプション）

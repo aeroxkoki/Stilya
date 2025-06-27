@@ -134,19 +134,37 @@ export const searchRakutenProducts = async (
 // アフィリエイト商品をSupabaseに保存
 export const saveProductsToSupabase = async (products: Product[]): Promise<void> => {
   try {
-    // 商品データをSupabaseの形式に変換
-    const supabaseProducts = products.map(product => ({
-      id: product.id,
-      title: product.title,
-      image_url: product.imageUrl,
-      brand: product.brand,
-      price: product.price,
-      tags: product.tags || [],
-      category: product.category || '',
-      affiliate_url: product.affiliateUrl,
-      source: product.source,
-      created_at: new Date().toISOString(),
-    }));
+    // 商品データをSupabaseの形式に変換（画像URLの検証を追加）
+    const supabaseProducts = products
+      .filter(product => {
+        // 画像URLの検証
+        const imageUrl = product.imageUrl;
+        if (!imageUrl || imageUrl.trim() === '' || 
+            imageUrl.includes('undefined') ||
+            imageUrl.includes('placehold') ||
+            imageUrl.includes('placeholder') ||
+            imageUrl.includes('noimage') ||
+            imageUrl.includes('_ex=64x64') ||
+            imageUrl.includes('_ex=128x128') ||
+            imageUrl === 'null' ||
+            imageUrl === 'undefined') {
+          console.warn(`[AffiliateService] Skipping product with invalid image URL: ${product.title}`);
+          return false;
+        }
+        return true;
+      })
+      .map(product => ({
+        id: product.id,
+        title: product.title,
+        image_url: product.imageUrl,
+        brand: product.brand,
+        price: product.price,
+        tags: product.tags || [],
+        category: product.category || '',
+        affiliate_url: product.affiliateUrl,
+        source: product.source,
+        created_at: new Date().toISOString(),
+      }));
 
     // upsert (insert or update)
     const { error } = await supabase
