@@ -198,7 +198,21 @@ export const fetchProducts = async (limit: number = 20, offset: number = 0, filt
  */
 const saveProductsToSupabase = async (products: Product[]) => {
   try {
-    const productsToInsert = products.map(product => ({
+    // 有効な画像URLを持つ商品のみフィルタリング
+    const validProducts = products.filter(product => {
+      const imageUrl = product.imageUrl;
+      // 無効なURLをチェック
+      if (!imageUrl || imageUrl.trim() === '' || 
+          imageUrl.includes('undefined') ||
+          imageUrl.includes('placehold.co') ||
+          imageUrl.includes('placeholder')) {
+        console.warn(`[ProductService] Skipping product with invalid image URL: ${product.title} - ${imageUrl}`);
+        return false;
+      }
+      return true;
+    });
+    
+    const productsToInsert = validProducts.map(product => ({
       id: product.id,
       title: product.title,
       brand: product.brand,
@@ -214,11 +228,16 @@ const saveProductsToSupabase = async (products: Product[]) => {
       created_at: new Date().toISOString(),
     }));
     
+    if (productsToInsert.length === 0) {
+      console.log('[ProductService] No valid products to save');
+      return;
+    }
+    
     await supabase
       .from('external_products')
       .upsert(productsToInsert, { onConflict: 'id' });
       
-    console.log('[ProductService] Saved products to Supabase');
+    console.log(`[ProductService] Saved ${productsToInsert.length} valid products to Supabase (filtered ${products.length - validProducts.length} invalid)`);
   } catch (error) {
     console.error('[ProductService] Error saving products to Supabase:', error);
   }
