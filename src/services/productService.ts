@@ -12,8 +12,18 @@ import { shuffleArray, ensureProductDiversity, getTimeBasedOffset } from '@/util
  */
 const normalizeProduct = (dbProduct: any): Product => {
   // imageUrlが未定義またはnullの場合のフォールバック処理
-  const imageUrl = dbProduct.image_url || dbProduct.imageUrl || '';
-  const optimizedUrl = imageUrl ? optimizeImageUrl(imageUrl) : '';
+  const originalImageUrl = dbProduct.image_url || dbProduct.imageUrl || '';
+  const optimizedUrl = originalImageUrl ? optimizeImageUrl(originalImageUrl) : '';
+  
+  // デバッグ：最適化前後の画像URLを出力
+  if (originalImageUrl && originalImageUrl !== optimizedUrl) {
+    console.log('[ProductService] Image URL optimized:', {
+      id: dbProduct.id,
+      original: originalImageUrl,
+      optimized: optimizedUrl,
+      changed: originalImageUrl !== optimizedUrl
+    });
+  }
   
   return {
     id: dbProduct.id,

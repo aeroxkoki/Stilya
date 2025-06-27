@@ -33,16 +33,25 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
 }) => {
   const { theme } = useStyle();
   // imageUrlとimage_urlの両方の形式に対応
-  const imageUrl = product.imageUrl || product.image_url || 'https://via.placeholder.com/350x500?text=No+Image';
+  const rawImageUrl = product.imageUrl || product.image_url || '';
+  const fallbackUrl = 'https://via.placeholder.com/350x500?text=No+Image';
+  const imageUrl = rawImageUrl || fallbackUrl;
   
-  // デバッグ情報
-  console.log('[SwipeCard] Product:', {
+  // 詳細なデバッグ情報
+  console.log('[SwipeCard] Product Debug:', {
     id: product.id,
     title: product.title,
-    imageUrl: imageUrl,
-    originalImageUrl: product.imageUrl,
-    originalImageUrl2: product.image_url
+    rawImageUrl: rawImageUrl,
+    finalImageUrl: imageUrl,
+    isFallback: imageUrl === fallbackUrl,
+    productKeys: Object.keys(product),
   });
+
+  // 画像URLが楽天のサムネイルURLかどうかチェック
+  if (rawImageUrl && rawImageUrl.includes('thumbnail.image.rakuten.co.jp')) {
+    console.warn('[SwipeCard] ⚠️ 楽天サムネイルURL検出:', rawImageUrl);
+    console.log('[SwipeCard] 最適化が正しく適用されていない可能性があります');
+  }
 
   return (
     <View style={styles.card} testID={testID || 'swipe-card'}>

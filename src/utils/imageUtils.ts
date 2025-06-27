@@ -103,6 +103,8 @@ export const cacheImage = async (url: string): Promise<string> => {
   }
 };
 
+import { optimizeImageUrl } from './supabaseOptimization';
+
 /**
  * 画像URLから最高画質バージョンを取得する（ソース別に最適化）
  * @param url 元の画像URL
@@ -113,61 +115,8 @@ export const cacheImage = async (url: string): Promise<string> => {
 export const getHighQualityImageUrl = (url: string, width?: number, height?: number): string => {
   if (!url) return '';
   
-  try {
-    // 楽天画像の最適化
-    if (url.includes('rakuten.co.jp')) {
-      // supabaseOptimization.tsのoptimizeImageUrlと同じアプローチを使用
-      const urlObj = new URL(url);
-      
-      // thumbnail.image.rakuten.co.jp → image.rakuten.co.jp に変更
-      if (urlObj.hostname === 'thumbnail.image.rakuten.co.jp') {
-        urlObj.hostname = 'image.rakuten.co.jp';
-      }
-      
-      // パスのサイズ指定を削除（オリジナルサイズにアクセス）
-      urlObj.pathname = urlObj.pathname
-        .replace(/\/128x128\//g, '/')
-        .replace(/\/64x64\//g, '/')
-        .replace(/\/pc\//g, '/')
-        .replace(/\/thumbnail\//g, '/');
-      
-      // _exパラメータを削除（オリジナルサイズを取得）
-      urlObj.searchParams.delete('_ex');
-      urlObj.searchParams.delete('_sc');
-      
-      return urlObj.toString();
-    }
-    
-    // Amazonの画像最適化
-    if (url.includes('amazon.com') || url.includes('amazon.co.jp')) {
-      // SLxxx形式の部分を高解像度に置換
-      return url.replace(/\._[^.]*_\./, '._SL1500_.');
-    }
-    
-    // ZOZOTOWNの画像最適化
-    if (url.includes('zozo.jp')) {
-      // クエリパラメータを削除して高解像度パスを指定
-      return url.replace(/\?.*$/, '').replace(/\/c\/\d+x\d+/, '/c/1200x1200');
-    }
-    
-    // CDN系の画像（Cloudinary等）
-    if (url.includes('cloudinary.com')) {
-      return url.replace(/\/upload\//, '/upload/q_auto,f_auto,w_1200/');
-    }
-    
-    // ImgixやThumbor系のURLパラメータ最適化
-    if (url.includes('imgix.net') || url.includes('thumbor')) {
-      const separator = url.includes('?') ? '&' : '?';
-      return `${url}${separator}w=${width || 1200}&q=90`;
-    }
-    
-    // その他の一般的な画像URL
-    return url;
-    
-  } catch (error) {
-    console.warn('[ImageUtils] Error optimizing image URL:', error);
-    return url;
-  }
+  // supabaseOptimization.tsのoptimizeImageUrlを使用して統一
+  return optimizeImageUrl(url);
 };
 
 /**

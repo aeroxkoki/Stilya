@@ -168,32 +168,34 @@ export const optimizeImageUrl = (url: string): string => {
     
     // ZOZOTOWN画像の最適化
     else if (url.includes('zozo.jp')) {
-      optimizedUrl = url.replace(/\?.*$/, '') // クエリパラメータを除去
+      return url.replace(/\?.*$/, '') // クエリパラメータを除去
         .replace(/\/c\/\d+x\d+/, '/c/1200x1200'); // サイズ指定を1200x1200に
     }
     
     // Amazon画像の最適化
     else if (url.includes('amazon.com') || url.includes('amazon.co.jp')) {
-      optimizedUrl = url.replace(/\._.*_\./, '._SL1000_.');
+      return url.replace(/\._.*_\./, '._SL1000_.');
     }
     
     // 一般的なCDN対応
     else if (url.includes('cloudinary.com')) {
-      optimizedUrl = url.replace(/\/upload\//, '/upload/q_auto,f_auto,w_1000/');
+      return url.replace(/\/upload\//, '/upload/q_auto,f_auto,w_1000/');
     }
     
     // その他のeコマースサイト
     else if (url.includes('imgix.net')) {
       const separator = url.includes('?') ? '&' : '?';
-      optimizedUrl = `${url}${separator}w=1200&q=90&auto=format`;
+      return `${url}${separator}w=1200&q=90&auto=format`;
     }
+    
+    // デフォルト：元のURLをそのまま返す
+    return url;
+    
   } catch (error) {
     console.warn('[Optimization] Error optimizing image URL:', error);
     // エラーの場合は元のURLを使用
     return url;
   }
-    
-  return optimizedUrl;
 };
 
 /**
