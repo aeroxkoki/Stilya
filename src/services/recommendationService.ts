@@ -150,7 +150,50 @@ export class RecommendationService {
 
       const preferences = preferencesResult.data;
 
-      // Get swiped product IDs to exclude
+      // 新しいアプローチ：スワイプ済み商品を除外する代わりに、
+      // 好みに基づいて商品を取得し、後でフィルタリングする
+      
+      // 多めに商品を取得してランダム性を確保
+      const poolSize = limit * 5; // より多くの商品を取得
+      
+      // タグベースで商品を取得
+      let products: Product[] = [];
+      
+      if (preferences.likedTags && preferences.likedTags.length > 0) {
+        // 好みのタグに基づいて商品を取得
+        const { data: taggedProducts, error: tagError } = await supabase
+          .from(TABLES.EXTERNAL_PRODUCTS)
+          .select('*')
+          .eq('is_active', true)
+          .overlaps('tags', preferences.likedTags)
+          .order('created_at', { ascending: false })
+          .limit(poolSize);
+
+        if (tagError) {
+          console.error('[getPersonalizedRecommendations] Error fetching tagged products:', tagError);
+        } else if (taggedProducts) {
+          products = taggedProducts;
+        }
+      }
+
+      // タグベースの商品が少ない場合は、最新の商品も追加
+      if (products.length < poolSize) {
+        const remainingLimit = poolSize - products.length;
+        const { data: latestProducts, error: latestError } = await supabase
+          .from(TABLES.EXTERNAL_PRODUCTS)
+          .select('*')
+          .eq('is_active', true)
+          .order('created_at', { ascending: false })
+          .limit(remainingLimit);
+
+        if (!latestError && latestProducts) {
+          products = [...products, ...latestProducts];
+        }
+      }
+
+      console.log('[getPersonalizedRecommendations] Retrieved products:', products.length);
+
+      // スワイプ済み商品を取得して除外
       const { data: swipedData, error: swipeError } = await supabase
         .from(TABLES.SWIPES)
         .select('product_id')
@@ -158,66 +201,22 @@ export class RecommendationService {
 
       if (swipeError) {
         console.error('[getPersonalizedRecommendations] Error fetching swipes:', swipeError);
-        return handleSupabaseError(swipeError);
       }
 
-      const swipedProductIds = swipedData?.map(s => s.product_id) || [];
-      console.log('[getPersonalizedRecommendations] Swiped product IDs:', swipedProductIds.length);
-
-      // 多めに商品を取得してランダム性を確保
-      const poolSize = limit * 3;
-      
-      // Supabase clientの正しい使い方でクエリを構築
-      let query = supabase
-        .from(TABLES.EXTERNAL_PRODUCTS)
-        .select('*')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false })
-        .limit(poolSize);
+      const swipedProductIds = new Set(swipedData?.map(s => s.product_id) || []);
+      console.log('[getPersonalizedRecommendations] Swiped product IDs:', swipedProductIds.size);
 
       // スワイプ済み商品を除外
-      // PostgreSQLのIN句の制限を考慮（通常は10,000個まで可能だが、パフォーマンスのため1000個に制限）
-      if (swipedProductIds.length > 0) {
-        // 大量のIDの場合は、最新の1000個のみを使用
-        const recentSwipedIds = swipedProductIds.slice(-1000);
-        console.log(`[getPersonalizedRecommendations] Using ${recentSwipedIds.length} recent swiped IDs out of ${swipedProductIds.length} total`);
-        
-        // Supabase v2の正しい構文：配列を直接渡す
-        query = query.not('id', 'in', recentSwipedIds);
-      }
+      const unswipedProducts = products.filter(product => !swipedProductIds.has(product.id));
+      console.log('[getPersonalizedRecommendations] Unswiped products:', unswipedProducts.length);
 
-      // タグによるフィルタリング（正しい構文）
-      if (preferences.likedTags && preferences.likedTags.length > 0) {
-        // PostgreSQLの配列演算子&&を使用（overlaps）
-        query = query.overlaps('tags', preferences.likedTags);
-      }
-
-      console.log('[getPersonalizedRecommendations] Executing query...');
-      
-      const { data, error } = await query;
-
-      if (error) {
-        console.error('[getPersonalizedRecommendations] Query error:', error);
-        console.error('[getPersonalizedRecommendations] Error details:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        });
-        
-        // エラー時は人気商品を返す
+      if (unswipedProducts.length === 0) {
+        console.log('[getPersonalizedRecommendations] No unswiped products found, returning popular products');
         return await RecommendationService.getPopularProducts(limit);
       }
-
-      if (!data || data.length === 0) {
-        console.log('[getPersonalizedRecommendations] No products found, returning popular products');
-        return await RecommendationService.getPopularProducts(limit);
-      }
-
-      console.log('[getPersonalizedRecommendations] Found products:', data.length);
 
       // Score and sort products based on preference matching
-      const scoredProducts = data.map((product: Product) => {
+      const scoredProducts = unswipedProducts.map((product: Product) => {
         let baseScore = 0;
 
         // Tag matching score
