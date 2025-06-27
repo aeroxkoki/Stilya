@@ -346,13 +346,14 @@ const EnhancedRecommendScreen: React.FC = () => {
                   >
                     {item.imageUrl && item.imageUrl.trim() !== '' && !item.imageUrl.includes('placehold.co') ? (
                       <Image
-                        source={{ uri: getImageUrl(item) }}
+                        source={{ uri: item.imageUrl }}
                         style={[styles.gridItemImage, { height: dimensions.height }]}
                         onError={(error) => {
-                          handleImageError(item.id, getImageUrl(item));
+                          console.error('[GridImage] Failed to load:', item.imageUrl);
+                          console.error('[GridImage] Error:', error.nativeEvent.error);
                         }}
                         onLoad={() => {
-                          console.log('[GridImage] Successfully loaded:', getImageUrl(item));
+                          console.log('[GridImage] Successfully loaded:', item.imageUrl);
                         }}
                       />
                     ) : (

@@ -138,33 +138,12 @@ export const optimizeImageUrl = (url: string): string => {
   let optimizedUrl = url;
   
   try {
-    // 楽天画像URLの最適化（改善版）
+    // 楽天画像URLの最適化 - 一時的に無効化（画像が表示されない問題を解決するため）
     if (url.includes('rakuten.co.jp')) {
-      console.log('[ImageOptimizer] Original Rakuten URL:', url);
-      
-      // 楽天の画像URLの変換パターン
-      // Pattern 1: thumbnail.image.rakuten.co.jp → image.rakuten.co.jp
-      if (url.includes('thumbnail.image.rakuten.co.jp')) {
-        // @0_mall部分とファイル名を保持しながら変換
-        const parts = url.split('/@0_mall/');
-        if (parts.length === 2) {
-          // @0_mallより前の部分でサブドメインを変更
-          const basePart = parts[0].replace('thumbnail.image.rakuten.co.jp', 'image.rakuten.co.jp');
-          // ファイル名部分から_ex=128x128を削除
-          const filePart = parts[1].replace(/\?_ex=\d+x\d+/, '');
-          optimizedUrl = `${basePart}/@0_mall/${filePart}`;
-        } else {
-          // @0_mallがない場合はシンプルに変換
-          optimizedUrl = url.replace('thumbnail.image.rakuten.co.jp', 'image.rakuten.co.jp');
-          optimizedUrl = optimizedUrl.replace(/\?_ex=\d+x\d+/, '');
-        }
-        
-        console.log('[ImageOptimizer] Optimized Rakuten URL:', optimizedUrl);
-      }
-      
-      // 楽天画像URLのテスト用: 変換後のURLが有効かチェックする仕組みが必要
-      // 実際の実装では、画像読み込みエラー時に元のURLにフォールバックする処理を
-      // Image コンポーネント側で実装することを推奨
+      // 現時点では楽天URLの変換を行わず、元のURLをそのまま返す
+      // 理由: 変換後のURLが正しく動作せず、画像が表示されない問題が発生
+      console.log('[ImageOptimizer] Rakuten URL detected, using original URL:', url);
+      return url;
     }
     
     // ZOZOTOWN画像の最適化
