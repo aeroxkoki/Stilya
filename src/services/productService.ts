@@ -67,7 +67,9 @@ export const fetchProducts = async (limit: number = 20, offset: number = 0, filt
     let query = supabase
       .from('external_products')
       .select('*')
-      .eq('is_active', true);
+      .eq('is_active', true)
+      .not('image_url', 'is', null)  // 画像URLがnullの商品を除外
+      .not('image_url', 'eq', '');   // 画像URLが空文字の商品を除外
     
     // フィルター条件を適用
     if (filters) {
@@ -156,7 +158,7 @@ export const fetchProducts = async (limit: number = 20, offset: number = 0, filt
       undefined, // keyword
       100371,    // genreId (レディースファッション)
       Math.floor(offset / limit) + 1, // page
-      limit
+      Math.min(limit, 30) // 楽天APIの最大値は30件
     );
     
     if (rakutenResult.products.length > 0) {
@@ -187,7 +189,7 @@ export const fetchProducts = async (limit: number = 20, offset: number = 0, filt
         undefined, 
         100371,
         1,
-        limit
+        Math.min(limit, 30) // 楽天APIの最大値は30件
       );
       
       if (rakutenResult.products.length > 0) {
@@ -285,6 +287,8 @@ export const fetchProductsByTags = async (tags: string[], limit: number = 20, fi
       .from('external_products')
       .select('*')
       .eq('is_active', true)
+      .not('image_url', 'is', null)  // 画像URLがnullの商品を除外
+      .not('image_url', 'eq', '')   // 画像URLが空文字の商品を除外
       .contains('tags', tags)
       .limit(limit);
     
@@ -395,7 +399,9 @@ export const fetchPersonalizedProducts = async (
     let query = supabase
       .from('external_products')
       .select('*')
-      .eq('is_active', true);
+      .eq('is_active', true)
+      .not('image_url', 'is', null)  // 画像URLがnullの商品を除外
+      .not('image_url', 'eq', '');   // 画像URLが空文字の商品を除外
 
     // タグでフィルタリング（OR条件）
     if (popularTags.length > 0) {
@@ -502,6 +508,8 @@ export const fetchScoredProducts = async (
       .from('external_products')
       .select('*')
       .eq('is_active', true)
+      .not('image_url', 'is', null)  // 画像URLがnullの商品を除外
+      .not('image_url', 'eq', '')   // 画像URLが空文字の商品を除外
       .order('priority', { ascending: true, nullsFirst: false })
       .order('last_synced', { ascending: false })
       .range(offset * 3, offset * 3 + poolSize - 1);
@@ -804,7 +812,9 @@ export const fetchRandomizedProducts = async (
     let query = supabase
       .from('external_products')
       .select('*')
-      .eq('is_active', true);
+      .eq('is_active', true)
+      .not('image_url', 'is', null)  // 画像URLがnullの商品を除外
+      .not('image_url', 'eq', '');   // 画像URLが空文字の商品を除外
     
     // フィルター条件を適用
     if (filters) {
@@ -842,7 +852,9 @@ export const fetchRandomizedProducts = async (
     let countQuery = supabase
       .from('external_products')
       .select('id', { count: 'exact', head: true })
-      .eq('is_active', true);
+      .eq('is_active', true)
+      .not('image_url', 'is', null)  // 画像URLがnullの商品を除外
+      .not('image_url', 'eq', '');   // 画像URLが空文字の商品を除外
     
     // カウント用クエリにも同じフィルターを適用
     if (filters) {
@@ -969,7 +981,9 @@ export const fetchMixedProducts = async (
       let query = supabase
         .from('external_products')
         .select('*')
-        .eq('is_active', true);
+        .eq('is_active', true)
+        .not('image_url', 'is', null)  // 画像URLがnullの商品を除外
+        .not('image_url', 'eq', '');   // 画像URLが空文字の商品を除外
       
       // フィルター条件を適用
       if (filters) {

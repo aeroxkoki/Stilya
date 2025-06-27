@@ -5,6 +5,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../utils/env';
 import { supabase } from './supabase';
 import { fetchProducts } from './productService';
 import { runDatabaseDiagnostics, cleanupInvalidProducts } from '../utils/diagnostics';
+import { fixMissingImageUrls, refreshAllProductData } from '../utils/fixImageUrls';
 
 export const runAppDiagnostics = async () => {
   console.log('🚀 Stilya App Diagnostics Starting...');
@@ -54,7 +55,19 @@ export const runAppDiagnostics = async () => {
     console.log('\n🔍 データベース整合性チェック:');
     await runDatabaseDiagnostics();
     
-    // 6. 不正データのクリーンアップ（オプション）
+    // 6. 画像URLの問題を検出した場合、自動修正を実行
+    const { data: brokenImages } = await supabase
+      .from('external_products')
+      .select('id')
+      .or('image_url.is.null,image_url.eq.')
+      .limit(1);
+    
+    if (brokenImages && brokenImages.length > 0) {
+      console.log('\n🔧 画像URLの問題を検出しました。自動修正を開始します...');
+      await fixMissingImageUrls();
+    }
+    
+    // 7. 不正データのクリーンアップ（オプション）
     // 自動クリーンアップを有効にする場合はコメントを外す
     // console.log('\n🧹 不正データのクリーンアップ:');
     // await cleanupInvalidProducts();

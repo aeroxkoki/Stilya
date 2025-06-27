@@ -8,6 +8,7 @@ import SwipeHistoryScreen from '@/screens/profile/SwipeHistoryScreen';
 import ProductDetailScreen from '@/screens/detail/ProductDetailScreen';
 import { DebugSupabaseScreen } from '@/screens/debug/SupabaseDiagnosticScreen';
 import { ImageDebugScreen } from '@/screens/debug/ImageDebugScreen';
+import AdminScreen from '@/screens/settings/AdminScreen';
 import { useStyle } from '@/contexts/ThemeContext';
 
 const Stack = createStackNavigator<ProfileStackParamList>();
@@ -41,6 +42,14 @@ const ProfileNavigator: React.FC = () => {
         options={{ 
           headerShown: true,
           title: '画像デバッグ' 
+        }} 
+      />
+      <Stack.Screen 
+        name="Admin" 
+        component={AdminScreen} 
+        options={{ 
+          headerShown: true,
+          title: '管理画面' 
         }} 
       />
     </Stack.Navigator>

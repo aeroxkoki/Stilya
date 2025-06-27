@@ -41,6 +41,7 @@ export type ProfileStackParamList = {
   ProductDetail: { productId: string };
   SupabaseDiagnostic: undefined;
   ImageDebug: undefined;
+  Admin: undefined;
 };
 
 // Main Tab Navigator

@@ -195,8 +195,18 @@ export const fetchRakutenFashionProducts = async (
     
     // APIレスポンスをProduct型に変換
     const products: Product[] = data.Items
-      .map((item: any) => {
+      .map((item: any, index: number) => {
         const productItem = item.Item || item;
+        
+        // 最初の商品の画像データ構造をデバッグ
+        if (index === 0) {
+          console.log('[RakutenService] First product image data:', {
+            itemCode: productItem.itemCode,
+            imageUrl: productItem.imageUrl,
+            mediumImageUrls: productItem.mediumImageUrls,
+            smallImageUrls: productItem.smallImageUrls,
+          });
+        }
         
         // 必須項目のチェック
         if (!productItem.itemCode || !productItem.itemName || !productItem.itemPrice) {
@@ -226,46 +236,30 @@ export const fetchRakutenFashionProducts = async (
           title: productItem.itemName,
           price: productItem.itemPrice,
           brand: productItem.shopName || 'ブランド不明',
-          // 画像URLは大きいサイズを優先的に選択（より信頼性の高い方法）
+          // 画像URLは大きいサイズを優先的に選択
           imageUrl: (() => {
-            let url = '';
+            // 楽天APIのレスポンスから最も高画質な画像URLを取得
+            // 優先順位: mediumImageUrls > imageUrl > smallImageUrls
             
-            // 1. mediumImageUrlsがある場合は最初のURLを使用
-            if (productItem.mediumImageUrls?.length > 0) {
-              url = productItem.mediumImageUrls[0].imageUrl;
-            } 
-            // 2. それがない場合はimageUrlを使用
-            else if (productItem.imageUrl) {
-              url = productItem.imageUrl;
+            // 1. mediumImageUrlsがある場合は最初のURLを使用（通常300x300程度）
+            if (productItem.mediumImageUrls && productItem.mediumImageUrls.length > 0) {
+              const mediumUrl = productItem.mediumImageUrls[0];
+              // オブジェクト形式の場合と文字列形式の場合に対応
+              return typeof mediumUrl === 'string' ? mediumUrl : mediumUrl.imageUrl || '';
             }
             
-            // 3. URLが取得できた場合、高画質版に最適化
-            if (url) {
-              try {
-                const urlObj = new URL(url);
-                
-                // thumbnail.image → image に変更
-                if (urlObj.hostname === 'thumbnail.image.rakuten.co.jp') {
-                  urlObj.hostname = 'image.rakuten.co.jp';
-                }
-                
-                // パスのサイズ指定を削除
-                urlObj.pathname = urlObj.pathname
-                  .replace(/\/128x128\//g, '/')
-                  .replace(/\/64x64\//g, '/')
-                  .replace(/\/pc\//g, '/')
-                  .replace(/\/thumbnail\//g, '/');
-                
-                // _exパラメータを削除
-                urlObj.searchParams.delete('_ex');
-                
-                return urlObj.toString();
-              } catch (e) {
-                console.warn('[RakutenService] Failed to optimize image URL:', e);
-                return url;
-              }
+            // 2. imageUrlがある場合（通常128x128）
+            if (productItem.imageUrl) {
+              return productItem.imageUrl;
             }
             
+            // 3. smallImageUrlsがある場合（通常64x64）
+            if (productItem.smallImageUrls && productItem.smallImageUrls.length > 0) {
+              const smallUrl = productItem.smallImageUrls[0];
+              return typeof smallUrl === 'string' ? smallUrl : smallUrl.imageUrl || '';
+            }
+            
+            // 画像が見つからない場合
             return '';
           })(),
           description: productItem.itemCaption || '',

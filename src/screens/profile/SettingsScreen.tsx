@@ -428,6 +428,19 @@ const SettingsScreen: React.FC = () => {
               
               <TouchableOpacity 
                 style={[styles.settingItem, { borderBottomColor: isDarkMode ? '#333' : '#f0f0f0' }]}
+                onPress={() => navigation.navigate('Admin' as never)}
+              >
+                <View style={styles.settingTextContainer}>
+                  <Text style={[styles.settingLabel, { color: isDarkMode ? '#fff' : '#333' }]}>管理画面</Text>
+                  <Text style={[styles.settingDescription, { color: isDarkMode ? '#aaa' : '#777' }]}>
+                    楽天商品データの管理と更新
+                  </Text>
+                </View>
+                <Ionicons name="settings-outline" size={20} color={isDarkMode ? '#aaa' : '#999'} />
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.settingItem, { borderBottomColor: isDarkMode ? '#333' : '#f0f0f0' }]}
                 onPress={handleInvalidDataCleanup}
               >
                 <View style={styles.settingTextContainer}>
