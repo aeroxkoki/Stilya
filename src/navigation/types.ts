@@ -40,6 +40,7 @@ export type ProfileStackParamList = {
   SwipeHistory: undefined;
   ProductDetail: { productId: string };
   SupabaseDiagnostic: undefined;
+  ImageDebug: undefined;
 };
 
 // Main Tab Navigator

@@ -7,6 +7,7 @@ import FavoritesScreen from '@/screens/profile/FavoritesScreen';
 import SwipeHistoryScreen from '@/screens/profile/SwipeHistoryScreen';
 import ProductDetailScreen from '@/screens/detail/ProductDetailScreen';
 import { DebugSupabaseScreen } from '@/screens/debug/SupabaseDiagnosticScreen';
+import { ImageDebugScreen } from '@/screens/debug/ImageDebugScreen';
 import { useStyle } from '@/contexts/ThemeContext';
 
 const Stack = createStackNavigator<ProfileStackParamList>();
@@ -32,6 +33,14 @@ const ProfileNavigator: React.FC = () => {
         options={{ 
           headerShown: true,
           title: 'データベース診断' 
+        }} 
+      />
+      <Stack.Screen 
+        name="ImageDebug" 
+        component={ImageDebugScreen} 
+        options={{ 
+          headerShown: true,
+          title: '画像デバッグ' 
         }} 
       />
     </Stack.Navigator>

@@ -389,6 +389,19 @@ const SettingsScreen: React.FC = () => {
               
               <TouchableOpacity 
                 style={[styles.settingItem, { borderBottomColor: isDarkMode ? '#333' : '#f0f0f0' }]}
+                onPress={() => navigation.navigate('ImageDebug')}
+              >
+                <View style={styles.settingTextContainer}>
+                  <Text style={[styles.settingLabel, { color: isDarkMode ? '#fff' : '#333' }]}>画像デバッグ</Text>
+                  <Text style={[styles.settingDescription, { color: isDarkMode ? '#aaa' : '#777' }]}>
+                    開発用：画像URLの最適化状態を確認します
+                  </Text>
+                </View>
+                <Ionicons name="image-outline" size={20} color={isDarkMode ? '#aaa' : '#999'} />
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.settingItem, { borderBottomColor: isDarkMode ? '#333' : '#f0f0f0' }]}
                 onPress={handleDatabaseDiagnostics}
               >
                 <View style={styles.settingTextContainer}>
