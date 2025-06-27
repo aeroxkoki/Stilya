@@ -53,6 +53,9 @@ const EnhancedRecommendScreen: React.FC = () => {
     includeUsed: false
   });
   
+  // 画像エラー時のフォールバック管理
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+  
   // アニメーション値
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -151,6 +154,29 @@ const EnhancedRecommendScreen: React.FC = () => {
   useEffect(() => {
     loadData();
   }, [loadData]);
+  
+  // 画像URLを取得（フォールバック付き）
+  const getImageUrl = (product: Product): string => {
+    if (imageErrors[product.id]) {
+      // エラーが発生した場合、元のサムネイルURLを返す
+      const originalUrl = product.imageUrl;
+      if (originalUrl.includes('image.rakuten.co.jp')) {
+        // 高画質URLから元のサムネイルURLに戻す
+        return originalUrl
+          .replace('image.rakuten.co.jp', 'thumbnail.image.rakuten.co.jp')
+          .replace(/@0_mall\//, '@0_mall/')
+          + '?_ex=128x128';
+      }
+      return originalUrl;
+    }
+    return product.imageUrl;
+  };
+  
+  // 画像読み込みエラーハンドラー
+  const handleImageError = (productId: string, imageUrl: string) => {
+    console.error(`[ImageError] Failed to load image for product ${productId}:`, imageUrl);
+    setImageErrors(prev => ({ ...prev, [productId]: true }));
+  };
   
   // 商品タップハンドラー
   const handleProductPress = (product: Product) => {
@@ -320,15 +346,13 @@ const EnhancedRecommendScreen: React.FC = () => {
                   >
                     {item.imageUrl && item.imageUrl.trim() !== '' && !item.imageUrl.includes('placehold.co') ? (
                       <Image
-                        source={{ uri: item.imageUrl }}
+                        source={{ uri: getImageUrl(item) }}
                         style={[styles.gridItemImage, { height: dimensions.height }]}
                         onError={(error) => {
-                          console.error('[GridImage] Failed to load:', item.imageUrl);
-                          console.error('[GridImage] Error:', error.nativeEvent.error);
-                          // TODO: フォールバック画像の実装を検討
+                          handleImageError(item.id, getImageUrl(item));
                         }}
                         onLoad={() => {
-                          console.log('[GridImage] Successfully loaded:', item.imageUrl);
+                          console.log('[GridImage] Successfully loaded:', getImageUrl(item));
                         }}
                       />
                     ) : (
