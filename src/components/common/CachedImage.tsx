@@ -48,7 +48,10 @@ const CachedImage: React.FC<CachedImageProps> = ({
       console.log('[CachedImage] Image URL Debug:', {
         original: originalUrl,
         optimized: optimizedUrl,
-        changed: originalUrl !== optimizedUrl
+        changed: originalUrl !== optimizedUrl,
+        isRakutenUrl: originalUrl.includes('rakuten'),
+        isThumbnail: originalUrl.includes('thumbnail'),
+        hasSize: originalUrl.includes('_ex=') || originalUrl.includes('x128')
       });
     }
     
@@ -58,12 +61,23 @@ const CachedImage: React.FC<CachedImageProps> = ({
   }
   
   // エラー時のハンドラ
-  const handleError = () => {
+  const handleError = (error?: any) => {
     setIsLoading(false);
     setHasError(true);
     
-    if (__DEV__ && typeof source === 'object' && source.uri) {
-      console.error('[CachedImage] Failed to load image:', source.uri);
+    if (__DEV__) {
+      console.error('[CachedImage] Failed to load image:', {
+        uri: typeof source === 'object' && source.uri ? source.uri : 'Unknown',
+        finalUri: typeof finalSource === 'object' && finalSource.uri ? finalSource.uri : 'Unknown',
+        error: error,
+        errorMessage: error?.message || 'Unknown error',
+        errorCode: error?.code || 'No code'
+      });
+    }
+    
+    // onError プロパティが渡されていれば呼び出す
+    if (restProps.onError) {
+      restProps.onError(error);
     }
   };
   
@@ -97,6 +111,12 @@ const CachedImage: React.FC<CachedImageProps> = ({
         onLoad={() => {
           setIsLoading(false);
           setHasError(false);
+          
+          if (__DEV__) {
+            console.log('[CachedImage] Successfully loaded:', {
+              uri: typeof finalSource === 'object' && finalSource.uri ? finalSource.uri : 'Local resource'
+            });
+          }
         }}
         onError={handleError}
         {...restProps}

@@ -238,31 +238,50 @@ export const fetchRakutenFashionProducts = async (
           title: productItem.itemName,
           price: productItem.itemPrice,
           brand: productItem.shopName || 'ブランド不明',
-          // 画像URLは大きいサイズを優先的に選択
+          // 画像URLは大きいサイズを優先的に選択し、最適化する
           imageUrl: (() => {
             // 楽天APIのレスポンスから最も高画質な画像URLを取得
-            // 優先順位: mediumImageUrls > imageUrl > smallImageUrls
+            let selectedUrl = '';
             
             // 1. mediumImageUrlsがある場合は最初のURLを使用（通常300x300程度）
             if (productItem.mediumImageUrls && productItem.mediumImageUrls.length > 0) {
               const mediumUrl = productItem.mediumImageUrls[0];
               // オブジェクト形式の場合と文字列形式の場合に対応
-              return typeof mediumUrl === 'string' ? mediumUrl : mediumUrl.imageUrl || '';
+              selectedUrl = typeof mediumUrl === 'string' ? mediumUrl : mediumUrl.imageUrl || '';
             }
-            
             // 2. imageUrlがある場合（通常128x128）
-            if (productItem.imageUrl) {
-              return productItem.imageUrl;
+            else if (productItem.imageUrl) {
+              selectedUrl = productItem.imageUrl;
             }
-            
             // 3. smallImageUrlsがある場合（通常64x64）
-            if (productItem.smallImageUrls && productItem.smallImageUrls.length > 0) {
+            else if (productItem.smallImageUrls && productItem.smallImageUrls.length > 0) {
               const smallUrl = productItem.smallImageUrls[0];
-              return typeof smallUrl === 'string' ? smallUrl : smallUrl.imageUrl || '';
+              selectedUrl = typeof smallUrl === 'string' ? smallUrl : smallUrl.imageUrl || '';
             }
             
-            // 画像が見つからない場合
-            return '';
+            // 楽天のサムネイルURLを高画質版に変換（ここで最適化を実行）
+            if (selectedUrl && selectedUrl.includes('thumbnail.image.rakuten.co.jp')) {
+              // サムネイルドメインを通常の画像ドメインに変更
+              selectedUrl = selectedUrl
+                .replace('thumbnail.image.rakuten.co.jp', 'image.rakuten.co.jp')
+                .replace('/128x128/', '/')
+                .replace('/64x64/', '/')
+                .replace('/pc/', '/')
+                .replace('/thumbnail/', '/')
+                .replace('?_ex=128x128', '')
+                .replace('?_ex=64x64', '')
+                .replace('&_ex=128x128', '')
+                .replace('&_ex=64x64', '');
+              
+              if (__DEV__) {
+                console.log('[RakutenService] 画像URL最適化:', {
+                  before: productItem.mediumImageUrls?.[0] || productItem.imageUrl,
+                  after: selectedUrl
+                });
+              }
+            }
+            
+            return selectedUrl;
           })(),
           description: productItem.itemCaption || '',
           tags: tags,

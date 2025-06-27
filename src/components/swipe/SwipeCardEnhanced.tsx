@@ -97,6 +97,23 @@ const SwipeCardEnhanced: React.FC<SwipeCardEnhancedProps> = ({
   // imageUrlとimage_urlの両方の形式に対応
   const imageUrl = product.imageUrl || product.image_url || 'https://via.placeholder.com/350x500?text=No+Image';
   
+  // デバッグ: 画像URLの状態を詳細に確認
+  React.useEffect(() => {
+    if (__DEV__) {
+      console.log('[SwipeCardEnhanced] Product Debug:', {
+        productId: product.id,
+        productTitle: product.title?.substring(0, 30) + '...',
+        hasImageUrl: !!product.imageUrl,
+        hasImage_url: !!product.image_url,
+        imageUrlValue: product.imageUrl,
+        image_urlValue: product.image_url,
+        finalImageUrl: imageUrl,
+        isPlaceholder: imageUrl.includes('placeholder'),
+        source: product.source
+      });
+    }
+  }, [product.id, product.imageUrl, product.image_url, imageUrl]);
+  
   // 画像読み込みエラーハンドリング
   const [imageError, setImageError] = useState(false);
   const handleImageError = () => {

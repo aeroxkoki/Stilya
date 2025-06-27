@@ -16,6 +16,7 @@ import { DevMenu } from './src/components/dev/DevMenu';
 // Supabase
 import { initializeSupabaseListeners, cleanupSupabaseListeners } from './src/services/supabase';
 import { cleanupOfflineData } from './src/utils/offlineDataCleanup';
+import { clearImageCacheInDev } from './src/utils/imageCacheUtils';
 
 // 開発環境での診断
 if (__DEV__) {
@@ -44,6 +45,15 @@ const App: React.FC = () => {
     // Cleanup offline data on app start
     cleanupOfflineData().catch(error => {
       console.error('[App] Failed to cleanup offline data:', error);
+    });
+    
+    // Clear image cache in development mode
+    clearImageCacheInDev().then(cleared => {
+      if (cleared) {
+        console.log('[App] Image cache cleared successfully');
+      }
+    }).catch(error => {
+      console.error('[App] Failed to clear image cache:', error);
     });
     
     // Cleanup on unmount

@@ -221,8 +221,6 @@ const saveProductsToSupabase = async (products: Product[]) => {
           imageUrl.includes('placehold.co') ||
           imageUrl.includes('placeholder') ||
           imageUrl.includes('noimage') ||
-          imageUrl.includes('_ex=64x64') ||
-          imageUrl.includes('_ex=128x128') ||
           imageUrl === 'null' ||
           imageUrl === 'undefined') {
         console.warn(`[ProductService] Skipping product with invalid image URL: ${product.title} - ${imageUrl}`);
@@ -231,21 +229,26 @@ const saveProductsToSupabase = async (products: Product[]) => {
       return true;
     });
     
-    const productsToInsert = validProducts.map(product => ({
-      id: product.id,
-      title: product.title,
-      brand: product.brand,
-      price: product.price,
-      image_url: product.imageUrl,
-      description: product.description,
-      tags: product.tags,
-      category: product.category,
-      affiliate_url: product.affiliateUrl,
-      source: product.source,
-      is_active: true,
-      is_used: product.isUsed || false, // 中古品フラグ
-      created_at: new Date().toISOString(),
-    }));
+    const productsToInsert = validProducts.map(product => {
+      // 保存前に画像URLを最適化（重要：これが抜けていた）
+      const optimizedImageUrl = optimizeImageUrl(product.imageUrl);
+      
+      return {
+        id: product.id,
+        title: product.title,
+        brand: product.brand,
+        price: product.price,
+        image_url: optimizedImageUrl, // 最適化されたURLを保存
+        description: product.description,
+        tags: product.tags,
+        category: product.category,
+        affiliate_url: product.affiliateUrl,
+        source: product.source,
+        is_active: true,
+        is_used: product.isUsed || false, // 中古品フラグ
+        created_at: new Date().toISOString(),
+      };
+    });
     
     if (productsToInsert.length === 0) {
       console.log('[ProductService] No valid products to save');

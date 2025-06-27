@@ -1,150 +1,191 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { Image } from 'expo-image';
+import React, { useEffect, useState } from 'react';
+import { View, Text, ScrollView, StyleSheet, Button, ActivityIndicator } from 'react-native';
 import { supabase } from '@/services/supabase';
-import { useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import CachedImage from '@/components/common/CachedImage';
 import { optimizeImageUrl } from '@/utils/supabaseOptimization';
 
-export function ImageDebugScreen() {
-  const [products, setProducts] = useState<any[]>([]);
+interface ImageTestResult {
+  id: string;
+  title: string;
+  originalUrl: string;
+  optimizedUrl: string;
+  isRakuten: boolean;
+  isThumbnail: boolean;
+  imageLoaded: boolean;
+}
+
+export default function ImageDebugScreen() {
+  const [results, setResults] = useState<ImageTestResult[]>([]);
   const [loading, setLoading] = useState(true);
-  const navigation = useNavigation();
+  const [stats, setStats] = useState({
+    total: 0,
+    withImage: 0,
+    withoutImage: 0,
+    thumbnailCount: 0,
+    optimizedCount: 0,
+  });
 
-  useEffect(() => {
-    loadProducts();
-  }, []);
-
-  const loadProducts = async () => {
+  const testImageUrls = async () => {
+    setLoading(true);
     try {
-      const { data, error } = await supabase
+      // Supabaseから商品データを取得
+      const { data: products, error } = await supabase
         .from('external_products')
-        .select('id, title, image_url, source')
+        .select('id, title, image_url')
         .eq('is_active', true)
-        .limit(5);
+        .not('image_url', 'is', null)
+        .not('image_url', 'eq', '')
+        .limit(20);
 
       if (error) {
-        Alert.alert('エラー', error.message);
+        console.error('Error fetching products:', error);
         return;
       }
 
-      setProducts(data || []);
-    } catch (err) {
-      console.error('Error loading products:', err);
+      if (!products || products.length === 0) {
+        console.log('No products found');
+        return;
+      }
+
+      // 各商品の画像URLをテスト
+      const testResults: ImageTestResult[] = products.map(product => {
+        const originalUrl = product.image_url || '';
+        const optimizedUrl = optimizeImageUrl(originalUrl);
+        const isRakuten = originalUrl.includes('rakuten');
+        const isThumbnail = originalUrl.includes('thumbnail') || 
+                          originalUrl.includes('128x128') || 
+                          originalUrl.includes('64x64');
+
+        return {
+          id: product.id,
+          title: product.title,
+          originalUrl,
+          optimizedUrl,
+          isRakuten,
+          isThumbnail,
+          imageLoaded: false,
+        };
+      });
+
+      // 統計情報を計算
+      const newStats = {
+        total: testResults.length,
+        withImage: testResults.filter(r => r.originalUrl).length,
+        withoutImage: testResults.filter(r => !r.originalUrl).length,
+        thumbnailCount: testResults.filter(r => r.isThumbnail).length,
+        optimizedCount: testResults.filter(r => r.originalUrl !== r.optimizedUrl).length,
+      };
+
+      setResults(testResults);
+      setStats(newStats);
+    } catch (error) {
+      console.error('Error in testImageUrls:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const testImageUrl = async (url: string) => {
-    try {
-      const response = await fetch(url, { method: 'HEAD' });
-      return {
-        status: response.status,
-        ok: response.ok,
-        contentType: response.headers.get('content-type')
-      };
-    } catch (err) {
-      return { status: 0, ok: false, error: err.message };
-    }
+  useEffect(() => {
+    testImageUrls();
+  }, []);
+
+  const handleImageLoad = (index: number) => {
+    setResults(prev => {
+      const newResults = [...prev];
+      newResults[index].imageLoaded = true;
+      return newResults;
+    });
   };
 
-  const renderProduct = (product: any) => {
-    const originalUrl = product.image_url || '';
-    const optimizedUrl = optimizeImageUrl(originalUrl);
-    const hasChanged = originalUrl !== optimizedUrl;
-
+  if (loading) {
     return (
-      <View key={product.id} style={styles.productCard}>
-        <Text style={styles.productTitle}>{product.title}</Text>
-        <Text style={styles.productId}>ID: {product.id}</Text>
-        <Text style={styles.productSource}>Source: {product.source}</Text>
-        
-        <View style={styles.urlSection}>
-          <Text style={styles.urlLabel}>元のURL:</Text>
-          <Text style={styles.urlText} numberOfLines={3}>{originalUrl || 'なし'}</Text>
-          {originalUrl.includes('thumbnail.image.rakuten.co.jp') && (
-            <Text style={styles.warning}>⚠️ 楽天サムネイルURL</Text>
-          )}
-        </View>
-
-        {hasChanged && (
-          <View style={styles.urlSection}>
-            <Text style={styles.urlLabel}>最適化後:</Text>
-            <Text style={styles.urlText} numberOfLines={3}>{optimizedUrl}</Text>
-            <Text style={styles.success}>✅ 最適化済み</Text>
-          </View>
-        )}
-
-        <View style={styles.imageContainer}>
-          <View style={styles.imageBox}>
-            <Text style={styles.imageLabel}>元の画像</Text>
-            <Image
-              source={{ uri: originalUrl }}
-              style={styles.image}
-              contentFit="cover"
-              onError={(e) => console.log('Original image error:', e)}
-            />
-          </View>
-          
-          {hasChanged && (
-            <View style={styles.imageBox}>
-              <Text style={styles.imageLabel}>最適化後</Text>
-              <Image
-                source={{ uri: optimizedUrl }}
-                style={styles.image}
-                contentFit="cover"
-                onError={(e) => console.log('Optimized image error:', e)}
-              />
-            </View>
-          )}
-        </View>
-
-        <TouchableOpacity
-          style={styles.testButton}
-          onPress={async () => {
-            const originalTest = await testImageUrl(originalUrl);
-            const optimizedTest = hasChanged ? await testImageUrl(optimizedUrl) : null;
-            
-            let message = `元のURL:\nStatus: ${originalTest.status}\n`;
-            message += originalTest.ok ? '✅ 取得成功' : '❌ 取得失敗';
-            
-            if (optimizedTest) {
-              message += `\n\n最適化後:\nStatus: ${optimizedTest.status}\n`;
-              message += optimizedTest.ok ? '✅ 取得成功' : '❌ 取得失敗';
-            }
-            
-            Alert.alert('画像URL テスト結果', message);
-          }}
-        >
-          <Text style={styles.testButtonText}>URLをテスト</Text>
-        </TouchableOpacity>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" />
+        <Text style={styles.loadingText}>画像URLをテスト中...</Text>
       </View>
     );
-  };
+  }
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>画像デバッグ</Text>
-        <TouchableOpacity onPress={loadProducts}>
-          <Ionicons name="refresh" size={24} color="#333" />
-        </TouchableOpacity>
+        <Text style={styles.title}>画像URLデバッグ</Text>
+        <Button title="再テスト" onPress={testImageUrls} />
       </View>
 
-      <ScrollView style={styles.scrollView}>
-        {loading ? (
-          <Text style={styles.loading}>読み込み中...</Text>
-        ) : products.length === 0 ? (
-          <Text style={styles.empty}>商品がありません</Text>
-        ) : (
-          products.map(renderProduct)
-        )}
-      </ScrollView>
-    </View>
+      <View style={styles.statsContainer}>
+        <Text style={styles.statsTitle}>統計情報</Text>
+        <Text style={styles.statsText}>総商品数: {stats.total}</Text>
+        <Text style={styles.statsText}>画像URLあり: {stats.withImage}</Text>
+        <Text style={styles.statsText}>画像URLなし: {stats.withoutImage}</Text>
+        <Text style={styles.statsText}>サムネイルURL: {stats.thumbnailCount}</Text>
+        <Text style={styles.statsText}>最適化されたURL: {stats.optimizedCount}</Text>
+      </View>
+
+      <View style={styles.resultsContainer}>
+        <Text style={styles.sectionTitle}>テスト結果</Text>
+        {results.map((result, index) => (
+          <View key={result.id} style={styles.resultItem}>
+            <Text style={styles.productTitle} numberOfLines={2}>
+              {index + 1}. {result.title}
+            </Text>
+            
+            <View style={styles.urlContainer}>
+              <Text style={styles.urlLabel}>元URL:</Text>
+              <Text style={styles.urlText} numberOfLines={2}>
+                {result.originalUrl || 'なし'}
+              </Text>
+            </View>
+
+            {result.originalUrl !== result.optimizedUrl && (
+              <View style={styles.urlContainer}>
+                <Text style={styles.urlLabel}>最適化URL:</Text>
+                <Text style={[styles.urlText, styles.optimizedUrl]} numberOfLines={2}>
+                  {result.optimizedUrl}
+                </Text>
+              </View>
+            )}
+
+            <View style={styles.infoRow}>
+              {result.isRakuten && (
+                <Text style={styles.badge}>楽天</Text>
+              )}
+              {result.isThumbnail && (
+                <Text style={[styles.badge, styles.warningBadge]}>サムネイル</Text>
+              )}
+              {result.imageLoaded && (
+                <Text style={[styles.badge, styles.successBadge]}>読込成功</Text>
+              )}
+            </View>
+
+            <View style={styles.imageContainer}>
+              <View style={styles.imageWrapper}>
+                <Text style={styles.imageLabel}>元画像:</Text>
+                <CachedImage
+                  source={{ uri: result.originalUrl }}
+                  style={styles.testImage}
+                  onLoad={() => handleImageLoad(index)}
+                  onError={() => console.log(`Failed to load original: ${result.originalUrl}`)}
+                  highQuality={false}
+                />
+              </View>
+
+              {result.originalUrl !== result.optimizedUrl && (
+                <View style={styles.imageWrapper}>
+                  <Text style={styles.imageLabel}>最適化画像:</Text>
+                  <CachedImage
+                    source={{ uri: result.optimizedUrl }}
+                    style={styles.testImage}
+                    onError={() => console.log(`Failed to load optimized: ${result.optimizedUrl}`)}
+                    highQuality={true}
+                  />
+                </View>
+              )}
+            </View>
+          </View>
+        ))}
+      </View>
+    </ScrollView>
   );
 }
 
@@ -152,6 +193,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
   },
   header: {
     flexDirection: 'row',
@@ -162,17 +212,43 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
-  headerTitle: {
-    fontSize: 18,
+  title: {
+    fontSize: 24,
     fontWeight: 'bold',
   },
-  scrollView: {
-    flex: 1,
-  },
-  productCard: {
+  statsContainer: {
     backgroundColor: 'white',
     margin: 16,
     padding: 16,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  statsTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  statsText: {
+    fontSize: 14,
+    marginBottom: 4,
+    color: '#666',
+  },
+  resultsContainer: {
+    padding: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  resultItem: {
+    backgroundColor: 'white',
+    padding: 16,
+    marginBottom: 16,
     borderRadius: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -185,80 +261,58 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 8,
   },
-  productId: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 4,
-  },
-  productSource: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 12,
-  },
-  urlSection: {
-    marginBottom: 12,
+  urlContainer: {
+    marginBottom: 8,
   },
   urlLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 4,
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#666',
+    marginBottom: 2,
   },
   urlText: {
     fontSize: 12,
     color: '#333',
-    backgroundColor: '#f0f0f0',
-    padding: 8,
+  },
+  optimizedUrl: {
+    color: '#007AFF',
+  },
+  infoRow: {
+    flexDirection: 'row',
+    marginBottom: 12,
+  },
+  badge: {
+    backgroundColor: '#e0e0e0',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 4,
-  },
-  warning: {
-    color: '#ff6b6b',
     fontSize: 12,
-    marginTop: 4,
+    marginRight: 8,
   },
-  success: {
-    color: '#4ecdc4',
-    fontSize: 12,
-    marginTop: 4,
+  warningBadge: {
+    backgroundColor: '#FFE4B5',
+    color: '#FF8C00',
+  },
+  successBadge: {
+    backgroundColor: '#90EE90',
+    color: '#228B22',
   },
   imageContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginVertical: 16,
   },
-  imageBox: {
+  imageWrapper: {
     alignItems: 'center',
   },
   imageLabel: {
     fontSize: 12,
-    marginBottom: 8,
     color: '#666',
+    marginBottom: 4,
   },
-  image: {
+  testImage: {
     width: 120,
-    height: 160,
-    borderRadius: 4,
+    height: 120,
+    borderRadius: 8,
     backgroundColor: '#f0f0f0',
-  },
-  testButton: {
-    backgroundColor: '#3498db',
-    padding: 12,
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  testButtonText: {
-    color: 'white',
-    fontWeight: '600',
-  },
-  loading: {
-    textAlign: 'center',
-    marginTop: 50,
-    fontSize: 16,
-    color: '#666',
-  },
-  empty: {
-    textAlign: 'center',
-    marginTop: 50,
-    fontSize: 16,
-    color: '#666',
   },
 });
