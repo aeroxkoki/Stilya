@@ -116,32 +116,26 @@ export const getHighQualityImageUrl = (url: string, width?: number, height?: num
   try {
     // 楽天画像の最適化
     if (url.includes('rakuten.co.jp')) {
-      // クエリパラメータを解析
-      const hasQuery = url.includes('?');
-      let optimizedUrl = url;
+      // supabaseOptimization.tsのoptimizeImageUrlと同じアプローチを使用
+      const urlObj = new URL(url);
       
-      // パスの置換（低解像度→高解像度）
-      optimizedUrl = optimizedUrl
-        .replace(/\/128x128\//, '/600x600/')
-        .replace(/\/64x64\//, '/600x600/')
-        .replace(/\/pc\//, '/600x600/')
-        .replace(/\/thumbnail\//, '/600x600/');
-      
-      // _exパラメータの置換または追加
-      if (optimizedUrl.includes('_ex=')) {
-        optimizedUrl = optimizedUrl.replace(/_ex=\d+x\d+/, '_ex=640x640');
-      } else if (hasQuery) {
-        optimizedUrl += '&_ex=640x640';
-      } else {
-        optimizedUrl += '?_ex=640x640';
+      // thumbnail.image.rakuten.co.jp → image.rakuten.co.jp に変更
+      if (urlObj.hostname === 'thumbnail.image.rakuten.co.jp') {
+        urlObj.hostname = 'image.rakuten.co.jp';
       }
       
-      // _scパラメータ（スケーリング）の追加
-      if (!optimizedUrl.includes('_sc=')) {
-        optimizedUrl += (hasQuery || optimizedUrl.includes('?') ? '&' : '?') + '_sc=1';
-      }
+      // パスのサイズ指定を削除（オリジナルサイズにアクセス）
+      urlObj.pathname = urlObj.pathname
+        .replace(/\/128x128\//g, '/')
+        .replace(/\/64x64\//g, '/')
+        .replace(/\/pc\//g, '/')
+        .replace(/\/thumbnail\//g, '/');
       
-      return optimizedUrl;
+      // _exパラメータを削除（オリジナルサイズを取得）
+      urlObj.searchParams.delete('_ex');
+      urlObj.searchParams.delete('_sc');
+      
+      return urlObj.toString();
     }
     
     // Amazonの画像最適化
