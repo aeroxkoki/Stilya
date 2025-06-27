@@ -13,9 +13,13 @@ interface CachedImageProps {
   placeholder?: object;
   resizeMode?: 'cover' | 'contain' | 'stretch' | 'center';
   showLoadingIndicator?: boolean;
-  highQuality?: boolean;
+  optimizeUrl?: boolean; // URL最適化を有効にするか（デフォルト: false）
+  showErrorFallback?: boolean; // エラー時にフォールバック画像を表示するか
   [key: string]: any;
 }
+
+// デフォルトのフォールバック画像
+const FALLBACK_IMAGE = 'https://via.placeholder.com/400x400/f0f0f0/666666?text=No+Image';
 
 // expo-imageの高性能画像コンポーネント
 const CachedImage: React.FC<CachedImageProps> = ({ 
@@ -25,77 +29,77 @@ const CachedImage: React.FC<CachedImageProps> = ({
   resizeMode,
   transition = 200,
   showLoadingIndicator = false,
-  highQuality = true,
+  optimizeUrl = true, // デフォルトで有効化に変更
+  showErrorFallback = true,
   ...restProps 
 }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const [errorDetails, setErrorDetails] = useState<string>('');
+  const [currentSource, setCurrentSource] = useState(source);
   
   // resizeModeとcontentFitの互換性を保つ
   const finalContentFit = resizeMode ? 
     (resizeMode === 'stretch' ? 'fill' : resizeMode === 'center' ? 'contain' : resizeMode) : 
     contentFit;
   
-  // 高画質モードが有効な場合、URLを最適化
-  let finalSource = source;
+  // sourceが変更されたらリセット
+  React.useEffect(() => {
+    setHasError(false);
+    setCurrentSource(source);
+    setIsLoading(true);
+  }, [source]);
   
-  if (highQuality && typeof source === 'object' && source.uri) {
-    const originalUrl = source.uri;
-    
-    // すでに最適化済みかチェック（楽天のサムネイルURLでない場合はスキップ）
-    const needsOptimization = originalUrl.includes('thumbnail.image.rakuten.co.jp') || 
-                             originalUrl.includes('128x128') || 
-                             originalUrl.includes('64x64') ||
-                             originalUrl.includes('_ex=128x128') ||
-                             originalUrl.includes('_ex=64x64');
-    
-    if (needsOptimization) {
-      const optimizedUrl = optimizeImageUrl(originalUrl);
+  // URL最適化
+  React.useEffect(() => {
+    if (optimizeUrl && typeof source === 'object' && source.uri) {
+      const originalUrl = source.uri;
       
-      if (__DEV__) {
-        console.log('[CachedImage] Image URL optimized:', {
-          original: originalUrl,
-          optimized: optimizedUrl
-        });
+      // すでに最適化済みかチェック
+      const needsOptimization = originalUrl.includes('thumbnail.image.rakuten.co.jp') || 
+                               originalUrl.includes('128x128') || 
+                               originalUrl.includes('64x64') ||
+                               originalUrl.includes('_ex=128x128') ||
+                               originalUrl.includes('_ex=64x64');
+      
+      if (needsOptimization) {
+        const optimizedUrl = optimizeImageUrl(originalUrl);
+        
+        if (__DEV__) {
+          console.log('[CachedImage] URL最適化:', {
+            original: originalUrl,
+            optimized: optimizedUrl
+          });
+        }
+        
+        setCurrentSource({ uri: optimizedUrl });
       }
-      
-      finalSource = { 
-        uri: optimizedUrl 
-      };
-    } else {
-      // すでに最適化済みの場合はデバッグログをスキップ
-      finalSource = source;
     }
-  }
+  }, [source, optimizeUrl]);
   
   // エラー時のハンドラ
   const handleError = (error?: any) => {
     setIsLoading(false);
-    setHasError(true);
-    
-    // エラー詳細を収集
-    const errorMessage = error?.message || 'Unknown error';
-    const errorCode = error?.code || 'No code';
-    const uri = typeof finalSource === 'object' && finalSource.uri ? finalSource.uri : 'Unknown';
-    
-    setErrorDetails(`${errorMessage} (Code: ${errorCode})`);
     
     if (__DEV__) {
-      console.error('[CachedImage] Failed to load image:', {
-        uri: uri,
-        originalUri: typeof source === 'object' && source.uri ? source.uri : 'Unknown',
-        error: error,
-        errorMessage: errorMessage,
-        errorCode: errorCode,
-        errorStack: error?.stack
+      console.warn('[CachedImage] 画像読み込みエラー:', {
+        uri: typeof currentSource === 'object' && currentSource.uri ? currentSource.uri : 'Unknown',
+        error: error?.message || 'Unknown error',
+        optimizeUrl
       });
-      
-      // ネットワークエラーの可能性を確認
-      if (errorMessage.includes('network') || errorMessage.includes('Network') || 
-          errorMessage.includes('Failed to fetch') || errorMessage.includes('timeout')) {
-        console.error('[CachedImage] Network error detected. Check NSAppTransportSecurity settings.');
-      }
+    }
+    
+    // 一時的なエラーの可能性があるため、すぐにフォールバックに切り替えない
+    // ネットワークエラーやタイムアウトの場合は1回だけリトライ
+    if (!hasError) {
+      setTimeout(() => {
+        setHasError(false);
+        setIsLoading(true);
+        // 同じURLで再度試す
+        setCurrentSource({...currentSource});
+      }, 2000); // 2秒後にリトライ
+    } else {
+      // 2回目のエラーの場合はフォールバックを表示
+      setHasError(true);
     }
     
     // onError プロパティが渡されていれば呼び出す
@@ -104,22 +108,10 @@ const CachedImage: React.FC<CachedImageProps> = ({
     }
   };
   
-  // エラー状態の場合のフォールバック表示
-  if (hasError) {
-    return (
-      <View style={[styles.container, style, styles.errorContainer]}>
-        <Text style={styles.errorText}>画像を読み込めません</Text>
-        {__DEV__ && (
-          <>
-            <Text style={styles.errorDetails} numberOfLines={2}>{errorDetails}</Text>
-            {typeof source === 'object' && source.uri && (
-              <Text style={styles.errorUrl} numberOfLines={2}>{source.uri}</Text>
-            )}
-          </>
-        )}
-      </View>
-    );
-  }
+  // エラー時にフォールバック画像を使用
+  const imageSource = hasError && showErrorFallback 
+    ? { uri: FALLBACK_IMAGE }
+    : currentSource;
   
   return (
     <View style={[styles.container, isLoading && showLoadingIndicator ? styles.centerContent : null]}>
@@ -128,34 +120,31 @@ const CachedImage: React.FC<CachedImageProps> = ({
       )}
       
       <Image
-        source={finalSource}
+        source={imageSource}
         style={style}
         contentFit={finalContentFit}
         transition={transition}
         cachePolicy="memory-disk" // メモリとディスクの両方にキャッシュ
         priority="high" // 優先度を高に設定
-        recyclingKey={typeof finalSource === 'object' ? finalSource.uri : undefined} // キャッシュ制御用
+        allowDownscaling={true} // ダウンスケーリングを許可
+        recyclingKey={typeof imageSource === 'object' ? imageSource.uri : undefined} // キャッシュ制御用
         onLoadStart={() => {
           setIsLoading(true);
-          if (__DEV__) {
-            console.log('[CachedImage] Loading started:', {
-              uri: typeof finalSource === 'object' && finalSource.uri ? finalSource.uri : 'Local resource'
-            });
-          }
         }}
         onLoad={() => {
           setIsLoading(false);
           setHasError(false);
-          
-          if (__DEV__) {
-            console.log('[CachedImage] Successfully loaded:', {
-              uri: typeof finalSource === 'object' && finalSource.uri ? finalSource.uri : 'Local resource'
-            });
-          }
         }}
         onError={handleError}
         {...restProps}
       />
+      
+      {/* エラー時のオーバーレイ（開発環境のみ） */}
+      {__DEV__ && hasError && !showErrorFallback && (
+        <View style={styles.errorOverlay}>
+          <Text style={styles.errorText}>!</Text>
+        </View>
+      )}
     </View>
   );
 };
@@ -174,41 +163,33 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     zIndex: 1,
   },
-  errorContainer: {
-    backgroundColor: '#f0f0f0',
+  errorOverlay: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(231, 76, 60, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 10,
   },
   errorText: {
-    color: '#666',
-    fontSize: 12,
-    textAlign: 'center',
-  },
-  errorDetails: {
-    color: '#e74c3c',
-    fontSize: 10,
-    marginTop: 5,
-    textAlign: 'center',
+    color: 'white',
+    fontSize: 14,
     fontWeight: 'bold',
-  },
-  errorUrl: {
-    color: '#999',
-    fontSize: 10,
-    marginTop: 5,
-    textAlign: 'center',
   },
 });
 
 // 画像の事前読み込み機能
-export const prefetchImage = async (url: string) => {
+export const prefetchImage = async (url: string, optimize: boolean = false) => {
   try {
-    // 高画質URLに最適化してからプリフェッチ
-    const optimizedUrl = optimizeImageUrl(url);
-    await Image.prefetch(optimizedUrl);
+    // URL最適化（オプショナル）
+    const finalUrl = optimize ? optimizeImageUrl(url) : url;
+    await Image.prefetch(finalUrl);
     
     if (__DEV__) {
-      console.log('[CachedImage] Prefetched:', optimizedUrl);
+      console.log('[CachedImage] Prefetched:', finalUrl);
     }
   } catch (error) {
     console.warn('[CachedImage] Prefetch failed:', url, error);

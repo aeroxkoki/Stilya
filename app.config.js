@@ -38,7 +38,7 @@ export default ({ config }) => {
           NSCameraUsageDescription: "Stilyaで自分のコーディネートを撮影するために、カメラへのアクセスが必要です。",
           NSUserTrackingUsageDescription: "あなたに最適なファッションアイテムを提案するために、パーソナライズされた広告を表示します。",
           ITSAppUsesNonExemptEncryption: false,
-          // ネットワーク設定（HTTPSのみ、localhostは削除）
+          // ネットワーク設定
           NSAppTransportSecurity: {
             NSAllowsArbitraryLoads: false, // HTTPSのみ許可
             NSExceptionDomains: {
@@ -47,6 +47,22 @@ export default ({ config }) => {
                 NSIncludesSubdomains: true
               },
               "rakuten.co.jp": {
+                NSExceptionAllowsInsecureHTTPLoads: false,
+                NSIncludesSubdomains: true
+              },
+              "image.rakuten.co.jp": {
+                NSExceptionAllowsInsecureHTTPLoads: false,
+                NSIncludesSubdomains: true
+              },
+              "thumbnail.image.rakuten.co.jp": {
+                NSExceptionAllowsInsecureHTTPLoads: false,
+                NSIncludesSubdomains: true
+              },
+              "via.placeholder.com": {
+                NSExceptionAllowsInsecureHTTPLoads: false,
+                NSIncludesSubdomains: true
+              },
+              "images.unsplash.com": {
                 NSExceptionAllowsInsecureHTTPLoads: false,
                 NSIncludesSubdomains: true
               }

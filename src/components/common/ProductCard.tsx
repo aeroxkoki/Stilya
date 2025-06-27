@@ -109,9 +109,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
           compact && styles.compactImageContainer
         ]}>
           <CachedImage
-            source={{ uri: product.imageUrl || '' }}
+            source={{ uri: product.imageUrl || product.image_url || '' }}
             style={styles.image}
             resizeMode="cover"
+            optimizeUrl={true}
+            showLoadingIndicator={true}
           />
           
           {/* 中古品ラベル */}

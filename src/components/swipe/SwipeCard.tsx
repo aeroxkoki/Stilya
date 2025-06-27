@@ -53,12 +53,13 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
         testID="swipe-card-touch"
       >
         <CachedImage
-          source={{ uri: imageUrl }}
+          source={{ uri: rawImageUrl || fallbackUrl }}
           style={styles.image}
           contentFit="cover"
           testID="product-image"
-          highQuality={true}
-          showLoadingIndicator={false}
+          optimizeUrl={true}
+          showLoadingIndicator={true}
+          showErrorFallback={true}
         />
         
         {/* 中古品ラベル */}
