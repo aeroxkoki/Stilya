@@ -30,6 +30,7 @@ const CachedImage: React.FC<CachedImageProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [errorDetails, setErrorDetails] = useState<string>('');
   
   // resizeModeとcontentFitの互換性を保つ
   const finalContentFit = resizeMode ? 
@@ -73,14 +74,28 @@ const CachedImage: React.FC<CachedImageProps> = ({
     setIsLoading(false);
     setHasError(true);
     
+    // エラー詳細を収集
+    const errorMessage = error?.message || 'Unknown error';
+    const errorCode = error?.code || 'No code';
+    const uri = typeof finalSource === 'object' && finalSource.uri ? finalSource.uri : 'Unknown';
+    
+    setErrorDetails(`${errorMessage} (Code: ${errorCode})`);
+    
     if (__DEV__) {
       console.error('[CachedImage] Failed to load image:', {
-        uri: typeof source === 'object' && source.uri ? source.uri : 'Unknown',
-        finalUri: typeof finalSource === 'object' && finalSource.uri ? finalSource.uri : 'Unknown',
+        uri: uri,
+        originalUri: typeof source === 'object' && source.uri ? source.uri : 'Unknown',
         error: error,
-        errorMessage: error?.message || 'Unknown error',
-        errorCode: error?.code || 'No code'
+        errorMessage: errorMessage,
+        errorCode: errorCode,
+        errorStack: error?.stack
       });
+      
+      // ネットワークエラーの可能性を確認
+      if (errorMessage.includes('network') || errorMessage.includes('Network') || 
+          errorMessage.includes('Failed to fetch') || errorMessage.includes('timeout')) {
+        console.error('[CachedImage] Network error detected. Check NSAppTransportSecurity settings.');
+      }
     }
     
     // onError プロパティが渡されていれば呼び出す
@@ -94,8 +109,13 @@ const CachedImage: React.FC<CachedImageProps> = ({
     return (
       <View style={[styles.container, style, styles.errorContainer]}>
         <Text style={styles.errorText}>画像を読み込めません</Text>
-        {__DEV__ && typeof source === 'object' && source.uri && (
-          <Text style={styles.errorUrl} numberOfLines={2}>{source.uri}</Text>
+        {__DEV__ && (
+          <>
+            <Text style={styles.errorDetails} numberOfLines={2}>{errorDetails}</Text>
+            {typeof source === 'object' && source.uri && (
+              <Text style={styles.errorUrl} numberOfLines={2}>{source.uri}</Text>
+            )}
+          </>
         )}
       </View>
     );
@@ -115,7 +135,14 @@ const CachedImage: React.FC<CachedImageProps> = ({
         cachePolicy="memory-disk" // メモリとディスクの両方にキャッシュ
         priority="high" // 優先度を高に設定
         recyclingKey={typeof finalSource === 'object' ? finalSource.uri : undefined} // キャッシュ制御用
-        onLoadStart={() => setIsLoading(true)}
+        onLoadStart={() => {
+          setIsLoading(true);
+          if (__DEV__) {
+            console.log('[CachedImage] Loading started:', {
+              uri: typeof finalSource === 'object' && finalSource.uri ? finalSource.uri : 'Local resource'
+            });
+          }
+        }}
         onLoad={() => {
           setIsLoading(false);
           setHasError(false);
@@ -158,6 +185,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
   },
+  errorDetails: {
+    color: '#e74c3c',
+    fontSize: 10,
+    marginTop: 5,
+    textAlign: 'center',
+    fontWeight: 'bold',
+  },
   errorUrl: {
     color: '#999',
     fontSize: 10,
@@ -172,8 +206,12 @@ export const prefetchImage = async (url: string) => {
     // 高画質URLに最適化してからプリフェッチ
     const optimizedUrl = optimizeImageUrl(url);
     await Image.prefetch(optimizedUrl);
+    
+    if (__DEV__) {
+      console.log('[CachedImage] Prefetched:', optimizedUrl);
+    }
   } catch (error) {
-    console.warn('画像のプリフェッチに失敗:', error);
+    console.warn('[CachedImage] Prefetch failed:', url, error);
   }
 };
 

@@ -41,6 +41,8 @@ export type ProfileStackParamList = {
   ProductDetail: { productId: string };
   SupabaseDiagnostic: undefined;
   ImageDebug: undefined;
+  ImageDiagnosis: undefined;
+  ImageTest: undefined;
   Admin: undefined;
 };
 

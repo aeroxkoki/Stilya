@@ -128,6 +128,8 @@ export const getRecommendedSyncStrategy = (productCount: number) => {
   }
 };
 
+import { autoFixImageUrl, isValidImageUrl } from './imageValidation';
+
 /**
  * 画像URLの最適化（MVPレベル - 楽天URL修正のみ）
  * 楽天のサムネイルURLを高画質版に変換する
@@ -136,37 +138,25 @@ export const optimizeImageUrl = (url: string): string => {
   if (!url) return '';
   
   try {
-    // 楽天のサムネイルURLを高画質版に変換
-    if (url.includes('thumbnail.image.rakuten.co.jp')) {
-      // サムネイルドメインを通常の画像ドメインに変更
-      let optimizedUrl = url.replace('thumbnail.image.rakuten.co.jp', 'image.rakuten.co.jp');
-      
-      // URLパス内のサイズ指定を除去
-      optimizedUrl = optimizedUrl
-        .replace('/128x128/', '/')
-        .replace('/64x64/', '/')
-        .replace('/pc/', '/')
-        .replace('/thumbnail/', '/');
-      
-      // クエリパラメータのサイズ指定を除去
-      optimizedUrl = optimizedUrl
-        .replace('?_ex=128x128', '')
-        .replace('?_ex=64x64', '')
-        .replace('&_ex=128x128', '')
-        .replace('&_ex=64x64', '');
-      
-      if (__DEV__) {
-        console.log('[ImageOptimization] 楽天URL変換:', {
-          original: url,
-          optimized: optimizedUrl
-        });
-      }
-      
-      return optimizedUrl;
+    // 新しい自動修正機能を使用
+    const { fixed, wasFixed, changes } = autoFixImageUrl(url);
+    
+    if (__DEV__ && wasFixed) {
+      console.log('[ImageOptimization] URL修正:', {
+        original: url,
+        fixed: fixed,
+        changes: changes
+      });
     }
     
-    // その他のURLはそのまま返す（MVPではシンプルに）
-    return url;
+    // 修正後のURLが有効か確認
+    if (!isValidImageUrl(fixed)) {
+      console.warn('[ImageOptimization] 修正後のURLが無効です:', fixed);
+      // 無効な場合は元のURLを返す（完全に無効になるよりはマシ）
+      return url;
+    }
+    
+    return fixed;
     
   } catch (error) {
     console.warn('[Optimization] Error optimizing image URL:', error);
