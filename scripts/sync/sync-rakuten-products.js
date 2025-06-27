@@ -50,7 +50,11 @@ async function fetchRakutenProducts(genreId = '100371', page = 1, hits = 30) {
     genreId: genreId,
     hits: hits,
     page: page,
-    format: 'json'
+    format: 'json',
+    imageFlag: '1', // 画像ありのみ
+    sort: '+updateTimestamp', // 新着順
+    // 画像サイズを指定して高画質画像を要求
+    elements: 'itemName,itemPrice,itemCode,itemUrl,shopName,shopUrl,affiliateUrl,mediumImageUrls,imageUrl,smallImageUrls,itemCaption,genreId',
   };
 
   try {
@@ -63,6 +67,42 @@ async function fetchRakutenProducts(genreId = '100371', page = 1, hits = 30) {
 }
 
 /**
+ * 楽天APIの画像URLを取得（rakutenService.tsと同じロジック）
+ */
+function getImageUrl(product) {
+  // 優先順位: mediumImageUrls > imageUrl > smallImageUrls
+  
+  // 1. mediumImageUrlsがある場合は最初のURLを使用（通常300x300程度）
+  if (product.mediumImageUrls && product.mediumImageUrls.length > 0) {
+    const mediumUrl = product.mediumImageUrls[0];
+    // オブジェクト形式の場合と文字列形式の場合に対応
+    if (typeof mediumUrl === 'string') {
+      return mediumUrl;
+    } else if (mediumUrl.imageUrl) {
+      return mediumUrl.imageUrl;
+    }
+  }
+  
+  // 2. imageUrlがある場合（通常128x128）
+  if (product.imageUrl) {
+    return product.imageUrl;
+  }
+  
+  // 3. smallImageUrlsがある場合（通常64x64）
+  if (product.smallImageUrls && product.smallImageUrls.length > 0) {
+    const smallUrl = product.smallImageUrls[0];
+    if (typeof smallUrl === 'string') {
+      return smallUrl;
+    } else if (smallUrl.imageUrl) {
+      return smallUrl.imageUrl;
+    }
+  }
+  
+  // 画像が見つからない場合
+  return '';
+}
+
+/**
  * 商品データをSupabaseに保存
  */
 async function saveProducts(products) {
@@ -70,10 +110,18 @@ async function saveProducts(products) {
   
   const productsToInsert = products.map(item => {
     const product = item.Item;
+    const imageUrl = getImageUrl(product);
+    
+    // 画像URLが無効な商品はスキップ
+    if (!imageUrl || imageUrl.trim() === '') {
+      console.log(`⚠️ 画像URLが無効: ${product.itemName}`);
+      return null;
+    }
+    
     return {
       id: product.itemCode,
       title: product.itemName,
-      image_url: product.mediumImageUrls[0]?.imageUrl || '',
+      image_url: imageUrl,
       brand: product.shopName,
       price: product.itemPrice,
       tags: extractTags(product),
@@ -83,7 +131,9 @@ async function saveProducts(products) {
       is_active: true,
       last_synced: new Date().toISOString()
     };
-  });
+  }).filter(p => p !== null); // 無効な商品を除外
+
+  console.log(`\n📸 有効な画像URLを持つ商品: ${productsToInsert.length}件`);
 
   try {
     // 既存の商品をチェック
@@ -110,7 +160,7 @@ async function saveProducts(products) {
       }
     }
 
-    // 既存商品を更新
+    // 既存商品を更新（画像URLも更新）
     if (updateProducts.length > 0) {
       for (const product of updateProducts) {
         const { error: updateError } = await supabase
@@ -118,6 +168,7 @@ async function saveProducts(products) {
           .update({
             title: product.title,
             price: product.price,
+            image_url: product.image_url, // 画像URLも更新
             is_active: true,
             last_synced: product.last_synced
           })
@@ -149,54 +200,57 @@ function extractTags(product) {
  * メイン処理
  */
 async function main() {
-  console.log('\n🚀 楽天商品同期を開始します...\n');
+  console.log('🛍️ 楽天商品データ同期開始...\n');
+  
+  // 最初に不正なデータをクリーンアップ
+  console.log('🧹 不正なデータのクリーンアップ...');
+  const { error: cleanupError } = await supabase
+    .from('external_products')
+    .delete()
+    .or('image_url.is.null,image_url.eq.')
+    .eq('source', 'rakuten');
+  
+  if (!cleanupError) {
+    console.log('✅ 不正なデータをクリーンアップしました');
+  }
 
-  try {
-    // 複数ページから商品を取得
-    const pages = 3; // 3ページ分取得
-    const itemsPerPage = 30;
-    let allProducts = [];
+  const genreIds = {
+    'レディースファッション': '100371',
+    'メンズファッション': '551177',
+  };
 
-    for (let page = 1; page <= pages; page++) {
-      console.log(`\n📄 ページ ${page}/${pages} を取得中...`);
-      
-      const data = await fetchRakutenProducts('100371', page, itemsPerPage);
-      
-      if (data.Items && data.Items.length > 0) {
-        allProducts = allProducts.concat(data.Items);
-        console.log(`✅ ${data.Items.length}件の商品を取得`);
+  for (const [genreName, genreId] of Object.entries(genreIds)) {
+    console.log(`\n📂 ${genreName}の商品を取得中...`);
+    
+    try {
+      // 3ページ分取得（1ページ30件 × 3 = 90件）
+      for (let page = 1; page <= 3; page++) {
+        console.log(`  ページ ${page}/3 を処理中...`);
+        
+        const data = await fetchRakutenProducts(genreId, page, 30);
+        
+        if (data.Items && data.Items.length > 0) {
+          await saveProducts(data.Items);
+        } else {
+          console.log('  商品が見つかりませんでした');
+        }
         
         // レート制限対策
-        if (page < pages) {
-          console.log('⏳ 2秒待機中...');
-          await sleep(2000);
-        }
+        await sleep(1000);
       }
+    } catch (error) {
+      console.error(`❌ ${genreName}の処理でエラー:`, error.message);
     }
-
-    console.log(`\n📊 合計 ${allProducts.length}件の商品を取得しました`);
-
-    // 商品をSupabaseに保存
-    await saveProducts(allProducts);
-
-    // 最終確認
-    const { count } = await supabase
-      .from('external_products')
-      .select('*', { count: 'exact', head: true });
-
-    console.log(`\n✅ 同期完了！ 現在の商品数: ${count}件`);
-
-  } catch (error) {
-    console.error('\n❌ エラーが発生しました:', error);
-    process.exit(1);
   }
+
+  console.log('\n✅ 同期完了！');
 }
 
-// 実行
-main().then(() => {
-  console.log('\n✨ すべての処理が完了しました');
-  process.exit(0);
-}).catch((error) => {
-  console.error('\n❌ 予期しないエラー:', error);
+// エラーハンドリング
+process.on('unhandledRejection', (error) => {
+  console.error('未処理のエラー:', error);
   process.exit(1);
 });
+
+// スクリプト実行
+main();

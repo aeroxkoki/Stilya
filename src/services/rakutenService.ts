@@ -174,6 +174,8 @@ export const fetchRakutenFashionProducts = async (
       ...(RAKUTEN_AFFILIATE_ID ? { affiliateId: RAKUTEN_AFFILIATE_ID } : {}),
       sort: '+updateTimestamp', // 新着順
       imageFlag: '1', // 画像ありのみ
+      // 画像サイズを指定して高画質画像を要求
+      elements: 'itemName,itemPrice,itemCode,itemUrl,shopName,shopUrl,affiliateUrl,mediumImageUrls,imageUrl,smallImageUrls,itemCaption,genreId',
     });
     
     // APIのURLを最新バージョンに更新
@@ -273,9 +275,20 @@ export const fetchRakutenFashionProducts = async (
       })
       .filter((product: Product | null) => product !== null); // 無効な商品を除外
     
+    // 画像URLが有効な商品のみをフィルタリング（根本的解決）
+    const validProducts = products.filter(product => {
+      if (!product.imageUrl || product.imageUrl.trim() === '') {
+        console.warn(`[RakutenService] Filtering out product without image: ${product.title}`);
+        return false;
+      }
+      return true;
+    });
+    
+    console.log(`[RakutenService] Products with valid images: ${validProducts.length}/${products.length}`);
+    
     const result = {
-      products,
-      totalProducts: data.count || products.length,
+      products: validProducts,
+      totalProducts: data.count || validProducts.length,
       pageCount: data.pageCount || 1,
     };
     
