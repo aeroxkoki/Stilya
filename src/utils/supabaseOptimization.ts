@@ -129,12 +129,18 @@ export const getRecommendedSyncStrategy = (productCount: number) => {
 };
 
 /**
- * 画像URLの最適化（高画質版への変換）
+ * 画像URLの最適化（シンプル版 - 問題の原因を特定するため）
+ * 注意: 現在は最適化を無効化して、元のURLをそのまま返すようにしています
  */
 export const optimizeImageUrl = (url: string): string => {
   if (!url) return '';
   
   try {
+    // 一時的にすべての最適化を無効化して、元のURLをそのまま返す
+    // これにより、画像URLの最適化が問題の原因かどうかを確認できます
+    return url;
+    
+    /* 以下、最適化コードは一時的にコメントアウト
     // 楽天画像URLの最適化は一時的に無効化
     // 楽天の画像サーバーは元のURLでのみ正しく動作する可能性が高い
     if (url.includes('rakuten.co.jp')) {
@@ -166,6 +172,7 @@ export const optimizeImageUrl = (url: string): string => {
     
     // デフォルト：元のURLをそのまま返す
     return url;
+    */
     
   } catch (error) {
     console.warn('[Optimization] Error optimizing image URL:', error);

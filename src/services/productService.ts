@@ -15,6 +15,18 @@ const normalizeProduct = (dbProduct: any): Product => {
   const originalImageUrl = dbProduct.image_url || dbProduct.imageUrl || '';
   const optimizedUrl = originalImageUrl ? optimizeImageUrl(originalImageUrl) : '';
   
+  // デバッグ: 商品データの画像URL情報をログ出力
+  if (__DEV__ && dbProduct.id) {
+    console.log('[ProductService] normalizeProduct:', {
+      productId: dbProduct.id,
+      title: dbProduct.title?.substring(0, 30) + '...',
+      originalImageUrl: originalImageUrl,
+      optimizedUrl: optimizedUrl,
+      hasImageUrl: !!originalImageUrl,
+      source: dbProduct.source
+    });
+  }
+  
   return {
     id: dbProduct.id,
     title: dbProduct.title,
