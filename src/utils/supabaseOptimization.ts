@@ -129,50 +129,44 @@ export const getRecommendedSyncStrategy = (productCount: number) => {
 };
 
 /**
- * 画像URLの最適化（シンプル版 - 問題の原因を特定するため）
- * 注意: 現在は最適化を無効化して、元のURLをそのまま返すようにしています
+ * 画像URLの最適化（MVPレベル - 楽天URL修正のみ）
+ * 楽天のサムネイルURLを高画質版に変換する
  */
 export const optimizeImageUrl = (url: string): string => {
   if (!url) return '';
   
   try {
-    // 一時的にすべての最適化を無効化して、元のURLをそのまま返す
-    // これにより、画像URLの最適化が問題の原因かどうかを確認できます
+    // 楽天のサムネイルURLを高画質版に変換
+    if (url.includes('thumbnail.image.rakuten.co.jp')) {
+      // サムネイルドメインを通常の画像ドメインに変更
+      let optimizedUrl = url.replace('thumbnail.image.rakuten.co.jp', 'image.rakuten.co.jp');
+      
+      // URLパス内のサイズ指定を除去
+      optimizedUrl = optimizedUrl
+        .replace('/128x128/', '/')
+        .replace('/64x64/', '/')
+        .replace('/pc/', '/')
+        .replace('/thumbnail/', '/');
+      
+      // クエリパラメータのサイズ指定を除去
+      optimizedUrl = optimizedUrl
+        .replace('?_ex=128x128', '')
+        .replace('?_ex=64x64', '')
+        .replace('&_ex=128x128', '')
+        .replace('&_ex=64x64', '');
+      
+      if (__DEV__) {
+        console.log('[ImageOptimization] 楽天URL変換:', {
+          original: url,
+          optimized: optimizedUrl
+        });
+      }
+      
+      return optimizedUrl;
+    }
+    
+    // その他のURLはそのまま返す（MVPではシンプルに）
     return url;
-    
-    /* 以下、最適化コードは一時的にコメントアウト
-    // 楽天画像URLの最適化は一時的に無効化
-    // 楽天の画像サーバーは元のURLでのみ正しく動作する可能性が高い
-    if (url.includes('rakuten.co.jp')) {
-      // 元のURLをそのまま返す
-      return url;
-    }
-    
-    // ZOZOTOWN画像の最適化
-    else if (url.includes('zozo.jp')) {
-      return url.replace(/\?.*$/, '') // クエリパラメータを除去
-        .replace(/\/c\/\d+x\d+/, '/c/1200x1200'); // サイズ指定を1200x1200に
-    }
-    
-    // Amazon画像の最適化
-    else if (url.includes('amazon.com') || url.includes('amazon.co.jp')) {
-      return url.replace(/\._.*_\./, '._SL1000_.');
-    }
-    
-    // 一般的なCDN対応
-    else if (url.includes('cloudinary.com')) {
-      return url.replace(/\/upload\//, '/upload/q_auto,f_auto,w_1000/');
-    }
-    
-    // その他のeコマースサイト
-    else if (url.includes('imgix.net')) {
-      const separator = url.includes('?') ? '&' : '?';
-      return `${url}${separator}w=1200&q=90&auto=format`;
-    }
-    
-    // デフォルト：元のURLをそのまま返す
-    return url;
-    */
     
   } catch (error) {
     console.warn('[Optimization] Error optimizing image URL:', error);

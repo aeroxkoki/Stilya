@@ -7,7 +7,7 @@ import {
   Dimensions, 
   Animated
 } from 'react-native';
-import { Image } from 'expo-image';
+import CachedImage from '@/components/common/CachedImage';
 import { Ionicons } from '@expo/vector-icons';
 import { Product } from '@/types';
 import { formatPrice } from '@/utils';
@@ -138,15 +138,13 @@ const SwipeCardEnhanced: React.FC<SwipeCardEnhancedProps> = ({
         testID="swipe-card-touch"
       >
         {/* 商品画像 */}
-        <Image
+        <CachedImage
           source={{ uri: imageError ? 'https://via.placeholder.com/350x500?text=No+Image' : imageUrl }}
           style={styles.image}
           contentFit="cover"
           testID="product-image"
-          priority="high"
-          cachePolicy="memory-disk"
-          transition={300}
-          placeholder={{ uri: 'https://via.placeholder.com/50x50?text=Loading' }}
+          highQuality={true}
+          showLoadingIndicator={false}
           onError={handleImageError}
         />
         

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
-import { Image } from 'expo-image';
+import CachedImage from '@/components/common/CachedImage';
 import { Ionicons } from '@expo/vector-icons';
 import { Product } from '@/types';
 import { formatPrice } from '@/utils';
@@ -62,15 +62,13 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
         delayLongPress={500}
         testID="swipe-card-touch"
       >
-        <Image
+        <CachedImage
           source={{ uri: imageUrl }}
           style={styles.image}
           contentFit="cover"
           testID="product-image"
-          priority="high"
-          cachePolicy="memory-disk"
-          transition={300}
-          placeholder={{ uri: 'https://via.placeholder.com/50x50?text=Loading' }}
+          highQuality={true}
+          showLoadingIndicator={false}
         />
         
         {/* 中古品ラベル */}

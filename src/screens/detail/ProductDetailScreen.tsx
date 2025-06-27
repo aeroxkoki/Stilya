@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { 
   View, 
   Text, 
-  Image, 
   ScrollView, 
   TouchableOpacity, 
   SafeAreaView, 
@@ -17,6 +16,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/common';
+import CachedImage from '@/components/common/CachedImage';
 import { RecommendReason, SimilarProducts } from '@/components/recommend';
 import { useProductStore } from '@/store/productStore';
 import { useAuth } from '@/hooks/useAuth';
@@ -277,10 +277,12 @@ const ProductDetailScreen: React.FC = () => {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* 商品画像 */}
         <View style={[styles.imageContainer, { backgroundColor: theme.colors.surface }]}>
-          <Image
+          <CachedImage
             source={{ uri: product.imageUrl }}
             style={styles.productImage}
-            resizeMode="cover"
+            contentFit="cover"
+            highQuality={true}
+            showLoadingIndicator={false}
           />
         </View>
         
