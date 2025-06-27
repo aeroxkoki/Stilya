@@ -138,32 +138,11 @@ export const optimizeImageUrl = (url: string): string => {
   let optimizedUrl = url;
   
   try {
-    // 楽天画像URLの最適化（小さいサイズから大きいサイズへ変換）
+    // 楽天画像URLの最適化を一時的にスキップ（デバッグ用）
     if (url.includes('rakuten.co.jp')) {
-      // thumbnailパスを削除（高解像度版にアクセス）
-      if (url.includes('thumbnail.image.rakuten.co.jp')) {
-        optimizedUrl = url.replace('thumbnail.image.rakuten.co.jp', 'image.rakuten.co.jp');
-      }
-      
-      // 低解像度パスを除去し、高解像度パスに置換
-      optimizedUrl = optimizedUrl
-        .replace(/\/128x128\//, '/') // 128x128パスを削除
-        .replace(/\/64x64\//, '/')   // 64x64パスを削除
-        .replace(/\/pc\//, '/')      // pcパスを削除
-        .replace(/\/thumbnail\//, '/'); // サムネイルパスを削除
-      
-      // @0_mallなどのプレフィックスも削除して直接アクセス
-      optimizedUrl = optimizedUrl.replace(/@0_mall\//, '');
-      
-      // _ex=128x128のようなクエリパラメータを削除または高解像度に変更
-      if (optimizedUrl.includes('_ex=')) {
-        // 既存の_exパラメータを削除
-        optimizedUrl = optimizedUrl.replace(/[?&]_ex=\d+x\d+/, '');
-        // ?が残っていない場合は追加
-        if (!optimizedUrl.includes('?') && optimizedUrl.includes('&')) {
-          optimizedUrl = optimizedUrl.replace('&', '?');
-        }
-      }
+      console.log('[ImageOptimizer] Rakuten URL detected, skipping optimization for now:', url);
+      // 元のURLをそのまま返す（サムネイル画像でも表示できることを確認）
+      return url;
     }
     
     // ZOZOTOWN画像の最適化

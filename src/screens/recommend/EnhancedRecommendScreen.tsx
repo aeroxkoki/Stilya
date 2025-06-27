@@ -76,6 +76,17 @@ const EnhancedRecommendScreen: React.FC = () => {
       ];
       
       if (allProducts.length > 0) {
+        // デバッグ: 最初の商品の詳細情報をログ出力
+        console.log('[EnhancedRecommendScreen] Total products:', allProducts.length);
+        console.log('[EnhancedRecommendScreen] First 3 products:', 
+          allProducts.slice(0, 3).map(p => ({
+            id: p.id,
+            title: p.title,
+            originalImageUrl: p.imageUrl,
+            source: p.source
+          }))
+        );
+        
         // ヒーロープロダクト（最も推薦度の高いもの）
         setHeroProduct(allProducts[0]);
         
@@ -89,6 +100,16 @@ const EnhancedRecommendScreen: React.FC = () => {
             size = 'medium';
           } else {
             size = 'small';
+          }
+          
+          // デバッグ: 上部2つの画像URL詳細
+          if (index < 2) {
+            console.log(`[EnhancedRecommendScreen] Grid item ${index}:`, {
+              id: product.id,
+              title: product.title,
+              imageUrl: product.imageUrl,
+              size: size
+            });
           }
           
           return {
@@ -304,6 +325,7 @@ const EnhancedRecommendScreen: React.FC = () => {
                         onError={(error) => {
                           console.error('[GridImage] Failed to load:', item.imageUrl);
                           console.error('[GridImage] Error:', error.nativeEvent.error);
+                          // TODO: フォールバック画像の実装を検討
                         }}
                         onLoad={() => {
                           console.log('[GridImage] Successfully loaded:', item.imageUrl);
