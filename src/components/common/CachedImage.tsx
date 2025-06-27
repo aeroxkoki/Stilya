@@ -40,24 +40,32 @@ const CachedImage: React.FC<CachedImageProps> = ({
   let finalSource = source;
   
   if (highQuality && typeof source === 'object' && source.uri) {
-    // デバッグ: 元のURLと最適化後のURLをログ出力
     const originalUrl = source.uri;
-    const optimizedUrl = optimizeImageUrl(source.uri);
     
-    if (__DEV__) {
-      console.log('[CachedImage] Image URL Debug:', {
-        original: originalUrl,
-        optimized: optimizedUrl,
-        changed: originalUrl !== optimizedUrl,
-        isRakutenUrl: originalUrl.includes('rakuten'),
-        isThumbnail: originalUrl.includes('thumbnail'),
-        hasSize: originalUrl.includes('_ex=') || originalUrl.includes('x128')
-      });
+    // すでに最適化済みかチェック（楽天のサムネイルURLでない場合はスキップ）
+    const needsOptimization = originalUrl.includes('thumbnail.image.rakuten.co.jp') || 
+                             originalUrl.includes('128x128') || 
+                             originalUrl.includes('64x64') ||
+                             originalUrl.includes('_ex=128x128') ||
+                             originalUrl.includes('_ex=64x64');
+    
+    if (needsOptimization) {
+      const optimizedUrl = optimizeImageUrl(originalUrl);
+      
+      if (__DEV__) {
+        console.log('[CachedImage] Image URL optimized:', {
+          original: originalUrl,
+          optimized: optimizedUrl
+        });
+      }
+      
+      finalSource = { 
+        uri: optimizedUrl 
+      };
+    } else {
+      // すでに最適化済みの場合はデバッグログをスキップ
+      finalSource = source;
     }
-    
-    finalSource = { 
-      uri: optimizedUrl 
-    };
   }
   
   // エラー時のハンドラ

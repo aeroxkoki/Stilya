@@ -37,18 +37,8 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
   const fallbackUrl = 'https://via.placeholder.com/350x500?text=No+Image';
   const imageUrl = rawImageUrl || fallbackUrl;
   
-  // 詳細なデバッグ情報
-  console.log('[SwipeCard] Product Debug:', {
-    id: product.id,
-    title: product.title,
-    rawImageUrl: rawImageUrl,
-    finalImageUrl: imageUrl,
-    isFallback: imageUrl === fallbackUrl,
-    productKeys: Object.keys(product),
-  });
-
-  // 画像URLが楽天のサムネイルURLかどうかチェック
-  if (rawImageUrl && rawImageUrl.includes('thumbnail.image.rakuten.co.jp')) {
+  // 画像URLが楽天のサムネイルURLかどうかチェック（開発時のみ）
+  if (__DEV__ && rawImageUrl && rawImageUrl.includes('thumbnail.image.rakuten.co.jp')) {
     console.warn('[SwipeCard] ⚠️ 楽天サムネイルURL検出:', rawImageUrl);
     console.log('[SwipeCard] 最適化が正しく適用されていない可能性があります');
   }
