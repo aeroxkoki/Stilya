@@ -1,10 +1,9 @@
-#!/usr/bin/env tsx
-import { createClient } from '@supabase/supabase-js';
-import { config } from 'dotenv';
-import { join } from 'path';
+const { createClient } = require('@supabase/supabase-js');
+const dotenv = require('dotenv');
+const path = require('path');
 
 // .envファイルを読み込む
-config({ path: join(__dirname, '../.env') });
+dotenv.config({ path: path.join(__dirname, '../.env') });
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
@@ -19,7 +18,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 /**
  * 楽天の画像URLを最適化する関数（根本的修正版）
  */
-const optimizeImageUrl = (url: string): string => {
+const optimizeImageUrl = (url) => {
   if (!url) return '';
   
   let optimizedUrl = url;
@@ -67,6 +66,7 @@ const optimizeImageUrl = (url: string): string => {
  */
 async function fixImageUrls() {
   console.log('Starting image URL fix process...');
+  console.log('Supabase URL:', supabaseUrl);
   
   let totalFixed = 0;
   let hasMore = true;
@@ -117,16 +117,21 @@ async function fixImageUrls() {
       
       // バッチ更新
       if (updates.length > 0) {
-        const { error: updateError } = await supabase
-          .from('external_products')
-          .upsert(updates, { onConflict: 'id' });
-        
-        if (updateError) {
-          console.error('Error updating products:', updateError);
-        } else {
-          totalFixed += updates.length;
-          console.log(`Updated ${updates.length} products in this batch`);
+        // 各商品を個別に更新（upsertではなくupdateを使用）
+        for (const update of updates) {
+          const { error: updateError } = await supabase
+            .from('external_products')
+            .update({ image_url: update.image_url })
+            .eq('id', update.id);
+          
+          if (updateError) {
+            console.error(`Error updating product ${update.id}:`, updateError.message);
+          } else {
+            totalFixed++;
+          }
         }
+        
+        console.log(`Updated ${updates.length} products in this batch`);
       }
       
       // 次のバッチへ
@@ -142,12 +147,32 @@ async function fixImageUrls() {
   }
   
   console.log(`\nProcess completed. Total products fixed: ${totalFixed}`);
+  
+  // 修正後の統計を表示
+  try {
+    const { data: stats, error: statsError } = await supabase
+      .from('external_products')
+      .select('image_url')
+      .eq('is_active', true);
+    
+    if (!statsError && stats) {
+      const thumbnailCount = stats.filter(s => s.image_url?.includes('thumbnail.image.rakuten.co.jp')).length;
+      const lowResCount = stats.filter(s => s.image_url?.includes('128x128') || s.image_url?.includes('64x64')).length;
+      
+      console.log('\n📊 修正後の画像URL統計:');
+      console.log(`📷 総商品数: ${stats.length}個`);
+      console.log(`🖼️  サムネイルURL: ${thumbnailCount}個 (${((thumbnailCount / stats.length) * 100).toFixed(1)}%)`);
+      console.log(`📐 低解像度URL: ${lowResCount}個 (${((lowResCount / stats.length) * 100).toFixed(1)}%)`);
+    }
+  } catch (error) {
+    console.error('Error fetching statistics:', error);
+  }
 }
 
 // スクリプトを実行
 fixImageUrls()
   .then(() => {
-    console.log('Script completed successfully');
+    console.log('\nScript completed successfully');
     process.exit(0);
   })
   .catch((error) => {

@@ -314,13 +314,62 @@ const ProfileScreen: React.FC = () => {
           <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: theme.colors.text.primary }]}>
-                商品統計情報
+                デバッグツール
               </Text>
               <TouchableOpacity onPress={() => setShowDebugModal(false)}>
                 <Ionicons name="close" size={24} color={theme.colors.text.primary} />
               </TouchableOpacity>
             </View>
-            <DebugProductCount />
+            
+            <ScrollView style={styles.modalContent}>
+              {/* 商品統計情報 */}
+              <View style={styles.debugSection}>
+                <Text style={[styles.debugSectionTitle, { color: theme.colors.text.primary }]}>
+                  商品統計情報
+                </Text>
+                <DebugProductCount />
+              </View>
+              
+              {/* デバッグツールリンク */}
+              <View style={styles.debugSection}>
+                <Text style={[styles.debugSectionTitle, { color: theme.colors.text.primary }]}>
+                  診断ツール
+                </Text>
+                
+                <TouchableOpacity
+                  style={[styles.debugButton, { backgroundColor: theme.colors.primary }]}
+                  onPress={() => {
+                    setShowDebugModal(false);
+                    navigation.navigate('ImageDiagnosis');
+                  }}
+                >
+                  <Ionicons name="images-outline" size={20} color="white" />
+                  <Text style={styles.debugButtonText}>画像表示診断</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[styles.debugButton, { backgroundColor: theme.colors.primary }]}
+                  onPress={() => {
+                    setShowDebugModal(false);
+                    navigation.navigate('SupabaseDiagnostic');
+                  }}
+                >
+                  <Ionicons name="server-outline" size={20} color="white" />
+                  <Text style={styles.debugButtonText}>データベース診断</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[styles.debugButton, { backgroundColor: theme.colors.primary }]}
+                  onPress={() => {
+                    setShowDebugModal(false);
+                    navigation.navigate('Admin');
+                  }}
+                >
+                  <Ionicons name="settings-outline" size={20} color="white" />
+                  <Text style={styles.debugButtonText}>管理画面</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
           </SafeAreaView>
         </Modal>
       )}
@@ -428,6 +477,32 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
+  },
+  modalContent: {
+    flex: 1,
+  },
+  debugSection: {
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  debugSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  debugButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  debugButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 8,
   },
 });
 

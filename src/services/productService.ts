@@ -23,11 +23,14 @@ const normalizeProduct = (dbProduct: any): Product => {
       originalImageUrl: originalImageUrl,
       optimizedUrl: optimizedUrl,
       hasImageUrl: !!originalImageUrl,
-      source: dbProduct.source
+      source: dbProduct.source,
+      // データベースから取得した生のフィールドも確認
+      dbFields: Object.keys(dbProduct),
+      rawData: JSON.stringify(dbProduct, null, 2)
     });
   }
   
-  return {
+  const normalized: Product = {
     id: dbProduct.id,
     title: dbProduct.title,
     brand: dbProduct.brand,
@@ -41,6 +44,17 @@ const normalizeProduct = (dbProduct: any): Product => {
     createdAt: dbProduct.created_at,
     isUsed: dbProduct.is_used || false, // 中古品フラグ
   };
+  
+  // デバッグ: 正規化後のデータも確認
+  if (__DEV__) {
+    console.log('[ProductService] normalized product:', {
+      id: normalized.id,
+      imageUrl: normalized.imageUrl,
+      hasImageUrl: !!normalized.imageUrl
+    });
+  }
+  
+  return normalized;
 };
 
 /**
@@ -1037,6 +1051,16 @@ export const fetchMixedProducts = async (
       if (!products || products.length === 0) {
         console.log('[fetchMixedProducts] No more products available');
         break;
+      }
+      
+      // デバッグ: 生データの確認
+      if (__DEV__ && products.length > 0) {
+        console.log('[fetchMixedProducts] Raw product data sample:', {
+          firstProduct: products[0],
+          fields: Object.keys(products[0]),
+          imageUrlField: products[0].image_url,
+          hasImageUrl: !!products[0].image_url
+        });
       }
       
       // 正規化

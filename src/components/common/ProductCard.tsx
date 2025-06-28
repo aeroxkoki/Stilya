@@ -15,6 +15,7 @@ import { Feather } from '@expo/vector-icons';
 import { useStyle } from '@/contexts/ThemeContext';
 import { Product } from '@/types';
 import CachedImage from './CachedImage';
+import { getProductImageUrl } from '@/utils/imageUtils';
 
 // LayoutAnimationをAndroidで有効化
 if (Platform.OS === 'android') {
@@ -109,10 +110,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
           compact && styles.compactImageContainer
         ]}>
           <CachedImage
-            source={{ uri: product.imageUrl || product.image_url || '' }}
+            source={{ uri: getProductImageUrl(product) }}
             style={styles.image}
             resizeMode="cover"
-            optimizeUrl={true}
             showLoadingIndicator={true}
           />
           

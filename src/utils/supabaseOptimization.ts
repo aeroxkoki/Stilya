@@ -128,41 +128,16 @@ export const getRecommendedSyncStrategy = (productCount: number) => {
   }
 };
 
-import { autoFixImageUrl, isValidImageUrl } from './imageValidation';
+import { optimizeImageUrl as optimizeImageUrlFromUtils } from './imageUtils';
 
 /**
  * 画像URLの最適化（MVPレベル - 楽天URL修正のみ）
  * 楽天のサムネイルURLを高画質版に変換する
+ * 
+ * @deprecated imageUtils.tsのoptimizeImageUrlを使用してください
  */
 export const optimizeImageUrl = (url: string): string => {
-  if (!url) return '';
-  
-  try {
-    // 新しい自動修正機能を使用
-    const { fixed, wasFixed, changes } = autoFixImageUrl(url);
-    
-    if (__DEV__ && wasFixed) {
-      console.log('[ImageOptimization] URL修正:', {
-        original: url,
-        fixed: fixed,
-        changes: changes
-      });
-    }
-    
-    // 修正後のURLが有効か確認
-    if (!isValidImageUrl(fixed)) {
-      console.warn('[ImageOptimization] 修正後のURLが無効です:', fixed);
-      // 無効な場合は元のURLを返す（完全に無効になるよりはマシ）
-      return url;
-    }
-    
-    return fixed;
-    
-  } catch (error) {
-    console.warn('[Optimization] Error optimizing image URL:', error);
-    // エラーの場合は元のURLを使用
-    return url;
-  }
+  return optimizeImageUrlFromUtils(url);
 };
 
 /**

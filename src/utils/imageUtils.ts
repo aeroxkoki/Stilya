@@ -1,95 +1,90 @@
-import { optimizeImageUrl } from './supabaseOptimization';
+/**
+ * 画像関連のユーティリティ関数（簡素化版）
+ * 
+ * 楽天の画像URLを最適化し、確実に表示できるようにする
+ */
 
 /**
- * 画像URLから最高画質バージョンを取得する（MVPレベル - シンプル実装）
- * @param url 元の画像URL
- * @param width 希望する幅（オプション）- MVPでは使用しない
- * @param height 希望する高さ（オプション）- MVPでは使用しない
- * @returns 最適化された画像URL
+ * 画像URLを最適化する統一関数
+ * 楽天の画像URLの問題を修正し、高画質版を返す
  */
-export const getHighQualityImageUrl = (url: string, width?: number, height?: number): string => {
-  if (!url) return '';
+export const optimizeImageUrl = (url: string | undefined | null): string => {
+  // デフォルトのプレースホルダー画像
+  const PLACEHOLDER_IMAGE = 'https://via.placeholder.com/400x400/f0f0f0/666666?text=No+Image';
   
-  // 無効なURLの場合は元のURLを返す
-  try {
-    new URL(url);
-  } catch {
-    return url;
+  // URLが存在しない場合はプレースホルダーを返す
+  if (!url || typeof url !== 'string' || url.trim() === '') {
+    return PLACEHOLDER_IMAGE;
   }
   
-  // supabaseOptimization.tsのoptimizeImageUrlを使用して統一
-  return optimizeImageUrl(url);
+  let optimizedUrl = url.trim();
+  
+  try {
+    // 1. HTTPをHTTPSに変換（必須）
+    if (optimizedUrl.startsWith('http://')) {
+      optimizedUrl = optimizedUrl.replace('http://', 'https://');
+    }
+    
+    // 2. 楽天の画像URLの場合の最適化
+    if (optimizedUrl.includes('rakuten.co.jp')) {
+      // サムネイルドメインを通常の画像ドメインに変更
+      if (optimizedUrl.includes('thumbnail.image.rakuten.co.jp')) {
+        optimizedUrl = optimizedUrl.replace('thumbnail.image.rakuten.co.jp', 'image.rakuten.co.jp');
+      }
+      
+      // パス内のサイズ指定を削除（全て一括で処理）
+      optimizedUrl = optimizedUrl
+        .replace(/\/128x128\//g, '/')
+        .replace(/\/64x64\//g, '/')
+        .replace(/\/pc\//g, '/')
+        .replace(/\/thumbnail\//g, '/')
+        .replace(/\/cabinet\/128x128\//g, '/cabinet/')
+        .replace(/\/cabinet\/64x64\//g, '/cabinet/');
+      
+      // クエリパラメータのサイズ指定を削除
+      if (optimizedUrl.includes('_ex=')) {
+        optimizedUrl = optimizedUrl
+          .replace(/_ex=128x128/g, '')
+          .replace(/_ex=64x64/g, '')
+          .replace(/\?$/g, '') // 末尾の?を削除
+          .replace(/&$/g, ''); // 末尾の&を削除
+      }
+    }
+    
+    // 3. 最終的なURL検証
+    new URL(optimizedUrl); // URLとして有効かチェック
+    
+    return optimizedUrl;
+    
+  } catch (error) {
+    // URLとして無効な場合はプレースホルダーを返す
+    console.warn('[ImageUtils] Invalid URL:', url, error);
+    return PLACEHOLDER_IMAGE;
+  }
 };
 
-// MVPでは以下の機能は無効化（将来の拡張用にエクスポートのみ提供）
-// 実装は空にして、エラーを防ぐ
-
-export const clearMemoryCache = (): void => {
-  console.log('[MVP] Memory cache clearing is disabled');
+/**
+ * 商品データから画像URLを取得する統一関数
+ * imageUrlとimage_urlの両方に対応
+ */
+export const getProductImageUrl = (product: any): string => {
+  const rawUrl = product?.imageUrl || product?.image_url || '';
+  return optimizeImageUrl(rawUrl);
 };
 
-export const clearDiskCache = async (): Promise<number> => {
-  console.log('[MVP] Disk cache clearing is disabled');
-  return 0;
+/**
+ * 画像URLが有効かどうかの簡易チェック
+ */
+export const isValidImageUrl = (url: string): boolean => {
+  if (!url || typeof url !== 'string') return false;
+  
+  try {
+    const urlObj = new URL(url);
+    return urlObj.protocol === 'https:';
+  } catch {
+    return false;
+  }
 };
 
-export const clearAllCache = async (): Promise<{ memoryCleared: boolean; diskBytesCleared: number; }> => {
-  console.log('[MVP] Cache clearing is disabled');
-  return { memoryCleared: false, diskBytesCleared: 0 };
-};
-
-export const preloadImages = async (sources: any[]): Promise<any> => {
-  console.log('[MVP] Image preloading is disabled');
-  return { success: 0, failed: 0, results: [] };
-};
-
-export const getCacheSize = async (): Promise<{ totalSize: number; fileCount: number; }> => {
-  console.log('[MVP] Cache size check is disabled');
-  return { totalSize: 0, fileCount: 0 };
-};
-
-export const getMemoryUsage = (): { used: number; total: number; percentage: number; } => {
-  return { used: 0, total: 0, percentage: 0 };
-};
-
-export const formatBytes = (bytes: number): string => {
-  if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-};
-
-export const useImagePrefetch = () => {
-  return {
-    prefetchImages: async () => {},
-    cancelPrefetching: () => {},
-    isPrefetching: false
-  };
-};
-
-export const handleImageLoadError = (url: string, onError?: () => void) => {
-  console.warn(`[MVP] Image load error: ${url}`);
-  if (onError) onError();
-};
-
-export const cleanImageCache = async (force = false): Promise<void> => {
-  console.log('[MVP] Image cache cleaning is disabled');
-};
-
-// エイリアス（互換性のため）
-export const getImageCacheSize = getCacheSize;
-
-// MVPでは使用しない定数（互換性のため）
-export const IMAGE_QUALITY = 0.8;
-export const CACHE_TIMEOUT = 7 * 24 * 60 * 60 * 1000;
-export const MAX_CACHE_SIZE = 300 * 1024 * 1024;
-export const LOW_MEMORY_CACHE_SIZE = 100 * 1024 * 1024;
-
-// インターフェース（互換性のため）
-export interface ImageOptimizationConfig {
-  quality?: number;
-  maxWidth?: number;
-  maxHeight?: number;
-  format?: 'jpeg' | 'png' | 'webp';
-}
+// 互換性のためのエイリアス
+export const getHighQualityImageUrl = optimizeImageUrl;

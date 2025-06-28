@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Product } from '@/types';
 import { formatPrice } from '@/utils';
 import { useStyle } from '@/contexts/ThemeContext';
+import { getProductImageUrl } from '@/utils/imageUtils';
 
 interface SwipeCardProps {
   product: Product;
@@ -32,16 +33,9 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
   testID
 }) => {
   const { theme } = useStyle();
-  // imageUrlとimage_urlの両方の形式に対応
-  const rawImageUrl = product.imageUrl || product.image_url || '';
-  const fallbackUrl = 'https://via.placeholder.com/350x500?text=No+Image';
-  const imageUrl = rawImageUrl || fallbackUrl;
   
-  // 画像URLが楽天のサムネイルURLかどうかチェック（開発時のみ）
-  if (__DEV__ && rawImageUrl && rawImageUrl.includes('thumbnail.image.rakuten.co.jp')) {
-    console.warn('[SwipeCard] ⚠️ 楽天サムネイルURL検出:', rawImageUrl);
-    console.log('[SwipeCard] 最適化が正しく適用されていない可能性があります');
-  }
+  // 統一された画像URL取得関数を使用
+  const imageUrl = getProductImageUrl(product);
 
   return (
     <View style={styles.card} testID={testID || 'swipe-card'}>
@@ -53,13 +47,11 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
         testID="swipe-card-touch"
       >
         <CachedImage
-          source={{ uri: rawImageUrl || fallbackUrl }}
+          source={{ uri: imageUrl }}
           style={styles.image}
           contentFit="cover"
           testID="product-image"
-          optimizeUrl={true}
           showLoadingIndicator={true}
-          showErrorFallback={true}
         />
         
         {/* 中古品ラベル */}

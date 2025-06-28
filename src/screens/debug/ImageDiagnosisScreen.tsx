@@ -1,104 +1,43 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
+  StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   Image as RNImage,
+  Alert
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Image as ExpoImage } from 'expo-image';
 import { supabase } from '@/services/supabase';
 import CachedImage from '@/components/common/CachedImage';
-import { Image as ExpoImage } from 'expo-image';
 import { optimizeImageUrl } from '@/utils/supabaseOptimization';
-import { diagnoseImageUrl, autoFixImageUrl } from '@/utils/imageValidation';
 
-interface DiagnosisResult {
-  productId: string;
+interface TestProduct {
+  id: string;
   title: string;
-  originalUrl: string;
-  optimizedUrl: string;
-  fixedUrl: string;
-  diagnosis: {
-    isValid: boolean;
-    isSecure: boolean;
-    domain: string;
-    issues: string[];
-    suggestions: string[];
-  };
-  tests: {
-    rnImageWorks: boolean;
-    expoImageWorks: boolean;
-    cachedImageWorks: boolean;
-    networkAccessible: boolean;
-  };
+  image_url: string;
+  original_url?: string;
+  optimized_url?: string;
 }
 
 const ImageDiagnosisScreen: React.FC = () => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [results, setResults] = useState<DiagnosisResult[]>([]);
-  const [currentTest, setCurrentTest] = useState('');
+  const [products, setProducts] = useState<TestProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [testResults, setTestResults] = useState<Record<string, any>>({});
 
-  const testImageLoading = async (url: string): Promise<{
-    rnImageWorks: boolean;
-    expoImageWorks: boolean;
-    cachedImageWorks: boolean;
-    networkAccessible: boolean;
-  }> => {
-    const results = {
-      rnImageWorks: false,
-      expoImageWorks: false,
-      cachedImageWorks: false,
-      networkAccessible: false,
-    };
+  useEffect(() => {
+    loadTestProducts();
+  }, []);
 
-    // ネットワークアクセステスト
+  const loadTestProducts = async () => {
     try {
-      const response = await fetch(url, { method: 'HEAD' });
-      results.networkAccessible = response.ok;
-    } catch (error) {
-      console.error('Network test failed:', error);
-    }
-
-    // React Native Imageテスト
-    await new Promise<void>((resolve) => {
-      RNImage.getSize(
-        url,
-        () => {
-          results.rnImageWorks = true;
-          resolve();
-        },
-        () => {
-          results.rnImageWorks = false;
-          resolve();
-        }
-      );
-    });
-
-    // Expo Imageテスト（prefetchを使用）
-    try {
-      await ExpoImage.prefetch(url);
-      results.expoImageWorks = true;
-    } catch (error) {
-      results.expoImageWorks = false;
-    }
-
-    // CachedImageは他のテスト結果から推測
-    results.cachedImageWorks = results.expoImageWorks;
-
-    return results;
-  };
-
-  const runDiagnosis = async () => {
-    setIsLoading(true);
-    setResults([]);
-
-    try {
+      setLoading(true);
+      
       // データベースから商品を取得
-      setCurrentTest('データベースから商品を取得中...');
-      const { data: products, error } = await supabase
+      const { data, error } = await supabase
         .from('external_products')
         .select('id, title, image_url')
         .eq('is_active', true)
@@ -106,378 +45,319 @@ const ImageDiagnosisScreen: React.FC = () => {
         .limit(5);
 
       if (error) {
-        Alert.alert('エラー', 'データベースからの取得に失敗しました');
+        Alert.alert('エラー', 'データベースからの取得に失敗しました: ' + error.message);
         return;
       }
 
-      if (!products || products.length === 0) {
-        Alert.alert('情報', '診断する商品が見つかりません');
-        return;
-      }
-
-      const diagnosisResults: DiagnosisResult[] = [];
-
-      for (let i = 0; i < products.length; i++) {
-        const product = products[i];
-        setCurrentTest(`商品 ${i + 1}/${products.length} を診断中...`);
-
-        // URL診断
-        const diagnosis = diagnoseImageUrl(product.image_url);
+      if (data) {
+        // 各商品に対して最適化URLも生成
+        const productsWithOptimization = data.map(product => ({
+          ...product,
+          original_url: product.image_url,
+          optimized_url: optimizeImageUrl(product.image_url)
+        }));
         
-        // URL最適化
-        const optimizedUrl = optimizeImageUrl(product.image_url);
+        setProducts(productsWithOptimization);
         
-        // URL自動修正
-        const { fixed: fixedUrl } = autoFixImageUrl(product.image_url);
-
-        // 各種画像読み込みテスト（修正後のURLで実施）
-        const testUrl = fixedUrl || optimizedUrl || product.image_url;
-        const tests = await testImageLoading(testUrl);
-
-        diagnosisResults.push({
-          productId: product.id,
-          title: product.title,
-          originalUrl: product.image_url,
-          optimizedUrl,
-          fixedUrl,
-          diagnosis,
-          tests,
+        // 各URLのテストを実行
+        productsWithOptimization.forEach(product => {
+          testImageUrl(product.id, product.image_url);
+          if (product.optimized_url !== product.image_url) {
+            testImageUrl(product.id + '_optimized', product.optimized_url);
+          }
         });
       }
-
-      setResults(diagnosisResults);
-      setCurrentTest('');
-
-      // 問題の要約
-      const allWorking = diagnosisResults.every(r => 
-        r.tests.expoImageWorks && r.tests.networkAccessible
-      );
-
-      if (!allWorking) {
-        const httpCount = diagnosisResults.filter(r => !r.diagnosis.isSecure).length;
-        const networkFailCount = diagnosisResults.filter(r => !r.tests.networkAccessible).length;
-        
-        Alert.alert(
-          '診断結果',
-          `問題が検出されました:\n` +
-          `- HTTPの画像: ${httpCount}件\n` +
-          `- ネットワークアクセス不可: ${networkFailCount}件\n\n` +
-          `自動修正を実行しますか？`,
-          [
-            { text: 'キャンセル', style: 'cancel' },
-            { text: '修正する', onPress: fixAllImages }
-          ]
-        );
-      } else {
-        Alert.alert('診断結果', 'すべての画像が正常に表示されています');
-      }
-
     } catch (error) {
-      console.error('Diagnosis error:', error);
-      Alert.alert('エラー', '診断中にエラーが発生しました');
+      console.error('画像診断エラー:', error);
+      Alert.alert('エラー', '予期しないエラーが発生しました');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const fixAllImages = async () => {
-    setIsLoading(true);
-    setCurrentTest('画像URLを修正中...');
-
+  const testImageUrl = async (id: string, url: string) => {
+    const startTime = Date.now();
+    
     try {
-      // すべての商品の画像URLを修正
-      const { data: products, error: fetchError } = await supabase
-        .from('external_products')
-        .select('id, image_url')
-        .eq('is_active', true)
-        .not('image_url', 'is', null);
-
-      if (fetchError || !products) {
-        throw new Error('商品の取得に失敗しました');
-      }
-
-      let fixedCount = 0;
-      const batchSize = 50;
-
-      for (let i = 0; i < products.length; i += batchSize) {
-        const batch = products.slice(i, i + batchSize);
-        const updates = batch.map(product => {
-          const { fixed, wasFixed } = autoFixImageUrl(product.image_url);
-          if (wasFixed) {
-            fixedCount++;
-            return {
-              id: product.id,
-              image_url: fixed
-            };
-          }
-          return null;
-        }).filter(Boolean);
-
-        if (updates.length > 0) {
-          const { error: updateError } = await supabase
-            .from('external_products')
-            .upsert(updates);
-
-          if (updateError) {
-            console.error('Update error:', updateError);
-          }
+      // fetchで画像の存在を確認
+      const response = await fetch(url, { method: 'HEAD' });
+      const endTime = Date.now();
+      
+      setTestResults(prev => ({
+        ...prev,
+        [id]: {
+          url,
+          status: response.status,
+          statusText: response.statusText,
+          responseTime: endTime - startTime,
+          headers: {
+            contentType: response.headers.get('content-type'),
+            contentLength: response.headers.get('content-length'),
+            lastModified: response.headers.get('last-modified'),
+            cacheControl: response.headers.get('cache-control'),
+          },
+          accessible: response.ok
         }
-
-        setCurrentTest(`修正中... ${Math.min(i + batchSize, products.length)}/${products.length}`);
-      }
-
-      Alert.alert(
-        '修正完了',
-        `${fixedCount}件の画像URLを修正しました。\n\nアプリを再起動して確認してください。`
-      );
-
-      // 診断を再実行
-      runDiagnosis();
-
-    } catch (error) {
-      console.error('Fix error:', error);
-      Alert.alert('エラー', '修正中にエラーが発生しました');
-    } finally {
-      setIsLoading(false);
-      setCurrentTest('');
+      }));
+    } catch (error: any) {
+      setTestResults(prev => ({
+        ...prev,
+        [id]: {
+          url,
+          error: error.message,
+          accessible: false
+        }
+      }));
     }
   };
 
-  const renderResult = (result: DiagnosisResult) => {
-    const allTestsPassed = Object.values(result.tests).every(v => v);
-    const bgColor = allTestsPassed ? '#d4edda' : '#f8d7da';
-
+  const renderImageTests = (product: TestProduct) => {
+    const originalResult = testResults[product.id];
+    const optimizedResult = testResults[product.id + '_optimized'];
+    
     return (
-      <View key={result.productId} style={[styles.resultCard, { backgroundColor: bgColor }]}>
-        <Text style={styles.productTitle} numberOfLines={1}>
-          {result.title}
-        </Text>
-
+      <View key={product.id} style={styles.productContainer}>
+        <Text style={styles.productTitle}>{product.title}</Text>
+        
+        {/* オリジナルURL */}
         <View style={styles.urlSection}>
-          <Text style={styles.label}>元のURL:</Text>
-          <Text style={styles.url} numberOfLines={1}>
-            {result.originalUrl}
-          </Text>
-        </View>
-
-        {result.fixedUrl !== result.originalUrl && (
-          <View style={styles.urlSection}>
-            <Text style={styles.label}>修正後のURL:</Text>
-            <Text style={[styles.url, styles.fixedUrl]} numberOfLines={1}>
-              {result.fixedUrl}
-            </Text>
-          </View>
-        )}
-
-        <View style={styles.diagnosisSection}>
-          <Text style={styles.label}>診断結果:</Text>
-          {result.diagnosis.issues.length > 0 ? (
-            result.diagnosis.issues.map((issue, index) => (
-              <Text key={index} style={styles.issue}>• {issue}</Text>
-            ))
-          ) : (
-            <Text style={styles.success}>問題なし</Text>
+          <Text style={styles.urlLabel}>オリジナルURL:</Text>
+          <Text style={styles.urlText} numberOfLines={3}>{product.original_url}</Text>
+          {originalResult && (
+            <View style={styles.testResult}>
+              <Text style={[styles.status, { color: originalResult.accessible ? 'green' : 'red' }]}>
+                ステータス: {originalResult.status || 'エラー'}
+              </Text>
+              <Text style={styles.detail}>応答時間: {originalResult.responseTime}ms</Text>
+              <Text style={styles.detail}>
+                Content-Type: {originalResult.headers?.contentType || 'N/A'}
+              </Text>
+            </View>
           )}
         </View>
 
-        <View style={styles.testResults}>
-          <Text style={styles.label}>画像読み込みテスト:</Text>
-          <View style={styles.testGrid}>
-            <TestResult label="ネットワーク" passed={result.tests.networkAccessible} />
-            <TestResult label="RN Image" passed={result.tests.rnImageWorks} />
-            <TestResult label="Expo Image" passed={result.tests.expoImageWorks} />
-            <TestResult label="Cached Image" passed={result.tests.cachedImageWorks} />
+        {/* 最適化されたURL（異なる場合のみ） */}
+        {product.optimized_url !== product.original_url && (
+          <View style={styles.urlSection}>
+            <Text style={styles.urlLabel}>最適化URL:</Text>
+            <Text style={styles.urlText} numberOfLines={3}>{product.optimized_url}</Text>
+            {optimizedResult && (
+              <View style={styles.testResult}>
+                <Text style={[styles.status, { color: optimizedResult.accessible ? 'green' : 'red' }]}>
+                  ステータス: {optimizedResult.status || 'エラー'}
+                </Text>
+                <Text style={styles.detail}>応答時間: {optimizedResult.responseTime}ms</Text>
+                <Text style={styles.detail}>
+                  Content-Type: {optimizedResult.headers?.contentType || 'N/A'}
+                </Text>
+              </View>
+            )}
           </View>
-        </View>
+        )}
 
-        <View style={styles.imagePreview}>
-          <Text style={styles.label}>画像プレビュー:</Text>
-          <CachedImage
-            source={{ uri: result.fixedUrl || result.originalUrl }}
-            style={styles.previewImage}
-            showLoadingIndicator
-            showErrorFallback
-          />
+        {/* 画像表示テスト */}
+        <View style={styles.imageTestContainer}>
+          <View style={styles.imageTest}>
+            <Text style={styles.imageTestLabel}>React Native Image:</Text>
+            <RNImage 
+              source={{ uri: product.optimized_url || product.image_url }}
+              style={styles.testImage}
+              onError={(e) => console.log('RN Image Error:', e.nativeEvent.error)}
+            />
+          </View>
+
+          <View style={styles.imageTest}>
+            <Text style={styles.imageTestLabel}>Expo Image:</Text>
+            <ExpoImage
+              source={{ uri: product.optimized_url || product.image_url }}
+              style={styles.testImage}
+              contentFit="cover"
+              onError={(e) => console.log('Expo Image Error:', e)}
+            />
+          </View>
+
+          <View style={styles.imageTest}>
+            <Text style={styles.imageTestLabel}>CachedImage:</Text>
+            <CachedImage
+              source={{ uri: product.image_url }}
+              style={styles.testImage}
+              contentFit="cover"
+              optimizeUrl={true}
+              showErrorFallback={false}
+            />
+          </View>
         </View>
       </View>
     );
   };
 
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#3498db" />
+          <Text style={styles.loadingText}>画像診断を準備中...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>画像表示診断ツール</Text>
-        <Text style={styles.subtitle}>
-          実機での画像表示問題を診断・修正します
-        </Text>
-      </View>
-
-      <TouchableOpacity
-        style={[styles.button, isLoading && styles.buttonDisabled]}
-        onPress={runDiagnosis}
-        disabled={isLoading}
-      >
-        <Text style={styles.buttonText}>
-          {isLoading ? '診断中...' : '診断を開始'}
-        </Text>
-      </TouchableOpacity>
-
-      {currentTest !== '' && (
-        <View style={styles.statusContainer}>
-          <ActivityIndicator size="small" color="#3B82F6" />
-          <Text style={styles.statusText}>{currentTest}</Text>
+    <SafeAreaView style={styles.container}>
+      <ScrollView>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>画像表示診断ツール</Text>
+          <TouchableOpacity onPress={loadTestProducts} style={styles.refreshButton}>
+            <Text style={styles.refreshButtonText}>再読み込み</Text>
+          </TouchableOpacity>
         </View>
-      )}
 
-      {results.length > 0 && (
-        <View style={styles.resultsContainer}>
-          <Text style={styles.sectionTitle}>診断結果</Text>
-          {results.map(renderResult)}
+        {products.length === 0 ? (
+          <Text style={styles.noDataText}>商品データがありません</Text>
+        ) : (
+          products.map(renderImageTests)
+        )}
+
+        {/* デバッグ情報 */}
+        <View style={styles.debugInfo}>
+          <Text style={styles.debugTitle}>デバッグ情報:</Text>
+          <Text style={styles.debugText}>テスト商品数: {products.length}</Text>
+          <Text style={styles.debugText}>
+            URL最適化が必要な商品: {
+              products.filter(p => p.optimized_url !== p.original_url).length
+            }
+          </Text>
         </View>
-      )}
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
-
-const TestResult: React.FC<{ label: string; passed: boolean }> = ({ label, passed }) => (
-  <View style={styles.testResult}>
-    <Text style={[styles.testIcon, passed ? styles.testPass : styles.testFail]}>
-      {passed ? '✓' : '✗'}
-    </Text>
-    <Text style={styles.testLabel}>{label}</Text>
-  </View>
-);
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#666',
+  },
   header: {
-    padding: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
     backgroundColor: 'white',
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
-  title: {
-    fontSize: 24,
+  headerTitle: {
+    fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 5,
   },
-  subtitle: {
-    fontSize: 14,
-    color: '#666',
+  refreshButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#3498db',
+    borderRadius: 4,
   },
-  button: {
-    backgroundColor: '#3B82F6',
-    padding: 15,
-    margin: 20,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
+  refreshButtonText: {
     color: 'white',
-    fontSize: 16,
     fontWeight: 'bold',
   },
-  statusContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 10,
-  },
-  statusText: {
-    marginLeft: 10,
-    color: '#666',
-  },
-  resultsContainer: {
-    padding: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 15,
-  },
-  resultCard: {
-    padding: 15,
-    marginBottom: 15,
+  productContainer: {
+    backgroundColor: 'white',
+    margin: 16,
+    padding: 16,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ddd',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   productTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   urlSection: {
-    marginBottom: 10,
+    marginBottom: 16,
   },
-  label: {
+  urlLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 4,
+  },
+  urlText: {
     fontSize: 12,
     color: '#666',
-    marginBottom: 2,
-  },
-  url: {
-    fontSize: 12,
-    color: '#333',
-  },
-  fixedUrl: {
-    color: '#059669',
-    fontWeight: 'bold',
-  },
-  diagnosisSection: {
-    marginBottom: 10,
-  },
-  issue: {
-    fontSize: 12,
-    color: '#dc2626',
-    marginLeft: 10,
-  },
-  success: {
-    fontSize: 12,
-    color: '#059669',
-    marginLeft: 10,
-  },
-  testResults: {
-    marginBottom: 10,
-  },
-  testGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 5,
+    marginBottom: 8,
   },
   testResult: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 15,
-    marginBottom: 5,
+    backgroundColor: '#f0f0f0',
+    padding: 8,
+    borderRadius: 4,
   },
-  testIcon: {
-    fontSize: 16,
-    marginRight: 5,
+  status: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 4,
   },
-  testPass: {
-    color: '#059669',
-  },
-  testFail: {
-    color: '#dc2626',
-  },
-  testLabel: {
+  detail: {
     fontSize: 12,
-    color: '#333',
+    color: '#666',
   },
-  imagePreview: {
-    marginTop: 10,
+  imageTestContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 16,
   },
-  previewImage: {
-    width: '100%',
-    height: 200,
+  imageTest: {
+    flex: 1,
+    alignItems: 'center',
+    marginHorizontal: 4,
+  },
+  imageTestLabel: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  testImage: {
+    width: 80,
+    height: 80,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 4,
+  },
+  noDataText: {
+    textAlign: 'center',
+    fontSize: 16,
+    color: '#666',
+    marginTop: 50,
+  },
+  debugInfo: {
+    backgroundColor: '#f9f9f9',
+    margin: 16,
+    padding: 16,
     borderRadius: 8,
-    marginTop: 5,
+  },
+  debugTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  debugText: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
   },
 });
 

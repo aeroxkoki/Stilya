@@ -1,6 +1,7 @@
 import formatPrice from './formatPrice';
 import { getAuthErrorMessage, getApiErrorMessage, handleError } from './errorUtils';
 import * as env from './env';
+import { optimizeImageUrl, getProductImageUrl, isValidImageUrl } from './imageUtils';
 
 // ランダムなタグを生成するヘルパー関数
 export const getRandomTags = (...inputs: string[]): string[] => {
@@ -83,5 +84,8 @@ export {
   env,
   getAuthErrorMessage,
   getApiErrorMessage,
-  handleError
+  handleError,
+  optimizeImageUrl,
+  getProductImageUrl,
+  isValidImageUrl
 };

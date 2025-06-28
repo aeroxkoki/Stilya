@@ -116,33 +116,23 @@ export const diagnoseImageUrl = (url: string): {
 };
 
 /**
- * 楽天の画像URLを修正
+ * 楽天の画像URLを修正（シンプル版）
+ * 実機での画像表示を優先して、最小限の変換のみ行う
  */
 export const fixRakutenImageUrl = (url: string): string => {
   if (!url) return '';
   
   let fixedUrl = url;
   
-  // HTTPをHTTPSに変換
+  // HTTPをHTTPSに変換（必須）
   if (fixedUrl.startsWith('http://')) {
     fixedUrl = fixedUrl.replace('http://', 'https://');
   }
   
-  // サムネイルドメインを通常の画像ドメインに変更
-  if (fixedUrl.includes('thumbnail.image.rakuten.co.jp')) {
-    fixedUrl = fixedUrl.replace('thumbnail.image.rakuten.co.jp', 'image.rakuten.co.jp');
-  }
-  
-  // サイズ指定を削除
-  fixedUrl = fixedUrl
-    .replace('/128x128/', '/')
-    .replace('/64x64/', '/')
-    .replace('/pc/', '/')
-    .replace('/thumbnail/', '/')
-    .replace('?_ex=128x128', '')
-    .replace('?_ex=64x64', '')
-    .replace('&_ex=128x128', '')
-    .replace('&_ex=64x64', '');
+  // 実機での画像表示問題を解決するため、以下の変換は行わない：
+  // - サムネイルドメインの変更
+  // - サイズ指定の削除
+  // これらの変換が実機での画像表示問題の原因である可能性があるため
   
   return fixedUrl;
 };
@@ -202,7 +192,7 @@ export const batchDiagnoseImageUrls = (urls: string[]): {
 };
 
 /**
- * 画像URLの問題を自動修正
+ * 画像URLの問題を自動修正（根本的修正版）
  */
 export const autoFixImageUrl = (url: string): {
   original: string;
@@ -218,19 +208,39 @@ export const autoFixImageUrl = (url: string): {
     return { original, fixed, wasFixed: false, changes: ['URLが空です'] };
   }
   
-  // HTTPをHTTPSに変換
+  // HTTPをHTTPSに変換（必須）
   if (fixed.startsWith('http://')) {
     fixed = fixed.replace('http://', 'https://');
     changes.push('HTTPをHTTPSに変換');
   }
   
-  // 楽天の画像URLを修正
-  if (fixed.includes('rakuten.co.jp')) {
-    const beforeFix = fixed;
-    fixed = fixRakutenImageUrl(fixed);
-    if (beforeFix !== fixed) {
-      changes.push('楽天画像URLを高画質版に修正');
-    }
+  // 楽天のサムネイルドメインを高画質版に変換
+  if (fixed.includes('thumbnail.image.rakuten.co.jp')) {
+    fixed = fixed.replace('thumbnail.image.rakuten.co.jp', 'image.rakuten.co.jp');
+    changes.push('サムネイルドメインを高画質版に変換');
+  }
+  
+  // URLのサイズ指定を削除（128x128, 64x64など）
+  if (fixed.includes('/128x128/') || fixed.includes('/64x64/')) {
+    fixed = fixed.replace(/\/128x128\//, '/');
+    fixed = fixed.replace(/\/64x64\//, '/');
+    changes.push('低解像度サイズ指定を削除');
+  }
+  
+  // クエリパラメータのサイズ指定を削除
+  if (fixed.includes('_ex=128x128') || fixed.includes('_ex=64x64')) {
+    fixed = fixed.replace(/_ex=128x128/g, '');
+    fixed = fixed.replace(/_ex=64x64/g, '');
+    fixed = fixed.replace(/\?$/, ''); // 末尾の?を削除
+    changes.push('クエリパラメータのサイズ指定を削除');
+  }
+  
+  // 楽天の画像URLパターンに基づいた追加の修正
+  // cabinet/128x128/ -> cabinet/
+  if (fixed.includes('/cabinet/128x128/') || fixed.includes('/cabinet/64x64/')) {
+    fixed = fixed.replace('/cabinet/128x128/', '/cabinet/');
+    fixed = fixed.replace('/cabinet/64x64/', '/cabinet/');
+    changes.push('cabinetパスのサイズ指定を削除');
   }
   
   const wasFixed = original !== fixed;
