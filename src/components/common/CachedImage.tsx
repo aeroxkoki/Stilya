@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { StyleProp, ImageStyle, View, StyleSheet, ActivityIndicator } from 'react-native';
+import { StyleProp, ImageStyle, View, StyleSheet, ActivityIndicator, Text } from 'react-native';
 import { Image } from 'expo-image';
 import { optimizeImageUrl } from '@/utils/imageUtils';
+import { Ionicons } from '@expo/vector-icons';
 
 interface CachedImageProps {
   source: { uri: string } | number;
@@ -25,6 +26,7 @@ const CachedImage: React.FC<CachedImageProps> = ({
   ...restProps 
 }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [hasError, setHasError] = useState(false);
   
   // resizeModeとcontentFitの互換性を保つ
   const finalContentFit = resizeMode ? 
@@ -38,8 +40,17 @@ const CachedImage: React.FC<CachedImageProps> = ({
     }
     
     const optimizedUrl = optimizeImageUrl(source.uri);
+    // デバッグログ
+    console.log('[CachedImage] Image URL optimization:', {
+      original: source.uri,
+      optimized: optimizedUrl,
+      changed: source.uri !== optimizedUrl
+    });
     return { uri: optimizedUrl };
   }, [source]);
+  
+  // エラー時のフォールバック画像
+  const fallbackSource = { uri: 'https://via.placeholder.com/400x400/f0f0f0/666666?text=No+Image' };
   
   return (
     <View style={[styles.container, style]}>
@@ -47,20 +58,34 @@ const CachedImage: React.FC<CachedImageProps> = ({
         <ActivityIndicator size="small" color="#999" style={styles.loader} />
       )}
       
-      <Image
-        source={imageSource}
-        style={StyleSheet.absoluteFillObject}
-        contentFit={finalContentFit}
-        cachePolicy="memory-disk"
-        priority="normal"
-        onLoadStart={() => setIsLoading(true)}
-        onLoad={() => setIsLoading(false)}
-        onError={(event) => {
-          setIsLoading(false);
-          console.warn('[CachedImage] Failed to load image:', event.error);
-        }}
-        {...restProps}
-      />
+      {hasError ? (
+        <View style={[StyleSheet.absoluteFillObject, styles.errorContainer]}>
+          <Ionicons name="image-outline" size={48} color="#999" />
+          <Text style={styles.errorText}>画像を読み込めませんでした</Text>
+        </View>
+      ) : (
+        <Image
+          source={hasError ? fallbackSource : imageSource}
+          style={StyleSheet.absoluteFillObject}
+          contentFit={finalContentFit}
+          cachePolicy="memory-disk"
+          priority="normal"
+          onLoadStart={() => {
+            setIsLoading(true);
+            setHasError(false);
+          }}
+          onLoad={() => setIsLoading(false)}
+          onError={(event) => {
+            setIsLoading(false);
+            setHasError(true);
+            console.warn('[CachedImage] Failed to load image:', {
+              url: typeof imageSource === 'object' && 'uri' in imageSource ? imageSource.uri : 'unknown',
+              error: event.error
+            });
+          }}
+          {...restProps}
+        />
+      )}
     </View>
   );
 };
@@ -77,6 +102,16 @@ const styles = StyleSheet.create({
     marginTop: -10,
     marginLeft: -10,
     zIndex: 1,
+  },
+  errorContainer: {
+    backgroundColor: '#f5f5f5',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    marginTop: 8,
+    color: '#999',
+    fontSize: 14,
   },
 });
 

@@ -26,7 +26,7 @@ const normalizeProduct = (dbProduct: any): Product => {
       source: dbProduct.source,
       // データベースから取得した生のフィールドも確認
       dbFields: Object.keys(dbProduct),
-      has_ex: originalImageUrl?.includes('_ex=')
+      rawData: JSON.stringify(dbProduct, null, 2)
     });
   
   const normalized: Product = {
