@@ -8,7 +8,7 @@ import SwipeHistoryScreen from '@/screens/profile/SwipeHistoryScreen';
 import ProductDetailScreen from '@/screens/detail/ProductDetailScreen';
 import { DebugSupabaseScreen } from '@/screens/debug/SupabaseDiagnosticScreen';
 import { ImageDebugScreen } from '@/screens/debug/ImageDebugScreen';
-import ImageDiagnosisScreen from '@/screens/dev/ImageDiagnosisScreen';
+import ImageDiagnosisScreen from '@/screens/debug/ImageDiagnosisScreen';
 import ImageTestScreen from '@/screens/dev/ImageTestScreen';
 import AdminScreen from '@/screens/settings/AdminScreen';
 import { useStyle } from '@/contexts/ThemeContext';

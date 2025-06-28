@@ -402,6 +402,19 @@ const SettingsScreen: React.FC = () => {
               
               <TouchableOpacity 
                 style={[styles.settingItem, { borderBottomColor: isDarkMode ? '#333' : '#f0f0f0' }]}
+                onPress={() => navigation.navigate('ImageDiagnosis')}
+              >
+                <View style={styles.settingTextContainer}>
+                  <Text style={[styles.settingLabel, { color: isDarkMode ? '#fff' : '#333' }]}>画像表示診断</Text>
+                  <Text style={[styles.settingDescription, { color: isDarkMode ? '#aaa' : '#777' }]}>
+                    開発用：実機での画像表示問題を診断・修正
+                  </Text>
+                </View>
+                <Ionicons name="medkit-outline" size={20} color={isDarkMode ? '#aaa' : '#999'} />
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.settingItem, { borderBottomColor: isDarkMode ? '#333' : '#f0f0f0' }]}
                 onPress={handleDatabaseDiagnostics}
               >
                 <View style={styles.settingTextContainer}>

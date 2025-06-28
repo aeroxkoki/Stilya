@@ -80,13 +80,17 @@ const CachedImage: React.FC<CachedImageProps> = ({
   const handleError = (error?: any) => {
     setIsLoading(false);
     
-    if (__DEV__) {
-      console.warn('[CachedImage] 画像読み込みエラー:', {
-        uri: typeof currentSource === 'object' && currentSource.uri ? currentSource.uri : 'Unknown',
-        error: error?.message || 'Unknown error',
-        optimizeUrl
-      });
-    }
+    // より詳細なエラーログ
+    console.warn('[CachedImage] 画像読み込みエラー詳細:', {
+      uri: typeof currentSource === 'object' && currentSource.uri ? currentSource.uri : 'Unknown',
+      originalUri: typeof source === 'object' && source.uri ? source.uri : 'Unknown',
+      error: error?.message || 'Unknown error',
+      errorCode: error?.code,
+      errorDetails: error,
+      optimizeUrl,
+      hasError,
+      isRetry: hasError
+    });
     
     // 一時的なエラーの可能性があるため、すぐにフォールバックに切り替えない
     // ネットワークエラーやタイムアウトの場合は1回だけリトライ
