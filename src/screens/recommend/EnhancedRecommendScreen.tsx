@@ -72,11 +72,35 @@ const EnhancedRecommendScreen: React.FC = () => {
         getEnhancedRecommendations(user.id, 30, [], filters)
       ]);
       
-      const allProducts = [
-        ...recommendationResults.recommended,
-        ...recommendationResults.forYou,
-        ...recommendationResults.trending
-      ];
+      // 重複を除外しながら商品を結合
+      const productMap = new Map<string, Product>();
+      
+      // 重複検出のためのカウンター（デバッグ用）
+      let duplicateCount = 0;
+      
+      // 優先順位: recommended > forYou > trending
+      [...recommendationResults.recommended,
+       ...recommendationResults.forYou,
+       ...recommendationResults.trending
+      ].forEach(product => {
+        if (!productMap.has(product.id)) {
+          productMap.set(product.id, product);
+        } else {
+          duplicateCount++;
+          console.log('[EnhancedRecommendScreen] Duplicate product removed:', product.id);
+        }
+      });
+      
+      const allProducts = Array.from(productMap.values());
+      
+      // デバッグ: 重複除外の結果
+      console.log('[EnhancedRecommendScreen] Duplicate removal stats:', {
+        originalTotal: recommendationResults.recommended.length + 
+                      recommendationResults.forYou.length + 
+                      recommendationResults.trending.length,
+        uniqueTotal: allProducts.length,
+        duplicatesRemoved: duplicateCount
+      });
       
       if (allProducts.length > 0) {
         // デバッグ: 最初の商品の詳細情報をログ出力
