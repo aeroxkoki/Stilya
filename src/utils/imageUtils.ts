@@ -4,6 +4,9 @@
  * 楽天の画像URLを最適化し、確実に表示できるようにする
  */
 
+import { useCallback, useRef } from 'react';
+import { Image } from 'react-native';
+
 /**
  * 画像URLを最適化する統一関数
  * 楽天の画像URLの問題を修正し、高画質版を返す
@@ -88,3 +91,87 @@ export const isValidImageUrl = (url: string): boolean => {
 
 // 互換性のためのエイリアス
 export const getHighQualityImageUrl = optimizeImageUrl;
+
+/**
+ * 画像のプリフェッチ（事前読み込み）を管理するカスタムフック
+ */
+export const useImagePrefetch = () => {
+  const prefetchedUrls = useRef<Set<string>>(new Set());
+  const prefetchQueue = useRef<Promise<any>[]>([]);
+  
+  /**
+   * 画像URLの配列をプリフェッチする
+   * @param urls プリフェッチするURL配列
+   * @param isHighPriority 高優先度でプリフェッチするかどうか
+   */
+  const prefetchImages = useCallback(async (urls: string[], isHighPriority: boolean = false) => {
+    // 重複を避けるため、まだプリフェッチされていないURLのみをフィルタリング
+    const urlsToPreload = urls.filter(url => {
+      const optimizedUrl = optimizeImageUrl(url);
+      return optimizedUrl && !prefetchedUrls.current.has(optimizedUrl);
+    });
+    
+    if (urlsToPreload.length === 0) {
+      return;
+    }
+    
+    console.log(`[ImagePrefetch] Prefetching ${urlsToPreload.length} images (high priority: ${isHighPriority})`);
+    
+    try {
+      // 各URLを最適化してプリフェッチ
+      const promises = urlsToPreload.map(url => {
+        const optimizedUrl = optimizeImageUrl(url);
+        
+        // URLを記録
+        prefetchedUrls.current.add(optimizedUrl);
+        
+        // React Nativeの画像プリフェッチAPI を使用
+        return Image.prefetch(optimizedUrl)
+          .then(() => {
+            console.log('[ImagePrefetch] Successfully prefetched:', optimizedUrl);
+          })
+          .catch(error => {
+            console.warn('[ImagePrefetch] Failed to prefetch:', optimizedUrl, error);
+            // 失敗したURLは記録から削除
+            prefetchedUrls.current.delete(optimizedUrl);
+          });
+      });
+      
+      if (isHighPriority) {
+        // 高優先度の場合は全て完了を待つ
+        await Promise.all(promises);
+      } else {
+        // 低優先度の場合はキューに追加
+        prefetchQueue.current.push(...promises);
+        
+        // バックグラウンドで実行
+        Promise.all(promises).then(() => {
+          // 完了したプロミスをキューから削除
+          promises.forEach(p => {
+            const index = prefetchQueue.current.indexOf(p);
+            if (index > -1) {
+              prefetchQueue.current.splice(index, 1);
+            }
+          });
+        });
+      }
+    } catch (error) {
+      console.error('[ImagePrefetch] Error during prefetch:', error);
+    }
+  }, []);
+  
+  /**
+   * プリフェッチキューをクリアする
+   */
+  const clearPrefetchQueue = useCallback(() => {
+    prefetchQueue.current = [];
+    prefetchedUrls.current.clear();
+    console.log('[ImagePrefetch] Cleared prefetch queue and cache');
+  }, []);
+  
+  return {
+    prefetchImages,
+    clearPrefetchQueue,
+    prefetchedCount: prefetchedUrls.current.size
+  };
+};

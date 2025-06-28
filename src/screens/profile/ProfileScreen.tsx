@@ -250,42 +250,6 @@ const ProfileScreen: React.FC = () => {
                 </View>
                 <Ionicons name="chevron-forward" size={20} color="#6B7280" />
               </TouchableOpacity>
-              
-              <View style={styles.divider} />
-              
-              <TouchableOpacity 
-                style={styles.menuItem}
-                onPress={() => navigation.navigate('ImageDiagnosis')}
-              >
-                <Ionicons name="images-outline" size={20} color="#6B7280" style={{ marginRight: 12 }} />
-                <View style={styles.menuItemContent}>
-                  <Text style={[styles.menuItemText, { color: theme.colors.text.primary }]}>
-                    画像URL診断
-                  </Text>
-                  <Text style={[styles.menuItemSubtext, { color: theme.colors.text.secondary }]}>
-                    商品画像のURLを診断・修正
-                  </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color="#6B7280" />
-              </TouchableOpacity>
-              
-              <View style={styles.divider} />
-              
-              <TouchableOpacity 
-                style={styles.menuItem}
-                onPress={() => navigation.navigate('ImageTest')}
-              >
-                <Ionicons name="image-outline" size={20} color="#6B7280" style={{ marginRight: 12 }} />
-                <View style={styles.menuItemContent}>
-                  <Text style={[styles.menuItemText, { color: theme.colors.text.primary }]}>
-                    画像読み込みテスト
-                  </Text>
-                  <Text style={[styles.menuItemSubtext, { color: theme.colors.text.secondary }]}>
-                    個別の画像URLをテスト
-                  </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color="#6B7280" />
-              </TouchableOpacity>
             </Card>
           </View>
         )}
@@ -335,17 +299,6 @@ const ProfileScreen: React.FC = () => {
                 <Text style={[styles.debugSectionTitle, { color: theme.colors.text.primary }]}>
                   診断ツール
                 </Text>
-                
-                <TouchableOpacity
-                  style={[styles.debugButton, { backgroundColor: theme.colors.primary }]}
-                  onPress={() => {
-                    setShowDebugModal(false);
-                    navigation.navigate('ImageDiagnosis');
-                  }}
-                >
-                  <Ionicons name="images-outline" size={20} color="white" />
-                  <Text style={styles.debugButtonText}>画像表示診断</Text>
-                </TouchableOpacity>
                 
                 <TouchableOpacity
                   style={[styles.debugButton, { backgroundColor: theme.colors.primary }]}

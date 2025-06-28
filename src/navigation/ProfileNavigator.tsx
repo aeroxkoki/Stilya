@@ -7,9 +7,6 @@ import FavoritesScreen from '@/screens/profile/FavoritesScreen';
 import SwipeHistoryScreen from '@/screens/profile/SwipeHistoryScreen';
 import ProductDetailScreen from '@/screens/detail/ProductDetailScreen';
 import { DebugSupabaseScreen } from '@/screens/debug/SupabaseDiagnosticScreen';
-import { ImageDebugScreen } from '@/screens/debug/ImageDebugScreen';
-import ImageDiagnosisScreen from '@/screens/debug/ImageDiagnosisScreen';
-import ImageTestScreen from '@/screens/dev/ImageTestScreen';
 import AdminScreen from '@/screens/settings/AdminScreen';
 import { useStyle } from '@/contexts/ThemeContext';
 
@@ -36,30 +33,6 @@ const ProfileNavigator: React.FC = () => {
         options={{ 
           headerShown: true,
           title: 'データベース診断' 
-        }} 
-      />
-      <Stack.Screen 
-        name="ImageDebug" 
-        component={ImageDebugScreen} 
-        options={{ 
-          headerShown: true,
-          title: '画像デバッグ' 
-        }} 
-      />
-      <Stack.Screen 
-        name="ImageDiagnosis" 
-        component={ImageDiagnosisScreen} 
-        options={{ 
-          headerShown: true,
-          title: '画像URL診断' 
-        }} 
-      />
-      <Stack.Screen 
-        name="ImageTest" 
-        component={ImageTestScreen} 
-        options={{ 
-          headerShown: true,
-          title: '画像読み込みテスト' 
         }} 
       />
       <Stack.Screen 
