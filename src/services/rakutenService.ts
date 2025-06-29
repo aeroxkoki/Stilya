@@ -267,13 +267,13 @@ export const fetchRakutenFashionProducts = async (
                 selectedUrl = selectedUrl.replace('http://', 'https://');
               }
               
-              // 高画質サイズパラメータを追加（MVPレベルの品質）
+              // 高画質サイズパラメータを追加（最高画質）
               if (selectedUrl.includes('thumbnail.image.rakuten.co.jp') && selectedUrl.includes('_ex=')) {
-                // 既存のサイズパラメータを400x400に変更
-                selectedUrl = selectedUrl.replace(/_ex=\d+x\d+/g, '_ex=400x400');
+                // 既存のサイズパラメータを800x800に変更（最高画質）
+                selectedUrl = selectedUrl.replace(/_ex=\d+x\d+/g, '_ex=800x800');
               } else if (selectedUrl.includes('thumbnail.image.rakuten.co.jp') && !selectedUrl.includes('_ex=')) {
                 // サイズパラメータがない場合は追加
-                selectedUrl += selectedUrl.includes('?') ? '&_ex=400x400' : '?_ex=400x400';
+                selectedUrl += selectedUrl.includes('?') ? '&_ex=800x800' : '?_ex=800x800';
               }
               
               if (__DEV__) {

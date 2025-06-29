@@ -56,8 +56,8 @@ const CachedImage: React.FC<CachedImageProps> = ({
     return { uri: optimizedUrl };
   }, [source]);
   
-  // エラー時のフォールバック画像（Picsum Photos - 常に利用可能）
-  const fallbackSource = { uri: 'https://picsum.photos/400/400?grayscale' };
+  // エラー時のフォールバック画像（Picsum Photos - 最高画質）
+  const fallbackSource = { uri: 'https://picsum.photos/800/800?grayscale' };
   
   // デバッグモードでエラー詳細を表示
   useEffect(() => {

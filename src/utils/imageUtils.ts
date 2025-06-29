@@ -12,8 +12,8 @@ import { Image } from 'react-native';
  * 楽天の画像URLの問題を修正し、高画質版を返す
  */
 export const optimizeImageUrl = (url: string | undefined | null): string => {
-  // デフォルトのプレースホルダー画像（Picsum Photos - 常に利用可能）
-  const PLACEHOLDER_IMAGE = 'https://picsum.photos/400/400?grayscale';
+  // デフォルトのプレースホルダー画像（Picsum Photos - 最高画質）
+  const PLACEHOLDER_IMAGE = 'https://picsum.photos/800/800?grayscale';
   
   // URLが存在しない場合はプレースホルダーを返す
   if (!url || typeof url !== 'string' || url.trim() === '') {
@@ -38,13 +38,13 @@ export const optimizeImageUrl = (url: string | undefined | null): string => {
         optimizedUrl = optimizedUrl.replace('http://', 'https://');
       }
       
-      // 高画質サイズパラメータを設定（MVPレベルの品質）
+      // 高画質サイズパラメータを設定（最高画質）
       if (optimizedUrl.includes('thumbnail.image.rakuten.co.jp') && optimizedUrl.includes('_ex=')) {
-        // 既存のサイズパラメータを400x400に変更
-        optimizedUrl = optimizedUrl.replace(/_ex=\d+x\d+/g, '_ex=400x400');
+        // 既存のサイズパラメータを800x800に変更（最高画質）
+        optimizedUrl = optimizedUrl.replace(/_ex=\d+x\d+/g, '_ex=800x800');
       } else if (optimizedUrl.includes('thumbnail.image.rakuten.co.jp') && !optimizedUrl.includes('_ex=')) {
         // サイズパラメータがない場合は追加
-        optimizedUrl += optimizedUrl.includes('?') ? '&_ex=400x400' : '?_ex=400x400';
+        optimizedUrl += optimizedUrl.includes('?') ? '&_ex=800x800' : '?_ex=800x800';
       }
     }
     

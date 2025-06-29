@@ -15,6 +15,8 @@ const testUrls = [
   'https://thumbnail.image.rakuten.co.jp/@0_mall/gladiatore/cabinet/tatras-01/tatras-01/tatras-287.jpg?_ex=400x400',
   // 500x500 サムネイル（さらに高画質）
   'https://thumbnail.image.rakuten.co.jp/@0_mall/gladiatore/cabinet/tatras-01/tatras-01/tatras-287.jpg?_ex=500x500',
+  // 800x800 サムネイル（最高画質）
+  'https://thumbnail.image.rakuten.co.jp/@0_mall/gladiatore/cabinet/tatras-01/tatras-01/tatras-287.jpg?_ex=800x800',
   // パラメータなし
   'https://thumbnail.image.rakuten.co.jp/@0_mall/gladiatore/cabinet/tatras-01/tatras-01/tatras-287.jpg',
   // 高画質画像サーバー（アクセス不可の確認）
