@@ -52,6 +52,7 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
           contentFit="cover"
           testID="product-image"
           showLoadingIndicator={true}
+          debugMode={false} // デバッグモードを無効化
         />
         
         {/* 中古品ラベル */}

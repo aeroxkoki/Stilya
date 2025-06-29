@@ -30,28 +30,36 @@ export const optimizeImageUrl = (url: string | undefined | null): string => {
     
     // 2. 楽天の画像URLの場合の最適化
     if (optimizedUrl.includes('rakuten.co.jp')) {
-      // サムネイルドメインを通常の画像ドメインに変更
-      if (optimizedUrl.includes('thumbnail.image.rakuten.co.jp')) {
-        optimizedUrl = optimizedUrl.replace('thumbnail.image.rakuten.co.jp', 'image.rakuten.co.jp');
+      // 重要: image.rakuten.co.jpは外部アクセスを制限しているため、
+      // サムネイルURLをそのまま使用する（変換しない）
+      
+      // HTTPSへの変換は維持
+      if (optimizedUrl.startsWith('http://')) {
+        optimizedUrl = optimizedUrl.replace('http://', 'https://');
       }
       
-      // パス内のサイズ指定を削除（全て一括で処理）
-      optimizedUrl = optimizedUrl
-        .replace(/\/128x128\//g, '/')
-        .replace(/\/64x64\//g, '/')
-        .replace(/\/pc\//g, '/')
-        .replace(/\/thumbnail\//g, '/')
-        .replace(/\/cabinet\/128x128\//g, '/cabinet/')
-        .replace(/\/cabinet\/64x64\//g, '/cabinet/');
+      // サムネイルドメインはそのまま維持（変換しない）
+      // if (optimizedUrl.includes('thumbnail.image.rakuten.co.jp')) {
+      //   optimizedUrl = optimizedUrl.replace('thumbnail.image.rakuten.co.jp', 'image.rakuten.co.jp');
+      // }
       
-      // クエリパラメータのサイズ指定を削除
-      if (optimizedUrl.includes('_ex=')) {
-        optimizedUrl = optimizedUrl
-          .replace(/_ex=128x128/g, '')
-          .replace(/_ex=64x64/g, '')
-          .replace(/\?$/g, '') // 末尾の?を削除
-          .replace(/&$/g, ''); // 末尾の&を削除
-      }
+      // パス内のサイズ指定もそのまま維持（削除しない）
+      // optimizedUrl = optimizedUrl
+      //   .replace(/\/128x128\//g, '/')
+      //   .replace(/\/64x64\//g, '/')
+      //   .replace(/\/pc\//g, '/')
+      //   .replace(/\/thumbnail\//g, '/')
+      //   .replace(/\/cabinet\/128x128\//g, '/cabinet/')
+      //   .replace(/\/cabinet\/64x64\//g, '/cabinet/');
+      
+      // クエリパラメータのサイズ指定もそのまま維持
+      // if (optimizedUrl.includes('_ex=')) {
+      //   optimizedUrl = optimizedUrl
+      //     .replace(/_ex=128x128/g, '')
+      //     .replace(/_ex=64x64/g, '')
+      //     .replace(/\?$/g, '')
+      //     .replace(/&$/g, '');
+      // }
     }
     
     // 3. 最終的なURL検証

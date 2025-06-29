@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleProp, ImageStyle, View, StyleSheet, ActivityIndicator, Text } from 'react-native';
 import { Image } from 'expo-image';
 import { optimizeImageUrl } from '@/utils/imageUtils';
 import { Ionicons } from '@expo/vector-icons';
+import { Alert } from 'react-native';
 
 interface CachedImageProps {
   source: { uri: string } | number;
@@ -10,6 +11,7 @@ interface CachedImageProps {
   contentFit?: 'cover' | 'contain' | 'fill' | 'none' | 'scale-down';
   resizeMode?: 'cover' | 'contain' | 'stretch' | 'center';
   showLoadingIndicator?: boolean;
+  debugMode?: boolean; // デバッグモードを追加
   [key: string]: any;
 }
 
@@ -23,10 +25,15 @@ const CachedImage: React.FC<CachedImageProps> = ({
   contentFit = 'cover',
   resizeMode,
   showLoadingIndicator = false,
+  debugMode = false, // デバッグモードを追加
   ...restProps 
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [errorDetails, setErrorDetails] = useState<any>(null);
+  
+  // デバッグ用: 最初の画像エラーのみアラートを表示
+  const [hasShownAlert, setHasShownAlert] = useState(false);
   
   // resizeModeとcontentFitの互換性を保つ
   const finalContentFit = resizeMode ? 
@@ -51,6 +58,19 @@ const CachedImage: React.FC<CachedImageProps> = ({
   
   // エラー時のフォールバック画像
   const fallbackSource = { uri: 'https://via.placeholder.com/400x400/f0f0f0/666666?text=No+Image' };
+  
+  // デバッグモードでエラー詳細を表示
+  useEffect(() => {
+    if (debugMode && hasError && errorDetails && !hasShownAlert) {
+      setHasShownAlert(true);
+      const url = typeof imageSource === 'object' && 'uri' in imageSource ? imageSource.uri : 'unknown';
+      Alert.alert(
+        '画像読み込みエラー',
+        `URL: ${url}\n\nエラー詳細: ${JSON.stringify(errorDetails, null, 2)}`,
+        [{ text: 'OK' }]
+      );
+    }
+  }, [hasError, errorDetails, debugMode, hasShownAlert, imageSource]);
   
   return (
     <View style={[styles.container, style]}>
@@ -78,9 +98,11 @@ const CachedImage: React.FC<CachedImageProps> = ({
           onError={(event) => {
             setIsLoading(false);
             setHasError(true);
+            setErrorDetails(event.error);
             console.warn('[CachedImage] Failed to load image:', {
               url: typeof imageSource === 'object' && 'uri' in imageSource ? imageSource.uri : 'unknown',
-              error: event.error
+              error: event.error,
+              fullEvent: event
             });
           }}
           {...restProps}
