@@ -259,24 +259,17 @@ export const fetchRakutenFashionProducts = async (
               selectedUrl = typeof smallUrl === 'string' ? smallUrl : smallUrl.imageUrl || '';
             }
             
-            // 楽天のサムネイルURLを高画質版に変換（ここで最適化を実行）
-            if (selectedUrl && selectedUrl.includes('thumbnail.image.rakuten.co.jp')) {
-              // サムネイルドメインを通常の画像ドメインに変更
-              selectedUrl = selectedUrl
-                .replace('thumbnail.image.rakuten.co.jp', 'image.rakuten.co.jp')
-                .replace('/128x128/', '/')
-                .replace('/64x64/', '/')
-                .replace('/pc/', '/')
-                .replace('/thumbnail/', '/')
-                .replace('?_ex=128x128', '')
-                .replace('?_ex=64x64', '')
-                .replace('&_ex=128x128', '')
-                .replace('&_ex=64x64', '');
+            // 楽天のサムネイルURLはそのまま使用（変換しない）
+            // 重要: image.rakuten.co.jpは外部アクセスを制限しているため
+            if (selectedUrl && selectedUrl.includes('rakuten.co.jp')) {
+              // HTTPをHTTPSに変換（これは必要）
+              if (selectedUrl.startsWith('http://')) {
+                selectedUrl = selectedUrl.replace('http://', 'https://');
+              }
               
               if (__DEV__) {
-                console.log('[RakutenService] 画像URL最適化:', {
-                  before: productItem.mediumImageUrls?.[0] || productItem.imageUrl,
-                  after: selectedUrl
+                console.log('[RakutenService] 画像URL（変換なし）:', {
+                  url: selectedUrl
                 });
               }
             }

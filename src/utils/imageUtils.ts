@@ -12,8 +12,8 @@ import { Image } from 'react-native';
  * 楽天の画像URLの問題を修正し、高画質版を返す
  */
 export const optimizeImageUrl = (url: string | undefined | null): string => {
-  // デフォルトのプレースホルダー画像
-  const PLACEHOLDER_IMAGE = 'https://via.placeholder.com/400x400/f0f0f0/666666?text=No+Image';
+  // デフォルトのプレースホルダー画像（Picsum Photos - 常に利用可能）
+  const PLACEHOLDER_IMAGE = 'https://picsum.photos/400/400?grayscale';
   
   // URLが存在しない場合はプレースホルダーを返す
   if (!url || typeof url !== 'string' || url.trim() === '') {
