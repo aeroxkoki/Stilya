@@ -7,12 +7,18 @@ const http = require('http');
  */
 
 const testUrls = [
-  // サムネイル画像
+  // 128x128 サムネイル
   'https://thumbnail.image.rakuten.co.jp/@0_mall/gladiatore/cabinet/tatras-01/tatras-01/tatras-287.jpg?_ex=128x128',
-  // 最適化後の画像
-  'https://image.rakuten.co.jp/@0_mall/gladiatore/cabinet/tatras-01/tatras-01/tatras-287.jpg',
-  // プレースホルダー画像（テスト用）
-  'https://via.placeholder.com/400x400/f0f0f0/666666?text=No+Image'
+  // 300x300 サムネイル（高画質）
+  'https://thumbnail.image.rakuten.co.jp/@0_mall/gladiatore/cabinet/tatras-01/tatras-01/tatras-287.jpg?_ex=300x300',
+  // 400x400 サムネイル（より高画質）
+  'https://thumbnail.image.rakuten.co.jp/@0_mall/gladiatore/cabinet/tatras-01/tatras-01/tatras-287.jpg?_ex=400x400',
+  // 500x500 サムネイル（さらに高画質）
+  'https://thumbnail.image.rakuten.co.jp/@0_mall/gladiatore/cabinet/tatras-01/tatras-01/tatras-287.jpg?_ex=500x500',
+  // パラメータなし
+  'https://thumbnail.image.rakuten.co.jp/@0_mall/gladiatore/cabinet/tatras-01/tatras-01/tatras-287.jpg',
+  // 高画質画像サーバー（アクセス不可の確認）
+  'https://image.rakuten.co.jp/@0_mall/gladiatore/cabinet/tatras-01/tatras-01/tatras-287.jpg'
 ];
 
 const userAgents = [

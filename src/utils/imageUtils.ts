@@ -38,28 +38,14 @@ export const optimizeImageUrl = (url: string | undefined | null): string => {
         optimizedUrl = optimizedUrl.replace('http://', 'https://');
       }
       
-      // サムネイルドメインはそのまま維持（変換しない）
-      // if (optimizedUrl.includes('thumbnail.image.rakuten.co.jp')) {
-      //   optimizedUrl = optimizedUrl.replace('thumbnail.image.rakuten.co.jp', 'image.rakuten.co.jp');
-      // }
-      
-      // パス内のサイズ指定もそのまま維持（削除しない）
-      // optimizedUrl = optimizedUrl
-      //   .replace(/\/128x128\//g, '/')
-      //   .replace(/\/64x64\//g, '/')
-      //   .replace(/\/pc\//g, '/')
-      //   .replace(/\/thumbnail\//g, '/')
-      //   .replace(/\/cabinet\/128x128\//g, '/cabinet/')
-      //   .replace(/\/cabinet\/64x64\//g, '/cabinet/');
-      
-      // クエリパラメータのサイズ指定もそのまま維持
-      // if (optimizedUrl.includes('_ex=')) {
-      //   optimizedUrl = optimizedUrl
-      //     .replace(/_ex=128x128/g, '')
-      //     .replace(/_ex=64x64/g, '')
-      //     .replace(/\?$/g, '')
-      //     .replace(/&$/g, '');
-      // }
+      // 高画質サイズパラメータを設定（MVPレベルの品質）
+      if (optimizedUrl.includes('thumbnail.image.rakuten.co.jp') && optimizedUrl.includes('_ex=')) {
+        // 既存のサイズパラメータを400x400に変更
+        optimizedUrl = optimizedUrl.replace(/_ex=\d+x\d+/g, '_ex=400x400');
+      } else if (optimizedUrl.includes('thumbnail.image.rakuten.co.jp') && !optimizedUrl.includes('_ex=')) {
+        // サイズパラメータがない場合は追加
+        optimizedUrl += optimizedUrl.includes('?') ? '&_ex=400x400' : '?_ex=400x400';
+      }
     }
     
     // 3. 最終的なURL検証

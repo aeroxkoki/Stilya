@@ -267,8 +267,17 @@ export const fetchRakutenFashionProducts = async (
                 selectedUrl = selectedUrl.replace('http://', 'https://');
               }
               
+              // 高画質サイズパラメータを追加（MVPレベルの品質）
+              if (selectedUrl.includes('thumbnail.image.rakuten.co.jp') && selectedUrl.includes('_ex=')) {
+                // 既存のサイズパラメータを400x400に変更
+                selectedUrl = selectedUrl.replace(/_ex=\d+x\d+/g, '_ex=400x400');
+              } else if (selectedUrl.includes('thumbnail.image.rakuten.co.jp') && !selectedUrl.includes('_ex=')) {
+                // サイズパラメータがない場合は追加
+                selectedUrl += selectedUrl.includes('?') ? '&_ex=400x400' : '?_ex=400x400';
+              }
+              
               if (__DEV__) {
-                console.log('[RakutenService] 画像URL（変換なし）:', {
+                console.log('[RakutenService] 画像URL（高画質化）:', {
                   url: selectedUrl
                 });
               }
