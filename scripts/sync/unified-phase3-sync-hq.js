@@ -39,6 +39,56 @@ const DRY_RUN = process.env.DRY_RUN === 'true';
 const CURRENT_SEASON = process.env.CURRENT_SEASON || 'all';
 const CAPACITY_WARNING = process.env.CAPACITY_WARNING === 'true';
 
+/**
+ * 画像URLを最適化する関数（アプリと同じロジック）
+ * 楽天の画像URLの問題を修正し、高画質版を返す
+ */
+function optimizeImageUrl(url) {
+  // デフォルトのプレースホルダー画像（最高画質）
+  const PLACEHOLDER_IMAGE = 'https://picsum.photos/800/800?grayscale';
+  
+  // URLが存在しない場合はプレースホルダーを返す
+  if (!url || typeof url !== 'string' || url.trim() === '') {
+    return PLACEHOLDER_IMAGE;
+  }
+  
+  let optimizedUrl = url.trim();
+  
+  try {
+    // 1. HTTPをHTTPSに変換（必須）
+    if (optimizedUrl.startsWith('http://')) {
+      optimizedUrl = optimizedUrl.replace('http://', 'https://');
+    }
+    
+    // 2. 楽天の画像URLの場合の最適化
+    if (optimizedUrl.includes('rakuten.co.jp')) {
+      // HTTPSへの変換は維持
+      if (optimizedUrl.startsWith('http://')) {
+        optimizedUrl = optimizedUrl.replace('http://', 'https://');
+      }
+      
+      // 高画質サイズパラメータを設定（最高画質）
+      if (optimizedUrl.includes('thumbnail.image.rakuten.co.jp') && optimizedUrl.includes('_ex=')) {
+        // 既存のサイズパラメータを800x800に変更（最高画質）
+        optimizedUrl = optimizedUrl.replace(/_ex=\d+x\d+/g, '_ex=800x800');
+      } else if (optimizedUrl.includes('thumbnail.image.rakuten.co.jp') && !optimizedUrl.includes('_ex=')) {
+        // サイズパラメータがない場合は追加
+        optimizedUrl += optimizedUrl.includes('?') ? '&_ex=800x800' : '?_ex=800x800';
+      }
+    }
+    
+    // 3. 最終的なURL検証
+    new URL(optimizedUrl); // URLとして有効かチェック
+    
+    return optimizedUrl;
+    
+  } catch (error) {
+    // URLとして無効な場合はプレースホルダーを返す
+    console.warn('[ImageOptimizer] Invalid URL:', url, error);
+    return PLACEHOLDER_IMAGE;
+  }
+}
+
 // Phase 3 ブランドリスト（50-60ブランド）
 const PHASE3_BRANDS = [
   // Priority 0: スーパー優先（UNIQLO, GU, 無印良品）
@@ -98,121 +148,169 @@ const PHASE3_BRANDS = [
     priority: 1,
     tags: ['北欧', 'トレンド', 'カジュアル', 'サステナブル'],
     category: 'fast-fashion',
-    targetAge: '20-30',
+    targetAge: '20-35',
     priceRange: 'low-middle',
-    initialProducts: 2000,
-    maxProducts: 5000,
-    rotationDays: 2
+    initialProducts: 1500,
+    maxProducts: 4000,
+    rotationDays: 3
   },
   {
     name: 'GAP',
     keywords: ['GAP ギャップ'],
     priority: 1,
-    tags: ['アメカジ', 'カジュアル', 'ベーシック', 'デニム'],
+    tags: ['アメカジ', 'カジュアル', 'ベーシック', 'ファミリー'],
     category: 'fast-fashion',
-    targetAge: '20-40',
-    priceRange: 'middle',
-    initialProducts: 1500,
-    maxProducts: 4000,
+    targetAge: '25-40',
+    priceRange: 'low-middle',
+    initialProducts: 1200,
+    maxProducts: 3000,
     rotationDays: 3
   },
   {
-    name: 'FOREVER21',
-    keywords: ['FOREVER21 フォーエバー'],
+    name: 'WEGO',
+    keywords: ['WEGO ウィゴー'],
     priority: 1,
-    tags: ['LAカジュアル', 'トレンド', 'プチプラ', 'パーティー'],
+    tags: ['原宿系', 'ストリート', 'プチプラ', 'トレンド', '若者'],
     category: 'fast-fashion',
-    targetAge: '18-25',
+    targetAge: '20-25',
     priceRange: 'low',
-    initialProducts: 1500,
-    maxProducts: 4000,
-    rotationDays: 2
-  },
-
-  // Priority 2: 人気ECブランド（20-30代向け）
-  { 
-    name: 'coca',
-    keywords: ['coca コカ'],
-    priority: 2,
-    tags: ['ナチュラル', 'カジュアル', 'リラックス', '大人カジュアル'],
-    category: 'ec-brand',
-    targetAge: '25-35',
-    priceRange: 'low-middle',
-    initialProducts: 500,
-    maxProducts: 2000,
+    initialProducts: 1000,
+    maxProducts: 3000,
     rotationDays: 3
   },
-  { 
+
+  // Priority 2: 人気ECブランド
+  {
+    name: 'DHOLIC',
+    keywords: ['DHOLIC ディーホリック'],
+    priority: 2,
+    tags: ['韓国系', 'トレンド', 'プチプラ', 'フェミニン', 'オルチャン'],
+    category: 'ec-brand',
+    targetAge: '20-30',
+    priceRange: 'low',
+    initialProducts: 2000,
+    maxProducts: 5000,
+    rotationDays: 2
+  },
+  {
+    name: 'fifth',
+    keywords: ['fifth フィフス'],
+    priority: 2,
+    tags: ['トレンド', 'プチプラ', 'OL', 'フェミニン', 'きれいめ'],
+    category: 'ec-brand',
+    targetAge: '25-35',
+    priceRange: 'low',
+    initialProducts: 1000,
+    maxProducts: 3000,
+    rotationDays: 3
+  },
+  {
     name: 'pierrot',
     keywords: ['pierrot ピエロ'],
     priority: 2,
-    tags: ['大人カジュアル', 'きれいめ', 'オフィス', 'プチプラ'],
+    tags: ['大人カジュアル', 'プチプラ', 'きれいめ', 'ママ'],
     category: 'ec-brand',
-    targetAge: '25-40',
+    targetAge: '30-40',
     priceRange: 'low',
-    initialProducts: 500,
-    maxProducts: 2000,
+    initialProducts: 800,
+    maxProducts: 2500,
+    rotationDays: 3
+  },
+  {
+    name: 'coca',
+    keywords: ['coca コカ'],
+    priority: 2,
+    tags: ['カジュアル', 'ナチュラル', '大人可愛い', 'プチプラ'],
+    category: 'ec-brand',
+    targetAge: '25-35',
+    priceRange: 'low',
+    initialProducts: 800,
+    maxProducts: 2500,
     rotationDays: 3
   },
   {
     name: 'Re:EDIT',
     keywords: ['Re:EDIT リエディ'],
     priority: 2,
-    tags: ['トレンド', 'モード', 'カジュアル', 'ワンマイル'],
+    tags: ['大人カジュアル', 'トレンド', 'モード', 'エコ'],
     category: 'ec-brand',
-    targetAge: '20-35',
+    targetAge: '25-40',
     priceRange: 'low-middle',
-    initialProducts: 400,
-    maxProducts: 1500,
+    initialProducts: 700,
+    maxProducts: 2000,
     rotationDays: 4
   },
   {
-    name: 'fifth',
-    keywords: ['fifth フィフス'],
+    name: 'GRL',
+    keywords: ['GRL グレイル'],
     priority: 2,
-    tags: ['韓国系', 'トレンド', 'プチプラ', 'ガーリー'],
+    tags: ['ギャル系', 'プチプラ', 'トレンド', 'セクシー'],
     category: 'ec-brand',
     targetAge: '20-30',
     priceRange: 'low',
-    initialProducts: 400,
-    maxProducts: 1500,
-    rotationDays: 4
-  },
-  {
-    name: 'titivate',
-    keywords: ['titivate ティティベイト'],
-    priority: 2,
-    tags: ['きれいめ', 'オフィス', '大人カジュアル', 'ママ'],
-    category: 'ec-brand',
-    targetAge: '25-40',
-    priceRange: 'low-middle',
-    initialProducts: 400,
-    maxProducts: 1500,
-    rotationDays: 4
-  },
-  {
-    name: 'DHOLIC',
-    keywords: ['DHOLIC ディーホリック'],
-    priority: 2,
-    tags: ['韓国', 'トレンド', 'フェミニン', 'モテ系'],
-    category: 'ec-brand',
-    targetAge: '20-30',
-    priceRange: 'low-middle',
-    initialProducts: 600,
-    maxProducts: 2000,
+    initialProducts: 1000,
+    maxProducts: 3000,
     rotationDays: 3
   },
+  {
+    name: '17kg',
+    keywords: ['17kg イチナナキログラム'],
+    priority: 2,
+    tags: ['韓国系', 'ストリート', 'オルチャン', 'プチプラ'],
+    category: 'ec-brand',
+    targetAge: '20-25',
+    priceRange: 'low',
+    initialProducts: 600,
+    maxProducts: 2000,
+    rotationDays: 4
+  },
+  {
+    name: 'HOTPING',
+    keywords: ['HOTPING ホッピン'],
+    priority: 2,
+    tags: ['韓国系', 'カジュアル', 'プチプラ', 'デイリー'],
+    category: 'ec-brand',
+    targetAge: '20-30',
+    priceRange: 'low',
+    initialProducts: 500,
+    maxProducts: 1500,
+    rotationDays: 4
+  },
 
-  // Priority 3: セレクトショップ（質重視）
-  { 
+  // Priority 3: セレクトショップ
+  {
     name: 'URBAN RESEARCH',
     keywords: ['URBAN RESEARCH アーバンリサーチ'],
     priority: 3,
-    tags: ['都会的', 'セレクト', 'カジュアル', 'トレンド'],
-    category: 'select',
+    tags: ['セレクト', 'カジュアル', 'きれいめ', 'トレンド', '都会的'],
+    category: 'select-shop',
     targetAge: '25-40',
     priceRange: 'middle',
-    initialProducts: 800,
+    initialProducts: 1500,
+    maxProducts: 4000,
+    rotationDays: 3
+  },
+  {
+    name: 'BEAMS',
+    keywords: ['BEAMS ビームス'],
+    priority: 3,
+    tags: ['セレクト', 'カジュアル', 'アメカジ', 'トレンド'],
+    category: 'select-shop',
+    targetAge: '25-40',
+    priceRange: 'middle-high',
+    initialProducts: 1200,
+    maxProducts: 3500,
+    rotationDays: 4
+  },
+  {
+    name: 'SHIPS',
+    keywords: ['SHIPS シップス'],
+    priority: 3,
+    tags: ['セレクト', 'トラッド', 'きれいめ', 'コンサバ'],
+    category: 'select-shop',
+    targetAge: '25-40',
+    priceRange: 'middle-high',
+    initialProducts: 1000,
     maxProducts: 3000,
     rotationDays: 4
   },
@@ -220,114 +318,174 @@ const PHASE3_BRANDS = [
     name: 'nano・universe',
     keywords: ['nano universe ナノユニバース'],
     priority: 3,
-    tags: ['都会的', 'きれいめ', 'トレンド', 'セレクト'],
-    category: 'select',
+    tags: ['セレクト', 'モード', 'きれいめ', 'トレンド'],
+    category: 'select-shop',
     targetAge: '25-35',
     priceRange: 'middle',
-    initialProducts: 600,
-    maxProducts: 2500,
-    rotationDays: 4
-  },
-  {
-    name: 'BEAMS',
-    keywords: ['BEAMS ビームス'],
-    priority: 3,
-    tags: ['セレクト', 'カジュアル', 'アメカジ', 'トラッド'],
-    category: 'select',
-    targetAge: '25-40',
-    priceRange: 'middle-high',
     initialProducts: 1000,
-    maxProducts: 4000,
-    rotationDays: 5
+    maxProducts: 3000,
+    rotationDays: 4
   },
   {
     name: 'UNITED ARROWS',
     keywords: ['UNITED ARROWS ユナイテッドアローズ'],
     priority: 3,
-    tags: ['上質', 'きれいめ', 'トラッド', 'セレクト'],
-    category: 'select',
+    tags: ['セレクト', 'トラッド', '上質', 'きれいめ'],
+    category: 'select-shop',
     targetAge: '30-45',
     priceRange: 'high',
     initialProducts: 800,
-    maxProducts: 3000,
-    rotationDays: 5
-  },
-  {
-    name: 'SHIPS',
-    keywords: ['SHIPS シップス'],
-    priority: 3,
-    tags: ['トラッド', 'マリン', 'きれいめ', 'セレクト'],
-    category: 'select',
-    targetAge: '25-40',
-    priceRange: 'middle-high',
-    initialProducts: 700,
     maxProducts: 2500,
     rotationDays: 5
   },
+  {
+    name: 'JOURNAL STANDARD',
+    keywords: ['JOURNAL STANDARD ジャーナルスタンダード'],
+    priority: 3,
+    tags: ['セレクト', 'アメカジ', 'カジュアル', 'ベーシック'],
+    category: 'select-shop',
+    targetAge: '25-40',
+    priceRange: 'middle',
+    initialProducts: 800,
+    maxProducts: 2500,
+    rotationDays: 4
+  },
+  {
+    name: 'IENA',
+    keywords: ['IENA イエナ'],
+    priority: 3,
+    tags: ['セレクト', 'フレンチ', 'エレガント', '大人'],
+    category: 'select-shop',
+    targetAge: '30-45',
+    priceRange: 'middle-high',
+    initialProducts: 700,
+    maxProducts: 2000,
+    rotationDays: 5
+  },
+  {
+    name: 'Spick and Span',
+    keywords: ['Spick and Span スピックアンドスパン'],
+    priority: 3,
+    tags: ['セレクト', 'ベーシック', 'きれいめ', 'トラッド'],
+    category: 'select-shop',
+    targetAge: '25-40',
+    priceRange: 'middle-high',
+    initialProducts: 600,
+    maxProducts: 1800,
+    rotationDays: 5
+  },
+  {
+    name: 'FREAK\'S STORE',
+    keywords: ['FREAKS STORE フリークスストア'],
+    priority: 3,
+    tags: ['セレクト', 'カジュアル', 'アメカジ', 'ストリート'],
+    category: 'select-shop',
+    targetAge: '20-35',
+    priceRange: 'middle',
+    initialProducts: 600,
+    maxProducts: 1800,
+    rotationDays: 4
+  },
 
-  // Priority 4: ライフスタイル・ナチュラル系
+  // Priority 4: ライフスタイルブランド
+  {
+    name: 'GLOBAL WORK',
+    keywords: ['GLOBAL WORK グローバルワーク'],
+    priority: 4,
+    tags: ['カジュアル', 'ファミリー', 'ベーシック', 'お手頃'],
+    category: 'lifestyle',
+    targetAge: '25-40',
+    priceRange: 'low-middle',
+    initialProducts: 1000,
+    maxProducts: 3000,
+    rotationDays: 3
+  },
+  {
+    name: 'LOWRYS FARM',
+    keywords: ['LOWRYS FARM ローリーズファーム'],
+    priority: 4,
+    tags: ['カジュアル', 'ガーリー', 'フェミニン', 'トレンド'],
+    category: 'lifestyle',
+    targetAge: '20-30',
+    priceRange: 'low-middle',
+    initialProducts: 800,
+    maxProducts: 2500,
+    rotationDays: 3
+  },
   {
     name: 'studio CLIP',
-    keywords: ['studio CLIP スタジオクリップ'],
+    keywords: ['studio CLIP スタディオクリップ'],
     priority: 4,
-    tags: ['ナチュラル', 'カジュアル', 'リラックス', 'デイリー'],
+    tags: ['ナチュラル', 'カジュアル', 'リラックス', 'ママ'],
     category: 'lifestyle',
-    targetAge: '30-45',
+    targetAge: '30-40',
     priceRange: 'low-middle',
-    initialProducts: 400,
-    maxProducts: 1500,
-    rotationDays: 5
+    initialProducts: 600,
+    maxProducts: 2000,
+    rotationDays: 4
   },
   {
     name: 'SM2',
     keywords: ['SM2 サマンサモスモス'],
     priority: 4,
-    tags: ['ナチュラル', 'ガーリー', 'レトロ', 'フォークロア'],
-    category: 'lifestyle',
-    targetAge: '25-40',
-    priceRange: 'low-middle',
-    initialProducts: 400,
-    maxProducts: 1500,
-    rotationDays: 5
-  },
-  {
-    name: 'earth music&ecology',
-    keywords: ['earth music ecology アース'],
-    priority: 4,
-    tags: ['カジュアル', 'ナチュラル', 'プチプラ', 'エコ'],
-    category: 'lifestyle',
-    targetAge: '20-35',
-    priceRange: 'low',
-    initialProducts: 500,
-    maxProducts: 2000,
-    rotationDays: 4
-  },
-  {
-    name: 'GLOBAL WORK',
-    keywords: ['GLOBAL WORK グローバルワーク'],
-    priority: 4,
-    tags: ['カジュアル', 'ファミリー', 'ベーシック', 'デイリー'],
+    tags: ['ナチュラル', 'ガーリー', 'レトロ', 'ゆったり'],
     category: 'lifestyle',
     targetAge: '25-40',
     priceRange: 'low-middle',
     initialProducts: 600,
-    maxProducts: 2500,
-    rotationDays: 4
-  },
-  {
-    name: 'niko and...',
-    keywords: ['niko and ニコアンド'],
-    priority: 4,
-    tags: ['カジュアル', 'ライフスタイル', 'ナチュラル', '雑貨'],
-    category: 'lifestyle',
-    targetAge: '20-35',
-    priceRange: 'low-middle',
-    initialProducts: 500,
     maxProducts: 2000,
     rotationDays: 4
   },
+  {
+    name: 'NICE CLAUP',
+    keywords: ['NICE CLAUP ナイスクラップ'],
+    priority: 4,
+    tags: ['カジュアル', 'ガーリー', 'トレンド', '若者'],
+    category: 'lifestyle',
+    targetAge: '20-25',
+    priceRange: 'low',
+    initialProducts: 500,
+    maxProducts: 1500,
+    rotationDays: 4
+  },
+  {
+    name: 'OLIVE des OLIVE',
+    keywords: ['OLIVE des OLIVE オリーブデオリーブ'],
+    priority: 4,
+    tags: ['ガーリー', 'フェミニン', 'スクール', '清楚'],
+    category: 'lifestyle',
+    targetAge: '20-25',
+    priceRange: 'low-middle',
+    initialProducts: 400,
+    maxProducts: 1200,
+    rotationDays: 5
+  },
+  {
+    name: 'earth music&ecology',
+    keywords: ['earth music ecology アースミュージックエコロジー'],
+    priority: 4,
+    tags: ['ナチュラル', 'カジュアル', 'エコ', 'プチプラ'],
+    category: 'lifestyle',
+    targetAge: '20-30',
+    priceRange: 'low',
+    initialProducts: 800,
+    maxProducts: 2500,
+    rotationDays: 3
+  },
+  {
+    name: 'nest Robe',
+    keywords: ['nest Robe ネストローブ'],
+    priority: 4,
+    tags: ['ナチュラル', 'リネン', 'シンプル', '大人カジュアル'],
+    category: 'lifestyle',
+    targetAge: '30-45',
+    priceRange: 'middle',
+    initialProducts: 400,
+    maxProducts: 1500,
+    rotationDays: 5
+  },
 
-  // Priority 5: 年齢層特化（オフィス・きれいめ）
+  // Priority 5: オフィス・きれいめブランド
   {
     name: 'PLST',
     keywords: ['PLST プラステ'],
@@ -335,43 +493,55 @@ const PHASE3_BRANDS = [
     tags: ['オフィス', 'きれいめ', 'シンプル', 'ベーシック'],
     category: 'office',
     targetAge: '25-40',
-    priceRange: 'middle',
-    initialProducts: 500,
-    maxProducts: 2000,
-    rotationDays: 5
+    priceRange: 'low-middle',
+    initialProducts: 800,
+    maxProducts: 2500,
+    rotationDays: 3
   },
   {
     name: 'vis',
     keywords: ['vis ビス'],
     priority: 5,
-    tags: ['オフィス', 'フェミニン', 'きれいめ', 'OL'],
+    tags: ['OL', 'オフィス', 'フェミニン', 'きれいめ'],
     category: 'office',
     targetAge: '25-35',
     priceRange: 'low-middle',
-    initialProducts: 400,
-    maxProducts: 1500,
-    rotationDays: 5
+    initialProducts: 600,
+    maxProducts: 2000,
+    rotationDays: 4
   },
   {
-    name: 'ROPE',
+    name: 'ROPE\'',
     keywords: ['ROPE ロペ'],
     priority: 5,
-    tags: ['エレガント', 'オフィス', 'きれいめ', 'コンサバ'],
+    tags: ['オフィス', 'コンサバ', 'エレガント', 'きれいめ'],
     category: 'office',
     targetAge: '25-40',
     priceRange: 'middle',
-    initialProducts: 500,
+    initialProducts: 600,
     maxProducts: 2000,
-    rotationDays: 5
+    rotationDays: 4
   },
   {
     name: 'NATURAL BEAUTY BASIC',
     keywords: ['NATURAL BEAUTY BASIC ナチュラルビューティーベーシック'],
     priority: 5,
-    tags: ['オフィス', 'きれいめ', 'ベーシック', 'コンサバ'],
+    tags: ['オフィス', 'きれいめ', 'コンサバ', 'ベーシック'],
     category: 'office',
-    targetAge: '25-40',
+    targetAge: '25-35',
     priceRange: 'middle',
+    initialProducts: 500,
+    maxProducts: 1500,
+    rotationDays: 4
+  },
+  {
+    name: 'INED',
+    keywords: ['INED イネド'],
+    priority: 5,
+    tags: ['オフィス', 'エレガント', 'きれいめ', '大人'],
+    category: 'office',
+    targetAge: '30-45',
+    priceRange: 'middle-high',
     initialProducts: 400,
     maxProducts: 1500,
     rotationDays: 5
@@ -380,7 +550,19 @@ const PHASE3_BRANDS = [
     name: '23区',
     keywords: ['23区 ニジュウサンク'],
     priority: 5,
-    tags: ['上質', 'エレガント', 'オフィス', '大人'],
+    tags: ['オフィス', 'コンサバ', 'クラシック', '上品'],
+    category: 'office',
+    targetAge: '30-45',
+    priceRange: 'middle-high',
+    initialProducts: 400,
+    maxProducts: 1500,
+    rotationDays: 5
+  },
+  {
+    name: 'ICB',
+    keywords: ['ICB アイシービー'],
+    priority: 5,
+    tags: ['キャリア', 'モダン', 'シャープ', 'オフィス'],
     category: 'office',
     targetAge: '30-45',
     priceRange: 'high',
@@ -388,116 +570,184 @@ const PHASE3_BRANDS = [
     maxProducts: 1200,
     rotationDays: 6
   },
-
-  // Priority 6: トレンド・個性派
   {
-    name: 'SNIDEL',
-    keywords: ['SNIDEL スナイデル'],
+    name: 'Reflect',
+    keywords: ['Reflect リフレクト'],
+    priority: 5,
+    tags: ['オフィス', 'コンサバ', 'フェミニン', 'きれいめ'],
+    category: 'office',
+    targetAge: '25-40',
+    priceRange: 'middle',
+    initialProducts: 400,
+    maxProducts: 1500,
+    rotationDays: 5
+  },
+  {
+    name: 'green label relaxing',
+    keywords: ['green label relaxing グリーンレーベルリラクシング'],
+    priority: 5,
+    tags: ['きれいめカジュアル', 'オフィス', 'ベーシック', 'リラックス'],
+    category: 'office',
+    targetAge: '25-40',
+    priceRange: 'middle',
+    initialProducts: 600,
+    maxProducts: 2000,
+    rotationDays: 4
+  },
+  {
+    name: 'OPAQUE.CLIP',
+    keywords: ['OPAQUE CLIP オペークドットクリップ'],
+    priority: 5,
+    tags: ['オフィス', 'カジュアル', 'きれいめ', 'プチプラ'],
+    category: 'office',
+    targetAge: '25-35',
+    priceRange: 'low-middle',
+    initialProducts: 500,
+    maxProducts: 1500,
+    rotationDays: 4
+  },
+  {
+    name: 'any SiS',
+    keywords: ['any SiS エニィスィス'],
+    priority: 5,
+    tags: ['フェミニン', 'きれいめ', 'コンサバ', 'OL'],
+    category: 'office',
+    targetAge: '20-30',
+    priceRange: 'middle',
+    initialProducts: 400,
+    maxProducts: 1500,
+    rotationDays: 5
+  },
+  {
+    name: 'any FAM',
+    keywords: ['any FAM エニィファム'],
+    priority: 5,
+    tags: ['ファミリー', 'カジュアル', 'きれいめ', 'ママ'],
+    category: 'office',
+    targetAge: '30-40',
+    priceRange: 'low-middle',
+    initialProducts: 400,
+    maxProducts: 1500,
+    rotationDays: 5
+  },
+
+  // Priority 6: トレンド・個性派ブランド
+  {
+    name: 'snidel',
+    keywords: ['snidel スナイデル'],
     priority: 6,
-    tags: ['トレンド', 'フェミニン', 'モテ系', 'エレガント'],
+    tags: ['フェミニン', 'モード', 'ガーリー', 'トレンド'],
     category: 'trend',
     targetAge: '20-30',
     priceRange: 'middle-high',
-    initialProducts: 400,
-    maxProducts: 1500,
+    initialProducts: 500,
+    maxProducts: 2000,
     rotationDays: 4
   },
   {
     name: 'FRAY I.D',
     keywords: ['FRAY ID フレイアイディー'],
     priority: 6,
-    tags: ['モード', 'エレガント', 'トレンド', '個性的'],
+    tags: ['モード', 'フェミニン', 'エレガント', 'トレンド'],
     category: 'trend',
     targetAge: '25-35',
-    priceRange: 'high',
-    initialProducts: 300,
-    maxProducts: 1200,
+    priceRange: 'middle-high',
+    initialProducts: 400,
+    maxProducts: 1500,
     rotationDays: 5
   },
   {
     name: 'JILL STUART',
     keywords: ['JILL STUART ジルスチュアート'],
     priority: 6,
-    tags: ['ガーリー', 'フェミニン', 'ロマンティック', 'プリンセス'],
+    tags: ['フェミニン', 'ガーリー', 'ロマンティック', 'プリンセス'],
     category: 'trend',
     targetAge: '20-30',
-    priceRange: 'high',
+    priceRange: 'middle-high',
+    initialProducts: 400,
+    maxProducts: 1500,
+    rotationDays: 5
+  },
+  {
+    name: 'MERCURYDUO',
+    keywords: ['MERCURYDUO マーキュリーデュオ'],
+    priority: 6,
+    tags: ['フェミニン', 'セクシー', 'モード', 'パーティー'],
+    category: 'trend',
+    targetAge: '20-30',
+    priceRange: 'middle',
+    initialProducts: 400,
+    maxProducts: 1500,
+    rotationDays: 5
+  },
+  {
+    name: 'EMODA',
+    keywords: ['EMODA エモダ'],
+    priority: 6,
+    tags: ['モード', 'エッジー', 'ストリート', 'クール'],
+    category: 'trend',
+    targetAge: '20-30',
+    priceRange: 'middle',
+    initialProducts: 400,
+    maxProducts: 1500,
+    rotationDays: 4
+  },
+  {
+    name: 'SLY',
+    keywords: ['SLY スライ'],
+    priority: 6,
+    tags: ['ギャル', 'セクシー', 'クール', 'ストリート'],
+    category: 'trend',
+    targetAge: '20-30',
+    priceRange: 'middle',
+    initialProducts: 400,
+    maxProducts: 1500,
+    rotationDays: 4
+  },
+  {
+    name: 'moussy',
+    keywords: ['moussy マウジー'],
+    priority: 6,
+    tags: ['デニム', 'カジュアル', 'クール', 'ストリート'],
+    category: 'trend',
+    targetAge: '20-35',
+    priceRange: 'middle',
+    initialProducts: 400,
+    maxProducts: 1500,
+    rotationDays: 4
+  },
+  {
+    name: 'MURUA',
+    keywords: ['MURUA ムルーア'],
+    priority: 6,
+    tags: ['モード', 'エッジー', 'セクシー', 'クール'],
+    category: 'trend',
+    targetAge: '20-30',
+    priceRange: 'middle',
     initialProducts: 300,
     maxProducts: 1200,
     rotationDays: 5
   },
   {
-    name: 'WEGO',
-    keywords: ['WEGO ウィゴー'],
+    name: 'dazzlin',
+    keywords: ['dazzlin ダズリン'],
     priority: 6,
-    tags: ['原宿系', 'ストリート', 'プチプラ', '個性的'],
+    tags: ['ガーリー', 'フェミニン', 'カジュアル', 'デート'],
     category: 'trend',
-    targetAge: '18-25',
-    priceRange: 'low',
-    initialProducts: 500,
-    maxProducts: 2000,
-    rotationDays: 3
-  },
-
-  // Priority 7: 百貨店・ハイブランド（40代向け含む）
-  {
-    name: 'Theory',
-    keywords: ['Theory セオリー'],
-    priority: 7,
-    tags: ['ハイブランド', 'ミニマル', 'モダン', '上質'],
-    category: 'high-brand',
-    targetAge: '30-45',
-    priceRange: 'high',
-    initialProducts: 200,
-    maxProducts: 800,
-    rotationDays: 7
-  },
-  {
-    name: 'TOMORROWLAND',
-    keywords: ['TOMORROWLAND トゥモローランド'],
-    priority: 7,
-    tags: ['ハイブランド', 'セレクト', 'モード', '上質'],
-    category: 'high-brand',
-    targetAge: '30-45',
-    priceRange: 'high',
+    targetAge: '20-25',
+    priceRange: 'low-middle',
     initialProducts: 300,
     maxProducts: 1200,
-    rotationDays: 7
+    rotationDays: 5
   },
   {
-    name: 'GALLARDAGALANTE',
-    keywords: ['GALLARDAGALANTE ガリャルダガランテ'],
-    priority: 7,
-    tags: ['モード', 'エレガント', '大人カジュアル', '上質'],
-    category: 'high-brand',
-    targetAge: '30-45',
-    priceRange: 'high',
-    initialProducts: 200,
-    maxProducts: 800,
-    rotationDays: 7
-  },
-  {
-    name: 'Spick & Span',
-    keywords: ['Spick and Span スピックアンドスパン'],
-    priority: 7,
-    tags: ['上質', 'ベーシック', 'トラッド', 'エレガント'],
-    category: 'high-brand',
-    targetAge: '30-45',
-    priceRange: 'high',
-    initialProducts: 250,
-    maxProducts: 1000,
-    rotationDays: 7
-  },
-
-  // 追加ブランド（多様性確保）
-  {
-    name: 'COS',
-    keywords: ['COS コス'],
+    name: 'LILY BROWN',
+    keywords: ['LILY BROWN リリーブラウン'],
     priority: 6,
-    tags: ['ミニマル', 'モード', 'アート', '建築的'],
+    tags: ['レトロ', 'ヴィンテージ', 'フェミニン', '個性的'],
     category: 'trend',
-    targetAge: '25-40',
-    priceRange: 'middle-high',
+    targetAge: '20-30',
+    priceRange: 'middle',
     initialProducts: 300,
     maxProducts: 1200,
     rotationDays: 5
@@ -506,7 +756,55 @@ const PHASE3_BRANDS = [
     name: 'STUDIOUS',
     keywords: ['STUDIOUS ステュディオス'],
     priority: 6,
-    tags: ['モード', '日本ブランド', 'エッジー', 'セレクト'],
+    tags: ['モード', 'ドメスティック', 'アヴァンギャルド', 'デザイナーズ'],
+    category: 'trend',
+    targetAge: '25-40',
+    priceRange: 'high',
+    initialProducts: 300,
+    maxProducts: 1200,
+    rotationDays: 6
+  },
+  {
+    name: 'PAMEO POSE',
+    keywords: ['PAMEO POSE パメオポーズ'],
+    priority: 6,
+    tags: ['個性的', 'アート', 'モード', 'デザイナーズ'],
+    category: 'trend',
+    targetAge: '20-35',
+    priceRange: 'middle-high',
+    initialProducts: 200,
+    maxProducts: 800,
+    rotationDays: 6
+  },
+  {
+    name: 'CELFORD',
+    keywords: ['CELFORD セルフォード'],
+    priority: 6,
+    tags: ['エレガント', 'フェミニン', 'パーティー', '上品'],
+    category: 'trend',
+    targetAge: '25-40',
+    priceRange: 'middle-high',
+    initialProducts: 300,
+    maxProducts: 1200,
+    rotationDays: 5
+  },
+  {
+    name: 'Mila Owen',
+    keywords: ['Mila Owen ミラオーウェン'],
+    priority: 6,
+    tags: ['モード', 'ベーシック', 'きれいめ', 'トレンド'],
+    category: 'trend',
+    targetAge: '25-35',
+    priceRange: 'middle',
+    initialProducts: 400,
+    maxProducts: 1500,
+    rotationDays: 4
+  },
+  {
+    name: 'TODAYFUL',
+    keywords: ['TODAYFUL トゥデイフル'],
+    priority: 6,
+    tags: ['カジュアル', 'リラックス', 'モード', 'ナチュラル'],
     category: 'trend',
     targetAge: '25-35',
     priceRange: 'middle-high',
@@ -515,40 +813,316 @@ const PHASE3_BRANDS = [
     rotationDays: 5
   },
   {
-    name: 'nest Robe',
-    keywords: ['nest Robe ネストローブ'],
-    priority: 4,
-    tags: ['ナチュラル', 'リネン', 'こだわり', '大人ナチュラル'],
-    category: 'lifestyle',
-    targetAge: '30-45',
+    name: 'AMERI',
+    keywords: ['AMERI アメリ'],
+    priority: 6,
+    tags: ['モード', '個性的', 'ヴィンテージ', 'アート'],
+    category: 'trend',
+    targetAge: '25-35',
     priceRange: 'middle-high',
     initialProducts: 200,
     maxProducts: 800,
     rotationDays: 6
   },
   {
-    name: 'MARGARET HOWELL',
-    keywords: ['MARGARET HOWELL マーガレットハウエル'],
-    priority: 7,
-    tags: ['英国', 'トラッド', '上質', 'タイムレス'],
-    category: 'high-brand',
-    targetAge: '35-45',
+    name: 'CLANE',
+    keywords: ['CLANE クラネ'],
+    priority: 6,
+    tags: ['モード', '建築的', 'ミニマル', 'アヴァンギャルド'],
+    category: 'trend',
+    targetAge: '25-40',
     priceRange: 'high',
-    initialProducts: 150,
-    maxProducts: 600,
-    rotationDays: 7
+    initialProducts: 200,
+    maxProducts: 800,
+    rotationDays: 6
   },
   {
-    name: '17kg',
-    keywords: ['17kg イチナナキログラム'],
-    priority: 2,
-    tags: ['韓国', 'プチプラ', 'トレンド', 'カワイイ'],
-    category: 'ec-brand',
-    targetAge: '18-25',
+    name: 'RIM.ARK',
+    keywords: ['RIM.ARK リムアーク'],
+    priority: 6,
+    tags: ['モード', 'ミニマル', 'エッジー', 'コンテンポラリー'],
+    category: 'trend',
+    targetAge: '25-40',
+    priceRange: 'middle-high',
+    initialProducts: 200,
+    maxProducts: 800,
+    rotationDays: 6
+  },
+  {
+    name: 'Ungrid',
+    keywords: ['Ungrid アングリッド'],
+    priority: 6,
+    tags: ['カジュアル', 'デニム', 'ヴィンテージ', 'リラックス'],
+    category: 'trend',
+    targetAge: '25-35',
+    priceRange: 'middle',
+    initialProducts: 300,
+    maxProducts: 1200,
+    rotationDays: 5
+  },
+  {
+    name: 'AZUL by moussy',
+    keywords: ['AZUL by moussy アズールバイマウジー'],
+    priority: 6,
+    tags: ['カジュアル', 'デニム', 'サーフ', 'リラックス'],
+    category: 'trend',
+    targetAge: '20-35',
+    priceRange: 'low-middle',
+    initialProducts: 400,
+    maxProducts: 1500,
+    rotationDays: 4
+  },
+  {
+    name: 'rienda',
+    keywords: ['rienda リエンダ'],
+    priority: 6,
+    tags: ['セクシー', 'ゴージャス', 'パーティー', 'リゾート'],
+    category: 'trend',
+    targetAge: '20-30',
+    priceRange: 'middle',
+    initialProducts: 300,
+    maxProducts: 1200,
+    rotationDays: 5
+  },
+  {
+    name: 'GYDA',
+    keywords: ['GYDA ジェイダ'],
+    priority: 6,
+    tags: ['ストリート', 'セクシー', 'クール', 'ギャル'],
+    category: 'trend',
+    targetAge: '20-30',
+    priceRange: 'middle',
+    initialProducts: 300,
+    maxProducts: 1200,
+    rotationDays: 5
+  },
+  {
+    name: 'LAGUA GEM',
+    keywords: ['LAGUA GEM ラグアジェム'],
+    priority: 6,
+    tags: ['エスニック', 'ボヘミアン', 'リゾート', '個性的'],
+    category: 'trend',
+    targetAge: '25-40',
+    priceRange: 'middle',
+    initialProducts: 200,
+    maxProducts: 800,
+    rotationDays: 6
+  },
+  {
+    name: 'jouetie',
+    keywords: ['jouetie ジュエティ'],
+    priority: 6,
+    tags: ['原宿系', 'ストリート', 'カジュアル', '個性的'],
+    category: 'trend',
+    targetAge: '20-30',
+    priceRange: 'low-middle',
+    initialProducts: 300,
+    maxProducts: 1200,
+    rotationDays: 5
+  },
+  {
+    name: 'X-girl',
+    keywords: ['X-girl エックスガール'],
+    priority: 6,
+    tags: ['ストリート', 'スケーター', 'カジュアル', 'スポーティー'],
+    category: 'trend',
+    targetAge: '20-30',
+    priceRange: 'middle',
+    initialProducts: 300,
+    maxProducts: 1200,
+    rotationDays: 5
+  },
+  {
+    name: 'MILKFED.',
+    keywords: ['MILKFED ミルクフェド'],
+    priority: 6,
+    tags: ['ストリート', 'カジュアル', 'ガーリー', 'スポーティー'],
+    category: 'trend',
+    targetAge: '20-30',
+    priceRange: 'middle',
+    initialProducts: 300,
+    maxProducts: 1200,
+    rotationDays: 5
+  },
+  {
+    name: 'PAGEBOY',
+    keywords: ['PAGEBOY ページボーイ'],
+    priority: 4,
+    tags: ['カジュアル', 'ベーシック', 'プチプラ', 'デイリー'],
+    category: 'lifestyle',
+    targetAge: '20-30',
     priceRange: 'low',
     initialProducts: 400,
     maxProducts: 1500,
+    rotationDays: 4
+  },
+  {
+    name: 'Heather',
+    keywords: ['Heather ヘザー'],
+    priority: 4,
+    tags: ['カジュアル', 'ガーリー', 'プチプラ', 'トレンド'],
+    category: 'lifestyle',
+    targetAge: '20-25',
+    priceRange: 'low',
+    initialProducts: 400,
+    maxProducts: 1500,
+    rotationDays: 4
+  },
+  {
+    name: 'Kastane',
+    keywords: ['Kastane カスタネ'],
+    priority: 4,
+    tags: ['カジュアル', 'ナチュラル', 'ヴィンテージ', 'リラックス'],
+    category: 'lifestyle',
+    targetAge: '20-35',
+    priceRange: 'low-middle',
+    initialProducts: 400,
+    maxProducts: 1500,
+    rotationDays: 4
+  },
+  {
+    name: 'mystic',
+    keywords: ['mystic ミスティック'],
+    priority: 4,
+    tags: ['カジュアル', 'モード', 'シンプル', 'ベーシック'],
+    category: 'lifestyle',
+    targetAge: '25-35',
+    priceRange: 'low-middle',
+    initialProducts: 400,
+    maxProducts: 1500,
+    rotationDays: 4
+  },
+  {
+    name: 'who\'s who Chico',
+    keywords: ['whos who Chico フーズフーチコ'],
+    priority: 4,
+    tags: ['カジュアル', 'ヴィンテージ', 'ナチュラル', 'リラックス'],
+    category: 'lifestyle',
+    targetAge: '20-30',
+    priceRange: 'low-middle',
+    initialProducts: 400,
+    maxProducts: 1500,
+    rotationDays: 4
+  },
+  {
+    name: 'CIAOPANIC',
+    keywords: ['CIAOPANIC チャオパニック'],
+    priority: 4,
+    tags: ['カジュアル', 'アメカジ', 'ベーシック', 'ユニセックス'],
+    category: 'lifestyle',
+    targetAge: '20-35',
+    priceRange: 'low-middle',
+    initialProducts: 400,
+    maxProducts: 1500,
+    rotationDays: 4
+  },
+  {
+    name: 'CIAOPANIC TYPY',
+    keywords: ['CIAOPANIC TYPY チャオパニックティピー'],
+    priority: 4,
+    tags: ['ナチュラル', 'エスニック', 'リラックス', 'ボヘミアン'],
+    category: 'lifestyle',
+    targetAge: '25-40',
+    priceRange: 'low-middle',
+    initialProducts: 400,
+    maxProducts: 1500,
+    rotationDays: 4
+  },
+  {
+    name: 'LEPSIM',
+    keywords: ['LEPSIM レプシィム'],
+    priority: 4,
+    tags: ['カジュアル', 'ベーシック', 'プチプラ', 'デイリー'],
+    category: 'lifestyle',
+    targetAge: '20-35',
+    priceRange: 'low',
+    initialProducts: 500,
+    maxProducts: 1800,
     rotationDays: 3
+  },
+  {
+    name: 'JEANASIS',
+    keywords: ['JEANASIS ジーナシス'],
+    priority: 4,
+    tags: ['カジュアル', 'モード', 'エッジー', 'ベーシック'],
+    category: 'lifestyle',
+    targetAge: '20-35',
+    priceRange: 'low-middle',
+    initialProducts: 500,
+    maxProducts: 1800,
+    rotationDays: 3
+  },
+  {
+    name: 'Discoat',
+    keywords: ['Discoat ディスコート'],
+    priority: 4,
+    tags: ['カジュアル', 'ナチュラル', 'プチプラ', 'リラックス'],
+    category: 'lifestyle',
+    targetAge: '20-35',
+    priceRange: 'low',
+    initialProducts: 400,
+    maxProducts: 1500,
+    rotationDays: 4
+  },
+  {
+    name: 'niko and...',
+    keywords: ['niko and ニコアンド'],
+    priority: 4,
+    tags: ['カジュアル', 'ナチュラル', 'ライフスタイル', 'ユニセックス'],
+    category: 'lifestyle',
+    targetAge: '25-40',
+    priceRange: 'low-middle',
+    initialProducts: 500,
+    maxProducts: 1800,
+    rotationDays: 3
+  },
+  {
+    name: 'CRAFT STANDARD BOUTIQUE',
+    keywords: ['CRAFT STANDARD BOUTIQUE クラフトスタンダードブティック'],
+    priority: 4,
+    tags: ['ベーシック', 'シンプル', 'ナチュラル', 'エシカル'],
+    category: 'lifestyle',
+    targetAge: '25-40',
+    priceRange: 'middle',
+    initialProducts: 300,
+    maxProducts: 1200,
+    rotationDays: 5
+  },
+  {
+    name: 'KBF',
+    keywords: ['KBF ケービーエフ'],
+    priority: 4,
+    tags: ['カジュアル', 'ナチュラル', 'モード', 'リラックス'],
+    category: 'lifestyle',
+    targetAge: '25-35',
+    priceRange: 'middle',
+    initialProducts: 400,
+    maxProducts: 1500,
+    rotationDays: 4
+  },
+  {
+    name: 'SENSE OF PLACE',
+    keywords: ['SENSE OF PLACE センスオブプレイス'],
+    priority: 4,
+    tags: ['カジュアル', 'トレンド', 'ベーシック', 'プチプラ'],
+    category: 'lifestyle',
+    targetAge: '20-35',
+    priceRange: 'low',
+    initialProducts: 500,
+    maxProducts: 1800,
+    rotationDays: 3
+  },
+  {
+    name: 'apart by lowrys',
+    keywords: ['apart by lowrys アパートバイローリーズ'],
+    priority: 4,
+    tags: ['カジュアル', 'フェミニン', 'ナチュラル', 'リラックス'],
+    category: 'lifestyle',
+    targetAge: '25-35',
+    priceRange: 'low-middle',
+    initialProducts: 400,
+    maxProducts: 1500,
+    rotationDays: 4
   },
   {
     name: 'coen',
@@ -647,155 +1221,144 @@ const PHASE3_BRANDS = [
     rotationDays: 4
   },
   {
-    name: 'Ranan',
-    keywords: ['Ranan ラナン'],
-    priority: 2,
-    tags: ['大きいサイズ', 'カジュアル', '体型カバー', 'ゆったり'],
-    category: 'ec-brand',
-    targetAge: '30-50',
-    priceRange: 'low-middle',
-    initialProducts: 300,
-    maxProducts: 1200,
-    rotationDays: 5
+    name: 'COS',
+    keywords: ['COS コス'],
+    priority: 7,
+    tags: ['ミニマル', 'モード', '建築的', 'モダン'],
+    category: 'high-brand',
+    targetAge: '25-45',
+    priceRange: 'middle-high',
+    initialProducts: 200,
+    maxProducts: 800,
+    rotationDays: 6
   },
   {
-    name: 'HOTPING',
-    keywords: ['HOTPING ホットピング'],
-    priority: 2,
-    tags: ['韓国', 'プチプラ', 'トレンド', 'K-POP'],
-    category: 'ec-brand',
-    targetAge: '18-25',
-    priceRange: 'low',
-    initialProducts: 300,
-    maxProducts: 1200,
-    rotationDays: 3
+    name: 'Theory',
+    keywords: ['Theory セオリー'],
+    priority: 7,
+    tags: ['モダン', 'シャープ', 'オフィス', 'ハイクオリティ'],
+    category: 'high-brand',
+    targetAge: '30-45',
+    priceRange: 'high',
+    initialProducts: 200,
+    maxProducts: 800,
+    rotationDays: 7
   },
   {
-    name: 'しまむら',
-    keywords: ['しまむら シマムラ'],
-    priority: 1,
-    tags: ['プチプラ', 'ファミリー', 'ベーシック', '地域密着'],
-    category: 'fast-fashion',
-    targetAge: '20-50',
-    priceRange: 'low',
-    initialProducts: 1000,
-    maxProducts: 3000,
-    rotationDays: 3
+    name: 'TOMORROWLAND',
+    keywords: ['TOMORROWLAND トゥモローランド'],
+    priority: 7,
+    tags: ['トラッド', 'エレガント', '上質', 'インポート'],
+    category: 'high-brand',
+    targetAge: '30-45',
+    priceRange: 'high',
+    initialProducts: 200,
+    maxProducts: 800,
+    rotationDays: 7
+  },
+  {
+    name: 'GALLARDAGALANTE',
+    keywords: ['GALLARDAGALANTE ガリャルダガランテ'],
+    priority: 7,
+    tags: ['エレガント', 'モード', 'フェミニン', '上質'],
+    category: 'high-brand',
+    targetAge: '30-45',
+    priceRange: 'high',
+    initialProducts: 150,
+    maxProducts: 600,
+    rotationDays: 7
   }
 ];
 
-// 同期履歴ファイルのパス
-const SYNC_HISTORY_FILE = path.join(__dirname, '..', '..', 'data', 'sync-history-phase3.json');
-
-// メイン同期関数
-async function syncProducts() {
-  console.log('\n🚀 Phase 3 統合同期開始');
-  console.log(`📋 設定:
-  - モード: ${SYNC_MODE}
-  - 優先度フィルター: ${PRIORITY_FILTER}
-  - 対象年齢: ${TARGET_AGE}
-  - 商品数制限: ${PRODUCT_LIMIT}
-  - 機能: ${ENABLE_FEATURES}
-  - 季節: ${CURRENT_SEASON}
-  - ドライラン: ${DRY_RUN}
-  - 容量警告: ${CAPACITY_WARNING}`);
-
-  if (DRY_RUN) {
-    console.log('\n🔍 ドライランモード - データベースへの変更は行いません');
+// 同期履歴の読み込み
+async function loadSyncHistory() {
+  const historyPath = path.join(__dirname, '..', '..', 'data', 'sync-history.json');
+  try {
+    await fs.access(historyPath);
+    const data = await fs.readFile(historyPath, 'utf8');
+    return JSON.parse(data);
+  } catch (error) {
+    return {};
   }
-
-  // 同期するブランドの選択
-  let brandsToSync = selectBrandsToSync();
-  console.log(`\n📦 同期対象: ${brandsToSync.length}ブランド`);
-
-  // 同期履歴の読み込み
-  const syncHistory = await loadSyncHistory();
-  
-  let totalSynced = 0;
-  let totalSuccess = 0;
-  let totalFailed = 0;
-
-  // ブランドごとに同期
-  for (const brand of brandsToSync) {
-    try {
-      console.log(`\n🏷️  ${brand.name} の同期開始...`);
-      
-      // 商品数の決定
-      const productCount = determineProductCount(brand, syncHistory);
-      console.log(`  目標商品数: ${productCount}`);
-
-      // 商品の取得と同期
-      const synced = await syncBrandProducts(brand, productCount);
-      
-      totalSynced += synced;
-      totalSuccess++;
-      
-      // 同期履歴の更新
-      if (!DRY_RUN) {
-        await updateSyncHistory(syncHistory, brand, synced);
-      }
-      
-      console.log(`  ✅ ${synced}件の商品を同期`);
-    } catch (error) {
-      console.error(`  ❌ ${brand.name} の同期失敗:`, error.message);
-      totalFailed++;
-    }
-
-    // API制限対策
-    await sleep(1000);
-  }
-
-  // 同期履歴の保存
-  if (!DRY_RUN) {
-    await saveSyncHistory(syncHistory);
-  }
-
-  // 最終レポート
-  console.log(`\n📊 同期完了レポート:
-  - 成功ブランド: ${totalSuccess}
-  - 失敗ブランド: ${totalFailed}
-  - 同期商品数: ${totalSynced}
-  - 対象年齢層: 20-40代女性
-  - ブランド総数: ${PHASE3_BRANDS.length}`);
 }
 
-// ブランド選択関数（改善版：ローテーション機能追加）
-function selectBrandsToSync() {
-  let brands = [...PHASE3_BRANDS];
-
-  // 日付ベースの優先度シフト（ブランド多様性の改善）
-  const dayOfWeek = new Date().getDay();
-  const priorityShift = dayOfWeek % 8; // 0-7の値
+// 同期履歴の保存
+async function saveSyncHistory(history) {
+  const dataDir = path.join(__dirname, '..', '..', 'data');
+  const historyPath = path.join(dataDir, 'sync-history.json');
   
-  // 優先度のローテーション適用
-  brands = brands.map(brand => ({
-    ...brand,
-    effectivePriority: (brand.priority + priorityShift) % 8,
-    originalPriority: brand.priority
-  }));
+  try {
+    await fs.mkdir(dataDir, { recursive: true });
+    await fs.writeFile(historyPath, JSON.stringify(history, null, 2));
+  } catch (error) {
+    console.error('同期履歴の保存に失敗:', error);
+  }
+}
 
-  // モードによるフィルタリング
+// ブランド選択とローテーション
+function selectBrands(allBrands, syncHistory) {
+  let brands = [...allBrands];
+  
+  // 各ブランドの実効優先度を計算
+  brands = brands.map(brand => {
+    const history = syncHistory[brand.name];
+    let effectivePriority = brand.priority;
+    
+    if (history) {
+      const daysSinceLastSync = Math.floor(
+        (Date.now() - new Date(history.lastSync).getTime()) / (1000 * 60 * 60 * 24)
+      );
+      
+      // ローテーション期間を過ぎたブランドは優先度を上げる
+      if (daysSinceLastSync >= brand.rotationDays) {
+        effectivePriority = Math.max(0, brand.priority - 2);
+      } else if (daysSinceLastSync >= brand.rotationDays * 0.7) {
+        effectivePriority = Math.max(0, brand.priority - 1);
+      }
+    } else {
+      // 未同期のブランドは優先
+      effectivePriority = Math.max(0, brand.priority - 1);
+    }
+    
+    return {
+      ...brand,
+      originalPriority: brand.priority,
+      effectivePriority,
+      daysSinceLastSync: history ? 
+        Math.floor((Date.now() - new Date(history.lastSync).getTime()) / (1000 * 60 * 60 * 24)) : 
+        999
+    };
+  });
+
+  // 同期モードによる選択
   switch (SYNC_MODE) {
     case 'mvp':
+      // MVP: 優先度0-2のブランドのみ（約15ブランド）
       brands = brands.filter(b => b.originalPriority <= 2);
       break;
     case 'extended':
+      // 拡張MVP: 優先度0-4のブランド（約30ブランド）
       brands = brands.filter(b => b.originalPriority <= 4);
       break;
     case 'seasonal':
-      // 季節に応じたタグを持つブランドを優先
+      // 季節商品優先
       brands = prioritizeSeasonalBrands(brands);
       break;
     case 'age_targeted':
-      // 特定年齢層向けブランドのみ
-      if (TARGET_AGE !== 'all') {
-        brands = brands.filter(b => b.targetAge.includes(TARGET_AGE.split('-')[0]));
+      // 年代別最適化
+      if (TARGET_AGE && TARGET_AGE !== 'all') {
+        brands = brands.filter(b => {
+          const [minAge, maxAge] = TARGET_AGE.split('-').map(Number);
+          const brandAges = b.targetAge.split('-').map(Number);
+          return brandAges[0] <= maxAge && brandAges[1] >= minAge;
+        });
       }
       break;
     case 'test':
-      // テスト用に最初の5ブランドのみ
+      // テストモード: 最初の5ブランドのみ
       brands = brands.slice(0, 5);
       break;
+    // 'full'の場合は全ブランドを対象とする
   }
 
   // 優先度フィルター
@@ -967,17 +1530,36 @@ async function fetchProductsFromRakuten(keyword, limit, brand) {
             return !excludeKeywords.some(keyword => title.includes(keyword));
           })
           .map(item => {
-            // 高画質画像URLの選択（優先順位）
-            const imageUrl = 
-              item.Item.shopOfTheYearFlag ? 
-                (item.Item.mediumImageUrls[0]?.imageUrl?.replace('/128x128/', '/') || '') :
-                (item.Item.mediumImageUrls[0]?.imageUrl || '');
+            // 高画質画像URLの選択と最適化
+            let imageUrl = '';
             
-            // 追加の画像URLも保存（将来的な複数画像表示用）
+            // 1. mediumImageUrlsがある場合は最初のURLを使用（通常300x300程度）
+            if (item.Item.mediumImageUrls && item.Item.mediumImageUrls.length > 0) {
+              const mediumUrl = item.Item.mediumImageUrls[0];
+              // オブジェクト形式の場合と文字列形式の場合に対応
+              imageUrl = typeof mediumUrl === 'string' ? mediumUrl : mediumUrl.imageUrl || '';
+            }
+            // 2. imageUrlがある場合（通常128x128）
+            else if (item.Item.imageUrl) {
+              imageUrl = item.Item.imageUrl;
+            }
+            // 3. smallImageUrlsがある場合（通常64x64）
+            else if (item.Item.smallImageUrls && item.Item.smallImageUrls.length > 0) {
+              const smallUrl = item.Item.smallImageUrls[0];
+              imageUrl = typeof smallUrl === 'string' ? smallUrl : smallUrl.imageUrl || '';
+            }
+            
+            // 画像URLを最適化（アプリと同じロジック）
+            imageUrl = optimizeImageUrl(imageUrl);
+            
+            // 追加の画像URLも最適化して保存（将来的な複数画像表示用）
             const additionalImages = item.Item.mediumImageUrls
               .slice(1, 4)
-              .map(img => img?.imageUrl?.replace('/128x128/', '/') || '')
-              .filter(url => url);
+              .map(img => {
+                const url = typeof img === 'string' ? img : img?.imageUrl || '';
+                return optimizeImageUrl(url);
+              })
+              .filter(url => url && !url.includes('picsum.photos')); // プレースホルダーを除外
 
             return {
               productId: `rakuten_${item.Item.itemCode}`,
@@ -985,7 +1567,7 @@ async function fetchProductsFromRakuten(keyword, limit, brand) {
               price: item.Item.itemPrice,
               imageUrl: imageUrl,
               additionalImages: additionalImages,
-              thumbnailUrl: item.Item.smallImageUrls[0]?.imageUrl || '', // サムネイル用
+              thumbnailUrl: optimizeImageUrl(item.Item.smallImageUrls[0]?.imageUrl || ''), // サムネイル用も最適化
               productUrl: item.Item.itemUrl,
               shopName: item.Item.shopName,
               shopCode: item.Item.shopCode,
@@ -1097,24 +1679,64 @@ function calculateRecommendationScore(product, brand) {
       winter: 'summer'
     };
     const oppositeSeason = oppositeSeasons[CURRENT_SEASON];
-    if (oppositeSeason) {
-      const oppositeSeasonalTags = generateSeasonalTags(product, oppositeSeason);
-      if (oppositeSeasonalTags.length > 0) {
-        score -= oppositeSeasonalTags.length * 10; // 季節外れのペナルティ
-      }
+    const oppositeSeasonalTags = generateSeasonalTags(product, oppositeSeason);
+    if (oppositeSeasonalTags.length > 0) {
+      score -= 10 + (oppositeSeasonalTags.length * 3); // ペナルティ
     }
   }
 
-  return Math.min(Math.max(score, 0), 100);
+  return Math.max(0, Math.min(100, score)); // 0-100の範囲に正規化
+}
+
+// 季節タグ生成（改善版：より詳細な季節キーワード）
+function generateSeasonalTags(product, season) {
+  const seasonalKeywords = {
+    spring: [
+      '春', '薄手', 'ライト', 'パステル', 'フローラル', '花柄',
+      'トレンチ', 'スプリングコート', 'カーディガン', '七分袖',
+      'ブラウス', 'シフォン', 'レース', '桜', 'ピンク'
+    ],
+    summer: [
+      '夏', '涼感', '涼しい', 'クール', 'リネン', '麻',
+      'ノースリーブ', '半袖', 'サンダル', 'ショートパンツ',
+      'キャミソール', 'タンクトップ', 'サマー', 'マリン',
+      'ボーダー', 'ホワイト', 'UV', '日焼け'
+    ],
+    autumn: [
+      '秋', 'ニット', 'セーター', 'チェック', 'タータン',
+      'ブラウン', 'ボルドー', 'カーキ', 'アースカラー',
+      '長袖', 'ブーツ', 'ジャケット', 'コーデュロイ',
+      'スエード', 'ファー', 'ウール'
+    ],
+    winter: [
+      '冬', 'コート', 'ダウン', 'ファー', 'ボア', 'フリース',
+      'ニット', 'セーター', 'タートルネック', 'マフラー',
+      '手袋', 'ブーツ', '防寒', 'あったか', '暖かい',
+      'ウール', 'カシミヤ', 'モヘア'
+    ]
+  };
+
+  const keywords = seasonalKeywords[season] || [];
+  const tags = [];
+
+  const searchText = `${product.title} ${product.catchCopy} ${product.itemCaption}`.toLowerCase();
+  
+  keywords.forEach(keyword => {
+    if (searchText.includes(keyword.toLowerCase())) {
+      tags.push(keyword);
+    }
+  });
+
+  return [...new Set(tags)];
 }
 
 // 価格帯チェック
 function isPriceInRange(price, range) {
   const ranges = {
     'low': [0, 5000],
-    'low-middle': [3000, 10000],
-    'middle': [8000, 20000],
-    'middle-high': [15000, 40000],
+    'low-middle': [3000, 15000],
+    'middle': [8000, 30000],
+    'middle-high': [20000, 50000],
     'high': [30000, Infinity]
   };
   
@@ -1122,106 +1744,67 @@ function isPriceInRange(price, range) {
   return price >= min && price <= max;
 }
 
-// 季節タグ生成
-function generateSeasonalTags(product, season) {
-  const seasonalKeywords = {
-    spring: ['春', 'スプリング', '薄手', 'パステル', '花柄'],
-    summer: ['夏', 'サマー', '涼感', 'ノースリーブ', '半袖'],
-    autumn: ['秋', 'オータム', 'ニット', 'チェック', '長袖'],
-    winter: ['冬', 'ウィンター', 'コート', '厚手', 'ウール']
-  };
+// データベースへの保存（改善版：バッチ処理）
+const productBatch = [];
+const BATCH_SIZE = 100;
 
-  const keywords = seasonalKeywords[season] || [];
-  const tags = [];
-
-  keywords.forEach(keyword => {
-    if (product.title.includes(keyword) || product.catchCopy.includes(keyword)) {
-      tags.push(keyword);
-    }
+async function saveProductToDatabase(product) {
+  productBatch.push({
+    id: product.productId,
+    title: product.title,
+    price: product.price,
+    image_url: product.imageUrl,
+    product_url: product.productUrl,
+    brand: product.shopName,
+    tags: product.ml_tags || [],
+    source: 'rakuten',
+    source_brand: product.source_brand,
+    source_category: product.brand_category,
+    brand_priority: product.brand_priority,
+    target_age: product.target_age,
+    price_range: product.price_range,
+    is_active: true,
+    recommendation_score: product.recommendation_score || 50,
+    review_average: product.reviewAverage,
+    review_count: product.reviewCount,
+    seasonal_tags: product.seasonal_tags || [],
+    last_synced: product.last_synced,
+    created_at: new Date().toISOString(),
+    
+    // 追加フィールド（高画質版）
+    additional_images: product.additionalImages || [],
+    thumbnail_url: product.thumbnailUrl || '',
+    catch_copy: product.catchCopy || '',
+    item_caption: product.itemCaption || '',
+    availability: product.availability || 1,
+    tax_flag: product.taxFlag || 0,
+    shop_code: product.shopCode || ''
   });
 
-  return tags;
+  // バッチサイズに達したら保存
+  if (productBatch.length >= BATCH_SIZE) {
+    await flushProductBatch();
+  }
 }
 
-// 季節商品判定
-function isSeasonalProduct(product, season) {
-  const seasonalTags = generateSeasonalTags(product, season);
-  return seasonalTags.length > 0;
-}
+// バッチの実行
+async function flushProductBatch() {
+  if (productBatch.length === 0) return;
 
-// データベース保存（修正版）
-async function saveProductToDatabase(product) {
   try {
     const { error } = await supabase
       .from('external_products')
-      .upsert({
-        id: product.productId, // プライマリキーはidカラム
-        title: product.title,
-        price: product.price,
-        brand: product.shopName || product.source_brand, // brandカラムに店舗名を保存
-        image_url: product.imageUrl, // 高画質画像URL
-        description: product.itemCaption || product.catchCopy || '', // 商品説明
-        tags: product.ml_tags || [],
-        category: product.brand_category || null, // カテゴリ
-        genre_id: 100371, // レディースファッションのジャンルID
-        affiliate_url: product.productUrl || '', // アフィリエイトURL
-        source: 'rakuten',
-        source_brand: product.source_brand,
-        is_active: product.is_active,
-        last_synced: product.last_synced,
-        // レビュー関連
-        rating: product.reviewAverage || null,
-        review_count: product.reviewCount || 0,
-        // 優先度
-        priority: product.brand_priority || 999,
-        // 中古品フラグ
-        is_used: false // APIから取得した商品は新品のみ
-      }, {
-        onConflict: 'id' // プライマリキーで競合チェック
-      });
+      .upsert(productBatch, { onConflict: 'id' });
 
     if (error) {
-      throw error;
+      console.error('商品保存エラー:', error);
     }
   } catch (error) {
-    console.error('  DB保存エラー:', error.message);
-    throw error;
-  }
-}
-
-// 同期履歴の読み込み
-async function loadSyncHistory() {
-  try {
-    const data = await fs.readFile(SYNC_HISTORY_FILE, 'utf8');
-    return JSON.parse(data);
-  } catch {
-    return {};
-  }
-}
-
-// 同期履歴の更新
-async function updateSyncHistory(history, brand, syncedCount) {
-  if (!history[brand.name]) {
-    history[brand.name] = {
-      firstSync: new Date().toISOString(),
-      totalProducts: 0,
-      syncCount: 0
-    };
+    console.error('バッチ保存エラー:', error);
   }
 
-  history[brand.name].lastSync = new Date().toISOString();
-  history[brand.name].totalProducts += syncedCount;
-  history[brand.name].syncCount += 1;
-}
-
-// 同期履歴の保存
-async function saveSyncHistory(history) {
-  try {
-    await fs.mkdir(path.dirname(SYNC_HISTORY_FILE), { recursive: true });
-    await fs.writeFile(SYNC_HISTORY_FILE, JSON.stringify(history, null, 2));
-  } catch (error) {
-    console.error('同期履歴の保存エラー:', error);
-  }
+  // バッチをクリア
+  productBatch.length = 0;
 }
 
 // スリープ関数
@@ -1229,13 +1812,145 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// メイン実行
-(async () => {
-  try {
-    await syncProducts();
-    process.exit(0);
-  } catch (error) {
-    console.error('\n❌ 同期エラー:', error);
-    process.exit(1);
+// メイン処理
+async function main() {
+  console.log('🚀 Phase 3 商品同期を開始します（高画質版）');
+  console.log(`⚙️ 設定: ${JSON.stringify({
+    SYNC_MODE,
+    PRIORITY_FILTER,
+    TARGET_AGE,
+    PRODUCT_LIMIT,
+    ENABLE_FEATURES,
+    DRY_RUN,
+    CURRENT_SEASON,
+    CAPACITY_WARNING
+  }, null, 2)}`);
+  
+  if (DRY_RUN) {
+    console.log('🔍 ドライランモード: データベースへの変更は行いません');
   }
-})();
+
+  const startTime = Date.now();
+  const syncHistory = await loadSyncHistory();
+  const selectedBrands = selectBrands(PHASE3_BRANDS, syncHistory);
+  
+  console.log(`\n📋 同期対象: ${selectedBrands.length}ブランド`);
+  
+  let totalProducts = 0;
+  let successBrands = 0;
+  let failedBrands = 0;
+  const brandResults = [];
+
+  for (let i = 0; i < selectedBrands.length; i++) {
+    const brand = selectedBrands[i];
+    const targetCount = determineProductCount(brand, syncHistory);
+    
+    console.log(`\n[${i + 1}/${selectedBrands.length}] 🏷️ ${brand.name}`);
+    console.log(`  優先度: ${brand.priority} (実効: ${brand.effectivePriority})`);
+    console.log(`  最終同期: ${brand.daysSinceLastSync}日前`);
+    console.log(`  目標商品数: ${targetCount}`);
+    
+    try {
+      const syncedCount = await syncBrandProducts(brand, targetCount);
+      totalProducts += syncedCount;
+      successBrands++;
+      
+      // 最後のバッチを実行
+      if (i === selectedBrands.length - 1 || !DRY_RUN) {
+        await flushProductBatch();
+      }
+      
+      console.log(`  ✅ 完了: ${syncedCount}商品`);
+      
+      // 同期履歴を更新
+      if (!DRY_RUN) {
+        syncHistory[brand.name] = {
+          lastSync: new Date().toISOString(),
+          totalProducts: syncedCount,
+          targetCount: targetCount,
+          priority: brand.priority
+        };
+      }
+      
+      brandResults.push({
+        brand: brand.name,
+        success: true,
+        synced: syncedCount,
+        target: targetCount
+      });
+      
+    } catch (error) {
+      console.error(`  ❌ エラー: ${error.message}`);
+      failedBrands++;
+      brandResults.push({
+        brand: brand.name,
+        success: false,
+        error: error.message
+      });
+    }
+    
+    // API制限対策
+    if (i < selectedBrands.length - 1) {
+      await sleep(1000);
+    }
+  }
+
+  // 最後のバッチを確実に実行
+  await flushProductBatch();
+  
+  // 同期履歴を保存
+  if (!DRY_RUN) {
+    await saveSyncHistory(syncHistory);
+  }
+  
+  const endTime = Date.now();
+  const duration = Math.round((endTime - startTime) / 1000);
+  
+  console.log('\n' + '='.repeat(60));
+  console.log('📊 同期完了レポート');
+  console.log('='.repeat(60));
+  console.log(`実行時間: ${Math.floor(duration / 60)}分${duration % 60}秒`);
+  console.log(`成功ブランド: ${successBrands}/${selectedBrands.length}`);
+  console.log(`失敗ブランド: ${failedBrands}`);
+  console.log(`同期商品数: ${totalProducts}`);
+  console.log(`ドライラン: ${DRY_RUN ? 'はい' : 'いいえ'}`);
+  
+  // 詳細レポート
+  console.log('\n📈 ブランド別結果:');
+  brandResults.forEach(result => {
+    if (result.success) {
+      console.log(`  ✅ ${result.brand}: ${result.synced}/${result.target}商品`);
+    } else {
+      console.log(`  ❌ ${result.brand}: ${result.error}`);
+    }
+  });
+  
+  // 統計情報
+  if (!DRY_RUN) {
+    const { data: stats } = await supabase
+      .from('external_products')
+      .select('source_brand, count', { count: 'exact', head: true })
+      .eq('is_active', true);
+    
+    console.log('\n📊 データベース統計:');
+    console.log(`  総商品数: ${stats?.count || 0}`);
+  }
+  
+  process.exit(failedBrands > 0 ? 1 : 0);
+}
+
+// エラーハンドリング
+process.on('unhandledRejection', (error) => {
+  console.error('未処理のエラー:', error);
+  process.exit(1);
+});
+
+// 実行
+if (require.main === module) {
+  main().catch(error => {
+    console.error('致命的エラー:', error);
+    process.exit(1);
+  });
+}
+
+module.exports = { optimizeImageUrl };
