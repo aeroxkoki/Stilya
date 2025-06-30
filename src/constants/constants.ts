@@ -1,11 +1,11 @@
 // APIエンドポイント
 export const API_BASE_URL = 'https://api.example.com'; // 本番環境では実際のAPIエンドポイントに変更する
 
-// 画像サイズ
+// 画像サイズ（最高画質対応）
 export const IMAGE_SIZES = {
   thumbnail: { width: 120, height: 120 },
-  medium: { width: 300, height: 300 },
-  large: { width: 600, height: 600 },
+  medium: { width: 400, height: 400 },
+  large: { width: 800, height: 800 }, // 最高画質
 };
 
 // アプリ設定
