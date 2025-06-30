@@ -31,15 +31,22 @@ export const getEnhancedRecommendations = async (
       ...filters
     };
 
-    // 並列でデータを取得
+    console.log('[integratedRecommendationService] Starting with limit:', limit);
+
+    // 並列でデータを取得（各ソースからより多くの商品を要求）
     const [internalRecsResult, trendingProducts, userPrefs] = await Promise.all([
       // 内部DBからの推薦（ユーザーのスワイプ履歴に基づく）
-      getRecommendations(userId, Math.floor(limit / 2), defaultFilters),
+      getRecommendations(userId, limit, defaultFilters), // 全limitを要求
       // トレンド商品（ランダム性を加えて取得）
-      fetchRandomizedProducts(Math.floor(limit / 2), 0, defaultFilters, `trending-${new Date().toDateString()}`),
+      fetchRandomizedProducts(limit, 0, defaultFilters, `trending-${new Date().toDateString()}`), // 全limitを要求
       // ユーザーの好み分析
       analyzeUserPreferences(userId)
     ]);
+
+    console.log('[integratedRecommendationService] Results:', {
+      internalRecs: internalRecsResult.success && 'data' in internalRecsResult ? internalRecsResult.data?.length : 0,
+      trending: trendingProducts.success && 'data' in trendingProducts ? trendingProducts.data?.length : 0,
+    });
 
     // 内部レコメンドの結果を取得
     let internalRecs = internalRecsResult.success && 'data' in internalRecsResult && internalRecsResult.data ? internalRecsResult.data : [];
@@ -55,10 +62,12 @@ export const getEnhancedRecommendations = async (
       // タグベースで関連商品を取得（external_productsから）
       const tagResult = await fetchProductsByTags(
         userPrefs.data.likedTags,
-        Math.floor(limit / 2),
+        limit, // 全limitを要求
         defaultFilters
       );
       forYouProducts = tagResult.success && 'data' in tagResult && tagResult.data ? tagResult.data : [];
+      
+      console.log('[integratedRecommendationService] ForYou products:', forYouProducts.length);
       
       // フィルター適用（中古品除外）
       if (!defaultFilters.includeUsed) {
@@ -66,24 +75,59 @@ export const getEnhancedRecommendations = async (
       }
     }
 
-    // データが少ない場合は補完（ランダム性を加えて取得）
-    if (forYouProducts.length < Math.floor(limit / 4)) {
+    // データが少ない場合は補完（より多くの商品を取得）
+    const currentTotal = internalRecs.length + (trendingProducts.data?.length || 0) + forYouProducts.length;
+    if (currentTotal < limit) {
+      console.log('[integratedRecommendationService] Not enough products, fetching additional:', {
+        currentTotal,
+        needed: limit - currentTotal
+      });
+      
       const additionalProducts = await fetchRandomizedProducts(
-        Math.floor(limit / 4), 
-        0, 
+        limit * 2, // より多くの商品を要求
+        Math.max(0, limit), // オフセットを調整
         defaultFilters,
-        `foryou-additional-${userId}-${new Date().toDateString()}`
+        `additional-${userId}-${new Date().getTime()}`
       );
-      const additionalProductsList = additionalProducts.success && 'data' in additionalProducts && additionalProducts.data ? additionalProducts.data : [];
-      forYouProducts = [...forYouProducts, ...additionalProductsList].slice(0, Math.floor(limit / 2));
+      
+      if (additionalProducts.success && additionalProducts.data) {
+        console.log('[integratedRecommendationService] Additional products fetched:', additionalProducts.data.length);
+        
+        // 既存の商品IDを収集
+        const existingIds = new Set([
+          ...internalRecs.map(p => p.id),
+          ...(trendingProducts.data || []).map(p => p.id),
+          ...forYouProducts.map(p => p.id)
+        ]);
+        
+        // 重複を除外して追加
+        const uniqueAdditional = additionalProducts.data.filter(p => !existingIds.has(p.id));
+        
+        // 各カテゴリに均等に分配
+        const perCategory = Math.ceil(uniqueAdditional.length / 3);
+        internalRecs = [...internalRecs, ...uniqueAdditional.slice(0, perCategory)];
+        if (trendingProducts.data) {
+          trendingProducts.data = [...trendingProducts.data, ...uniqueAdditional.slice(perCategory, perCategory * 2)];
+        }
+        forYouProducts = [...forYouProducts, ...uniqueAdditional.slice(perCategory * 2)];
+      }
     }
 
-    return {
+    const finalResult = {
       recommended: internalRecs,
       trending: trendingProducts.success && 'data' in trendingProducts && trendingProducts.data ? trendingProducts.data : [],
       forYou: forYouProducts,
       isLoading: false
     };
+
+    console.log('[integratedRecommendationService] Final results:', {
+      recommended: finalResult.recommended.length,
+      trending: finalResult.trending.length,
+      forYou: finalResult.forYou.length,
+      total: finalResult.recommended.length + finalResult.trending.length + finalResult.forYou.length
+    });
+
+    return finalResult;
   } catch (error) {
     console.error('Error getting enhanced recommendations:', error);
     // エラー時は部分的な結果でも返す
