@@ -104,10 +104,10 @@ export const saveSwipeResult = async (
     // 即座の判断かどうかを判定
     const isInstantDecision = metadata?.swipeTime ? metadata.swipeTime < 1000 : false;
 
-    // オンラインの場合はSupabaseに保存
+    // オンラインの場合はSupabaseに保存（UPSERT処理で重複を防ぐ）
     const { error } = await supabase
       .from('swipes')
-      .insert([
+      .upsert(
         {
           user_id: userId,
           product_id: productId,
@@ -115,8 +115,12 @@ export const saveSwipeResult = async (
           swipe_time_ms: metadata?.swipeTime || null,
           is_instant_decision: isInstantDecision,
         },
-      ])
-      .select('id'); // IDを返すように指定
+        { 
+          onConflict: 'user_id,product_id',
+          ignoreDuplicates: false 
+        }
+      )
+      .select('id');
 
     if (error) throw error;
 
