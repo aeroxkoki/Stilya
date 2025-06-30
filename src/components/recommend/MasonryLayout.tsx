@@ -159,7 +159,7 @@ const MasonryLayout: React.FC<MasonryLayoutProps> = ({
                 style={styles.touchable}
               >
                 <View style={[styles.imageContainer, { backgroundColor: theme.colors.surface }]}>
-                  {item.imageUrl ? (
+                  {item.imageUrl && item.imageUrl.trim() !== '' && !item.imageUrl.includes('placehold.co') ? (
                     <CachedImage
                       source={{ uri: item.imageUrl }}
                       style={styles.image}
@@ -176,6 +176,12 @@ const MasonryLayout: React.FC<MasonryLayoutProps> = ({
                       <Text style={[styles.priceText, { color: theme.colors.text.primary }]}>
                         ¥{item.price.toLocaleString()}
                       </Text>
+                    </View>
+                  )}
+                  
+                  {item.isUsed && (
+                    <View style={[styles.usedLabel, { backgroundColor: theme.colors.status?.warning || 'rgba(245, 158, 11, 0.9)' }]}>
+                      <Text style={styles.usedLabelText}>中古</Text>
                     </View>
                   )}
                 </View>
@@ -255,6 +261,19 @@ const styles = StyleSheet.create({
   },
   priceText: {
     fontSize: 14,
+    fontWeight: '600',
+  },
+  usedLabel: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  usedLabelText: {
+    color: '#ffffff',
+    fontSize: 11,
     fontWeight: '600',
   },
 });
