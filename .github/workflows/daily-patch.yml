@@ -1,0 +1,108 @@
+name: Daily Maintenance Patch
+
+on:
+  schedule:
+    # 毎日午前2時（JST 11:00）に実行
+    - cron: '0 17 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run mode'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+jobs:
+  daily-patch:
+    name: Run Daily Patch
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: 📦 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🏗️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.18.1'
+          cache: 'npm'
+
+      - name: 📥 Install dependencies
+        run: npm install
+
+      - name: 🔐 Setup environment
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" >> .env
+          echo "SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" >> .env
+          echo "EXPO_PUBLIC_SUPABASE_URL=${{ secrets.SUPABASE_URL }}" >> .env
+          echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" >> .env
+
+      - name: 🔧 Run daily patch
+        id: patch
+        run: |
+          echo "🚀 Starting daily maintenance patch..."
+          node scripts/maintenance/simple-daily-patch.js
+        env:
+          NODE_ENV: production
+          DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+
+      - name: 📊 Generate patch report
+        if: always()
+        run: |
+          echo "## Daily Patch Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Date**: $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ${{ steps.patch.outcome }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Dry Run**: ${{ github.event.inputs.dry_run || 'false' }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: 🚨 Notify on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Daily Patch Failed - ${new Date().toLocaleDateString()}`,
+              body: `The daily maintenance patch failed to execute.\n\nWorkflow run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              labels: ['bug', 'maintenance']
+            })
+
+  # オプション: パッチ成功後に追加タスクを実行
+  post-patch-tasks:
+    name: Post Patch Tasks
+    needs: daily-patch
+    if: success()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📦 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🏗️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.18.1'
+          cache: 'npm'
+
+      - name: 📥 Install dependencies
+        run: npm install
+
+      - name: 🔐 Setup environment
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" >> .env
+          echo "SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" >> .env
+
+      - name: 📈 Monitor capacity
+        run: |
+          echo "🔍 Checking database capacity..."
+          npm run monitor:capacity || true
+
+      - name: 🧹 Smart cleanup (dry run)
+        run: |
+          echo "🧹 Running smart cleanup analysis..."
+          npm run cleanup:dry-run || true

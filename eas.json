@@ -1,11 +1,11 @@
 {
   "cli": {
-    "version": ">=7.3.0",
+    "version": ">=14.1.0",
     "appVersionSource": "local"
   },
   "build": {
     "development": {
-      "node": "20.11.1",
+      "node": "20.18.1",
       "distribution": "internal",
       "android": {
         "buildType": "apk"
@@ -18,7 +18,7 @@
       }
     },
     "preview": {
-      "node": "20.11.1",
+      "node": "20.18.1",
       "distribution": "internal",
       "android": {
         "buildType": "apk"
@@ -31,7 +31,7 @@
       }
     },
     "production": {
-      "node": "20.11.1",
+      "node": "20.18.1",
       "distribution": "store",
       "env": {
         "NODE_ENV": "production"

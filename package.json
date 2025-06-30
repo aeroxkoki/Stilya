@@ -27,7 +27,9 @@
     "cleanup:execute": "node scripts/maintenance/smart-deletion-manager.js",
     "cleanup:emergency": "node scripts/maintenance/emergency-deletion.js",
     "db:migrate": "node scripts/database/migrate-schema.js",
-    "db:check": "node scripts/utils/check-products.ts"
+    "db:check": "node scripts/utils/check-products.ts",
+    "patch:daily": "node scripts/maintenance/simple-daily-patch.js",
+    "optimize:performance": "node scripts/optimize-performance.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.0",
