@@ -183,6 +183,199 @@ function calculateProductPriority(product) {
   return score;
 }
 
+// 商品品質スコアを計算（MVP改善版）
+function calculateProductQualityScore(product) {
+  let score = 50; // ベーススコア
+  
+  // 画像品質（高解像度URL使用で加点）
+  if (product.imageUrl && product.imageUrl.includes('_ex=800x800')) {
+    score += 10;
+  }
+  
+  // 説明の充実度
+  const descLength = (product.itemCaption || '').length;
+  if (descLength > 100) score += 10;
+  if (descLength > 300) score += 10;
+  
+  // レビュースコア
+  if (product.reviewAverage >= 4.0) score += 15;
+  if (product.reviewCount >= 50) score += 10;
+  if (product.reviewCount >= 100) score += 10;
+  
+  // 在庫状況
+  if (product.availability === 1) score += 5;
+  
+  return Math.min(score, 100); // 最大100点
+}
+
+// タグ生成システム（体系的なタグ付け）
+const TAG_PATTERNS = {
+  // スタイル系
+  style: {
+    'カジュアル': ['カジュアル', 'デイリー', 'リラックス', '楽ちん', 'ラフ'],
+    'フェミニン': ['フェミニン', 'ガーリー', '女性らしい', 'レディライク', 'エレガント'],
+    'モード': ['モード', 'モダン', 'アバンギャルド', 'エッジー', 'クール'],
+    'ナチュラル': ['ナチュラル', 'ゆったり', 'リネン', 'オーガニック', '自然'],
+    'きれいめ': ['きれいめ', 'オフィス', 'コンサバ', '上品', 'フォーマル'],
+    'ストリート': ['ストリート', 'ストカジ', 'スポーティ', 'アクティブ']
+  },
+  
+  // シーン系
+  occasion: {
+    'オフィス': ['オフィス', 'ビジネス', '通勤', 'OL', 'ワーク'],
+    'デート': ['デート', 'お出かけ', 'ディナー', 'おしゃれ'],
+    'パーティー': ['パーティー', '結婚式', '二次会', 'お呼ばれ'],
+    'カジュアル': ['デイリー', '普段着', '日常', 'お家'],
+    'フォーマル': ['フォーマル', 'セレモニー', '式典', '冠婚葬祭']
+  },
+  
+  // 季節系
+  season: {
+    '春': ['春', '春物', '春夏', 'スプリング', '薄手'],
+    '夏': ['夏', '夏物', 'サマー', '涼しい', '通気性'],
+    '秋': ['秋', '秋物', '秋冬', 'オータム', '長袖'],
+    '冬': ['冬', '冬物', 'ウィンター', '防寒', '暖かい', '厚手']
+  },
+  
+  // 素材系
+  material: {
+    'コットン': ['コットン', '綿', 'cotton', '綿100%'],
+    'ポリエステル': ['ポリエステル', 'ポリ', 'polyester'],
+    'ウール': ['ウール', 'wool', '毛', 'ニット'],
+    'リネン': ['リネン', '麻', 'linen'],
+    'シルク': ['シルク', '絹', 'silk'],
+    'デニム': ['デニム', 'ジーンズ', 'ジーパン']
+  },
+  
+  // シルエット系
+  fit: {
+    'タイト': ['タイト', 'スリム', 'フィット', '細身'],
+    'ルーズ': ['ルーズ', 'ゆったり', 'オーバーサイズ', 'ビッグ'],
+    'レギュラー': ['レギュラー', 'スタンダード', '標準'],
+    'フレア': ['フレア', 'Aライン', '広がり']
+  },
+  
+  // 色系
+  color: {
+    'モノトーン': ['ブラック', '黒', 'ホワイト', '白', 'グレー', '灰色', 'モノトーン'],
+    'パステル': ['パステル', 'ピンク', 'ブルー', 'イエロー', 'ミント', 'ラベンダー'],
+    'アース': ['ベージュ', 'ブラウン', 'カーキ', 'オリーブ', 'キャメル'],
+    'ビビッド': ['レッド', '赤', 'オレンジ', 'グリーン', '緑', 'ビビッド']
+  }
+};
+
+// 商品情報から体系的なタグを生成（MVP改善版）
+function generateProductTags(product, brand) {
+  const tags = new Set();
+  const searchText = `${product.title} ${product.catchCopy} ${product.itemCaption}`.toLowerCase();
+  
+  // スタイルタグ
+  const styleKeywords = {
+    'カジュアル': ['カジュアル', 'デイリー', 'ラフ', '普段着'],
+    'フェミニン': ['フェミニン', 'ガーリー', '女性らしい', 'レディライク'],
+    'モード': ['モード', 'モダン', 'アート', '個性的'],
+    'ナチュラル': ['ナチュラル', 'リネン', 'オーガニック', 'ゆったり'],
+    'エレガント': ['エレガント', '上品', 'クラシック', 'フォーマル'],
+    'ストリート': ['ストリート', 'ヒップホップ', 'スケーター'],
+    'きれいめ': ['きれいめ', 'オフィス', 'コンサバ', 'OL']
+  };
+  
+  // アイテムカテゴリタグ
+  const itemKeywords = {
+    'トップス': ['ブラウス', 'シャツ', 'ニット', 'カットソー', 'Tシャツ'],
+    'ボトムス': ['スカート', 'パンツ', 'デニム', 'ショートパンツ'],
+    'ワンピース': ['ワンピース', 'ドレス', 'オールインワン'],
+    'アウター': ['コート', 'ジャケット', 'ブルゾン', 'カーディガン']
+  };
+  
+  // 季節タグ
+  const seasonKeywords = {
+    '春夏': ['春', '夏', '半袖', '薄手', 'サマー', 'クール'],
+    '秋冬': ['秋', '冬', '長袖', '厚手', 'ウィンター', 'ウォーム']
+  };
+  
+  // マッチング処理
+  Object.entries(styleKeywords).forEach(([tag, keywords]) => {
+    if (keywords.some(keyword => searchText.includes(keyword))) {
+      tags.add(tag);
+    }
+  });
+  
+  Object.entries(itemKeywords).forEach(([tag, keywords]) => {
+    if (keywords.some(keyword => searchText.includes(keyword))) {
+      tags.add(tag);
+    }
+  });
+  
+  // 現在の季節に応じたタグ
+  const month = new Date().getMonth() + 1;
+  if (month >= 3 && month <= 8) {
+    if (seasonKeywords['春夏'].some(keyword => searchText.includes(keyword))) {
+      tags.add('春夏');
+    }
+  } else {
+    if (seasonKeywords['秋冬'].some(keyword => searchText.includes(keyword))) {
+      tags.add('秋冬');
+    }
+  }
+  
+  // ブランド固有タグ
+  if (brand.tags) {
+    brand.tags.forEach(tag => tags.add(tag));
+  }
+  
+  // 価格帯タグ
+  if (product.price < 3000) tags.add('プチプラ');
+  else if (product.price < 10000) tags.add('ミドルプライス');
+  else if (product.price < 30000) tags.add('ハイプライス');
+  else tags.add('ラグジュアリー');
+  
+  return Array.from(tags);
+}
+
+// 詳細なアイテムタイプ判定
+function detectDetailedItemType(text) {
+  const itemTypes = {
+    // トップス詳細
+    'ブラウス': ['ブラウス', 'blouse'],
+    'シャツ': ['シャツ', 'shirt'],
+    'Tシャツ': ['tシャツ', 't-shirt', 'ティーシャツ'],
+    'ニット': ['ニット', 'セーター', 'sweater', 'knit'],
+    'カーディガン': ['カーディガン', 'cardigan'],
+    'パーカー': ['パーカー', 'hoodie', 'フーディ'],
+    'ベスト': ['ベスト', 'vest'],
+    
+    // ボトムス詳細
+    'スカート': ['スカート', 'skirt'],
+    'パンツ': ['パンツ', 'pants', 'ズボン'],
+    'デニム': ['デニム', 'ジーンズ', 'jeans'],
+    'ショートパンツ': ['ショートパンツ', 'ショーパン', 'shorts'],
+    
+    // ワンピース・アウター
+    'ワンピース': ['ワンピース', 'ワンピ', 'dress'],
+    'コート': ['コート', 'coat'],
+    'ジャケット': ['ジャケット', 'jacket'],
+    'ブルゾン': ['ブルゾン', 'blouson']
+  };
+  
+  for (const [type, keywords] of Object.entries(itemTypes)) {
+    if (keywords.some(keyword => text.includes(keyword))) {
+      return type;
+    }
+  }
+  
+  return null;
+}
+
+// 現在の季節タグを取得
+function getCurrentSeasonTag() {
+  const month = new Date().getMonth() + 1;
+  if (month >= 3 && month <= 5) return '春';
+  if (month >= 6 && month <= 8) return '夏';
+  if (month >= 9 && month <= 11) return '秋';
+  return '冬';
+}
+
 // Phase 3対応ブランドリスト（全50-60ブランド）
 const PHASE3_BRANDS = [
   // Priority 0: スーパー優先（UNIQLO, GU, 無印良品）
@@ -1000,8 +1193,9 @@ async function syncBrandProducts(brand, targetCount) {
         source_category: category,
         is_active: true,
         last_synced: new Date().toISOString(),
-        ml_tags: [...brand.tags],
-        recommendation_score: calculateProductPriority(product)
+        ml_tags: generateProductTags(product, brand), // 新しいタグ生成システムを使用
+        recommendation_score: calculateProductPriority(product),
+        quality_score: calculateProductQualityScore(product) // 品質スコアを計算
       };
       
       // データベースへの保存
@@ -1044,6 +1238,7 @@ async function saveProductToDatabase(product) {
     seasonal_tags: product.seasonal_tags || [],
     last_synced: product.last_synced,
     created_at: new Date().toISOString(),
+    priority: product.quality_score || 50, // 品質スコアをpriorityフィールドに保存
     additional_images: product.additionalImages || [],
     thumbnail_url: product.thumbnailUrl || '',
     catch_copy: product.catchCopy || '',

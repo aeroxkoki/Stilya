@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { isOffline } from '@/utils/networkUtils';
+import { UserPreferenceService } from './userPreferenceService';
 
 // スワイプ結果の型定義
 export type SwipeResult = 'yes' | 'no';
@@ -123,6 +124,14 @@ export const saveSwipeResult = async (
       .select('id');
 
     if (error) throw error;
+
+    // リアルタイム学習を追加
+    await UserPreferenceService.updatePreferenceFromSwipe(
+      userId,
+      productId,
+      result,
+      metadata?.swipeTime
+    );
 
     // オフラインキャッシュも更新
     await syncOfflineSwipes();

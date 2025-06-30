@@ -3,7 +3,127 @@ import { Product, UserPreference } from '../types';
 import { FilterOptions, normalizeProduct } from './productService';
 import { addScoreNoise, shuffleArray, ensureProductDiversity } from '../utils/randomUtils';
 
+// レコメンデーションサービスクラス
 export class RecommendationService {
+  // 季節スコアを計算（改善版）
+  private static calculateSeasonalScore(product: Product): number {
+    const month = new Date().getMonth() + 1;
+    const currentSeason = month >= 3 && month <= 8 ? '春夏' : '秋冬';
+    
+    const tags = product.tags || [];
+    
+    // 季節性タグをチェック
+    if (tags.includes('seasonal:current')) {
+      return 2.0; // 現在の季節に最適
+    } else if (tags.includes('seasonal:all') || tags.includes('オールシーズン')) {
+      return 1.0; // オールシーズン商品
+    } else if (tags.includes('seasonal:off')) {
+      return 0.5; // 季節外れ
+    }
+    
+    // レガシー処理（タグがない場合）
+    if (tags.includes(currentSeason)) {
+      return 2.0;
+    }
+    
+    // 季節の変わり目の調整
+    const seasonTransitions: Record<number, { boost: string[], reduce: string[] }> = {
+      3: { boost: ['春', '春夏'], reduce: ['冬'] },
+      6: { boost: ['夏', '春夏'], reduce: ['春'] },
+      9: { boost: ['秋', '秋冬'], reduce: ['夏'] },
+      12: { boost: ['冬', '秋冬'], reduce: ['秋'] }
+    };
+    
+    const transition = seasonTransitions[month];
+    if (transition) {
+      for (const tag of transition.boost) {
+        if (tags.includes(tag)) return 1.5;
+      }
+      for (const tag of transition.reduce) {
+        if (tags.includes(tag)) return 0.7;
+      }
+    }
+    
+    return 1.0; // デフォルト
+  }
+  
+  // 価格適合度スコア（ガウス分布）
+  private static calculatePriceScore(
+    productPrice: number, 
+    userPriceRange: { min: number; max: number }
+  ): number {
+    const center = (userPriceRange.min + userPriceRange.max) / 2;
+    const sigma = (userPriceRange.max - userPriceRange.min) / 4;
+    
+    // ガウス分布による価格スコア
+    const score = Math.exp(-Math.pow(productPrice - center, 2) / (2 * sigma * sigma));
+    return score;
+  }
+  
+  // 人気度スコアを計算（新規追加）
+  private static calculatePopularityScore(product: Product): number {
+    const rating = product.rating || 0;
+    const reviewCount = product.review_count || 0;
+    
+    if (reviewCount === 0) return 0;
+    
+    // レビュー数の対数を使用（大量のレビューでも適度にスケール）
+    const reviewScore = Math.log(reviewCount + 1) / 10;
+    
+    // 評価と人気度の組み合わせ
+    const popularityScore = (rating / 5) * reviewScore;
+    
+    // タグベースのボーナス
+    const tags = product.tags || [];
+    if (tags.includes('popularity:high')) {
+      return popularityScore * 1.5;
+    } else if (tags.includes('popularity:medium')) {
+      return popularityScore * 1.2;
+    }
+    
+    return popularityScore;
+  }
+  
+  // 動的な重み付けを計算（改善版）
+  private static calculateDynamicWeights(
+    preferences: UserPreference
+  ): Record<string, number> {
+    const swipeCount = preferences.tagScores 
+      ? Object.values(preferences.tagScores).reduce((a, b) => a + b, 0)
+      : 0;
+    
+    // スワイプ数が少ない場合は人気度を重視
+    if (swipeCount < 10) {
+      return {
+        tag: 1.0,
+        category: 1.0,
+        brand: 0.5,
+        price: 1.0,
+        seasonal: 1.5,
+        popularity: 2.0
+      };
+    } else if (swipeCount < 50) {
+      return {
+        tag: 2.0,
+        category: 1.5,
+        brand: 0.8,
+        price: 1.2,
+        seasonal: 1.8,
+        popularity: 1.5
+      };
+    }
+    
+    // 通常の重み付け（十分な学習後）
+    return {
+      tag: 3.0,
+      category: 2.0,
+      brand: 1.0,
+      price: 1.5,
+      seasonal: 2.0,
+      popularity: 1.0
+    };
+  }
+
   // Analyze user preferences based on swipe history
   static async analyzeUserPreferences(userId: string | undefined | null) {
     try {
@@ -215,37 +335,46 @@ export class RecommendationService {
         return await RecommendationService.getPopularProducts(limit);
       }
 
-      // Score and sort products based on preference matching
+      // Score and sort products based on preference matching (改善版)
+      const weights = this.calculateDynamicWeights(preferences);
       const scoredProducts = unswipedProducts.map((product: Product) => {
-        let baseScore = 0;
+        let score = 0;
 
-        // Tag matching score
+        // タグマッチングスコア（既存のロジックを活用）
         if (product.tags && preferences.likedTags) {
           const matchingTags = product.tags.filter(tag => 
             preferences.likedTags.includes(tag)
           ).length;
-          baseScore += matchingTags * 3;
+          score += matchingTags * weights.tag;
         }
 
-        // Category matching score
+        // カテゴリマッチングスコア
         if (product.category && preferences.preferredCategories.includes(product.category)) {
-          baseScore += 2;
+          score += weights.category;
         }
 
-        // Brand matching score
+        // ブランドマッチングスコア
         if (preferences.brands && preferences.brands.includes(product.brand)) {
-          baseScore += 1;
+          score += weights.brand;
         }
 
-        // Price range score
+        // 価格適合度スコア（ガウス分布を使用）
         const priceRange = preferences.price_range || preferences.avgPriceRange;
-        if (product.price >= priceRange.min && 
-            product.price <= priceRange.max) {
-          baseScore += 1;
+        const priceScore = this.calculatePriceScore(product.price, priceRange);
+        score += priceScore * weights.price;
+
+        // 季節性スコア
+        const seasonalScore = this.calculateSeasonalScore(product);
+        score += seasonalScore * weights.seasonal;
+
+        // 人気度スコア（レビューベース）
+        if (product.rating && product.review_count) {
+          const popularityScore = (product.rating / 5) * Math.log(product.review_count + 1) / 10;
+          score += popularityScore * weights.popularity;
         }
 
         // ランダムノイズを追加（スコアの30%の範囲でランダム化）
-        const finalScore = addScoreNoise(baseScore, 0.3);
+        const finalScore = addScoreNoise(score, 0.3);
 
         return { ...product, score: finalScore };
       });
@@ -264,10 +393,11 @@ export class RecommendationService {
       // 再結合
       const finalProducts = [...shuffledTop, ...shuffledRemaining, ...remainingProducts];
       
-      // 多様性を確保
+      // 多様性を確保（改善版）
       const diverseProducts = ensureProductDiversity(finalProducts, {
         maxSameCategory: 2,
         maxSameBrand: 2,
+        maxSamePriceRange: 3,
         windowSize: 5
       });
         

@@ -44,23 +44,26 @@ export const shuffleArray = <T>(array: T[], seed?: string): T[] => {
  * 商品の多様性を確保するためのフィルタリング
  * 同じカテゴリやブランドが連続しないように調整
  */
-export const ensureProductDiversity = <T extends { category?: string; brand?: string }>(
+export const ensureProductDiversity = <T extends { category?: string; brand?: string; price?: number }>(
   products: T[],
   options: {
     maxSameCategory?: number;
     maxSameBrand?: number;
+    maxSamePriceRange?: number;
     windowSize?: number;
   } = {}
 ): T[] => {
   const {
     maxSameCategory = 2,
     maxSameBrand = 2,
+    maxSamePriceRange = 3,
     windowSize = 5
   } = options;
   
   const result: T[] = [];
   const recentCategories: string[] = [];
   const recentBrands: string[] = [];
+  const recentPriceRanges: string[] = [];
   
   for (const product of products) {
     // productがnullまたはundefinedの場合はスキップ
@@ -69,6 +72,14 @@ export const ensureProductDiversity = <T extends { category?: string; brand?: st
       continue;
     }
     
+    // 価格帯を判定
+    const priceRange = product.price 
+      ? product.price < 3000 ? 'low' :
+        product.price < 10000 ? 'middle' :
+        product.price < 30000 ? 'high' :
+        'luxury'
+      : 'unknown';
+    
     // カテゴリとブランドの出現回数をカウント
     const categoryCount = product.category 
       ? recentCategories.filter(c => c === product.category).length 
@@ -76,19 +87,30 @@ export const ensureProductDiversity = <T extends { category?: string; brand?: st
     const brandCount = product.brand 
       ? recentBrands.filter(b => b === product.brand).length 
       : 0;
+    const priceRangeCount = recentPriceRanges.filter(p => p === priceRange).length;
     
     // 多様性の条件を満たす場合のみ追加
-    if (categoryCount < maxSameCategory && brandCount < maxSameBrand) {
+    if (categoryCount < maxSameCategory && 
+        brandCount < maxSameBrand && 
+        priceRangeCount < maxSamePriceRange) {
       result.push(product);
       
       // 最近の履歴に追加
       if (product.category) recentCategories.push(product.category);
       if (product.brand) recentBrands.push(product.brand);
+      recentPriceRanges.push(priceRange);
       
       // ウィンドウサイズを超えたら古いものを削除
       if (recentCategories.length > windowSize) recentCategories.shift();
       if (recentBrands.length > windowSize) recentBrands.shift();
+      if (recentPriceRanges.length > windowSize) recentPriceRanges.shift();
     }
+  }
+  
+  // 不足分は元の順序で補完
+  if (result.length < products.length) {
+    const remaining = products.filter(p => !result.includes(p));
+    result.push(...remaining.slice(0, products.length - result.length));
   }
   
   return result;
