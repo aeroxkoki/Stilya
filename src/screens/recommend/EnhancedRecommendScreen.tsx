@@ -108,40 +108,38 @@ const EnhancedRecommendScreen: React.FC = () => {
         // ヒーロープロダクト（最も推薦度の高いもの）
         setHeroProduct(allProducts[0]);
         
-        // 通常商品とNew Direction商品を準備
-        const normalProducts = allProducts.slice(1, 11); // 2-11番目（10個）
-        const newDirectionProducts = allProducts.slice(11); // 12番目以降
+        // 通常商品とNew Direction商品を準備（全商品を使用）
+        const heroIndex = 1; // ヒーロー商品の次から
+        const allRemainingProducts = allProducts.slice(heroIndex);
         
-        // 商品を混ぜる（交互またはランダム）
+        console.log('[EnhancedRecommendScreen] Product distribution:', {
+          totalProducts: allProducts.length,
+          heroProduct: 1,
+          remainingProducts: allRemainingProducts.length
+        });
+        
+        // 商品を混ぜる（交互配置）
         const mixed: (Product & { isNewDirection?: boolean })[] = [];
-        const maxLength = Math.max(normalProducts.length, newDirectionProducts.length);
         
-        // 交互に配置する方式
-        for (let i = 0; i < maxLength; i++) {
-          // 通常商品を2個追加
-          if (i * 2 < normalProducts.length) {
-            mixed.push({ ...normalProducts[i * 2], isNewDirection: false });
-          }
-          if (i * 2 + 1 < normalProducts.length) {
-            mixed.push({ ...normalProducts[i * 2 + 1], isNewDirection: false });
-          }
-          
-          // New Direction商品を1個追加
-          if (i < newDirectionProducts.length) {
-            mixed.push({ ...newDirectionProducts[i], isNewDirection: true });
-          }
-        }
+        // 全商品に対してNew Directionフラグを設定
+        allRemainingProducts.forEach((product, index) => {
+          // 3商品に1つの割合でNew Direction商品として扱う
+          const isNewDirection = index % 3 === 2;
+          mixed.push({ ...product, isNewDirection });
+        });
         
-        // 残りの商品を追加
-        normalProducts.slice(maxLength * 2).forEach(p => {
-          mixed.push({ ...p, isNewDirection: false });
+        console.log('[EnhancedRecommendScreen] Mixed products:', {
+          mixedTotal: mixed.length,
+          normalCount: mixed.filter(p => !p.isNewDirection).length,
+          newDirectionCount: mixed.filter(p => p.isNewDirection).length
         });
         
         setMixedProducts(mixed);
         
-        // 旧実装の互換性のため残す（後で削除可能）
-        setGridItems(normalProducts);
-        setSurpriseItems(newDirectionProducts.slice(0, 4));
+        // デバッグ：エラー表示
+        if (mixed.length === 0) {
+          console.error('[EnhancedRecommendScreen] No products to display in MasonryLayout');
+        }
       }
       
       // フェードインアニメーション

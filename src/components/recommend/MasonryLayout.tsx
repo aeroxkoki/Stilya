@@ -206,13 +206,26 @@ const MasonryLayout: React.FC<MasonryLayoutProps> = ({
 
   // 初回アニメーション
   useEffect(() => {
-    // 最初の6個をアニメーション
-    distributeItemsToColumns.slice(0, 6).forEach((item, index) => {
+    // 全商品をアニメーション（パフォーマンスを考慮して最大20個まで）
+    const itemsToAnimate = Math.min(distributeItemsToColumns.length, 20);
+    distributeItemsToColumns.slice(0, itemsToAnimate).forEach((item, index) => {
       setTimeout(() => {
         const globalIndex = products.findIndex(p => p.id === item.id);
         animateItem(globalIndex);
-      }, index * 100);
+      }, index * 50); // アニメーション間隔を短縮
     });
+    
+    // 20個以降は即座に表示
+    if (distributeItemsToColumns.length > 20) {
+      setTimeout(() => {
+        distributeItemsToColumns.slice(20).forEach((item) => {
+          const globalIndex = products.findIndex(p => p.id === item.id);
+          if (fadeAnimations.current[globalIndex]) {
+            fadeAnimations.current[globalIndex].setValue(1);
+          }
+        });
+      }, 1000); // 1秒後に残りを表示
+    }
   }, [distributeItemsToColumns, products]);
 
   return (
