@@ -41,6 +41,7 @@ const EnhancedRecommendScreen: React.FC = () => {
   const [heroProduct, setHeroProduct] = useState<Product | null>(null);
   const [gridItems, setGridItems] = useState<Product[]>([]);
   const [surpriseItems, setSurpriseItems] = useState<Product[]>([]);
+  const [mixedProducts, setMixedProducts] = useState<(Product & { isNewDirection?: boolean })[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [filters] = useState<FilterOptions>({
     includeUsed: false
@@ -59,7 +60,7 @@ const EnhancedRecommendScreen: React.FC = () => {
       setError(null);
       
       const [recommendationResults] = await Promise.all([
-        getEnhancedRecommendations(user.id, 30, [], filters)
+        getEnhancedRecommendations(user.id, 50, [], filters)
       ]);
       
       // 重複を除外しながら商品を結合
@@ -107,12 +108,40 @@ const EnhancedRecommendScreen: React.FC = () => {
         // ヒーロープロダクト（最も推薦度の高いもの）
         setHeroProduct(allProducts[0]);
         
-        // グリッドアイテムの準備（2-16番目）
-        const gridProducts = allProducts.slice(1, 16);
-        setGridItems(gridProducts);
+        // 通常商品とNew Direction商品を準備
+        const normalProducts = allProducts.slice(1, 11); // 2-11番目（10個）
+        const newDirectionProducts = allProducts.slice(11); // 12番目以降
         
-        // サプライズアイテム（17-20番目）
-        setSurpriseItems(allProducts.slice(16, 20));
+        // 商品を混ぜる（交互またはランダム）
+        const mixed: (Product & { isNewDirection?: boolean })[] = [];
+        const maxLength = Math.max(normalProducts.length, newDirectionProducts.length);
+        
+        // 交互に配置する方式
+        for (let i = 0; i < maxLength; i++) {
+          // 通常商品を2個追加
+          if (i * 2 < normalProducts.length) {
+            mixed.push({ ...normalProducts[i * 2], isNewDirection: false });
+          }
+          if (i * 2 + 1 < normalProducts.length) {
+            mixed.push({ ...normalProducts[i * 2 + 1], isNewDirection: false });
+          }
+          
+          // New Direction商品を1個追加
+          if (i < newDirectionProducts.length) {
+            mixed.push({ ...newDirectionProducts[i], isNewDirection: true });
+          }
+        }
+        
+        // 残りの商品を追加
+        normalProducts.slice(maxLength * 2).forEach(p => {
+          mixed.push({ ...p, isNewDirection: false });
+        });
+        
+        setMixedProducts(mixed);
+        
+        // 旧実装の互換性のため残す（後で削除可能）
+        setGridItems(normalProducts);
+        setSurpriseItems(newDirectionProducts.slice(0, 4));
       }
       
       // フェードインアニメーション
@@ -252,88 +281,25 @@ const EnhancedRecommendScreen: React.FC = () => {
           </Animated.View>
         )}
         
-        {/* Your Style セクション */}
+        {/* 統合されたマスonry レイアウト */}
         <View style={styles.sectionContainer}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>
-            Your Style
+            Discover
           </Text>
           
-          {/* Masonry Layout */}
+          {/* Mixed Masonry Layout */}
           <MasonryLayout
-            products={gridItems}
+            products={mixedProducts}
             numColumns={2}
             spacing={8}
             onItemPress={handleProductPress}
             showPrice={true}
+            renderItem={(item: Product & { isNewDirection?: boolean }) => {
+              // New Direction商品には特別なバッジを表示（MasonryLayout内でカスタマイズ可能）
+              return item;
+            }}
           />
         </View>
-        
-        {/* ビジュアルブレイク：New Direction */}
-        {surpriseItems.length > 0 && (
-          <View style={styles.visualBreak}>
-            <LinearGradient
-              colors={[theme.colors.primary + '20', theme.colors.primary + '05']}
-              style={styles.gradientBreak}
-            >
-              <Text style={[styles.breakTitle, { color: theme.colors.primary }]}>
-                New Direction
-              </Text>
-            </LinearGradient>
-          </View>
-        )}
-        
-        {/* サプライズセクション */}
-        {surpriseItems.length > 0 && (
-          <View style={styles.surpriseSection}>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.surpriseScroll}
-            >
-              {surpriseItems.map((item, index) => (
-                <Animated.View
-                  key={item.id}
-                  style={[
-                    styles.surpriseItem,
-                    {
-                      opacity: fadeAnim,
-                      transform: [{
-                        rotateY: fadeAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: ['90deg', '0deg'],
-                        })
-                      }]
-                    }
-                  ]}
-                >
-                  <TouchableOpacity
-                    activeOpacity={0.9}
-                    onPress={() => handleProductPress(item)}
-                  >
-                    {item.imageUrl && item.imageUrl.trim() !== '' && !item.imageUrl.includes('placehold.co') ? (
-                      <Image
-                        source={{ uri: item.imageUrl }}
-                        style={styles.surpriseImage}
-                      />
-                    ) : (
-                      <View style={[styles.surpriseImage, styles.placeholderContainer]}>
-                        <Ionicons name="image-outline" size={50} color="#666" />
-                      </View>
-                    )}
-                    <View style={styles.surpriseInfo}>
-                      <View style={styles.newBadge}>
-                        <Text style={styles.newBadgeText}>New Discovery</Text>
-                      </View>
-                      <Text style={[styles.surprisePrice, { color: theme.colors.text.primary }]}>
-                        ¥{item.price.toLocaleString()}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                </Animated.View>
-              ))}
-            </ScrollView>
-          </View>
-        )}
         
         {/* スワイプ促進（控えめ） */}
         <TouchableOpacity 

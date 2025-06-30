@@ -24,14 +24,16 @@ interface MasonryItem extends Product {
   column: number;
   offsetY: number;
   animationDelay: number;
+  isNewDirection?: boolean;
 }
 
 interface MasonryLayoutProps {
-  products: Product[];
+  products: (Product & { isNewDirection?: boolean })[];
   numColumns?: number;
   spacing?: number;
   onItemPress: (product: Product) => void;
   showPrice?: boolean;
+  renderItem?: (item: Product & { isNewDirection?: boolean }) => Product & { isNewDirection?: boolean };
 }
 
 /**
@@ -44,6 +46,7 @@ const MasonryLayout: React.FC<MasonryLayoutProps> = ({
   spacing = 8,
   onItemPress,
   showPrice = true,
+  renderItem,
 }) => {
   const { theme } = useStyle();
   const fadeAnimations = useRef<Animated.Value[]>([]);
@@ -171,6 +174,14 @@ const MasonryLayout: React.FC<MasonryLayoutProps> = ({
                     </View>
                   )}
                   
+                  {/* New Directionバッジ */}
+                  {item.isNewDirection && (
+                    <View style={[styles.newDirectionBadge, { backgroundColor: theme.colors.primary }]}>
+                      <Ionicons name="sparkles" size={14} color="#ffffff" />
+                      <Text style={styles.newDirectionText}>New</Text>
+                    </View>
+                  )}
+                  
                   {showPrice && (
                     <View style={[styles.priceContainer, { backgroundColor: theme.colors.background + 'F0' }]}>
                       <Text style={[styles.priceText, { color: theme.colors.text.primary }]}>
@@ -274,6 +285,22 @@ const styles = StyleSheet.create({
   usedLabelText: {
     color: '#ffffff',
     fontSize: 11,
+    fontWeight: '600',
+  },
+  newDirectionBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 15,
+    gap: 4,
+  },
+  newDirectionText: {
+    color: '#ffffff',
+    fontSize: 12,
     fontWeight: '600',
   },
 });
