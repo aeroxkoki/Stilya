@@ -8,6 +8,7 @@ import PreferenceTrendsGraph from './PreferenceTrendsGraph';
 import StyleTips from './StyleTips';
 import ProductHorizontalList from './ProductHorizontalList';
 import OutfitRecommendation from './OutfitRecommendation';
+import MasonryLayout from './MasonryLayout';
 
 export {
   RecommendList,
@@ -19,5 +20,6 @@ export {
   PreferenceTrendsGraph,
   StyleTips,
   ProductHorizontalList,
-  OutfitRecommendation
+  OutfitRecommendation,
+  MasonryLayout
 };

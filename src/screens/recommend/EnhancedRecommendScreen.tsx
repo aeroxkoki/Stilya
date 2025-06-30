@@ -24,18 +24,11 @@ import {
 } from '@/services/integratedRecommendationService';
 import { Product } from '@/types';
 import { FilterOptions } from '@/services/productService';
+import { MasonryLayout } from '@/components/recommend';
 
 const { width, height } = Dimensions.get('window');
 
 type NavigationProp = RecommendScreenProps<'RecommendHome'>['navigation'];
-
-// グリッドアイテムのサイズタイプ
-type GridItemSize = 'large' | 'medium' | 'small';
-
-interface GridItem extends Product {
-  size: GridItemSize;
-  animationDelay: number;
-}
 
 const EnhancedRecommendScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
@@ -46,15 +39,12 @@ const EnhancedRecommendScreen: React.FC = () => {
   // 状態管理
   const [isLoading, setIsLoading] = useState(true);
   const [heroProduct, setHeroProduct] = useState<Product | null>(null);
-  const [gridItems, setGridItems] = useState<GridItem[]>([]);
+  const [gridItems, setGridItems] = useState<Product[]>([]);
   const [surpriseItems, setSurpriseItems] = useState<Product[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [filters] = useState<FilterOptions>({
     includeUsed: false
   });
-  
-  // 画像エラー時のフォールバック管理
-  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
   
   // アニメーション値
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -119,34 +109,7 @@ const EnhancedRecommendScreen: React.FC = () => {
         
         // グリッドアイテムの準備（2-16番目）
         const gridProducts = allProducts.slice(1, 16);
-        const processedGridItems: GridItem[] = gridProducts.map((product, index) => {
-          let size: GridItemSize;
-          if (index === 0 || index === 5) {
-            size = 'large';
-          } else if (index % 3 === 0) {
-            size = 'medium';
-          } else {
-            size = 'small';
-          }
-          
-          // デバッグ: 上部2つの画像URL詳細
-          if (index < 2) {
-            console.log(`[EnhancedRecommendScreen] Grid item ${index}:`, {
-              id: product.id,
-              title: product.title,
-              imageUrl: product.imageUrl,
-              size: size
-            });
-          }
-          
-          return {
-            ...product,
-            size,
-            animationDelay: index * 50
-          };
-        });
-        
-        setGridItems(processedGridItems);
+        setGridItems(gridProducts);
         
         // サプライズアイテム（17-20番目）
         setSurpriseItems(allProducts.slice(16, 20));
@@ -179,16 +142,6 @@ const EnhancedRecommendScreen: React.FC = () => {
     loadData();
   }, [loadData]);
   
-  // 画像URLを取得（フォールバック付き）
-  const getImageUrl = (product: Product): string => {
-    return product.imageUrl;
-  };
-  
-  // 画像読み込みエラーハンドラー
-  const handleImageError = (productId: string, imageUrl: string) => {
-    setImageErrors(prev => ({ ...prev, [productId]: true }));
-  };
-  
   // 商品タップハンドラー
   const handleProductPress = (product: Product) => {
     navigation.navigate('ProductDetail', { productId: product.id });
@@ -200,30 +153,6 @@ const EnhancedRecommendScreen: React.FC = () => {
     outputRange: [0, 1],
     extrapolate: 'clamp',
   });
-  
-  // グリッドアイテムのサイズ計算
-  const getItemDimensions = (size: GridItemSize) => {
-    const padding = 16;
-    const spacing = 8;
-    
-    switch (size) {
-      case 'large':
-        return {
-          width: width - padding * 2,
-          height: 400
-        };
-      case 'medium':
-        return {
-          width: (width - padding * 2 - spacing) * 0.6,
-          height: 280
-        };
-      case 'small':
-        return {
-          width: (width - padding * 2 - spacing * 2) / 3,
-          height: 160
-        };
-    }
-  };
   
   // ローディング表示
   if (isLoading && !heroProduct) {
@@ -329,72 +258,14 @@ const EnhancedRecommendScreen: React.FC = () => {
             Your Style
           </Text>
           
-          {/* ダイナミックグリッド */}
-          <View style={styles.dynamicGrid}>
-            {gridItems.map((item, index) => {
-              const dimensions = getItemDimensions(item.size);
-              return (
-                <Animated.View
-                  key={item.id}
-                  style={[
-                    styles.gridItem,
-                    dimensions,
-                    {
-                      opacity: fadeAnim,
-                      transform: [{
-                        translateY: fadeAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [30, 0],
-                        })
-                      }]
-                    }
-                  ]}
-                >
-                  <TouchableOpacity 
-                    activeOpacity={0.9}
-                    onPress={() => handleProductPress(item)}
-                    style={styles.gridItemTouchable}
-                  >
-                    {item.imageUrl && item.imageUrl.trim() !== '' && !item.imageUrl.includes('placehold.co') ? (
-                      <Image
-                        source={{ uri: getImageUrl(item) }}
-                        style={[styles.gridItemImage, { height: dimensions.height }]}
-                        onError={(error) => {
-                          handleImageError(item.id, getImageUrl(item));
-                        }}
-                        onLoad={() => {
-                          console.log('[GridImage] Successfully loaded:', getImageUrl(item));
-                        }}
-                      />
-                    ) : (
-                      <View style={[styles.gridItemImage, { height: dimensions.height }, styles.placeholderContainer]}>
-                        <Ionicons name="image-outline" size={40} color="#666" />
-                      </View>
-                    )}
-                    {item.size === 'large' && (
-                      <LinearGradient
-                        colors={['transparent', 'rgba(0,0,0,0.4)']}
-                        style={styles.gridItemGradient}
-                      >
-                        <View style={styles.gridItemInfo}>
-                          <Text style={styles.gridItemPrice}>
-                            ¥{item.price.toLocaleString()}
-                          </Text>
-                        </View>
-                      </LinearGradient>
-                    )}
-                    {item.size !== 'large' && (
-                      <View style={styles.smallItemInfo}>
-                        <Text style={styles.smallItemPrice}>
-                          ¥{item.price.toLocaleString()}
-                        </Text>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                </Animated.View>
-              );
-            })}
-          </View>
+          {/* Masonry Layout */}
+          <MasonryLayout
+            products={gridItems}
+            numColumns={2}
+            spacing={8}
+            onItemPress={handleProductPress}
+            showPrice={true}
+          />
         </View>
         
         {/* ビジュアルブレイク：New Direction */}
@@ -573,54 +444,6 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: 'bold',
     marginBottom: 16,
-  },
-  dynamicGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  gridItem: {
-    marginBottom: 8,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  gridItemTouchable: {
-    flex: 1,
-  },
-  gridItemImage: {
-    width: '100%',
-    resizeMode: 'cover',
-  },
-  gridItemGradient: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 100,
-    justifyContent: 'flex-end',
-    padding: 12,
-  },
-  gridItemInfo: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-  },
-  gridItemPrice: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  smallItemInfo: {
-    position: 'absolute',
-    bottom: 8,
-    right: 8,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  smallItemPrice: {
-    fontSize: 12,
-    fontWeight: '600',
   },
   visualBreak: {
     marginTop: 48,
