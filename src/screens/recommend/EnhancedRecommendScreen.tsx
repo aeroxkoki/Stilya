@@ -78,8 +78,7 @@ const EnhancedRecommendScreen: React.FC = () => {
           user.id, 
           isRefresh ? 50 : ITEMS_PER_PAGE, 
           [], 
-          filters,
-          isRefresh ? 0 : (page - 1) * ITEMS_PER_PAGE
+          filters
         )
       ]);
       
