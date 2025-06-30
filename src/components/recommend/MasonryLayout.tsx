@@ -1,7 +1,6 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import {
   View,
-  ScrollView,
   TouchableOpacity,
   StyleSheet,
   Dimensions,
@@ -24,8 +23,6 @@ interface MasonryLayoutProps {
   onItemPress: (product: Product) => void;
   showPrice?: boolean;
   renderItem?: (item: Product & { isNewDirection?: boolean }) => React.ReactNode;
-  onEndReached?: () => void;
-  onEndReachedThreshold?: number;
 }
 
 interface MasonryItem extends Product {
@@ -77,15 +74,12 @@ const MasonryLayout: React.FC<MasonryLayoutProps> = ({
   onItemPress,
   showPrice = true,
   renderItem,
-  onEndReached,
-  onEndReachedThreshold = 0.8,
 }) => {
   const { theme } = useStyle();
   const { isFavorite, addToFavorites, removeFromFavorites } = useFavorites();
   const fadeAnimations = useRef<Animated.Value[]>([]);
   const scaleAnimations = useRef<Animated.Value[]>([]);
   const [viewableItems, setViewableItems] = useState<Set<string>>(new Set());
-  const scrollViewRef = useRef<ScrollView>(null);
 
   // 各アイテムのアニメーション値を初期化
   useEffect(() => {
@@ -191,17 +185,6 @@ const MasonryLayout: React.FC<MasonryLayoutProps> = ({
         tension: 40,
         useNativeDriver: true,
       }).start();
-    }
-  };
-
-  // スクロールイベントハンドラー
-  const handleScroll = (event: any) => {
-    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
-    const paddingToBottom = 20;
-    const isCloseToBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom;
-    
-    if (isCloseToBottom && onEndReached) {
-      onEndReached();
     }
   };
 
@@ -352,24 +335,13 @@ const MasonryLayout: React.FC<MasonryLayoutProps> = ({
   }, [distributeItemsToColumns, products]);
 
   return (
-    <ScrollView
-      ref={scrollViewRef}
-      style={styles.container}
-      showsVerticalScrollIndicator={false}
-      scrollEventThrottle={16}
-      onScroll={handleScroll}
-    >
-      <View style={styles.columnsContainer}>
-        {columnData.map((column, index) => renderColumn(column, index))}
-      </View>
-    </ScrollView>
+    <View style={styles.columnsContainer}>
+      {columnData.map((column, index) => renderColumn(column, index))}
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   columnsContainer: {
     flexDirection: 'row',
     paddingHorizontal: designTokens.spacing.screenPadding,
@@ -413,19 +385,6 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
   },
-  brandContainer: {
-    position: 'absolute',
-    top: 8,
-    left: 8,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  brandName: {
-    fontSize: designTokens.typography.brandName.fontSize,
-    fontWeight: designTokens.typography.brandName.fontWeight as any,
-  },
   priceContainer: {
     position: 'absolute',
     bottom: 8,
@@ -453,7 +412,7 @@ const styles = StyleSheet.create({
   },
   newDirectionBadge: {
     position: 'absolute',
-    top: 40,
+    top: 8,
     left: 8,
     flexDirection: 'row',
     alignItems: 'center',
