@@ -239,8 +239,8 @@ jobs:
           # 同期実行
           echo "### Starting sync with mode: $SYNC_MODE" >> $GITHUB_STEP_SUMMARY
           
-          # Phase 3拡張スクリプトの実行（高画質版）
-          node scripts/sync/unified-phase3-sync-hq.js > sync_output.log 2>&1
+          # Phase 3拡張スクリプトの実行（フィルタリング強化版）
+          node scripts/sync/unified-phase3-sync-hq-filtered.js > sync_output.log 2>&1
           SYNC_EXIT_CODE=$?
           
           # エラー詳細の抽出（改善版）
