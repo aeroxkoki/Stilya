@@ -13,6 +13,7 @@ import {
   Animated,
   StatusBar,
   ListRenderItem,
+  ScrollView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { RecommendScreenProps } from '@/navigation/types';
@@ -25,18 +26,21 @@ import {
 } from '@/services/integratedRecommendationService';
 import { Product } from '@/types';
 import { FilterOptions } from '@/services/productService';
-import { MasonryLayout } from '@/components/recommend';
+import CachedImage from '@/components/common/CachedImage';
+import { useFavorites } from '@/hooks/useFavorites';
 
 const { width, height } = Dimensions.get('window');
 
 type NavigationProp = RecommendScreenProps<'RecommendHome'>['navigation'];
 
 const ITEMS_PER_PAGE = 20;
+const COLUMN_WIDTH = (width - 48) / 2; // 画面幅からパディングを引いて2分割
 
 const EnhancedRecommendScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
   const { theme } = useStyle();
+  const { isFavorite, addToFavorites, removeFromFavorites } = useFavorites();
   const scrollY = useRef(new Animated.Value(0)).current;
   
   // 状態管理
@@ -345,28 +349,83 @@ const EnhancedRecommendScreen: React.FC = () => {
     return <View style={{ height: 100 }} />;
   };
   
-  // リストアイテムのレンダリング（MasonryLayoutをバッチで使用）
-  const renderProducts: ListRenderItem<Product[]> = ({ item: productBatch }) => (
-    <MasonryLayout
-      products={productBatch}
-      numColumns={2}
-      spacing={12}
-      onItemPress={handleProductPress}
-      showPrice={true}
-    />
-  );
-  
-  // 商品をバッチに分割（パフォーマンス最適化）
-  const productBatches = React.useMemo(() => {
-    const batches: Product[][] = [];
-    const batchSize = 10; // 一度に10商品ずつレンダリング
+  // リストアイテムのレンダリング - 個別の商品をレンダリング
+  const renderProduct: ListRenderItem<Product> = ({ item, index }) => {
+    // 2カラムレイアウトのため、左右のアイテムを区別
+    const isLeftColumn = index % 2 === 0;
     
-    for (let i = 0; i < products.length; i += batchSize) {
-      batches.push(products.slice(i, i + batchSize));
-    }
+    // 高さを商品IDに基づいて決定（Pinterest風効果）
+    // IDの最後の文字をハッシュとして使用
+    const hash = item.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const normalizedHash = (hash % 100) / 100; // 0-1の範囲に正規化
+    const itemHeight = 180 + normalizedHash * 120; // 180-300の範囲
     
-    return batches;
-  }, [products]);
+    return (
+      <TouchableOpacity
+        activeOpacity={0.95}
+        onPress={() => handleProductPress(item)}
+        style={[
+          styles.productCard,
+          {
+            marginLeft: isLeftColumn ? 16 : 8,
+            marginRight: isLeftColumn ? 8 : 16,
+            height: itemHeight,
+          }
+        ]}
+      >
+        <View style={[styles.productImageContainer, { backgroundColor: theme.colors.surface }]}>
+          {item.imageUrl && item.imageUrl.trim() !== '' && !item.imageUrl.includes('placehold.co') ? (
+            <CachedImage
+              source={{ uri: item.imageUrl }}
+              style={styles.productImage}
+              contentFit="cover"
+            />
+          ) : (
+            <View style={styles.productPlaceholder}>
+              <Ionicons name="image-outline" size={40} color={theme.colors.text.secondary} />
+            </View>
+          )}
+          
+          {/* 価格表示 */}
+          <View style={[styles.priceTag, { backgroundColor: theme.colors.background + 'F0' }]}>
+            <Text style={[styles.priceText, { color: theme.colors.text.primary }]}>
+              ¥{item.price.toLocaleString()}
+            </Text>
+          </View>
+          
+          {/* お気に入りボタン */}
+          <TouchableOpacity
+            style={[styles.favoriteButton, { backgroundColor: theme.colors.background + 'CC' }]}
+            onPress={async (e) => {
+              e.stopPropagation();
+              try {
+                if (isFavorite(item.id)) {
+                  await removeFromFavorites(item.id);
+                } else {
+                  await addToFavorites(item.id);
+                }
+              } catch (error) {
+                console.error('Error toggling favorite:', error);
+              }
+            }}
+          >
+            <Ionicons 
+              name={isFavorite(item.id) ? "heart" : "heart-outline"} 
+              size={20} 
+              color={isFavorite(item.id) ? theme.colors.primary : theme.colors.text.primary} 
+            />
+          </TouchableOpacity>
+          
+          {/* 中古品ラベル */}
+          {item.isUsed && (
+            <View style={[styles.usedBadge, { backgroundColor: theme.colors.status?.warning || '#F59E0B' }]}>
+              <Text style={styles.usedText}>Used</Text>
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  };
   
   // ローディング表示
   if (isLoading && !heroProduct) {
@@ -402,28 +461,15 @@ const EnhancedRecommendScreen: React.FC = () => {
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <StatusBar barStyle="light-content" />
       
-      {/* アニメーションヘッダー */}
-      <Animated.View 
-        style={[
-          styles.header, 
-          { 
-            backgroundColor: theme.colors.background,
-            opacity: headerOpacity 
-          }
-        ]}
-      >
-        <Text style={[styles.headerTitle, { color: theme.colors.text.primary }]}>
-          For You
-        </Text>
-      </Animated.View>
-      
       <FlatList
         ref={flatListRef}
-        data={productBatches}
-        renderItem={renderProducts}
-        keyExtractor={(_, index) => `batch-${index}`}
+        data={products}
+        renderItem={renderProduct}
+        keyExtractor={(item) => item.id}
         ListHeaderComponent={ListHeaderComponent}
         ListFooterComponent={ListFooterComponent}
+        numColumns={2}
+        columnWrapperStyle={styles.columnWrapper}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: false }
@@ -442,13 +488,28 @@ const EnhancedRecommendScreen: React.FC = () => {
           console.log('[EnhancedRecommendScreen] onEndReached triggered');
           loadMoreProducts();
         }}
-        onEndReachedThreshold={0.5}
+        onEndReachedThreshold={0.3}
         removeClippedSubviews={true}
         maxToRenderPerBatch={10}
         windowSize={10}
         initialNumToRender={10}
         contentContainerStyle={styles.listContent}
       />
+      
+      {/* 固定ヘッダー */}
+      <Animated.View 
+        style={[
+          styles.header, 
+          { 
+            backgroundColor: theme.colors.background,
+            opacity: headerOpacity 
+          }
+        ]}
+      >
+        <Text style={[styles.headerTitle, { color: theme.colors.text.primary }]}>
+          For You
+        </Text>
+      </Animated.View>
     </View>
   );
 };
@@ -543,6 +604,68 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingBottom: 20,
+  },
+  columnWrapper: {
+    justifyContent: 'space-between',
+  },
+  productCard: {
+    width: COLUMN_WIDTH,
+    marginBottom: 12,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  productImageContainer: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 8,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  productImage: {
+    width: '100%',
+    height: '100%',
+  },
+  productPlaceholder: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+  },
+  priceTag: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  priceText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  favoriteButton: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  usedBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  usedText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '600',
   },
   loadingMoreContainer: {
     paddingVertical: 20,
