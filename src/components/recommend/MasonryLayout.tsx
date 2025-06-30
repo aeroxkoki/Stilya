@@ -7,34 +7,64 @@ import {
   Dimensions,
   Text,
   Animated,
-  FlatList,
-  NativeSyntheticEvent,
-  NativeScrollEvent,
-  ViewToken,
+  Pressable,
 } from 'react-native';
 import { Product } from '@/types';
 import CachedImage from '@/components/common/CachedImage';
 import { useStyle } from '@/contexts/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useFavorites } from '@/hooks/useFavorites';
 
-const { width: screenWidth } = Dimensions.get('window');
-
-interface MasonryItem extends Product {
-  height: number;
-  column: number;
-  offsetY: number;
-  animationDelay: number;
-  isNewDirection?: boolean;
-}
-
+// 型定義
 interface MasonryLayoutProps {
   products: (Product & { isNewDirection?: boolean })[];
   numColumns?: number;
   spacing?: number;
   onItemPress: (product: Product) => void;
   showPrice?: boolean;
-  renderItem?: (item: Product & { isNewDirection?: boolean }) => Product & { isNewDirection?: boolean };
+  renderItem?: (item: Product & { isNewDirection?: boolean }) => React.ReactNode;
+  onEndReached?: () => void;
+  onEndReachedThreshold?: number;
 }
+
+interface MasonryItem extends Product {
+  isNewDirection?: boolean;
+  height: number;
+  column: number;
+  offsetY: number;
+  animationDelay: number;
+}
+
+// デザイントークン
+const designTokens = {
+  spacing: {
+    cardGap: 12,
+    sectionGap: 24,
+    screenPadding: 16,
+  },
+  animation: {
+    springConfig: { friction: 8, tension: 40 },
+    fadeInDuration: 400,
+    pressScale: 0.95,
+  },
+  typography: {
+    brandName: { fontSize: 12, fontWeight: '600' },
+    price: { fontSize: 16, fontWeight: 'bold' },
+    badge: { fontSize: 10, fontWeight: '700' },
+  },
+  borderRadius: [8, 12, 16, 20],
+};
+
+// アイテムサイズの型定義
+type ItemSize = 'hero' | 'large' | 'medium' | 'small';
+
+const itemHeights = {
+  hero: { min: 400, max: 500 },
+  large: { min: 320, max: 400 },
+  medium: { min: 250, max: 320 },
+  small: { min: 180, max: 220 },
+};
 
 /**
  * Masonry Layout Component - Pinterest風レイアウト
@@ -43,27 +73,56 @@ interface MasonryLayoutProps {
 const MasonryLayout: React.FC<MasonryLayoutProps> = ({
   products,
   numColumns = 2,
-  spacing = 8,
+  spacing = designTokens.spacing.cardGap,
   onItemPress,
   showPrice = true,
   renderItem,
+  onEndReached,
+  onEndReachedThreshold = 0.8,
 }) => {
   const { theme } = useStyle();
+  const { isFavorite, addToFavorites, removeFromFavorites } = useFavorites();
   const fadeAnimations = useRef<Animated.Value[]>([]);
+  const scaleAnimations = useRef<Animated.Value[]>([]);
   const [viewableItems, setViewableItems] = useState<Set<string>>(new Set());
+  const scrollViewRef = useRef<ScrollView>(null);
 
   // 各アイテムのアニメーション値を初期化
   useEffect(() => {
     fadeAnimations.current = products.map(() => new Animated.Value(0));
+    scaleAnimations.current = products.map(() => new Animated.Value(1));
   }, [products.length]);
+
+  // アイテムサイズを動的に決定
+  const getItemSize = (index: number, product: Product): ItemSize => {
+    // 8商品ごとに1つヒーロー商品
+    if (index % 8 === 0) return 'hero';
+    
+    // カテゴリーに応じたサイズ
+    if (product.category === 'outerwear' || product.category === 'dress') {
+      return 'large';
+    }
+    if (product.category === 'accessories') {
+      return 'small';
+    }
+    
+    // ランダムでメリハリをつける
+    const random = parseInt(product.id.slice(-2), 16) % 3;
+    return random === 0 ? 'large' : 'medium';
+  };
 
   // 高さを動的に計算（商品タイプやランダム性を加味）
   const calculateItemHeight = (product: Product, index: number): number => {
-    const baseHeight = 200;
-    // インデックスと商品IDに基づいて疑似ランダムな高さを生成
+    const size = getItemSize(index, product);
+    const sizeRange = itemHeights[size];
     const hash = product.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const variation = ((hash + index) % 4) * 40 + 50; // 50-170の範囲で変動
-    return baseHeight + variation;
+    const normalizedHash = (hash % 100) / 100;
+    return sizeRange.min + (sizeRange.max - sizeRange.min) * normalizedHash;
+  };
+
+  // 角丸のバリエーション
+  const getBorderRadius = (index: number): number => {
+    return designTokens.borderRadius[index % designTokens.borderRadius.length];
   };
 
   // カラム配置アルゴリズム
@@ -107,28 +166,44 @@ const MasonryLayout: React.FC<MasonryLayoutProps> = ({
     if (fadeAnimations.current[index]) {
       Animated.timing(fadeAnimations.current[index], {
         toValue: 1,
-        duration: 400,
+        duration: designTokens.animation.fadeInDuration,
         delay: 50,
         useNativeDriver: true,
       }).start();
     }
   };
 
-  // ビューアビリティコールバック
-  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
-    viewableItems.forEach((viewableItem) => {
-      if (viewableItem.isViewable && viewableItem.item) {
-        const itemId = viewableItem.item.id;
-        if (!viewableItems.has(itemId)) {
-          setViewableItems((prev) => new Set(prev).add(itemId));
-          const index = products.findIndex(p => p.id === itemId);
-          if (index !== -1) {
-            animateItem(index);
-          }
-        }
-      }
-    });
-  }).current;
+  // プレスエフェクト
+  const handlePressIn = (index: number) => {
+    if (scaleAnimations.current[index]) {
+      Animated.spring(scaleAnimations.current[index], {
+        toValue: designTokens.animation.pressScale,
+        useNativeDriver: true,
+      }).start();
+    }
+  };
+
+  const handlePressOut = (index: number) => {
+    if (scaleAnimations.current[index]) {
+      Animated.spring(scaleAnimations.current[index], {
+        toValue: 1,
+        friction: 3,
+        tension: 40,
+        useNativeDriver: true,
+      }).start();
+    }
+  };
+
+  // スクロールイベントハンドラー
+  const handleScroll = (event: any) => {
+    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+    const paddingToBottom = 20;
+    const isCloseToBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom;
+    
+    if (isCloseToBottom && onEndReached) {
+      onEndReached();
+    }
+  };
 
   // カラムのレンダリング
   const renderColumn = (columnItems: MasonryItem[], columnIndex: number) => {
@@ -137,6 +212,9 @@ const MasonryLayout: React.FC<MasonryLayoutProps> = ({
         {columnItems.map((item, itemIndex) => {
           const globalIndex = products.findIndex(p => p.id === item.id);
           const animatedOpacity = fadeAnimations.current[globalIndex] || new Animated.Value(0);
+          const animatedScale = scaleAnimations.current[globalIndex] || new Animated.Value(1);
+          const borderRadius = getBorderRadius(globalIndex);
+          const itemSize = getItemSize(globalIndex, item);
           
           return (
             <Animated.View
@@ -147,56 +225,110 @@ const MasonryLayout: React.FC<MasonryLayoutProps> = ({
                   height: item.height,
                   marginBottom: spacing,
                   opacity: animatedOpacity,
-                  transform: [{
-                    translateY: animatedOpacity.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [20, 0],
-                    }),
-                  }],
+                  transform: [
+                    {
+                      translateY: animatedOpacity.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [20, 0],
+                      }),
+                    },
+                    {
+                      scale: animatedScale,
+                    },
+                  ],
                 },
               ]}
             >
-              <TouchableOpacity
-                activeOpacity={0.9}
+              <Pressable
                 onPress={() => onItemPress(item)}
-                style={styles.touchable}
+                onPressIn={() => handlePressIn(globalIndex)}
+                onPressOut={() => handlePressOut(globalIndex)}
+                style={[styles.touchable, { borderRadius }]}
               >
-                <View style={[styles.imageContainer, { backgroundColor: theme.colors.surface }]}>
+                <View style={[styles.imageContainer, { backgroundColor: theme.colors.surface, borderRadius }]}>
                   {item.imageUrl && item.imageUrl.trim() !== '' && !item.imageUrl.includes('placehold.co') ? (
                     <CachedImage
                       source={{ uri: item.imageUrl }}
-                      style={styles.image}
+                      style={[styles.image, { borderRadius }]}
                       contentFit="cover"
                     />
                   ) : (
-                    <View style={styles.placeholderContainer}>
+                    <View style={[styles.placeholderContainer, { borderRadius }]}>
                       <Ionicons name="image-outline" size={40} color={theme.colors.text.secondary} />
                     </View>
                   )}
                   
-                  {/* New Directionバッジ */}
-                  {item.isNewDirection && (
-                    <View style={[styles.newDirectionBadge, { backgroundColor: theme.colors.primary }]}>
-                      <Ionicons name="sparkles" size={14} color="#ffffff" />
-                      <Text style={styles.newDirectionText}>New</Text>
-                    </View>
+                  {/* グラデーションオーバーレイ（大サイズ商品のみ） */}
+                  {(itemSize === 'hero' || itemSize === 'large') && (
+                    <LinearGradient
+                      colors={['transparent', 'rgba(0,0,0,0.4)']}
+                      style={[styles.gradientOverlay, { borderRadius }]}
+                    />
                   )}
                   
-                  {showPrice && (
-                    <View style={[styles.priceContainer, { backgroundColor: theme.colors.background + 'F0' }]}>
-                      <Text style={[styles.priceText, { color: theme.colors.text.primary }]}>
-                        ¥{item.price.toLocaleString()}
-                      </Text>
-                    </View>
-                  )}
-                  
-                  {item.isUsed && (
-                    <View style={[styles.usedLabel, { backgroundColor: theme.colors.status?.warning || 'rgba(245, 158, 11, 0.9)' }]}>
-                      <Text style={styles.usedLabelText}>中古</Text>
-                    </View>
-                  )}
+                  {/* ブランド名とアイテム情報 */}
+                  <View style={styles.itemInfo}>
+                    {/* ブランド名（上部） */}
+                    {item.brand && (
+                      <View style={styles.brandContainer}>
+                        <Text style={[styles.brandName, { color: theme.colors.text.primary }]}>
+                          {item.brand}
+                        </Text>
+                      </View>
+                    )}
+                    
+                    {/* New Directionバッジ */}
+                    {item.isNewDirection && (
+                      <View style={[styles.newDirectionBadge, { backgroundColor: theme.colors.primary }]}>
+                        <Ionicons name="sparkles" size={14} color="#ffffff" />
+                        <Text style={styles.newDirectionText}>New</Text>
+                      </View>
+                    )}
+                    
+                    {/* 価格（下部） */}
+                    {showPrice && (
+                      <View style={[styles.priceContainer, { backgroundColor: theme.colors.background + 'F0' }]}>
+                        <Text style={[styles.priceText, { 
+                          color: theme.colors.text.primary,
+                          fontSize: itemSize === 'hero' ? 18 : designTokens.typography.price.fontSize 
+                        }]}>
+                          ¥{item.price.toLocaleString()}
+                        </Text>
+                      </View>
+                    )}
+                    
+                    {/* 中古ラベル */}
+                    {item.isUsed && (
+                      <View style={[styles.usedLabel, { backgroundColor: theme.colors.status?.warning || 'rgba(245, 158, 11, 0.9)' }]}>
+                        <Text style={styles.usedLabelText}>中古</Text>
+                      </View>
+                    )}
+                    
+                    {/* お気に入りボタン */}
+                    <TouchableOpacity
+                      style={[styles.favoriteButton, { backgroundColor: theme.colors.background + 'CC' }]}
+                      onPress={async (e) => {
+                        e.stopPropagation();
+                        try {
+                          if (isFavorite(item.id)) {
+                            await removeFromFavorites(item.id);
+                          } else {
+                            await addToFavorites(item.id);
+                          }
+                        } catch (error) {
+                          console.error('Error toggling favorite:', error);
+                        }
+                      }}
+                    >
+                      <Ionicons 
+                        name={isFavorite(item.id) ? "heart" : "heart-outline"} 
+                        size={20} 
+                        color={isFavorite(item.id) ? theme.colors.primary : theme.colors.text.primary} 
+                      />
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </TouchableOpacity>
+              </Pressable>
             </Animated.View>
           );
         })}
@@ -230,9 +362,11 @@ const MasonryLayout: React.FC<MasonryLayoutProps> = ({
 
   return (
     <ScrollView
+      ref={scrollViewRef}
       style={styles.container}
       showsVerticalScrollIndicator={false}
       scrollEventThrottle={16}
+      onScroll={handleScroll}
     >
       <View style={styles.columnsContainer}>
         {columnData.map((column, index) => renderColumn(column, index))}
@@ -247,14 +381,13 @@ const styles = StyleSheet.create({
   },
   columnsContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
+    paddingHorizontal: designTokens.spacing.screenPadding,
   },
   column: {
     flex: 1,
     flexDirection: 'column',
   },
   itemContainer: {
-    borderRadius: 12,
     overflow: 'hidden',
   },
   touchable: {
@@ -262,8 +395,8 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     flex: 1,
-    borderRadius: 12,
     overflow: 'hidden',
+    position: 'relative',
   },
   image: {
     width: '100%',
@@ -275,22 +408,49 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#f0f0f0',
   },
+  gradientOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '50%',
+  },
+  itemInfo: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  brandContainer: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  brandName: {
+    fontSize: designTokens.typography.brandName.fontSize,
+    fontWeight: designTokens.typography.brandName.fontWeight as any,
+  },
   priceContainer: {
     position: 'absolute',
     bottom: 8,
-    right: 8,
+    left: 8,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
   },
   priceText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: designTokens.typography.price.fontSize,
+    fontWeight: designTokens.typography.price.fontWeight as any,
   },
   usedLabel: {
     position: 'absolute',
     top: 8,
-    left: 8,
+    right: 8,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
@@ -302,8 +462,8 @@ const styles = StyleSheet.create({
   },
   newDirectionBadge: {
     position: 'absolute',
-    top: 8,
-    right: 8,
+    top: 40,
+    left: 8,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 10,
@@ -313,9 +473,19 @@ const styles = StyleSheet.create({
   },
   newDirectionText: {
     color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: designTokens.typography.badge.fontSize,
+    fontWeight: designTokens.typography.badge.fontWeight as any,
+  },
+  favoriteButton: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 
-export default MasonryLayout;
+export default React.memo(MasonryLayout);

@@ -11,7 +11,8 @@ import {
   Dimensions,
   Image,
   Animated,
-  StatusBar
+  StatusBar,
+  SectionList,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { RecommendScreenProps } from '@/navigation/types';
@@ -30,6 +31,12 @@ const { width, height } = Dimensions.get('window');
 
 type NavigationProp = RecommendScreenProps<'RecommendHome'>['navigation'];
 
+interface Section {
+  title: string;
+  key: 'forYou' | 'newDiscovery' | 'trending';
+  data: (Product & { isNewDirection?: boolean })[];
+}
+
 const EnhancedRecommendScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
@@ -38,29 +45,42 @@ const EnhancedRecommendScreen: React.FC = () => {
   
   // 状態管理
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [heroProduct, setHeroProduct] = useState<Product | null>(null);
-  const [gridItems, setGridItems] = useState<Product[]>([]);
-  const [surpriseItems, setSurpriseItems] = useState<Product[]>([]);
-  const [mixedProducts, setMixedProducts] = useState<(Product & { isNewDirection?: boolean })[]>([]);
+  const [sections, setSections] = useState<Section[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [filters] = useState<FilterOptions>({
     includeUsed: false
   });
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const ITEMS_PER_PAGE = 20;
   
   // アニメーション値
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   
   // データ読み込み
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (isRefresh = false) => {
     if (!user) return;
     
     try {
-      setIsLoading(true);
+      if (isRefresh) {
+        setIsLoading(true);
+        setPage(1);
+        setHasMore(true);
+      }
+      
       setError(null);
       
       const [recommendationResults] = await Promise.all([
-        getEnhancedRecommendations(user.id, 50, [], filters)
+        getEnhancedRecommendations(
+          user.id, 
+          isRefresh ? 50 : ITEMS_PER_PAGE, 
+          [], 
+          filters,
+          isRefresh ? 0 : (page - 1) * ITEMS_PER_PAGE
+        )
       ]);
       
       // 重複を除外しながら商品を結合
@@ -105,41 +125,73 @@ const EnhancedRecommendScreen: React.FC = () => {
           }))
         );
         
-        // ヒーロープロダクト（最も推薦度の高いもの）
-        setHeroProduct(allProducts[0]);
-        
-        // 通常商品とNew Direction商品を準備（全商品を使用）
-        const heroIndex = 1; // ヒーロー商品の次から
-        const allRemainingProducts = allProducts.slice(heroIndex);
-        
-        console.log('[EnhancedRecommendScreen] Product distribution:', {
-          totalProducts: allProducts.length,
-          heroProduct: 1,
-          remainingProducts: allRemainingProducts.length
-        });
-        
-        // 商品を混ぜる（交互配置）
-        const mixed: (Product & { isNewDirection?: boolean })[] = [];
-        
-        // 全商品に対してNew Directionフラグを設定
-        allRemainingProducts.forEach((product, index) => {
-          // 3商品に1つの割合でNew Direction商品として扱う
-          const isNewDirection = index % 3 === 2;
-          mixed.push({ ...product, isNewDirection });
-        });
-        
-        console.log('[EnhancedRecommendScreen] Mixed products:', {
-          mixedTotal: mixed.length,
-          normalCount: mixed.filter(p => !p.isNewDirection).length,
-          newDirectionCount: mixed.filter(p => p.isNewDirection).length
-        });
-        
-        setMixedProducts(mixed);
-        
-        // デバッグ：エラー表示
-        if (mixed.length === 0) {
-          console.error('[EnhancedRecommendScreen] No products to display in MasonryLayout');
+        if (isRefresh) {
+          // ヒーロープロダクト（最も推薦度の高いもの）
+          setHeroProduct(allProducts[0]);
+          
+          // セクション構成の実装
+          const forYouProducts = allProducts.slice(1, Math.ceil(allProducts.length * 0.4));
+          const newDiscoveryProducts = allProducts.slice(
+            Math.ceil(allProducts.length * 0.4),
+            Math.ceil(allProducts.length * 0.7)
+          );
+          const trendingProducts = allProducts.slice(Math.ceil(allProducts.length * 0.7));
+          
+          // New Directionフラグの設定
+          const newDiscoveryWithFlag = newDiscoveryProducts.map(p => ({
+            ...p,
+            isNewDirection: true
+          }));
+          
+          setSections([
+            {
+              title: "あなたへのおすすめ",
+              key: "forYou",
+              data: forYouProducts,
+            },
+            {
+              title: "新しい発見",
+              key: "newDiscovery",
+              data: newDiscoveryWithFlag,
+            },
+            {
+              title: "人気アイテム",
+              key: "trending",
+              data: trendingProducts,
+            }
+          ]);
+        } else {
+          // 追加読み込み時の処理
+          if (allProducts.length < ITEMS_PER_PAGE) {
+            setHasMore(false);
+          }
+          
+          // 既存のセクションに追加
+          setSections(prevSections => {
+            const newSections = [...prevSections];
+            // 追加データを各セクションに配分
+            const additionalForYou = allProducts.slice(0, Math.ceil(allProducts.length * 0.4));
+            const additionalNewDiscovery = allProducts.slice(
+              Math.ceil(allProducts.length * 0.4),
+              Math.ceil(allProducts.length * 0.7)
+            ).map(p => ({ ...p, isNewDirection: true }));
+            const additionalTrending = allProducts.slice(Math.ceil(allProducts.length * 0.7));
+            
+            newSections[0].data = [...newSections[0].data, ...additionalForYou];
+            newSections[1].data = [...newSections[1].data, ...additionalNewDiscovery];
+            newSections[2].data = [...newSections[2].data, ...additionalTrending];
+            
+            return newSections;
+          });
+          
+          setPage(prev => prev + 1);
         }
+        
+        console.log('[EnhancedRecommendScreen] Sections distribution:', {
+          forYou: sections[0]?.data.length || 0,
+          newDiscovery: sections[1]?.data.length || 0,
+          trending: sections[2]?.data.length || 0,
+        });
       }
       
       // フェードインアニメーション
@@ -161,17 +213,26 @@ const EnhancedRecommendScreen: React.FC = () => {
       setError(err.message || 'レコメンデーションの取得に失敗しました');
     } finally {
       setIsLoading(false);
+      setIsLoadingMore(false);
     }
-  }, [user, filters, fadeAnim, slideAnim]);
+  }, [user, filters, fadeAnim, slideAnim, page, sections]);
   
   // 初回読み込み
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    loadData(true);
+  }, []);
   
   // 商品タップハンドラー
   const handleProductPress = (product: Product) => {
     navigation.navigate('ProductDetail', { productId: product.id });
+  };
+  
+  // 追加読み込み
+  const loadMoreProducts = async () => {
+    if (!hasMore || isLoadingMore || isLoading) return;
+    
+    setIsLoadingMore(true);
+    await loadData(false);
   };
   
   // ヘッダーの透明度アニメーション
@@ -191,6 +252,37 @@ const EnhancedRecommendScreen: React.FC = () => {
       </SafeAreaView>
     );
   }
+  
+  // セクションのレンダリング
+  const renderSection = (section: Section) => {
+    return (
+      <View key={section.key} style={styles.sectionContainer}>
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>
+            {section.title}
+          </Text>
+          {section.key === 'newDiscovery' && (
+            <View style={[styles.sectionBadge, { backgroundColor: theme.colors.primary + '20' }]}>
+              <Ionicons name="sparkles" size={14} color={theme.colors.primary} />
+              <Text style={[styles.sectionBadgeText, { color: theme.colors.primary }]}>
+                New Style
+              </Text>
+            </View>
+          )}
+        </View>
+        
+        <MasonryLayout
+          products={section.data}
+          numColumns={2}
+          spacing={12}
+          onItemPress={handleProductPress}
+          showPrice={true}
+          onEndReached={section.key === 'trending' ? loadMoreProducts : undefined}
+          onEndReachedThreshold={0.8}
+        />
+      </View>
+    );
+  };
   
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -221,7 +313,7 @@ const EnhancedRecommendScreen: React.FC = () => {
         refreshControl={
           <RefreshControl 
             refreshing={isLoading} 
-            onRefresh={loadData} 
+            onRefresh={() => loadData(true)} 
           />
         }
       >
@@ -269,6 +361,9 @@ const EnhancedRecommendScreen: React.FC = () => {
                       <Ionicons name="heart" size={14} color="#fff" />
                       <Text style={styles.matchText}>For You</Text>
                     </View>
+                    {heroProduct.brand && (
+                      <Text style={styles.heroBrand}>{heroProduct.brand}</Text>
+                    )}
                     <Text style={styles.heroPrice}>
                       ¥{heroProduct.price.toLocaleString()}
                     </Text>
@@ -279,25 +374,15 @@ const EnhancedRecommendScreen: React.FC = () => {
           </Animated.View>
         )}
         
-        {/* 統合されたマスonry レイアウト */}
-        <View style={styles.sectionContainer}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>
-            Discover
-          </Text>
-          
-          {/* Mixed Masonry Layout */}
-          <MasonryLayout
-            products={mixedProducts}
-            numColumns={2}
-            spacing={8}
-            onItemPress={handleProductPress}
-            showPrice={true}
-            renderItem={(item: Product & { isNewDirection?: boolean }) => {
-              // New Direction商品には特別なバッジを表示（MasonryLayout内でカスタマイズ可能）
-              return item;
-            }}
-          />
-        </View>
+        {/* セクション別のMasonry Layout */}
+        {sections.map(section => renderSection(section))}
+        
+        {/* 追加読み込み中のインジケーター */}
+        {isLoadingMore && (
+          <View style={styles.loadingMoreContainer}>
+            <ActivityIndicator size="small" color={theme.colors.primary} />
+          </View>
+        )}
         
         {/* スワイプ促進（控えめ） */}
         <TouchableOpacity 
@@ -380,6 +465,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 12,
   },
   matchBadge: {
     flexDirection: 'row',
@@ -395,71 +482,46 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
+  heroBrand: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   heroPrice: {
     color: '#fff',
     fontSize: 20,
     fontWeight: 'bold',
   },
   sectionContainer: {
-    marginTop: 24,
+    marginTop: 32,
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
+    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: 16,
   },
-  visualBreak: {
-    marginTop: 48,
-    marginBottom: 24,
-  },
-  gradientBreak: {
-    height: 120,
-    marginHorizontal: 16,
-    borderRadius: 16,
-    justifyContent: 'center',
+  sectionBadge: {
+    flexDirection: 'row',
     alignItems: 'center',
-  },
-  breakTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  surpriseSection: {
-    marginBottom: 24,
-  },
-  surpriseScroll: {
-    paddingHorizontal: 16,
-    gap: 12,
-  },
-  surpriseItem: {
-    width: width * 0.6,
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  surpriseImage: {
-    width: '100%',
-    height: 280,
-    resizeMode: 'cover',
-  },
-  surpriseInfo: {
-    padding: 12,
-  },
-  newBadge: {
-    backgroundColor: 'rgba(0,0,0,0.05)',
     paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
-    marginBottom: 8,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 6,
   },
-  newBadgeText: {
-    fontSize: 11,
+  sectionBadgeText: {
+    fontSize: 12,
     fontWeight: '600',
-    color: '#666',
   },
-  surprisePrice: {
-    fontSize: 16,
-    fontWeight: 'bold',
+  loadingMoreContainer: {
+    paddingVertical: 20,
+    alignItems: 'center',
   },
   moreButton: {
     alignItems: 'center',
