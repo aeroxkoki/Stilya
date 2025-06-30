@@ -18,9 +18,7 @@ const ProfileScreen: React.FC = () => {
   const { theme } = useStyle();
   const { 
     favorites,
-    swipeHistory,
-    getFavorites,
-    getSwipeHistory
+    getFavorites
   } = useProductStore();
   
   // デバッグモーダルの表示状態
@@ -36,9 +34,8 @@ const ProfileScreen: React.FC = () => {
   };
 
   useEffect(() => {
-    if (user) {
-      getFavorites();
-      getSwipeHistory();
+    if (user && user.id) {
+      getFavorites(user.id);
     }
   }, [user]);
 
@@ -165,14 +162,9 @@ const ProfileScreen: React.FC = () => {
               onPress={handleNavigateToFavorites}
             >
               <Ionicons name="heart-outline" size={20} color="#6B7280" style={{ marginRight: 12 }} />
-              <View style={styles.menuItemContent}>
-                <Text style={[styles.menuItemText, { color: theme.colors.text.primary }]}>
-                  お気に入り
-                </Text>
-                <Text style={[styles.menuItemSubtext, { color: theme.colors.text.secondary }]}>
-                  {favorites.length}件の商品
-                </Text>
-              </View>
+              <Text style={[styles.menuItemText, { color: theme.colors.text.primary }]}>
+                お気に入り
+              </Text>
               <Ionicons name="chevron-forward" size={20} color="#6B7280" />
             </TouchableOpacity>
             
@@ -183,14 +175,9 @@ const ProfileScreen: React.FC = () => {
               onPress={handleNavigateToSwipeHistory}
             >
               <Ionicons name="time-outline" size={20} color="#6B7280" style={{ marginRight: 12 }} />
-              <View style={styles.menuItemContent}>
-                <Text style={[styles.menuItemText, { color: theme.colors.text.primary }]}>
-                  スワイプ履歴
-                </Text>
-                <Text style={[styles.menuItemSubtext, { color: theme.colors.text.secondary }]}>
-                  {swipeHistory.length}件のスワイプ
-                </Text>
-              </View>
+              <Text style={[styles.menuItemText, { color: theme.colors.text.primary }]}>
+                スワイプ履歴
+              </Text>
               <Ionicons name="chevron-forward" size={20} color="#6B7280" />
             </TouchableOpacity>
           </Card>
