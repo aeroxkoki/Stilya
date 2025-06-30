@@ -5,29 +5,56 @@ import { isOffline } from '@/utils/networkUtils';
 // スワイプ結果の型定義
 export type SwipeResult = 'yes' | 'no';
 
-// スワイプデータの型定義
+// スワイプデータの型定義（拡張版）
 export interface SwipeData {
   id: string;
   userId: string;
   productId: string;
   result: SwipeResult;
   createdAt: string; // 必須に変更
+  swipeTime?: number; // スワイプにかかった時間（ミリ秒）
 }
+
+// スワイプの興味レベル
+export type InterestLevel = 'strong' | 'normal' | 'weak';
 
 // オフライン用のスワイプデータストレージキー
 const OFFLINE_SWIPE_STORAGE_KEY = 'offline_swipe_data';
+
+/**
+ * スワイプ時間から興味レベルを判定
+ */
+export const getInterestLevel = (swipeTime: number, result: SwipeResult): InterestLevel => {
+  if (result === 'yes') {
+    // 1秒以内の即決Yes = 強い興味
+    if (swipeTime < 1000) return 'strong';
+    // 3秒以内のYes = 通常の興味
+    if (swipeTime < 3000) return 'normal';
+    // それ以上は弱い興味
+    return 'weak';
+  } else {
+    // 0.5秒以内の即No = 強い拒否
+    if (swipeTime < 500) return 'strong';
+    // 2秒以内のNo = 通常の拒否
+    if (swipeTime < 2000) return 'normal';
+    // それ以上は弱い拒否（迷った）
+    return 'weak';
+  }
+};
 
 /**
  * スワイプ結果を記録する（最適化版）
  * @param userId ユーザーID
  * @param productId 商品ID
  * @param result スワイプ結果 ('yes' or 'no')
+ * @param metadata オプションのメタデータ（スワイプ時間など）
  * @returns 保存に成功したかどうか
  */
 export const recordSwipe = async (
   userId: string,
   productId: string,
-  result: SwipeResult
+  result: SwipeResult,
+  metadata?: { swipeTime?: number }
 ): Promise<boolean> => {
   if (!userId || !productId) {
     console.warn('Invalid user or product ID for swipe recording');
@@ -35,7 +62,7 @@ export const recordSwipe = async (
   }
   
   // 既存の処理を再利用（より効率的な実装）
-  return saveSwipeResult(userId, productId, result);
+  return saveSwipeResult(userId, productId, result, metadata);
 };
 
 /**
@@ -43,12 +70,14 @@ export const recordSwipe = async (
  * @param userId ユーザーID
  * @param productId 商品ID
  * @param result スワイプ結果 ('yes' or 'no')
+ * @param metadata オプションのメタデータ（スワイプ時間など）
  * @returns 保存に成功したかどうか
  */
 export const saveSwipeResult = async (
   userId: string,
   productId: string,
-  result: SwipeResult
+  result: SwipeResult,
+  metadata?: { swipeTime?: number }
 ): Promise<boolean> => {
   try {
     // ユーザーIDが空の場合は保存しない（ゲストユーザー対応）
@@ -62,7 +91,8 @@ export const saveSwipeResult = async (
       productId,
       result,
       createdAt: new Date().toISOString(),
-      id: `offline_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
+      id: `offline_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+      swipeTime: metadata?.swipeTime
     };
 
     // オフラインの場合はローカルに保存
@@ -70,6 +100,9 @@ export const saveSwipeResult = async (
     if (networkOffline) {
       return await saveSwipeOffline(swipeData);
     }
+
+    // 即座の判断かどうかを判定
+    const isInstantDecision = metadata?.swipeTime ? metadata.swipeTime < 1000 : false;
 
     // オンラインの場合はSupabaseに保存
     const { error } = await supabase
@@ -79,6 +112,8 @@ export const saveSwipeResult = async (
           user_id: userId,
           product_id: productId,
           result,
+          swipe_time_ms: metadata?.swipeTime || null,
+          is_instant_decision: isInstantDecision,
         },
       ])
       .select('id'); // IDを返すように指定

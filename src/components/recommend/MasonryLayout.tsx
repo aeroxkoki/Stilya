@@ -266,17 +266,8 @@ const MasonryLayout: React.FC<MasonryLayoutProps> = ({
                     />
                   )}
                   
-                  {/* ブランド名とアイテム情報 */}
+                  {/* アイテム情報 */}
                   <View style={styles.itemInfo}>
-                    {/* ブランド名（上部） */}
-                    {item.brand && (
-                      <View style={styles.brandContainer}>
-                        <Text style={[styles.brandName, { color: theme.colors.text.primary }]}>
-                          {item.brand}
-                        </Text>
-                      </View>
-                    )}
-                    
                     {/* New Directionバッジ */}
                     {item.isNewDirection && (
                       <View style={[styles.newDirectionBadge, { backgroundColor: theme.colors.primary }]}>
@@ -300,7 +291,7 @@ const MasonryLayout: React.FC<MasonryLayoutProps> = ({
                     {/* 中古ラベル */}
                     {item.isUsed && (
                       <View style={[styles.usedLabel, { backgroundColor: theme.colors.status?.warning || 'rgba(245, 158, 11, 0.9)' }]}>
-                        <Text style={styles.usedLabelText}>中古</Text>
+                        <Text style={styles.usedLabelText}>Used</Text>
                       </View>
                     )}
                     

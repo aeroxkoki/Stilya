@@ -316,14 +316,14 @@ export const useProducts = (): UseProductsReturn => {
   }, [loadProducts]);
 
   // スワイプハンドラー（最適化版）
-  const handleSwipe = useCallback(async (product: Product, direction: 'left' | 'right') => {
+  const handleSwipe = useCallback(async (product: Product, direction: 'left' | 'right', metadata?: { swipeTime?: number }) => {
     if (!product || !user || !user.id) return;
     
     console.log('[useProducts] handleSwipe called - currentIndex:', currentIndex, 'productsLength:', productsData.products.length);
     
     // スワイプデータを記録（非同期、待たない）
     const result = direction === 'right' ? 'yes' : 'no';
-    recordSwipe(user.id, product.id, result).catch(err => {
+    recordSwipe(user.id, product.id, result, metadata).catch(err => {
       console.error('Error recording swipe:', err);
     });
     

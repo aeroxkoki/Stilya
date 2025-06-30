@@ -42,6 +42,7 @@ export const normalizeProduct = (dbProduct: any): Product => {
     source: dbProduct.source,
     createdAt: dbProduct.created_at,
     isUsed: dbProduct.is_used || false, // 中古品フラグ
+    commissionRate: dbProduct.commission_rate || 0.05, // アフィリエイト手数料率（デフォルト5%）
   };
   
   // デバッグ: 正規化後のデータも確認
@@ -983,6 +984,19 @@ export const fetchMixedProducts = async (
       excludeProductIdsCount: excludeProductIds?.length || 0 
     });
     
+    // 初回ユーザー最適化：最初の20スワイプは特別な選定
+    let adjustedFilters = { ...filters };
+    const isFirstTime = offset === 0 && (!excludeProductIds || excludeProductIds.length === 0);
+    
+    if (isFirstTime) {
+      console.log('[fetchMixedProducts] Applying first-time user optimization');
+      adjustedFilters = {
+        ...filters,
+        priceRange: filters?.priceRange || [0, 10000], // デフォルトで1万円以下
+        includeUsed: false // 初回は新品のみ
+      };
+    }
+    
     // 除外IDのセットを作成（高速化のため）
     const excludeIdSet = new Set<string>(excludeProductIds || []);
     
@@ -1006,14 +1020,14 @@ export const fetchMixedProducts = async (
         .not('image_url', 'is', null)  // 画像URLがnullの商品を除外
         .not('image_url', 'eq', '');   // 画像URLが空文字の商品を除外
       
-      // フィルター条件を適用
-      if (filters) {
-        if (filters.categories && filters.categories.length > 0) {
-          query = query.in('category', filters.categories);
+      // フィルター条件を適用（初回最適化済みのフィルターを使用）
+      if (adjustedFilters) {
+        if (adjustedFilters.categories && adjustedFilters.categories.length > 0) {
+          query = query.in('category', adjustedFilters.categories);
         }
         
-        if (filters.priceRange) {
-          const [minPrice, maxPrice] = filters.priceRange;
+        if (adjustedFilters.priceRange) {
+          const [minPrice, maxPrice] = adjustedFilters.priceRange;
           if (minPrice > 0) {
             query = query.gte('price', minPrice);
           }
@@ -1022,11 +1036,11 @@ export const fetchMixedProducts = async (
           }
         }
         
-        if (filters.selectedTags && filters.selectedTags.length > 0) {
-          query = query.or(filters.selectedTags.map(tag => `tags.cs.{${tag}}`).join(','));
+        if (adjustedFilters.selectedTags && adjustedFilters.selectedTags.length > 0) {
+          query = query.or(adjustedFilters.selectedTags.map(tag => `tags.cs.{${tag}}`).join(','));
         }
         
-        if (filters.includeUsed === false) {
+        if (adjustedFilters.includeUsed === false) {
           query = query.eq('is_used', false);
         }
       }
@@ -1131,30 +1145,70 @@ export const fetchMixedProducts = async (
             if (product.brand && brandScores[product.brand]) {
               score += brandScores[product.brand] * 2; // ブランドは重み付け
             }
+            
+            // 収益最適化: コミッション率によるブースト
+            const commissionBoost = (product.commissionRate || 0.05) * 20; // 最大1ポイント追加
+            score += commissionBoost;
+            
             return { ...product, _score: score };
           });
           
-          // スコアの高い商品を前半に配置（70%ランダム、30%推薦の比率を維持）
-          const sortedByScore = [...allFetchedProducts].sort((a, b) => (b._score || 0) - (a._score || 0));
-          const recommendCount = Math.floor(limit * 0.3);
-          const randomCount = limit - recommendCount;
+          // 5-2-3パターンの実装
+          const applyPattern = (products: any[]) => {
+            const patternedProducts: any[] = [];
+            const sortedByScore = [...products].sort((a, b) => (b._score || 0) - (a._score || 0));
+            
+            // スコアによって3つのグループに分ける
+            const groupSize = Math.floor(products.length / 3);
+            const likedStyleProducts = sortedByScore.slice(0, groupSize); // 高スコア商品
+            const slightlyDifferentProducts = sortedByScore.slice(groupSize, groupSize * 2); // 中スコア商品
+            const exploreProducts = sortedByScore.slice(groupSize * 2); // 低スコア商品
+            
+            // 5-2-3パターンで配置
+            let likedIndex = 0;
+            let differentIndex = 0;
+            let exploreIndex = 0;
+            
+            for (let i = 0; i < products.length; i++) {
+              const position = i % 10;
+              
+              if (position < 5) {
+                // 好みに近い商品（5個）
+                if (likedIndex < likedStyleProducts.length) {
+                  patternedProducts.push(likedStyleProducts[likedIndex++]);
+                } else if (differentIndex < slightlyDifferentProducts.length) {
+                  patternedProducts.push(slightlyDifferentProducts[differentIndex++]);
+                } else if (exploreIndex < exploreProducts.length) {
+                  patternedProducts.push(exploreProducts[exploreIndex++]);
+                }
+              } else if (position < 7) {
+                // 少し違う商品（2個）
+                if (differentIndex < slightlyDifferentProducts.length) {
+                  patternedProducts.push(slightlyDifferentProducts[differentIndex++]);
+                } else if (exploreIndex < exploreProducts.length) {
+                  patternedProducts.push(exploreProducts[exploreIndex++]);
+                } else if (likedIndex < likedStyleProducts.length) {
+                  patternedProducts.push(likedStyleProducts[likedIndex++]);
+                }
+              } else {
+                // 新しい発見（3個）
+                if (exploreIndex < exploreProducts.length) {
+                  patternedProducts.push(exploreProducts[exploreIndex++]);
+                } else if (differentIndex < slightlyDifferentProducts.length) {
+                  patternedProducts.push(slightlyDifferentProducts[differentIndex++]);
+                } else if (likedIndex < likedStyleProducts.length) {
+                  patternedProducts.push(likedStyleProducts[likedIndex++]);
+                }
+              }
+            }
+            
+            return patternedProducts;
+          };
           
-          // 推薦商品とランダム商品を分ける
-          const recommendedProducts = sortedByScore.slice(0, recommendCount);
-          const randomProducts = allFetchedProducts
-            .filter(p => !recommendedProducts.includes(p))
-            .slice(0, randomCount);
+          // 5-2-3パターンを適用
+          allFetchedProducts = applyPattern(allFetchedProducts);
           
-          // ミックスして返す
-          allFetchedProducts = [...recommendedProducts, ...randomProducts];
-          
-          // 再度シャッフル（推薦商品が前半に偏らないように）
-          for (let i = allFetchedProducts.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [allFetchedProducts[i], allFetchedProducts[j]] = [allFetchedProducts[j], allFetchedProducts[i]];
-          }
-          
-          console.log('[fetchMixedProducts] Applied user preference scoring');
+          console.log('[fetchMixedProducts] Applied 5-2-3 pattern for better engagement');
         }
       } catch (err) {
         console.error('[fetchMixedProducts] Error applying preferences:', err);

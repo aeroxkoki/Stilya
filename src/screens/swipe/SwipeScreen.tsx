@@ -46,6 +46,7 @@ const SwipeScreen: React.FC = () => {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [filters, setFilters] = useState<FilterOptions>({});
   const [availableTags, setAvailableTags] = useState<string[]>([]);
+  const [swipeStartTime, setSwipeStartTime] = useState<number>(Date.now()); // スワイプ開始時刻
   
   // 表示済み商品IDの追跡は削除（useProductsフックで管理）
   // const [displayedProductIds, setDisplayedProductIds] = useState<Set<string>>(new Set());
@@ -129,14 +130,22 @@ const SwipeScreen: React.FC = () => {
     }
   }, [products]);
   
+  // 商品が変わったときにスワイプ開始時刻をリセット
+  useEffect(() => {
+    setSwipeStartTime(Date.now());
+  }, [currentProduct?.id]);
+  
   // スワイプ処理
   const handleSwipe = useCallback(async (product: Product, direction: 'left' | 'right') => {
     if (!user) return;
     
-    console.log(`[SwipeScreen] スワイプ: ${direction} - ${product.title} (ID: ${product.id})`);
+    // スワイプ時間を計算
+    const swipeTime = Date.now() - swipeStartTime;
     
-    // useProductsフックのhandleSwipeを使用
-    await swipeProduct(product, direction);
+    console.log(`[SwipeScreen] スワイプ: ${direction} - ${product.title} (ID: ${product.id}) - 時間: ${swipeTime}ms`);
+    
+    // useProductsフックのhandleSwipeを使用（時間情報付き）
+    await swipeProduct(product, direction, { swipeTime });
     
     // 最後の商品に達した場合
     if (currentIndex >= products.length - 1) {
@@ -147,7 +156,7 @@ const SwipeScreen: React.FC = () => {
         await loadMore();
       }
     }
-  }, [user, currentIndex, products.length, swipeProduct, hasMore, loadMore]);
+  }, [user, currentIndex, products.length, swipeProduct, hasMore, loadMore, swipeStartTime]);
   
   // お気に入り処理
   const handleFavorite = useCallback(async () => {

@@ -22,6 +22,8 @@ export interface Product {
   // 中古品フラグ
   isUsed?: boolean; // 中古品かどうか
   is_used?: boolean; // Supabase DB 形式のフィールド名
+  // 収益最適化用フィールド
+  commissionRate?: number; // アフィリエイト手数料率（0.05 = 5%）
 }
 
 export interface SwipeResult {
