@@ -10,7 +10,7 @@ import { shuffleArray, ensureProductDiversity, getTimeBasedOffset } from '@/util
 /**
  * DBの商品データをアプリ用の形式に正規化
  */
-const normalizeProduct = (dbProduct: any): Product => {
+export const normalizeProduct = (dbProduct: any): Product => {
   // imageUrlが未定義またはnullの場合のフォールバック処理
   const originalImageUrl = dbProduct.image_url || dbProduct.imageUrl || '';
   const optimizedUrl = originalImageUrl ? optimizeImageUrl(originalImageUrl) : '';

@@ -1,6 +1,6 @@
 import { supabase, handleSupabaseError, handleSupabaseSuccess, TABLES } from './supabase';
 import { Product, UserPreference } from '../types';
-import { FilterOptions } from './productService';
+import { FilterOptions, normalizeProduct } from './productService';
 import { addScoreNoise, shuffleArray, ensureProductDiversity } from '../utils/randomUtils';
 
 export class RecommendationService {
@@ -274,7 +274,8 @@ export class RecommendationService {
       // Remove score property and return
       const recommendations = diverseProducts
         .slice(0, limit)
-        .map(({ score: _score, ...product }) => product);
+        .map(({ score: _score, ...product }) => product)
+        .map(normalizeProduct); // 正規化を追加
 
       return handleSupabaseSuccess(recommendations);
     } catch (error) {
@@ -306,7 +307,9 @@ export class RecommendationService {
         if (productError) {
           return handleSupabaseError(productError);
         }
-        return handleSupabaseSuccess(latestProducts || []);
+        // 正規化して返す
+        const normalizedProducts = (latestProducts || []).map(normalizeProduct);
+        return handleSupabaseSuccess(normalizedProducts);
       }
 
       if (!popularSwipes || popularSwipes.length === 0) {
@@ -321,7 +324,9 @@ export class RecommendationService {
         if (productError) {
           return handleSupabaseError(productError);
         }
-        return handleSupabaseSuccess(latestProducts || []);
+        // 正規化して返す
+        const normalizedProducts = (latestProducts || []).map(normalizeProduct);
+        return handleSupabaseSuccess(normalizedProducts);
       }
 
       // 人気商品のIDをカウント
@@ -347,7 +352,9 @@ export class RecommendationService {
         return handleSupabaseError(productError);
       }
 
-      return handleSupabaseSuccess(products || []);
+      // 正規化して返す
+      const normalizedProducts = (products || []).map(normalizeProduct);
+      return handleSupabaseSuccess(normalizedProducts);
     } catch (error) {
       return handleSupabaseError(error);
     }
@@ -380,7 +387,9 @@ export class RecommendationService {
         if (productError) {
           return handleSupabaseError(productError);
         }
-        return handleSupabaseSuccess(latestProducts || []);
+        // 正規化して返す
+        const normalizedProducts = (latestProducts || []).map(normalizeProduct);
+        return handleSupabaseSuccess(normalizedProducts);
       }
 
       if (!recentSwipes || recentSwipes.length === 0) {
@@ -395,7 +404,9 @@ export class RecommendationService {
         if (productError) {
           return handleSupabaseError(productError);
         }
-        return handleSupabaseSuccess(latestProducts || []);
+        // 正規化して返す
+        const normalizedProducts = (latestProducts || []).map(normalizeProduct);
+        return handleSupabaseSuccess(normalizedProducts);
       }
 
       // トレンド商品のIDをカウント
@@ -421,7 +432,9 @@ export class RecommendationService {
         return handleSupabaseError(productError);
       }
 
-      return handleSupabaseSuccess(products || []);
+      // 正規化して返す
+      const normalizedProducts = (products || []).map(normalizeProduct);
+      return handleSupabaseSuccess(normalizedProducts);
     } catch (error) {
       return handleSupabaseError(error);
     }
@@ -442,7 +455,9 @@ export class RecommendationService {
         return handleSupabaseError(error);
       }
 
-      return handleSupabaseSuccess(data || []);
+      // 正規化して返す
+      const normalizedProducts = (data || []).map(normalizeProduct);
+      return handleSupabaseSuccess(normalizedProducts);
     } catch (error) {
       return handleSupabaseError(error);
     }
