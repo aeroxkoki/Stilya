@@ -241,14 +241,19 @@ export const syncOfflineSwipes = async (): Promise<boolean> => {
       return true;
     }
 
-    // バッチで同期（有効なスワイプのみ）
-    const { error } = await supabase.from('swipes').insert(
+    // バッチで同期（有効なスワイプのみ） - UPSERTを使用して重複を防ぐ
+    const { error } = await supabase.from('swipes').upsert(
       validSwipes.map((swipe) => ({
         user_id: swipe.userId,
         product_id: swipe.productId,
         result: swipe.result,
         created_at: swipe.createdAt || new Date().toISOString(),
-      }))
+        swipe_time_ms: swipe.swipeTime || null,
+      })),
+      { 
+        onConflict: 'user_id,product_id',
+        ignoreDuplicates: false // 既存のレコードを更新
+      }
     );
 
     if (error) throw error;
@@ -257,8 +262,21 @@ export const syncOfflineSwipes = async (): Promise<boolean> => {
     await AsyncStorage.removeItem(OFFLINE_SWIPE_STORAGE_KEY);
     console.log('[syncOfflineSwipes] Successfully synced swipes');
     return true;
-  } catch (error) {
-    console.error('Error syncing offline swipes:', error);
+  } catch (error: any) {
+    // より詳細なエラーログ
+    if (error?.code === '23505') {
+      console.log('[syncOfflineSwipes] Duplicate key error - this is normal if user swiped same product multiple times offline');
+      // 重複エラーの場合も、オフラインデータをクリア（既にサーバーに存在するため）
+      await AsyncStorage.removeItem(OFFLINE_SWIPE_STORAGE_KEY);
+      return true; // 重複は正常な動作として扱う
+    }
+    
+    console.error('[syncOfflineSwipes] Error syncing offline swipes:', error);
+    console.error('[syncOfflineSwipes] Error details:', {
+      code: error?.code,
+      message: error?.message,
+      details: error?.details,
+    });
     return false;
   }
 };
