@@ -784,25 +784,33 @@ export const fetchRandomizedProducts = async (
 // 商品IDで単一商品を取得
 export const fetchProductById = async (productId: string) => {
   try {
+    // IDの検証
+    if (!productId || productId.trim() === '') {
+      console.warn('[ProductService] fetchProductById called with empty ID');
+      return { success: false, error: 'Invalid product ID' };
+    }
+
     const { data, error } = await supabase
       .from('external_products')
       .select('*')
       .eq('id', productId)
-      .single();
+      .maybeSingle(); // single()の代わりにmaybeSingle()を使用（0件でもエラーにならない）
 
     if (error) {
-      console.error('[ProductService] Error fetching product by ID:', error);
+      console.error('[ProductService] Error fetching product by ID:', productId, error);
       return handleSupabaseError(error);
     }
 
     if (!data) {
+      // 商品が見つからない場合は、warningレベルのログ（繰り返しエラーを避ける）
+      console.warn(`[ProductService] Product not found: ${productId}`);
       return { success: false, error: 'Product not found' };
     }
 
     const normalizedProduct = normalizeProduct(data);
     return handleSupabaseSuccess(normalizedProduct);
   } catch (error: any) {
-    console.error('[ProductService] Error in fetchProductById:', error);
+    console.error('[ProductService] Error in fetchProductById:', productId, error);
     return { success: false, error: error.message || 'Failed to fetch product' };
   }
 };

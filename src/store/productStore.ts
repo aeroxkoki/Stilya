@@ -131,14 +131,32 @@ const storeActions = {
       const favoriteIds = await fetchFavorites(userId);
       
       if (favoriteIds && favoriteIds.length > 0) {
-        // お気に入りの商品データを取得
+        // お気に入りの商品データを取得（存在しない商品はスキップ）
         const favoriteProducts: Product[] = [];
-        for (const id of favoriteIds) {
-          const product = await storeActions.fetchProductById(id);
-          if (product) {
-            favoriteProducts.push(product);
-          }
+        
+        // バッチで処理（パフォーマンスを考慮）
+        const batchSize = 10;
+        for (let i = 0; i < favoriteIds.length; i += batchSize) {
+          const batch = favoriteIds.slice(i, i + batchSize);
+          const batchPromises = batch.map(async (id) => {
+            try {
+              const product = await storeActions.fetchProductById(id);
+              if (product) {
+                return product;
+              }
+              // 商品が見つからない場合はnullを返す（後でフィルタリング）
+              return null;
+            } catch (error) {
+              console.warn(`[productStore] Failed to fetch product ${id}:`, error);
+              return null;
+            }
+          });
+          
+          const batchResults = await Promise.all(batchPromises);
+          // nullでない商品のみを追加
+          favoriteProducts.push(...batchResults.filter((p): p is Product => p !== null));
         }
+        
         updateStore({ favorites: favoriteProducts, loading: false });
       } else {
         updateStore({ favorites: [], loading: false });
@@ -192,14 +210,31 @@ const storeActions = {
       const swipes = await fetchSwipeHistory(userId, result);
       
       if (swipes && swipes.length > 0) {
-        // スワイプした商品データを取得
+        // スワイプした商品データを取得（存在しない商品はスキップ）
         const swipeProducts: Product[] = [];
-        for (const swipe of swipes) {
-          const product = await storeActions.fetchProductById(swipe.productId);
-          if (product) {
-            swipeProducts.push(product);
-          }
+        
+        // バッチで処理（パフォーマンスを考慮）
+        const batchSize = 10;
+        for (let i = 0; i < swipes.length; i += batchSize) {
+          const batch = swipes.slice(i, i + batchSize);
+          const batchPromises = batch.map(async (swipe) => {
+            try {
+              const product = await storeActions.fetchProductById(swipe.productId);
+              if (product) {
+                return product;
+              }
+              return null;
+            } catch (error) {
+              console.warn(`[productStore] Failed to fetch product ${swipe.productId}:`, error);
+              return null;
+            }
+          });
+          
+          const batchResults = await Promise.all(batchPromises);
+          // nullでない商品のみを追加
+          swipeProducts.push(...batchResults.filter((p): p is Product => p !== null));
         }
+        
         updateStore({ swipeHistory: swipeProducts, loading: false });
       } else {
         updateStore({ swipeHistory: [], loading: false });
