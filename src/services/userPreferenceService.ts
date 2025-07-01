@@ -2,6 +2,8 @@ import { supabase } from './supabase';
 
 export class UserPreferenceService {
   // スワイプ結果をリアルタイムで反映
+  // 注意：rate limit問題を避けるため、user_metadataへの更新は無効化しました
+  // 代わりにswipesテーブルのデータを直接分析します
   static async updatePreferenceFromSwipe(
     userId: string,
     productId: string,
@@ -9,50 +11,12 @@ export class UserPreferenceService {
     swipeTimeMs?: number
   ) {
     try {
-      // 商品情報を取得
-      const { data: product } = await supabase
-        .from('external_products')
-        .select('tags, category, brand, price')
-        .eq('id', productId)
-        .single();
+      // user_metadataへの頻繁な更新はrate limitエラーの原因となるため
+      // この処理は無効化しています
+      // スワイプデータは既にswipeService.tsで保存されているため
+      // 分析はgetUserPreferencesやanalyzeUserPreferencesで行います
       
-      if (!product) return;
-      
-      // ユーザーのメタデータを取得
-      const { data: { user } } = await supabase.auth.getUser();
-      const metadata = user?.user_metadata || {};
-      
-      // タグスコアを更新
-      const tagScores = metadata.tag_scores || {};
-      const weight = swipeTimeMs && swipeTimeMs < 1000 ? 0.5 : 1.0;
-      
-      product.tags?.forEach((tag: string) => {
-        const currentScore = tagScores[tag] || 0;
-        const change = result === 'yes' ? weight : -weight * 0.5;
-        tagScores[tag] = currentScore + change;
-      });
-      
-      // 短期嗜好を記録（直近30スワイプ）
-      const recentSwipes = metadata.recent_swipes || [];
-      recentSwipes.push({
-        productId,
-        result,
-        tags: product.tags,
-        timestamp: new Date().toISOString()
-      });
-      
-      // 30件を超えたら古いものを削除
-      if (recentSwipes.length > 30) {
-        recentSwipes.shift();
-      }
-      
-      // メタデータを更新
-      await supabase.auth.updateUser({
-        data: {
-          tag_scores: tagScores,
-          recent_swipes: recentSwipes
-        }
-      });
+      console.log('[UserPreferenceService] Preference update skipped to avoid rate limits');
       
     } catch (error) {
       console.error('Failed to update preference:', error);
@@ -60,27 +24,53 @@ export class UserPreferenceService {
   }
   
   // 短期的なトレンドを分析
+  // 注意：user_metadataを使用せず、swipesテーブルから直接分析
   static async getShortTermTrends(userId: string) {
-    const { data: { user } } = await supabase.auth.getUser();
-    const recentSwipes = user?.user_metadata?.recent_swipes || [];
-    
-    // 直近のスワイプからトレンドを分析
-    const recentYesTags: Record<string, number> = {};
-    
-    recentSwipes
-      .filter((swipe: any) => swipe.result === 'yes')
-      .slice(-10) // 直近10件のYes
-      .forEach((swipe: any) => {
-        swipe.tags?.forEach((tag: string) => {
+    try {
+      // 直近のスワイプデータを取得（最新30件）
+      const { data: recentSwipes } = await supabase
+        .from('swipes')
+        .select('product_id')
+        .eq('user_id', userId)
+        .eq('result', 'yes')
+        .order('created_at', { ascending: false })
+        .limit(30);
+      
+      if (!recentSwipes || recentSwipes.length === 0) {
+        return [];
+      }
+      
+      // 商品IDから商品情報を取得
+      const productIds = recentSwipes.map(s => s.product_id);
+      const { data: products } = await supabase
+        .from('external_products')
+        .select('tags')
+        .in('id', productIds);
+      
+      if (!products || products.length === 0) {
+        return [];
+      }
+      
+      // 直近のスワイプからトレンドを分析
+      const recentYesTags: Record<string, number> = {};
+      
+      // 最新10件に重点を置く
+      products.slice(0, 10).forEach((product) => {
+        product.tags?.forEach((tag: string) => {
           recentYesTags[tag] = (recentYesTags[tag] || 0) + 1;
         });
       });
-    
-    // スコアが高い順にソート
-    return Object.entries(recentYesTags)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 5)
-      .map(([tag]) => tag);
+      
+      // スコアが高い順にソート
+      return Object.entries(recentYesTags)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 5)
+        .map(([tag]) => tag);
+      
+    } catch (error) {
+      console.error('[getShortTermTrends] Error:', error);
+      return [];
+    }
   }
 }
 
