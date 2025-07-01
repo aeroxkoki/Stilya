@@ -67,7 +67,7 @@ export const recordSwipe = async (
 };
 
 /**
- * スワイプ結果を保存する
+ * スワイプ結果を保存する（整合性を保つ実装）
  * @param userId ユーザーID
  * @param productId 商品ID
  * @param result スワイプ結果 ('yes' or 'no')
@@ -105,25 +105,42 @@ export const saveSwipeResult = async (
     // 即座の判断かどうかを判定
     const isInstantDecision = metadata?.swipeTime ? metadata.swipeTime < 1000 : false;
 
-    // オンラインの場合はSupabaseに保存（UPSERT処理で重複を防ぐ）
-    const { error } = await supabase
+    // まず既存のスワイプを確認（履歴保持のため）
+    const { data: existingSwipe } = await supabase
       .from('swipes')
-      .upsert(
-        {
-          user_id: userId,
-          product_id: productId,
+      .select('id, created_at')
+      .eq('user_id', userId)
+      .eq('product_id', productId)
+      .single();
+
+    if (existingSwipe) {
+      // 既存のスワイプがある場合は更新（created_atは保持）
+      const { error } = await supabase
+        .from('swipes')
+        .update({
           result,
           swipe_time_ms: metadata?.swipeTime || null,
           is_instant_decision: isInstantDecision,
-        },
-        { 
-          onConflict: 'user_id,product_id',
-          ignoreDuplicates: false 
-        }
-      )
-      .select('id');
+          // updated_atがあれば更新時刻を記録（スキーマに追加推奨）
+        })
+        .eq('id', existingSwipe.id);
 
-    if (error) throw error;
+      if (error) throw error;
+    } else {
+      // 新規作成
+      const { error } = await supabase
+        .from('swipes')
+        .insert({
+          user_id: userId,
+          product_id: productId,
+          result,
+          created_at: swipeData.createdAt,
+          swipe_time_ms: metadata?.swipeTime || null,
+          is_instant_decision: isInstantDecision,
+        });
+
+      if (error) throw error;
+    }
 
     // リアルタイム学習を追加
     await UserPreferenceService.updatePreferenceFromSwipe(
@@ -174,8 +191,11 @@ const saveSwipeOffline = async (swipeData: SwipeData): Promise<boolean> => {
     );
 
     if (existingIndex >= 0) {
-      // 既存のデータを更新
-      offlineSwipes[existingIndex] = newSwipeData;
+      // 既存のデータを更新（作成日時は保持）
+      offlineSwipes[existingIndex] = {
+        ...newSwipeData,
+        createdAt: offlineSwipes[existingIndex].createdAt // 元の作成日時を保持
+      };
     } else {
       // 新しいデータを追加
       offlineSwipes.push(newSwipeData);
@@ -241,36 +261,62 @@ export const syncOfflineSwipes = async (): Promise<boolean> => {
       return true;
     }
 
-    // バッチで同期（有効なスワイプのみ） - UPSERTを使用して重複を防ぐ
-    const { error } = await supabase.from('swipes').upsert(
-      validSwipes.map((swipe) => ({
-        user_id: swipe.userId,
-        product_id: swipe.productId,
-        result: swipe.result,
-        created_at: swipe.createdAt || new Date().toISOString(),
-        swipe_time_ms: swipe.swipeTime || null,
-      })),
-      { 
-        onConflict: 'user_id,product_id',
-        ignoreDuplicates: false // 既存のレコードを更新
-      }
-    );
+    // 個別に同期（整合性を保つため）
+    let successCount = 0;
+    for (const swipe of validSwipes) {
+      try {
+        // 既存のスワイプを確認
+        const { data: existingSwipe } = await supabase
+          .from('swipes')
+          .select('id, created_at')
+          .eq('user_id', swipe.userId)
+          .eq('product_id', swipe.productId)
+          .single();
 
-    if (error) throw error;
+        if (existingSwipe) {
+          // 既存レコードがある場合、より新しいものだけを更新
+          const existingDate = new Date(existingSwipe.created_at);
+          const offlineDate = new Date(swipe.createdAt);
+          
+          if (offlineDate > existingDate) {
+            // オフラインデータの方が新しい場合のみ更新
+            const { error } = await supabase
+              .from('swipes')
+              .update({
+                result: swipe.result,
+                swipe_time_ms: swipe.swipeTime || null,
+              })
+              .eq('id', existingSwipe.id);
+            
+            if (error) throw error;
+          }
+        } else {
+          // 新規作成
+          const { error } = await supabase
+            .from('swipes')
+            .insert({
+              user_id: swipe.userId,
+              product_id: swipe.productId,
+              result: swipe.result,
+              created_at: swipe.createdAt || new Date().toISOString(),
+              swipe_time_ms: swipe.swipeTime || null,
+            });
+          
+          if (error && error.code !== '23505') throw error;
+        }
+        
+        successCount++;
+      } catch (err) {
+        console.error('[syncOfflineSwipes] Error syncing individual swipe:', err);
+      }
+    }
+
+    console.log(`[syncOfflineSwipes] Successfully synced ${successCount}/${validSwipes.length} swipes`);
 
     // 同期完了後、オフラインデータをクリア
     await AsyncStorage.removeItem(OFFLINE_SWIPE_STORAGE_KEY);
-    console.log('[syncOfflineSwipes] Successfully synced swipes');
     return true;
   } catch (error: any) {
-    // より詳細なエラーログ
-    if (error?.code === '23505') {
-      console.log('[syncOfflineSwipes] Duplicate key error - this is normal if user swiped same product multiple times offline');
-      // 重複エラーの場合も、オフラインデータをクリア（既にサーバーに存在するため）
-      await AsyncStorage.removeItem(OFFLINE_SWIPE_STORAGE_KEY);
-      return true; // 重複は正常な動作として扱う
-    }
-    
     console.error('[syncOfflineSwipes] Error syncing offline swipes:', error);
     console.error('[syncOfflineSwipes] Error details:', {
       code: error?.code,
