@@ -23,7 +23,7 @@ interface UseProductsReturn {
   loadMore: (reset?: boolean) => Promise<void>;
   resetProducts: () => void;
   refreshProducts: () => Promise<void>;
-  handleSwipe: (product: Product, direction: 'left' | 'right') => void;
+  handleSwipe: (product: Product, direction: 'left' | 'right', metadata?: { swipeTime?: number }) => void;
   hasMore: boolean;
   totalFetched: number;
   setFilters: (filters: FilterOptions) => void;
@@ -322,24 +322,11 @@ export const useProducts = (): UseProductsReturn => {
     console.log('[useProducts] handleSwipe called - currentIndex:', currentIndex, 'productsLength:', productsData.products.length);
     
     // スワイプデータを記録（非同期、待たない）
+    // recordSwipe内でUserPreferenceServiceが呼ばれるので、ここでは呼ばない
     const result = direction === 'right' ? 'yes' : 'no';
     recordSwipe(user.id, product.id, result, metadata).catch(err => {
       console.error('Error recording swipe:', err);
     });
-    
-    // UserPreferenceServiceを呼び出して嗜好を更新（非同期、待たない）
-    if (metadata?.swipeTime) {
-      import('@/services/userPreferenceService').then(({ UserPreferenceService }) => {
-        UserPreferenceService.updatePreferenceFromSwipe(
-          user.id,
-          product.id,
-          result,
-          metadata.swipeTime
-        ).catch(err => {
-          console.error('Error updating user preference:', err);
-        });
-      });
-    }
     
     // リサイクルモードでなければ、スワイプ済みリストに追加
     if (recycleCountRef.current === 0) {
