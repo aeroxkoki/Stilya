@@ -22,6 +22,7 @@ export const normalizeProduct = (dbProduct: any): Product => {
   
   // デバッグ: 商品データの画像URL情報をログ出力
   // 画像表示問題の調査のため、一時的に常にログを出力
+  if (__DEV__) {
     console.log('[ProductService] normalizeProduct:', {
       productId: dbProduct.id,
       title: dbProduct.title?.substring(0, 30) + '...',
@@ -33,6 +34,7 @@ export const normalizeProduct = (dbProduct: any): Product => {
       dbFields: Object.keys(dbProduct),
       has_ex: originalImageUrl?.includes('_ex=')
     });
+  }
   
   const normalized: Product = {
     id: dbProduct.id,
@@ -127,7 +129,18 @@ export const fetchProducts = async (limit: number = 20, offset: number = 0, filt
       .range(offset, offset + limit - 1);
     
     if (!error && data && data.length > 0) {
-      const products = data.map(normalizeProduct);
+      const products = data
+        .filter(product => product != null)
+        .map(product => {
+          try {
+            return normalizeProduct(product);
+          } catch (err) {
+            console.error('[ProductService] Error normalizing product:', err);
+            return null;
+          }
+        })
+        .filter((product): product is Product => product !== null);
+      
       console.log(`[ProductService] Fetched ${products.length} products from Supabase`);
       console.log('[ProductService] Product IDs:', products.map(p => p.id).slice(0, 5));
       return { success: true, data: products };
@@ -149,7 +162,18 @@ export const fetchProducts = async (limit: number = 20, offset: number = 0, filt
       }
       
       if (newData && newData.length > 0) {
-        const products = newData.map(normalizeProduct);
+        const products = newData
+          .filter(product => product != null)
+          .map(product => {
+            try {
+              return normalizeProduct(product);
+            } catch (err) {
+              console.error('[ProductService] Error normalizing product:', err);
+              return null;
+            }
+          })
+          .filter((product): product is Product => product !== null);
+        
         console.log(`[ProductService] Fetched ${products.length} sample products`);
         return { success: true, data: products };
       }
@@ -304,7 +328,18 @@ export const fetchProductsByTags = async (
       return { success: false, error: error.message };
     }
     
-    const products = (data || []).map(normalizeProduct);
+    const products = (data || [])
+      .filter(product => product != null)
+      .map(product => {
+        try {
+          return normalizeProduct(product);
+        } catch (err) {
+          console.error('[ProductService] Error normalizing product in fetchProductsByTags:', err);
+          return null;
+        }
+      })
+      .filter((product): product is Product => product !== null);
+    
     return { success: true, data: products };
   } catch (error: any) {
     console.error('[ProductService] Error in fetchProductsByTags:', error);
