@@ -15,10 +15,11 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { ProductCard, Button } from '@/components/common';
-import { useProductStore } from '@/store/productStore';
-import { useAuthStore } from '@/store/authStore';
+import { useAuth } from '@/hooks/useAuth';
+import { useFavorites } from '@/hooks/useFavorites';
 import { Product, ProfileStackParamList } from '@/types';
 import { useStyle } from '@/contexts/ThemeContext';
+import { fetchProductById } from '@/services/productService';
 
 const { width } = Dimensions.get('window');
 const COLUMN_NUM = 2;
@@ -29,19 +30,21 @@ type NavigationProp = StackNavigationProp<ProfileStackParamList>;
 const FavoritesScreen: React.FC = () => {
   const { theme } = useStyle();
   const navigation = useNavigation<NavigationProp>();
-  const { user } = useAuthStore();
+  const { user } = useAuth();
   const { 
-    favorites, 
-    getFavorites, 
+    favorites: favoriteIds, 
     removeFromFavorites, 
+    refreshFavorites,
     loading 
-  } = useProductStore();
+  } = useFavorites();
   
   const [refreshing, setRefreshing] = useState(false);
+  const [favoriteProducts, setFavoriteProducts] = useState<Product[]>([]);
   const [displayFavorites, setDisplayFavorites] = useState<Product[]>([]);
   const [page, setPage] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
   const [sortOrder, setSortOrder] = useState<'recent' | 'price_high' | 'price_low'>('recent');
+  const [loadingProducts, setLoadingProducts] = useState(false);
   
   // 動的スタイルを生成
   const dynamicStyles = {
@@ -143,21 +146,59 @@ const FavoritesScreen: React.FC = () => {
     },
   };
   
-  // 初回表示時にデータを取得
-  useEffect(() => {
-    const loadFavorites = async () => {
-      if (user) {
-        await getFavorites(user.id);
-      }
-    };
+  // お気に入りIDから商品データを取得
+  const loadFavoriteProducts = useCallback(async () => {
+    if (favoriteIds.length === 0) {
+      setFavoriteProducts([]);
+      setDisplayFavorites([]);
+      return;
+    }
     
-    loadFavorites();
-  }, [user]);
+    setLoadingProducts(true);
+    
+    try {
+      // お気に入りの商品データを取得（存在しない商品はスキップ）
+      const products: Product[] = [];
+      
+      // バッチで処理（パフォーマンスを考慮）
+      const batchSize = 10;
+      for (let i = 0; i < favoriteIds.length; i += batchSize) {
+        const batch = favoriteIds.slice(i, i + batchSize);
+        const batchPromises = batch.map(async (id) => {
+          try {
+            const result = await fetchProductById(id);
+            if (result.success && 'data' in result && result.data) {
+              return result.data;
+            }
+            return null;
+          } catch (error) {
+            console.warn(`[FavoritesScreen] Failed to fetch product ${id}:`, error);
+            return null;
+          }
+        });
+        
+        const batchResults = await Promise.all(batchPromises);
+        // nullでない商品のみを追加
+        products.push(...batchResults.filter((p): p is Product => p !== null));
+      }
+      
+      setFavoriteProducts(products);
+    } catch (error) {
+      console.error('[FavoritesScreen] Error loading favorite products:', error);
+    } finally {
+      setLoadingProducts(false);
+    }
+  }, [favoriteIds]);
+  
+  // お気に入りIDが変更されたら商品データを再取得
+  useEffect(() => {
+    loadFavoriteProducts();
+  }, [favoriteIds, loadFavoriteProducts]);
   
   // お気に入りがロードされたらソートして表示
   useEffect(() => {
-    if (favorites.length > 0) {
-      const sorted = sortFavorites(favorites, sortOrder);
+    if (favoriteProducts.length > 0) {
+      const sorted = sortFavorites(favoriteProducts, sortOrder);
       
       // 簡易的なページネーション (1ページあたり20件)
       const ITEMS_PER_PAGE = 20;
@@ -168,7 +209,7 @@ const FavoritesScreen: React.FC = () => {
     } else {
       setDisplayFavorites([]);
     }
-  }, [favorites, page, sortOrder]);
+  }, [favoriteProducts, page, sortOrder]);
   
   // ソート機能
   const sortFavorites = (items: Product[], order: string) => {
@@ -205,9 +246,12 @@ const FavoritesScreen: React.FC = () => {
         { 
           text: '削除', 
           style: 'destructive',
-          onPress: () => {
-            if (user) {
-              removeFromFavorites(user.id, productId);
+          onPress: async () => {
+            try {
+              await removeFromFavorites(productId);
+            } catch (error) {
+              console.error('[FavoritesScreen] Error removing favorite:', error);
+              Alert.alert('エラー', 'お気に入りの削除に失敗しました');
             }
           }
         }
@@ -217,26 +261,25 @@ const FavoritesScreen: React.FC = () => {
   
   // リフレッシュハンドラー
   const handleRefresh = async () => {
-    if (!user) return;
-    
     setRefreshing(true);
     setPage(1);
-    await getFavorites(user.id);
+    await refreshFavorites();
+    await loadFavoriteProducts();
     setRefreshing(false);
   };
   
   // もっと読み込むハンドラー
   const handleLoadMore = useCallback(() => {
-    if (loadingMore || displayFavorites.length >= favorites.length) return;
+    if (loadingMore || displayFavorites.length >= favoriteProducts.length) return;
     
     setLoadingMore(true);
     setPage(prev => prev + 1);
     setLoadingMore(false);
-  }, [loadingMore, displayFavorites.length, favorites.length]);
+  }, [loadingMore, displayFavorites.length, favoriteProducts.length]);
   
   // すべてのお気に入りをクリア
   const handleClearAll = () => {
-    if (!user || favorites.length === 0) return;
+    if (!user || favoriteProducts.length === 0) return;
     
     Alert.alert(
       'すべて削除',
@@ -303,7 +346,7 @@ const FavoritesScreen: React.FC = () => {
   };
   
   // ローディング表示
-  if (loading && !refreshing) {
+  if ((loading || loadingProducts) && !refreshing) {
     return (
       <SafeAreaView style={dynamicStyles.container}>
         <View style={dynamicStyles.header}>
@@ -330,7 +373,7 @@ const FavoritesScreen: React.FC = () => {
         </TouchableOpacity>
         <View style={dynamicStyles.headerTitleContainer}>
           <Text style={dynamicStyles.headerTitle}>お気に入り</Text>
-          <Text style={dynamicStyles.headerCount}>({favorites.length})</Text>
+          <Text style={dynamicStyles.headerCount}>({favoriteProducts.length})</Text>
         </View>
         <View style={dynamicStyles.headerActions}>
           <TouchableOpacity onPress={handleShowSortOptions} style={{ padding: 4 }}>
@@ -353,7 +396,7 @@ const FavoritesScreen: React.FC = () => {
       
       {/* 商品リスト */}
       <View style={dynamicStyles.contentContainer}>
-        {favorites.length === 0 ? (
+        {favoriteProducts.length === 0 ? (
           <View style={dynamicStyles.emptyContainer}>
             <Ionicons name="heart-outline" size={64} color="#E5E7EB" />
             <Text style={dynamicStyles.emptyTitle}>お気に入りはまだありません</Text>

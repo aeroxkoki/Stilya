@@ -2,7 +2,7 @@ import { supabase } from './supabase';
 import { generateDummyProducts } from '@/utils/dummyData';
 
 // モック使用フラグ
-const USE_MOCK = true; // 本番環境では必ず false にすること
+const USE_MOCK = false; // 本番環境では必ず false にすること
 
 // インメモリキャッシュ
 interface FavoriteCache {
@@ -36,7 +36,7 @@ export const getFavorites = async (userId: string | undefined | null) => {
       return favoriteCache[userId].favorites;
     }
 
-    if (USE_MOCK || __DEV__) {
+    if (USE_MOCK) {
       // 開発用：ランダムなお気に入りを生成
       console.log('Using mock favorites data');
       const mockProducts = generateDummyProducts(10);
@@ -100,7 +100,7 @@ export const isFavorite = async (userId: string | undefined | null, productId: s
       return favoriteCache[userId].favorites.includes(productId);
     }
 
-    if (USE_MOCK || __DEV__) {
+    if (USE_MOCK) {
       // 開発用：ランダムにお気に入りを判定
       return Math.random() > 0.7; // 30%の確率でお気に入り済みとする
     }
@@ -138,7 +138,7 @@ export const toggleFavorite = async (userId: string | undefined | null, productI
     // 現在のお気に入り状態を確認
     const isCurrentlyFavorite = await isFavorite(userId, productId);
     
-    if (USE_MOCK || __DEV__) {
+    if (USE_MOCK) {
       console.log(`Mock: ${isCurrentlyFavorite ? 'Removing' : 'Adding'} product ${productId} ${isCurrentlyFavorite ? 'from' : 'to'} favorites`);
       
       // キャッシュを更新
