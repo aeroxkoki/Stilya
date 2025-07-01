@@ -23,8 +23,6 @@ const SettingsScreen: React.FC = () => {
   const navigation = useNavigation();
   const { user, logout } = useAuth();
   const { theme, isDarkMode, toggleDarkMode, styleType, setStyleType } = useStyle();
-  const [pushNotifications, setPushNotifications] = useState(true);
-  const [emailNotifications, setEmailNotifications] = useState(true);
   
   // パスワード変更関連の状態
   const [showPasswordFields, setShowPasswordFields] = useState(false);
@@ -301,36 +299,6 @@ const SettingsScreen: React.FC = () => {
               <Ionicons name="chevron-forward" size={20} color={isDarkMode ? '#aaa' : '#999'} />
             </View>
           </TouchableOpacity>
-          
-          <View style={[styles.settingItem, { borderBottomColor: isDarkMode ? '#333' : '#f0f0f0' }]}>
-            <View style={styles.settingTextContainer}>
-              <Text style={[styles.settingLabel, { color: isDarkMode ? '#fff' : '#333' }]}>プッシュ通知</Text>
-              <Text style={[styles.settingDescription, { color: isDarkMode ? '#aaa' : '#777' }]}>
-                お気に入りアイテムの値下げなどをお知らせします
-              </Text>
-            </View>
-            <Switch
-              value={pushNotifications}
-              onValueChange={(value) => setPushNotifications(value)}
-              trackColor={{ false: "#e0e0e0", true: styleThemes[styleType].colors.primary }}
-              thumbColor={pushNotifications ? "#fff" : "#f8f8f8"}
-            />
-          </View>
-          
-          <View style={[styles.settingItem, { borderBottomColor: isDarkMode ? '#333' : '#f0f0f0' }]}>
-            <View style={styles.settingTextContainer}>
-              <Text style={[styles.settingLabel, { color: isDarkMode ? '#fff' : '#333' }]}>メール通知</Text>
-              <Text style={[styles.settingDescription, { color: isDarkMode ? '#aaa' : '#777' }]}>
-                おすすめ商品やセール情報をメールでお知らせします
-              </Text>
-            </View>
-            <Switch
-              value={emailNotifications}
-              onValueChange={(value) => setEmailNotifications(value)}
-              trackColor={{ false: "#e0e0e0", true: styleThemes[styleType].colors.primary }}
-              thumbColor={emailNotifications ? "#fff" : "#f8f8f8"}
-            />
-          </View>
         </View>
         
         {/* サポートセクション */}
