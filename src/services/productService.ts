@@ -6,6 +6,7 @@ import { getUserPreferences } from './userPreferenceService';
 import { optimizeImageUrl, API_OPTIMIZATION } from '@/utils/supabaseOptimization';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/utils/env';
 import { shuffleArray, ensureProductDiversity, getTimeBasedOffset } from '@/utils/randomUtils';
+import { RecommendationService } from './recommendationService';
 
 /**
  * DBの商品データをアプリ用の形式に正規化
@@ -967,6 +968,7 @@ export const fetchRandomizedProducts = async (
  * 探索モードと推薦モードをミックスした商品取得（根本的改善版）
  * スワイプ画面用：70% ランダム + 30% 推薦
  * IDベースの重複防止と動的offset調整を実装
+ * RecommendationServiceを統合
  */
 export const fetchMixedProducts = async (
   userId: string | null,
@@ -999,6 +1001,28 @@ export const fetchMixedProducts = async (
     
     // 除外IDのセットを作成（高速化のため）
     const excludeIdSet = new Set<string>(excludeProductIds || []);
+    
+    // RecommendationServiceを使用して推薦商品を取得（ユーザーがいる場合）
+    let recommendedProducts: Product[] = [];
+    if (userId && !isFirstTime) {
+      try {
+        const { RecommendationService } = await import('./recommendationService');
+        const recommendationResult = await RecommendationService.getPersonalizedRecommendations(
+          userId, 
+          Math.ceil(limit * 0.3), // 30%を推薦商品に
+          adjustedFilters
+        );
+        
+        if (recommendationResult.success && recommendationResult.data) {
+          recommendedProducts = recommendationResult.data.filter(
+            product => !excludeIdSet.has(product.id)
+          );
+          console.log('[fetchMixedProducts] Got recommended products:', recommendedProducts.length);
+        }
+      } catch (error) {
+        console.error('[fetchMixedProducts] Failed to get recommendations:', error);
+      }
+    }
     
     // 動的offset調整のための変数
     let actualOffset = offset;
@@ -1097,10 +1121,46 @@ export const fetchMixedProducts = async (
       }
     }
     
-    // シャッフル（Fisher-Yatesアルゴリズム）
-    for (let i = allFetchedProducts.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [allFetchedProducts[i], allFetchedProducts[j]] = [allFetchedProducts[j], allFetchedProducts[i]];
+    // 推薦商品をミックス（30%推薦、70%ランダム）
+    if (recommendedProducts.length > 0) {
+      console.log('[fetchMixedProducts] Mixing recommended products with random products');
+      
+      // 推薦商品の比率を計算
+      const recommendedCount = Math.ceil(limit * 0.3);
+      const randomCount = limit - recommendedCount;
+      
+      // 推薦商品とランダム商品を適切な比率で組み合わせる
+      const mixedProducts: Product[] = [];
+      const recommendedToUse = recommendedProducts.slice(0, recommendedCount);
+      const randomToUse = allFetchedProducts.slice(0, randomCount);
+      
+      // 推薦商品を戦略的に配置（最初の数個と、その後は間隔を開けて配置）
+      let recommendedIndex = 0;
+      let randomIndex = 0;
+      
+      for (let i = 0; i < limit; i++) {
+        // 最初の3つと、その後3つごとに推薦商品を配置
+        if ((i < 3 || i % 3 === 0) && recommendedIndex < recommendedToUse.length) {
+          mixedProducts.push(recommendedToUse[recommendedIndex++]);
+        } else if (randomIndex < randomToUse.length) {
+          mixedProducts.push(randomToUse[randomIndex++]);
+        } else if (recommendedIndex < recommendedToUse.length) {
+          // ランダム商品が足りない場合は推薦商品で埋める
+          mixedProducts.push(recommendedToUse[recommendedIndex++]);
+        } else if (randomIndex < allFetchedProducts.length) {
+          // それでも足りない場合は残りのランダム商品を使用
+          mixedProducts.push(allFetchedProducts[randomIndex++]);
+        }
+      }
+      
+      allFetchedProducts = mixedProducts.filter(p => p !== undefined);
+      console.log('[fetchMixedProducts] Mixed products:', allFetchedProducts.length);
+    } else {
+      // 推薦商品がない場合はシャッフル（Fisher-Yatesアルゴリズム）
+      for (let i = allFetchedProducts.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [allFetchedProducts[i], allFetchedProducts[j]] = [allFetchedProducts[j], allFetchedProducts[i]];
+      }
     }
     
     // ユーザーがログインしている場合は、好みに基づいてスコアリング

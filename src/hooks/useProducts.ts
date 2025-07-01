@@ -327,6 +327,20 @@ export const useProducts = (): UseProductsReturn => {
       console.error('Error recording swipe:', err);
     });
     
+    // UserPreferenceServiceを呼び出して嗜好を更新（非同期、待たない）
+    if (metadata?.swipeTime) {
+      import('@/services/userPreferenceService').then(({ UserPreferenceService }) => {
+        UserPreferenceService.updatePreferenceFromSwipe(
+          user.id,
+          product.id,
+          result,
+          metadata.swipeTime
+        ).catch(err => {
+          console.error('Error updating user preference:', err);
+        });
+      });
+    }
+    
     // リサイクルモードでなければ、スワイプ済みリストに追加
     if (recycleCountRef.current === 0) {
       swipedProductsRef.current.add(product.id);
