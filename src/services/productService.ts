@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase, handleSupabaseError, handleSupabaseSuccess } from './supabase';
 import { Product } from '@/types';
 import { fetchRakutenFashionProducts } from './rakutenService';
 import { sortProductsByScore, filterOutOfSeasonProducts } from '@/utils/productScoring';
@@ -11,6 +11,11 @@ import { shuffleArray, ensureProductDiversity, getTimeBasedOffset } from '@/util
  * DBの商品データをアプリ用の形式に正規化
  */
 export const normalizeProduct = (dbProduct: any): Product => {
+  // 引数のnullチェック
+  if (!dbProduct) {
+    throw new Error('[normalizeProduct] Product data is null or undefined');
+  }
+  
   // imageUrlが未定義またはnullの場合のフォールバック処理
   const originalImageUrl = dbProduct.image_url || dbProduct.imageUrl || '';
   const optimizedUrl = originalImageUrl ? optimizeImageUrl(originalImageUrl) : '';
@@ -585,7 +590,7 @@ export const fetchRandomizedProducts = async (
 ) => {
   try {
     // 時刻ベースのoffset調整（より多様な商品を取得するため）
-    const timeOffset = getTimeBasedOffset(seed);
+    const timeOffset = getTimeBasedOffset();
     
     console.log('[ProductService] Fetching randomized products with:', {
       limit,
@@ -713,10 +718,19 @@ export const fetchRandomizedProducts = async (
       windowSize: 5
     });
     
-    // 必要な数だけ取得
+    // 必要な数だけ取得（normalizeProduct呼び出し前にnullチェック）
     const normalizedProducts = products
       .slice(0, limit)
-      .map(normalizeProduct);
+      .filter(product => product != null) // normalizeProduct呼び出し前にnullチェック
+      .map(product => {
+        try {
+          return normalizeProduct(product);
+        } catch (err) {
+          console.error('[ProductService] Error normalizing product:', err, 'Product:', product);
+          return null;
+        }
+      })
+      .filter((product): product is Product => product !== null); // null除外と型ガード
     
     console.log(`[ProductService] Fetched ${normalizedProducts.length} randomized products`);
     return { success: true, data: normalizedProducts };
@@ -732,6 +746,32 @@ export const fetchRandomizedProducts = async (
  * スワイプ画面用：70% ランダム + 30% 推薦
  * 重複する5-2-3パターンを削除し、RecommendationServiceに委譲
  */
+// 商品IDで単一商品を取得
+export const fetchProductById = async (productId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('external_products')
+      .select('*')
+      .eq('id', productId)
+      .single();
+
+    if (error) {
+      console.error('[ProductService] Error fetching product by ID:', error);
+      return handleSupabaseError(error);
+    }
+
+    if (!data) {
+      return { success: false, error: 'Product not found' };
+    }
+
+    const normalizedProduct = normalizeProduct(data);
+    return handleSupabaseSuccess(normalizedProduct);
+  } catch (error: any) {
+    console.error('[ProductService] Error in fetchProductById:', error);
+    return { success: false, error: error.message || 'Failed to fetch product' };
+  }
+};
+
 export const fetchMixedProducts = async (
   userId: string | null,
   limit: number = 20,

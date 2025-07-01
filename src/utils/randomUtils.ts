@@ -109,8 +109,10 @@ export const ensureProductDiversity = <T extends { category?: string; brand?: st
   
   // 不足分は元の順序で補完
   if (result.length < products.length) {
-    const remaining = products.filter(p => !result.includes(p));
-    result.push(...remaining.slice(0, products.length - result.length));
+    const remaining = products.filter(p => p != null && !result.includes(p));
+    // 追加する前にnullチェック
+    const toAdd = remaining.slice(0, products.length - result.length).filter(p => p != null);
+    result.push(...toAdd);
   }
   
   return result;

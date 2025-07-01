@@ -63,7 +63,7 @@ export class RecommendationService {
   // 人気度スコアを計算（新規追加）
   private static calculatePopularityScore(product: Product): number {
     const rating = product.rating || 0;
-    const reviewCount = product.review_count || 0;
+    const reviewCount = product.reviewCount || 0;
     
     if (reviewCount === 0) return 0;
     
@@ -365,7 +365,7 @@ export class RecommendationService {
       return handleSupabaseSuccess(userPreference);
     } catch (error) {
       console.error('Error analyzing user preferences:', error);
-      return handleSupabaseError(error);
+      return handleSupabaseError(error as Error);
     }
   }
 
@@ -514,7 +514,7 @@ export class RecommendationService {
 
       return handleSupabaseSuccess(recommendations);
     } catch (error) {
-      return handleSupabaseError(error);
+      return handleSupabaseError(error as Error);
     }
   }
 
@@ -591,7 +591,7 @@ export class RecommendationService {
       const normalizedProducts = (products || []).map(normalizeProduct);
       return handleSupabaseSuccess(normalizedProducts);
     } catch (error) {
-      return handleSupabaseError(error);
+      return handleSupabaseError(error as Error);
     }
   }
 
@@ -671,7 +671,7 @@ export class RecommendationService {
       const normalizedProducts = (products || []).map(normalizeProduct);
       return handleSupabaseSuccess(normalizedProducts);
     } catch (error) {
-      return handleSupabaseError(error);
+      return handleSupabaseError(error as Error);
     }
   }
 

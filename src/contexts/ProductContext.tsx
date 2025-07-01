@@ -128,9 +128,9 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
           try {
             const productResults = await Promise.all(productPromises);
             
-            productResults.forEach(result => {
+            productResults.forEach((result: any) => {
               if (result.success && 'data' in result && result.data) {
-                const product = (result as any).data;
+                const product = result.data;
                 // IDが正しい形式で、重複していないことを確認
                 if (product.id && !seenIds.has(product.id)) {
                   seenIds.add(product.id);

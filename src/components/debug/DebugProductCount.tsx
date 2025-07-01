@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
 import { supabase } from '@/services/supabase';
 import { useStyle } from '@/contexts/ThemeContext';
 import { Button } from '@/components/common';
@@ -134,29 +134,29 @@ const DebugProductCount: React.FC = () => {
         
         {stats && (
           <>
-            <View style={[styles.statsCard, { backgroundColor: theme.colors.card }]}>
+            <View style={[styles.statsCard, { backgroundColor: theme.colors.card.background }]}>
               <Text style={[styles.statLabel, { color: theme.colors.text.secondary }]}>総商品数</Text>
               <Text style={[styles.statValue, { color: theme.colors.text.primary }]}>{stats.totalProducts.toLocaleString()}</Text>
             </View>
             
-            <View style={[styles.statsCard, { backgroundColor: theme.colors.card }]}>
+            <View style={[styles.statsCard, { backgroundColor: theme.colors.card.background }]}>
               <Text style={[styles.statLabel, { color: theme.colors.text.secondary }]}>アクティブ商品数</Text>
               <Text style={[styles.statValue, { color: theme.colors.text.primary }]}>{stats.activeProducts.toLocaleString()}</Text>
             </View>
             
             <View style={styles.row}>
-              <View style={[styles.halfCard, { backgroundColor: theme.colors.card }]}>
+              <View style={[styles.halfCard, { backgroundColor: theme.colors.card.background }]}>
                 <Text style={[styles.statLabel, { color: theme.colors.text.secondary }]}>新品</Text>
                 <Text style={[styles.statValue, { color: theme.colors.primary }]}>{stats.newProducts.toLocaleString()}</Text>
               </View>
               
-              <View style={[styles.halfCard, { backgroundColor: theme.colors.card }]}>
+              <View style={[styles.halfCard, { backgroundColor: theme.colors.card.background }]}>
                 <Text style={[styles.statLabel, { color: theme.colors.text.secondary }]}>中古品</Text>
                 <Text style={[styles.statValue, { color: theme.colors.secondary }]}>{stats.usedProducts.toLocaleString()}</Text>
               </View>
             </View>
             
-            <View style={[styles.categorySection, { backgroundColor: theme.colors.card }]}>
+            <View style={[styles.categorySection, { backgroundColor: theme.colors.card.background }]}>
               <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>カテゴリー別商品数</Text>
               {Object.entries(stats.categoryCounts).map(([category, count]) => (
                 <View key={category} style={styles.categoryRow}>
