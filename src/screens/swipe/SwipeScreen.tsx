@@ -9,12 +9,11 @@ import { useStyle } from '@/contexts/ThemeContext';
 import { useAuth } from '@/hooks/useAuth';
 import { EmptyState } from '@/components/common';
 import { useProducts } from '@/hooks/useProducts';
+import { useFavorites } from '@/hooks/useFavorites';
 import { SwipeContainer } from '@/components/swipe';
 import ActionButtons from '@/components/swipe/ActionButtons';
 import FilterModal from '@/components/recommend/FilterModal';
 import { FilterOptions } from '@/services/productService';
-import { getFavorites, toggleFavorite } from '@/services/favoriteService';
-import { getSafeUserId, diagnoseUserId } from '@/utils/authUtils';
 
 // ナビゲーションの型定義
 type SwipeScreenNavigationProp = StackNavigationProp<SwipeStackParamList, 'SwipeHome'>;
@@ -40,16 +39,20 @@ const SwipeScreen: React.FC = () => {
     setFilters: setProductFilters
   } = useProducts();
   
+  // お気に入り機能（useFavoritesフックを使用）
+  const {
+    favorites: favoriteIds,
+    addToFavorites,
+    removeFromFavorites,
+    isFavorite
+  } = useFavorites();
+  
   // 状態管理
   const [showEmptyState, setShowEmptyState] = useState(false);
-  const [favorites, setFavorites] = useState<string[]>([]);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [filters, setFilters] = useState<FilterOptions>({});
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [swipeStartTime, setSwipeStartTime] = useState<number>(Date.now()); // スワイプ開始時刻
-  
-  // 表示済み商品IDの追跡は削除（useProductsフックで管理）
-  // const [displayedProductIds, setDisplayedProductIds] = useState<Set<string>>(new Set());
   
   // デバッグ用の状態表示
   useEffect(() => {
@@ -64,21 +67,9 @@ const SwipeScreen: React.FC = () => {
       isLoading,
       error,
       hasMore,
-      // displayedProductsCount: displayedProductIds.size
+      favoritesCount: favoriteIds.length
     });
-    
-    // 重複チェックは削除（useProductsフックが既に管理している）
-    // 現在の商品が既に表示されたかチェック
-    // if (currentProduct) {
-    //   if (displayedProductIds.has(currentProduct.id)) {
-    //     console.error(`[SwipeScreen] 🚨 重複検出: 商品ID ${currentProduct.id} (${currentProduct.title}) が再度表示されています！`);
-    //     console.log('[SwipeScreen] 表示済み商品ID一覧:', Array.from(displayedProductIds));
-    //     console.log('[SwipeScreen] 現在の商品リスト:', products.map(p => ({ id: p.id, title: p.title })));
-    //   } else {
-    //     setDisplayedProductIds(prev => new Set(prev).add(currentProduct.id));
-    //   }
-    // }
-  }, [user, isInitialized, products.length, currentIndex, currentProduct, isLoading, error, hasMore]);
+  }, [user, isInitialized, products.length, currentIndex, currentProduct, isLoading, error, hasMore, favoriteIds.length]);
   
   // 初期データロード
   useEffect(() => {
@@ -101,21 +92,6 @@ const SwipeScreen: React.FC = () => {
       setShowEmptyState(false);
     }
   }, [isLoading, products.length, currentIndex]);
-  
-  // お気に入りリストの初期化
-  useEffect(() => {
-    const loadFavorites = async () => {
-      const userId = getSafeUserId(user);
-      if (userId) {
-        // デバッグ情報を出力
-        diagnoseUserId('SwipeScreen.loadFavorites', userId, user);
-        
-        const userFavorites = await getFavorites(userId);
-        setFavorites(userFavorites);
-      }
-    };
-    loadFavorites();
-  }, [user]);
   
   // 利用可能なタグを商品から抽出
   useEffect(() => {
@@ -158,30 +134,27 @@ const SwipeScreen: React.FC = () => {
     }
   }, [user, currentIndex, products.length, swipeProduct, hasMore, loadMore, swipeStartTime]);
   
-  // お気に入り処理
+  // お気に入り処理（useFavoritesフックを使用）
   const handleFavorite = useCallback(async () => {
-    const userId = getSafeUserId(user);
-    if (!userId || !currentProduct) return;
+    if (!currentProduct) return;
     
     try {
-      const isFavorite = favorites.includes(currentProduct.id);
-      await toggleFavorite(userId, currentProduct.id);
-      
-      if (isFavorite) {
-        setFavorites(favorites.filter(id => id !== currentProduct.id));
+      if (isFavorite(currentProduct.id)) {
+        await removeFromFavorites(currentProduct.id);
+        console.log(`[SwipeScreen] お気に入りから削除: ${currentProduct.title}`);
       } else {
-        setFavorites([...favorites, currentProduct.id]);
+        await addToFavorites(currentProduct.id);
+        console.log(`[SwipeScreen] お気に入りに追加: ${currentProduct.title}`);
       }
     } catch (error) {
-      console.error('お気に入り処理エラー:', error);
+      console.error('[SwipeScreen] お気に入り処理エラー:', error);
     }
-  }, [user, currentProduct, favorites]);
+  }, [currentProduct, isFavorite, addToFavorites, removeFromFavorites]);
   
   // ロードし直し
   const handleReload = useCallback(() => {
     console.log('[SwipeScreen] リロード開始');
     setShowEmptyState(false);
-    // setDisplayedProductIds(new Set()); // 表示済みIDをリセット（削除）
     resetProducts();
   }, [resetProducts]);
   
@@ -189,7 +162,6 @@ const SwipeScreen: React.FC = () => {
   const handleApplyFilter = useCallback((newFilters: FilterOptions) => {
     console.log('[SwipeScreen] フィルター適用:', newFilters);
     setFilters(newFilters);
-    // setDisplayedProductIds(new Set()); // 表示済みIDをリセット（削除）
     setProductFilters(newFilters);
     setShowFilterModal(false);
   }, [setProductFilters]);
@@ -302,7 +274,7 @@ const SwipeScreen: React.FC = () => {
         onPressNo={() => currentProduct && handleSwipe(currentProduct, 'left')}
         onPressYes={() => currentProduct && handleSwipe(currentProduct, 'right')}
         onPressSave={handleFavorite}
-        isSaved={currentProduct ? favorites.includes(currentProduct.id) : false}
+        isSaved={currentProduct ? isFavorite(currentProduct.id) : false}
         disabled={!currentProduct}
       />
       

@@ -124,6 +124,9 @@ const storeActions = {
   },
 
   // お気に入り関連
+  // 注意: 現在、お気に入り機能は useFavorites フックを使用することが推奨されています。
+  // このストアのお気に入り機能は、将来的な互換性のために残されていますが、
+  // 新しい実装では useFavorites フックを使用してください。
   getFavorites: async (userId: string) => {
     updateStore({ loading: true, error: null });
     

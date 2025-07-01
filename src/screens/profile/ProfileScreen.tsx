@@ -5,7 +5,6 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Button, Card } from '@/components/common';
 import { useAuth } from '@/hooks/useAuth';
-import { useProductStore } from '@/store/productStore';
 import { ProfileStackParamList } from '@/types';
 import { useStyle } from '@/contexts/ThemeContext';
 import DebugProductCount from '@/components/debug/DebugProductCount';
@@ -16,10 +15,6 @@ const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<ProfileScreenNavigationProp>();
   const { user, logout, loading } = useAuth();
   const { theme } = useStyle();
-  const { 
-    favorites,
-    getFavorites
-  } = useProductStore();
   
   // デバッグモーダルの表示状態
   const [showDebugModal, setShowDebugModal] = useState(false);
@@ -32,12 +27,6 @@ const ProfileScreen: React.FC = () => {
       color: theme.colors.background,
     },
   };
-
-  useEffect(() => {
-    if (user && user.id) {
-      getFavorites(user.id);
-    }
-  }, [user]);
 
   const handleLogout = async () => {
     Alert.alert(
