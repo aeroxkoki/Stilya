@@ -84,6 +84,34 @@ export class RecommendationService {
     return popularityScore;
   }
   
+  // ネガティブシグナルスコアを計算（新規追加）
+  private static calculateNegativeScore(
+    product: Product,
+    dislikedTags: string[],
+    dislikedBrands: string[],
+    dislikedCategories: string[]
+  ): number {
+    let negativeScore = 0;
+    const tags = product.tags || [];
+    
+    // dislikedTagsとのマッチング
+    const matchedTags = tags.filter(tag => dislikedTags.includes(tag));
+    negativeScore += matchedTags.length * 0.3; // タグごとに0.3ペナルティ
+    
+    // dislikedBrandのチェック
+    if (product.brand && dislikedBrands.includes(product.brand)) {
+      negativeScore += 0.5; // ブランドペナルティ
+    }
+    
+    // dislikedCategoryのチェック
+    if (product.category && dislikedCategories.includes(product.category)) {
+      negativeScore += 0.4; // カテゴリペナルティ
+    }
+    
+    // 0-1の範囲に正規化（1に近いほどネガティブ）
+    return Math.min(negativeScore, 1.0);
+  }
+  
   // 動的な重み付けを計算（改善版）
   private static calculateDynamicWeights(
     preferences: UserPreference
@@ -100,7 +128,8 @@ export class RecommendationService {
         brand: 0.5,
         price: 1.0,
         seasonal: 1.5,
-        popularity: 2.0
+        popularity: 2.0,
+        negative: 0.5 // ネガティブシグナルは弱め
       };
     } else if (swipeCount < 50) {
       return {
@@ -109,7 +138,8 @@ export class RecommendationService {
         brand: 0.8,
         price: 1.2,
         seasonal: 1.8,
-        popularity: 1.5
+        popularity: 1.5,
+        negative: 1.0 // ネガティブシグナルを考慮
       };
     }
     
@@ -120,7 +150,8 @@ export class RecommendationService {
       brand: 1.0,
       price: 1.5,
       seasonal: 2.0,
-      popularity: 1.0
+      popularity: 1.0,
+      negative: 1.5 // ネガティブシグナルを強く考慮
     };
   }
 
@@ -133,12 +164,12 @@ export class RecommendationService {
         return handleSupabaseError(new Error('Invalid user ID'));
       }
       
-      // スワイプ履歴を取得
+      // スワイプ履歴を取得（YesとNo両方）
       const { data: swipes, error: swipeError } = await supabase
         .from(TABLES.SWIPES)
-        .select('product_id')
+        .select('product_id, result, swipe_time_ms, is_instant_decision')
         .eq('user_id', userId)
-        .eq('result', 'yes');
+        .in('result', ['yes', 'no']);
 
       if (swipeError) {
         console.error('Error fetching user swipes:', swipeError);
@@ -149,27 +180,38 @@ export class RecommendationService {
         return handleSupabaseSuccess(null);
       }
 
-      // 商品IDのリストを取得
-      const productIds = swipes.map(s => s.product_id);
+      // スワイプの品質を考慮して商品IDを分類
+      const weightedLikedIds: { id: string; weight: number }[] = [];
+      const weightedDislikedIds: { id: string; weight: number }[] = [];
+
+      swipes.forEach(swipe => {
+        const weight = swipe.is_instant_decision ? 1.5 : 1.0; // 即決は重み付けを高く
+        
+        if (swipe.result === 'yes') {
+          weightedLikedIds.push({ id: swipe.product_id, weight });
+        } else {
+          weightedDislikedIds.push({ id: swipe.product_id, weight });
+        }
+      });
 
       // 商品情報を個別に取得
-      // 空の配列チェックを追加
-      if (productIds.length === 0) {
+      const allProductIds = [...new Set([
+        ...weightedLikedIds.map(w => w.id),
+        ...weightedDislikedIds.map(w => w.id)
+      ])];
+
+      if (allProductIds.length === 0) {
         return handleSupabaseSuccess(null);
       }
 
-      // 大量のIDの場合は制限する（PostgreSQLの制限とパフォーマンスを考慮）
-      const limitedProductIds = productIds.length > 1000 
-        ? productIds.slice(-1000)  // 最新の1000個を使用
-        : productIds;
-      
-      if (productIds.length > 1000) {
-        console.log(`[analyzeUserPreferences] Using ${limitedProductIds.length} recent product IDs out of ${productIds.length} total`);
-      }
+      // 大量のIDの場合は制限する
+      const limitedProductIds = allProductIds.length > 1500 
+        ? allProductIds.slice(-1500)
+        : allProductIds;
 
       const { data: products, error: productError } = await supabase
         .from(TABLES.EXTERNAL_PRODUCTS)
-        .select('tags, category, price, brand')
+        .select('id, tags, category, price, brand')
         .in('id', limitedProductIds);
 
       if (productError) {
@@ -181,28 +223,42 @@ export class RecommendationService {
         return handleSupabaseSuccess(null);
       }
 
-      // Analyze tags
-      const tagFrequency: Record<string, number> = {};
-      const categoryFrequency: Record<string, number> = {};
-      const brandFrequency: Record<string, number> = {};
+      // 商品情報をマップに変換
+      const productMap = new Map(products.map(p => [p.id, p]));
+
+      // 重み付きで分析
+      const tagFrequency: Record<string, { positive: number; negative: number }> = {};
+      const categoryFrequency: Record<string, { positive: number; negative: number }> = {};
+      const brandFrequency: Record<string, { positive: number; negative: number }> = {};
       const prices: number[] = [];
 
-      products.forEach((product) => {
-        // Count tags
+      // ポジティブシグナルの分析
+      weightedLikedIds.forEach(({ id, weight }) => {
+        const product = productMap.get(id);
+        if (!product) return;
+
+        // Count tags with weight
         if (product.tags && Array.isArray(product.tags)) {
           product.tags.forEach((tag: string) => {
-            tagFrequency[tag] = (tagFrequency[tag] || 0) + 1;
+            if (!tagFrequency[tag]) tagFrequency[tag] = { positive: 0, negative: 0 };
+            tagFrequency[tag].positive += weight;
           });
         }
 
-        // Count categories
+        // Count categories with weight
         if (product.category) {
-          categoryFrequency[product.category] = (categoryFrequency[product.category] || 0) + 1;
+          if (!categoryFrequency[product.category]) {
+            categoryFrequency[product.category] = { positive: 0, negative: 0 };
+          }
+          categoryFrequency[product.category].positive += weight;
         }
 
-        // Count brands
+        // Count brands with weight
         if (product.brand) {
-          brandFrequency[product.brand] = (brandFrequency[product.brand] || 0) + 1;
+          if (!brandFrequency[product.brand]) {
+            brandFrequency[product.brand] = { positive: 0, negative: 0 };
+          }
+          brandFrequency[product.brand].positive += weight;
         }
 
         // Collect prices
@@ -211,19 +267,70 @@ export class RecommendationService {
         }
       });
 
-      // Calculate preferences
+      // ネガティブシグナルの分析
+      weightedDislikedIds.forEach(({ id, weight }) => {
+        const product = productMap.get(id);
+        if (!product) return;
+
+        // Count tags with weight
+        if (product.tags && Array.isArray(product.tags)) {
+          product.tags.forEach((tag: string) => {
+            if (!tagFrequency[tag]) tagFrequency[tag] = { positive: 0, negative: 0 };
+            tagFrequency[tag].negative += weight;
+          });
+        }
+
+        // Count categories with weight
+        if (product.category) {
+          if (!categoryFrequency[product.category]) {
+            categoryFrequency[product.category] = { positive: 0, negative: 0 };
+          }
+          categoryFrequency[product.category].negative += weight;
+        }
+
+        // Count brands with weight
+        if (product.brand) {
+          if (!brandFrequency[product.brand]) {
+            brandFrequency[product.brand] = { positive: 0, negative: 0 };
+          }
+          brandFrequency[product.brand].negative += weight;
+        }
+      });
+
+      // 好みと嫌いを計算
       const likedTags = Object.entries(tagFrequency)
-        .sort(([, a], [, b]) => b - a)
+        .filter(([_, freq]) => freq.positive > freq.negative)
+        .sort(([, a], [, b]) => (b.positive - b.negative) - (a.positive - a.negative))
+        .slice(0, 10)
+        .map(([tag]) => tag);
+
+      const dislikedTags = Object.entries(tagFrequency)
+        .filter(([_, freq]) => freq.negative > freq.positive * 1.5) // より強いネガティブシグナル
+        .sort(([, a], [, b]) => (b.negative - b.positive) - (a.negative - a.positive))
         .slice(0, 10)
         .map(([tag]) => tag);
 
       const preferredCategories = Object.entries(categoryFrequency)
-        .sort(([, a], [, b]) => b - a)
+        .filter(([_, freq]) => freq.positive > freq.negative)
+        .sort(([, a], [, b]) => (b.positive - b.negative) - (a.positive - a.negative))
+        .slice(0, 5)
+        .map(([category]) => category);
+
+      const dislikedCategories = Object.entries(categoryFrequency)
+        .filter(([_, freq]) => freq.negative > freq.positive * 1.5)
+        .sort(([, a], [, b]) => (b.negative - b.positive) - (a.negative - a.positive))
         .slice(0, 5)
         .map(([category]) => category);
 
       const preferredBrands = Object.entries(brandFrequency)
-        .sort(([, a], [, b]) => b - a)
+        .filter(([_, freq]) => freq.positive > freq.negative)
+        .sort(([, a], [, b]) => (b.positive - b.negative) - (a.positive - a.negative))
+        .slice(0, 5)
+        .map(([brand]) => brand);
+
+      const dislikedBrands = Object.entries(brandFrequency)
+        .filter(([_, freq]) => freq.negative > freq.positive * 1.5)
+        .sort(([, a], [, b]) => (b.negative - b.positive) - (a.negative - a.positive))
         .slice(0, 5)
         .map(([brand]) => brand);
 
@@ -232,16 +339,27 @@ export class RecommendationService {
         max: Math.max(...prices),
       } : { min: 0, max: 100000 };
 
+      // tagScoresを数値形式に変換（既存コードとの互換性のため）
+      const tagScores: Record<string, number> = {};
+      Object.entries(tagFrequency).forEach(([tag, freq]) => {
+        const score = freq.positive - (freq.negative * 0.5);
+        if (score > 0) {
+          tagScores[tag] = score;
+        }
+      });
+
       const userPreference: UserPreference = {
         userId,
         likedTags,
-        dislikedTags: [], // Would need additional analysis for disliked tags
+        dislikedTags,
         preferredCategories,
+        dislikedCategories, // 新規追加
         avgPriceRange,
         brands: preferredBrands,
+        dislikedBrands,
         price_range: avgPriceRange,
         topTags: likedTags.slice(0, 5),
-        tagScores: tagFrequency,
+        tagScores,
       };
 
       return handleSupabaseSuccess(userPreference);
@@ -269,135 +387,122 @@ export class RecommendationService {
       }
 
       const preferences = preferencesResult.data;
+      const weights = RecommendationService.calculateDynamicWeights(preferences);
 
-      // 新しいアプローチ：スワイプ済み商品を除外する代わりに、
-      // 好みに基づいて商品を取得し、後でフィルタリングする
-      
       // 多めに商品を取得してランダム性を確保
-      const poolSize = limit * 5; // より多くの商品を取得
+      const poolSize = limit * 8; // より多くの商品を取得（フィルタリング用）
       
-      // タグベースで商品を取得
+      // 商品を取得
       let products: Product[] = [];
       
-      if (preferences.likedTags && preferences.likedTags.length > 0) {
-        // 好みのタグに基づいて商品を取得
-        const { data: taggedProducts, error: tagError } = await supabase
-          .from(TABLES.EXTERNAL_PRODUCTS)
-          .select('*')
-          .eq('is_active', true)
-          .overlaps('tags', preferences.likedTags)
-          .order('created_at', { ascending: false })
-          .limit(poolSize);
+      // まず、dislikedTagsを含まない商品を優先的に取得
+      const baseQuery = supabase
+        .from(TABLES.EXTERNAL_PRODUCTS)
+        .select('*')
+        .eq('is_active', true);
 
-        if (tagError) {
-          console.error('[getPersonalizedRecommendations] Error fetching tagged products:', tagError);
-        } else if (taggedProducts) {
-          products = taggedProducts;
-        }
+      // ネガティブフィルタリング：嫌いなブランドを除外
+      if (preferences.dislikedBrands && preferences.dislikedBrands.length > 0) {
+        baseQuery.not('brand', 'in', `(${preferences.dislikedBrands.join(',')})`);
       }
 
-      // タグベースの商品が少ない場合は、最新の商品も追加
-      if (products.length < poolSize) {
-        const remainingLimit = poolSize - products.length;
-        const { data: latestProducts, error: latestError } = await supabase
-          .from(TABLES.EXTERNAL_PRODUCTS)
-          .select('*')
-          .eq('is_active', true)
-          .order('created_at', { ascending: false })
-          .limit(remainingLimit);
+      const { data: filteredProducts, error: filterError } = await baseQuery
+        .order('created_at', { ascending: false })
+        .limit(poolSize);
 
-        if (!latestError && latestProducts) {
-          products = [...products, ...latestProducts];
-        }
+      if (filterError) {
+        console.error('[getPersonalizedRecommendations] Error fetching filtered products:', filterError);
+      } else if (filteredProducts) {
+        products = filteredProducts;
       }
 
       console.log('[getPersonalizedRecommendations] Retrieved products:', products.length);
 
       // スワイプ済み商品を取得して除外
-      const { data: swipedData, error: swipeError } = await supabase
+      const { data: swipedProducts, error: swipedError } = await supabase
         .from(TABLES.SWIPES)
         .select('product_id')
         .eq('user_id', userId);
 
-      if (swipeError) {
-        console.error('[getPersonalizedRecommendations] Error fetching swipes:', swipeError);
+      if (swipedError) {
+        console.error('[getPersonalizedRecommendations] Error fetching swiped products:', swipedError);
       }
 
-      const swipedProductIds = new Set(swipedData?.map(s => s.product_id) || []);
-      console.log('[getPersonalizedRecommendations] Swiped product IDs:', swipedProductIds.size);
+      const swipedProductIds = new Set(swipedProducts?.map(s => s.product_id) || []);
 
-      // スワイプ済み商品を除外
-      const unswipedProducts = products.filter(product => !swipedProductIds.has(product.id));
-      console.log('[getPersonalizedRecommendations] Unswiped products:', unswipedProducts.length);
+      // スコアリング
+      const scoredProducts = products
+        .filter(product => !swipedProductIds.has(product.id))
+        .map(product => {
+          const tags = product.tags || [];
+          const productPrice = product.price || 0;
 
-      if (unswipedProducts.length === 0) {
-        console.log('[getPersonalizedRecommendations] No unswiped products found, returning popular products');
-        return await RecommendationService.getPopularProducts(limit);
-      }
+          // タグスコア
+          let tagScore = 0;
+          tags.forEach(tag => {
+            if (preferences.tagScores && preferences.tagScores[tag]) {
+              tagScore += preferences.tagScores[tag];
+            }
+          });
+          tagScore = tagScore / Math.max(tags.length, 1);
 
-      // Score and sort products based on preference matching (改善版)
-      const weights = this.calculateDynamicWeights(preferences);
-      const scoredProducts = unswipedProducts.map((product: Product) => {
-        let score = 0;
+          // カテゴリスコア
+          const categoryScore = product.category && preferences.preferredCategories?.includes(product.category) ? 1 : 0;
 
-        // タグマッチングスコア（既存のロジックを活用）
-        if (product.tags && preferences.likedTags) {
-          const matchingTags = product.tags.filter(tag => 
-            preferences.likedTags.includes(tag)
-          ).length;
-          score += matchingTags * weights.tag;
-        }
+          // ブランドスコア
+          const brandScore = product.brand && preferences.brands?.includes(product.brand) ? 1 : 0;
 
-        // カテゴリマッチングスコア
-        if (product.category && preferences.preferredCategories.includes(product.category)) {
-          score += weights.category;
-        }
+          // 価格スコア
+          const priceScore = preferences.avgPriceRange 
+            ? RecommendationService.calculatePriceScore(productPrice, preferences.avgPriceRange)
+            : 0.5;
 
-        // ブランドマッチングスコア
-        if (preferences.brands && preferences.brands.includes(product.brand)) {
-          score += weights.brand;
-        }
+          // 季節スコア
+          const seasonalScore = RecommendationService.calculateSeasonalScore(product);
 
-        // 価格適合度スコア（ガウス分布を使用）
-        const priceRange = preferences.price_range || preferences.avgPriceRange;
-        const priceScore = this.calculatePriceScore(product.price, priceRange);
-        score += priceScore * weights.price;
+          // 人気度スコア
+          const popularityScore = RecommendationService.calculatePopularityScore(product);
 
-        // 季節性スコア
-        const seasonalScore = this.calculateSeasonalScore(product);
-        score += seasonalScore * weights.seasonal;
+          // ネガティブスコア（新規追加）
+          const negativeScore = RecommendationService.calculateNegativeScore(
+            product,
+            preferences.dislikedTags || [],
+            preferences.dislikedBrands || [],
+            preferences.dislikedCategories || []
+          );
 
-        // 人気度スコア（レビューベース）
-        if (product.rating && product.review_count) {
-          const popularityScore = (product.rating / 5) * Math.log(product.review_count + 1) / 10;
-          score += popularityScore * weights.popularity;
-        }
+          // 総合スコア（ネガティブスコアを減算）
+          const totalScore = (
+            tagScore * weights.tag +
+            categoryScore * weights.category +
+            brandScore * weights.brand +
+            priceScore * weights.price +
+            seasonalScore * weights.seasonal +
+            popularityScore * weights.popularity
+          ) * (1 - negativeScore * weights.negative); // ネガティブスコアによる減衰
 
-        // ランダムノイズを追加（スコアの30%の範囲でランダム化）
-        const finalScore = addScoreNoise(score, 0.3);
+          return {
+            ...product,
+            score: totalScore
+          };
+        })
+        .sort((a, b) => b.score - a.score);
 
-        return { ...product, score: finalScore };
-      });
+      // スコアにノイズを追加してランダム性を確保
+      const noisyProducts = scoredProducts.map(product => ({
+        ...product,
+        score: addScoreNoise(product.score, 0.3)
+      }));
 
-      // Sort by score
-      let sortedProducts = scoredProducts.sort((a, b) => b.score - a.score);
-      
-      // トップ商品を取得した後、少しシャッフルして多様性を確保
-      const topProducts = sortedProducts.slice(0, limit * 1.5);
-      const remainingProducts = sortedProducts.slice(limit * 1.5);
-      
-      // トップ商品の中でランダム性を加える（完全にランダムではなく、上位グループ内でシャッフル）
-      const shuffledTop = shuffleArray(topProducts.slice(0, Math.floor(limit * 0.7)));
-      const shuffledRemaining = shuffleArray(topProducts.slice(Math.floor(limit * 0.7)));
-      
-      // 再結合
-      const finalProducts = [...shuffledTop, ...shuffledRemaining, ...remainingProducts];
-      
-      // 多様性を確保（改善版）
-      const diverseProducts = ensureProductDiversity(finalProducts, {
+      // 再ソート
+      noisyProducts.sort((a, b) => b.score - a.score);
+
+      // 拡張版多様性確保（スタイルタグも考慮）
+      const diverseProducts = ensureProductDiversityWithStyles(noisyProducts, {
         maxSameCategory: 2,
         maxSameBrand: 2,
         maxSamePriceRange: 3,
+        maxSameStyle: 2,
         windowSize: 5
       });
         
@@ -594,7 +699,107 @@ export class RecommendationService {
   }
 }
 
+// 拡張版多様性確保関数（スタイルタグも考慮）
+function ensureProductDiversityWithStyles<T extends { 
+  category?: string; 
+  brand?: string; 
+  price?: number;
+  tags?: string[];
+}>(
+  products: T[],
+  options: {
+    maxSameCategory?: number;
+    maxSameBrand?: number;
+    maxSamePriceRange?: number;
+    maxSameStyle?: number;
+    windowSize?: number;
+  } = {}
+): T[] {
+  const {
+    maxSameCategory = 2,
+    maxSameBrand = 2,
+    maxSamePriceRange = 3,
+    maxSameStyle = 2,
+    windowSize = 5
+  } = options;
+  
+  const result: T[] = [];
+  const recentCategories: string[] = [];
+  const recentBrands: string[] = [];
+  const recentPriceRanges: string[] = [];
+  const recentStyles: string[] = [];
+  
+  // スタイルタグの定義
+  const stylePatterns = [
+    'カジュアル', 'フォーマル', 'ストリート', 'モード', 'ナチュラル',
+    'フェミニン', 'クール', 'エレガント', 'スポーティ', 'ガーリー',
+    'シンプル', 'ベーシック', 'トレンド', 'レトロ', 'ヴィンテージ'
+  ];
+  
+  for (const product of products) {
+    // productがnullまたはundefinedの場合はスキップ
+    if (product == null) {
+      console.warn('[ensureProductDiversity] Null or undefined product detected, skipping');
+      continue;
+    }
+    
+    // 価格帯を判定
+    const priceRange = product.price 
+      ? product.price < 3000 ? 'low' :
+        product.price < 10000 ? 'middle' :
+        product.price < 30000 ? 'high' :
+        'luxury'
+      : 'unknown';
+    
+    // スタイルタグを抽出
+    const productStyles = (product.tags || [])
+      .filter(tag => stylePatterns.some(pattern => tag.includes(pattern)))
+      .slice(0, 2); // 主要な2つのスタイルのみ
+    
+    // カテゴリとブランドの出現回数をカウント
+    const categoryCount = product.category 
+      ? recentCategories.filter(c => c === product.category).length 
+      : 0;
+    const brandCount = product.brand 
+      ? recentBrands.filter(b => b === product.brand).length 
+      : 0;
+    const priceRangeCount = recentPriceRanges.filter(p => p === priceRange).length;
+    
+    // スタイルの重複をチェック
+    const styleOverlapCount = productStyles.filter(style => 
+      recentStyles.filter(s => s === style).length >= maxSameStyle
+    ).length;
+    
+    // 多様性の条件を満たす場合のみ追加
+    if (categoryCount < maxSameCategory && 
+        brandCount < maxSameBrand && 
+        priceRangeCount < maxSamePriceRange &&
+        styleOverlapCount === 0) {
+      result.push(product);
+      
+      // 最近の履歴に追加
+      if (product.category) recentCategories.push(product.category);
+      if (product.brand) recentBrands.push(product.brand);
+      recentPriceRanges.push(priceRange);
+      productStyles.forEach(style => recentStyles.push(style));
+      
+      // ウィンドウサイズを超えたら古いものを削除
+      if (recentCategories.length > windowSize) recentCategories.shift();
+      if (recentBrands.length > windowSize) recentBrands.shift();
+      if (recentPriceRanges.length > windowSize) recentPriceRanges.shift();
+      while (recentStyles.length > windowSize * 2) recentStyles.shift();
+    }
+  }
+  
+  // 不足分は元の順序で補完
+  if (result.length < products.length) {
+    const remaining = products.filter(p => !result.includes(p));
+    result.push(...remaining.slice(0, products.length - result.length));
+  }
+  
+  return result;
+}
+
 // Export individual functions for convenience
 export const getRecommendations = RecommendationService.getPersonalizedRecommendations;
 export const analyzeUserPreferences = RecommendationService.analyzeUserPreferences;
-export const getPopularProducts = RecommendationService.getPopularProducts;
