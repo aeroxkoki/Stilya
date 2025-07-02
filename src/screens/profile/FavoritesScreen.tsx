@@ -2,7 +2,6 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { 
   View, 
   Text, 
-  SafeAreaView, 
   FlatList, 
   TouchableOpacity, 
   ActivityIndicator, 
@@ -11,6 +10,7 @@ import {
   RefreshControl,
   Alert
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -348,13 +348,13 @@ const FavoritesScreen: React.FC = () => {
   // ローディング表示
   if ((loading || loadingProducts) && !refreshing) {
     return (
-      <SafeAreaView style={dynamicStyles.container}>
+      <SafeAreaView style={dynamicStyles.container} edges={['top', 'bottom']}>
         <View style={dynamicStyles.header}>
           <TouchableOpacity onPress={handleBackPress}>
-            <Ionicons name="arrow-back" size={24} color="#000" />
+            <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
           </TouchableOpacity>
           <Text style={dynamicStyles.headerTitle}>お気に入り</Text>
-          <View style={{ width: 24 }} /> {/* バランス用の空のビュー */}
+          <View style={{ width: 24 }} />
         </View>
         <View style={dynamicStyles.loadingContainer}>
           <ActivityIndicator size="large" color="#3B82F6" />
@@ -365,11 +365,11 @@ const FavoritesScreen: React.FC = () => {
   }
   
   return (
-    <SafeAreaView style={dynamicStyles.container}>
+    <SafeAreaView style={dynamicStyles.container} edges={['top', 'bottom']}>
       {/* ヘッダー */}
       <View style={dynamicStyles.header}>
         <TouchableOpacity onPress={handleBackPress}>
-          <Ionicons name="arrow-back" size={24} color="#000" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
         </TouchableOpacity>
         <View style={dynamicStyles.headerTitleContainer}>
           <Text style={dynamicStyles.headerTitle}>お気に入り</Text>
