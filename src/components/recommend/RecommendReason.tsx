@@ -44,9 +44,9 @@ const RecommendReason: React.FC<RecommendReasonProps> = ({
   // コンパクト表示の場合（リスト内など）
   if (compact) {
     return (
-      <View >
+      <View style={styles.compactContainer}>
         <Ionicons name="checkmark-circle" size={14} color="#4CAF50" />
-        <Text  numberOfLines={1}>
+        <Text style={styles.compactText} numberOfLines={1}>
           {reasonMessage}
         </Text>
       </View>
@@ -55,21 +55,21 @@ const RecommendReason: React.FC<RecommendReasonProps> = ({
 
   // 詳細表示の場合（商品詳細画面など）
   return (
-    <View >
-      <Text >
+    <View style={styles.container}>
+      <Text style={styles.title}>
         あなたにおすすめの理由
       </Text>
-      <Text >
+      <Text style={styles.message}>
         {reasonMessage}
       </Text>
       {matchingTags.length > 0 && (
-        <View >
+        <View style={styles.tagsContainer}>
           {matchingTags.map(tag => (
             <View 
               key={tag} 
-              
+              style={styles.tag}
             >
-              <Text >
+              <Text style={styles.tagText}>
                 {tag}
               </Text>
             </View>
@@ -81,7 +81,48 @@ const RecommendReason: React.FC<RecommendReasonProps> = ({
 };
 
 const styles = StyleSheet.create({
-  // 必要に応じてスタイルを追加
+  compactContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  compactText: {
+    fontSize: 12,
+    color: '#666',
+    flex: 1,
+  },
+  container: {
+    padding: 16,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    marginVertical: 8,
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    color: '#333',
+  },
+  message: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 12,
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  tag: {
+    backgroundColor: '#e0e0e0',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  tagText: {
+    fontSize: 12,
+    color: '#333',
+  },
 });
 
 export default RecommendReason;

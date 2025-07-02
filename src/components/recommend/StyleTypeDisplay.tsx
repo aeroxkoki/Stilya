@@ -98,27 +98,27 @@ const StyleTypeDisplay: React.FC<StyleTypeDisplayProps> = ({ userPreference }) =
   }
   
   return (
-    <View >
-      <Text >あなたのスタイルタイプ</Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>あなたのスタイルタイプ</Text>
       <ScrollView 
         horizontal 
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
         {matchedStyles.map(style => (
-          <View key={style.id} >
+          <View key={style.id} style={styles.styleCard}>
             <Image 
               source={style.image} 
-              
+              style={styles.styleImage}
               resizeMode="cover"
             />
-            <View >
-              <Text >{style.name}</Text>
-              <Text >{style.description}</Text>
-              <View >
+            <View style={styles.styleInfo}>
+              <Text style={styles.styleName}>{style.name}</Text>
+              <Text style={styles.styleDescription}>{style.description}</Text>
+              <View style={styles.tagsContainer}>
                 {style.tags.slice(0, 3).map(tag => (
-                  <View key={tag} >
-                    <Text >{tag}</Text>
+                  <View key={tag} style={styles.tag}>
+                    <Text style={styles.tagText}>{tag}</Text>
                   </View>
                 ))}
               </View>
@@ -131,10 +131,70 @@ const StyleTypeDisplay: React.FC<StyleTypeDisplayProps> = ({ userPreference }) =
 };
 
 const styles = StyleSheet.create({
+  container: {
+    marginVertical: 16,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 12,
+    paddingHorizontal: 16,
+  },
   scrollContent: {
     paddingHorizontal: 16,
     paddingVertical: 8
-  }
+  },
+  styleCard: {
+    width: 280,
+    backgroundColor: 'white',
+    borderRadius: 12,
+    marginRight: 12,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  styleImage: {
+    width: '100%',
+    height: 160,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+  },
+  styleInfo: {
+    padding: 16,
+  },
+  styleName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 4,
+  },
+  styleDescription: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginBottom: 12,
+    lineHeight: 20,
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  tag: {
+    backgroundColor: '#f3f4f6',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  tagText: {
+    fontSize: 12,
+    color: '#4b5563',
+  },
 });
 
 export default StyleTypeDisplay;
