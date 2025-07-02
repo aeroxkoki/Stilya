@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Product, UserPreference } from '@/types';
+import { useStyle } from '@/contexts/ThemeContext';
 
 interface RecommendReasonProps {
   product: Product;
@@ -14,6 +15,8 @@ const RecommendReason: React.FC<RecommendReasonProps> = ({
   userPreference,
   compact = false
 }) => {
+  const { theme } = useStyle();
+  
   // ユーザー好みが存在しない場合
   if (!userPreference || !userPreference.tagScores || !product.tags) {
     return null;
@@ -41,12 +44,58 @@ const RecommendReason: React.FC<RecommendReasonProps> = ({
     reasonMessage = `あなたが好きな「${matchingTags.join('」「')}」と「${lastTag}」の要素があります`;
   }
 
+  // 動的スタイル
+  const dynamicStyles = {
+    compactContainer: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 4,
+    },
+    compactText: {
+      fontSize: 12,
+      color: theme.colors.text.secondary,
+      flex: 1,
+    },
+    container: {
+      padding: 16,
+      backgroundColor: theme.colors.surface,
+      borderRadius: 8,
+      marginVertical: 8,
+    },
+    title: {
+      fontSize: 16,
+      fontWeight: 'bold' as const,
+      marginBottom: 8,
+      color: theme.colors.text.primary,
+    },
+    message: {
+      fontSize: 14,
+      color: theme.colors.text.secondary,
+      marginBottom: 12,
+    },
+    tagsContainer: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      gap: 8,
+    },
+    tag: {
+      backgroundColor: theme.colors.background,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 16,
+    },
+    tagText: {
+      fontSize: 12,
+      color: theme.colors.text.primary,
+    },
+  };
+
   // コンパクト表示の場合（リスト内など）
   if (compact) {
     return (
-      <View style={styles.compactContainer}>
-        <Ionicons name="checkmark-circle" size={14} color="#4CAF50" />
-        <Text style={styles.compactText} numberOfLines={1}>
+      <View style={dynamicStyles.compactContainer}>
+        <Ionicons name="checkmark-circle" size={14} color={theme.colors.success} />
+        <Text style={dynamicStyles.compactText} numberOfLines={1}>
           {reasonMessage}
         </Text>
       </View>
@@ -55,21 +104,21 @@ const RecommendReason: React.FC<RecommendReasonProps> = ({
 
   // 詳細表示の場合（商品詳細画面など）
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>
+    <View style={dynamicStyles.container}>
+      <Text style={dynamicStyles.title}>
         あなたにおすすめの理由
       </Text>
-      <Text style={styles.message}>
+      <Text style={dynamicStyles.message}>
         {reasonMessage}
       </Text>
       {matchingTags.length > 0 && (
-        <View style={styles.tagsContainer}>
+        <View style={dynamicStyles.tagsContainer}>
           {matchingTags.map(tag => (
             <View 
               key={tag} 
-              style={styles.tag}
+              style={dynamicStyles.tag}
             >
-              <Text style={styles.tagText}>
+              <Text style={dynamicStyles.tagText}>
                 {tag}
               </Text>
             </View>
@@ -79,50 +128,5 @@ const RecommendReason: React.FC<RecommendReasonProps> = ({
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  compactContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  compactText: {
-    fontSize: 12,
-    color: '#666',
-    flex: 1,
-  },
-  container: {
-    padding: 16,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    marginVertical: 8,
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    color: '#333',
-  },
-  message: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 12,
-  },
-  tagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  tag: {
-    backgroundColor: '#e0e0e0',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  tagText: {
-    fontSize: 12,
-    color: '#333',
-  },
-});
 
 export default RecommendReason;
