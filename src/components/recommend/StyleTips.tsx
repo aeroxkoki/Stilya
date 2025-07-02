@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { UserPreference } from '@/types';
+import { useStyle } from '@/contexts/ThemeContext';
 
 interface StyleTipsProps {
   userPreference: UserPreference;
@@ -12,6 +13,8 @@ const StyleTips: React.FC<StyleTipsProps> = ({
   userPreference,
   compact = false,
 }) => {
+  const { theme } = useStyle();
+  
   // ユーザーの好みデータが存在しない場合は表示しない
   if (!userPreference || !userPreference.topTags || userPreference.topTags.length === 0) {
     return null;
@@ -86,15 +89,87 @@ const StyleTips: React.FC<StyleTipsProps> = ({
     return tips.slice(0, 3); // 最大3つまで表示
   }, [topTags]);
 
+  // 動的スタイル
+  const dynamicStyles = {
+    compactContainer: {
+      padding: 12,
+      backgroundColor: theme.colors.surface,
+      borderRadius: 8,
+    },
+    compactTitle: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: theme.colors.text.primary,
+      marginBottom: 8,
+    },
+    compactTipItem: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginVertical: 4,
+    },
+    compactTipText: {
+      fontSize: 12,
+      color: theme.colors.text.secondary,
+      flex: 1,
+    },
+    container: {
+      padding: 16,
+      backgroundColor: theme.colors.surface,
+      borderRadius: 12,
+      marginVertical: 8,
+    },
+    title: {
+      fontSize: 16,
+      fontWeight: 'bold' as const,
+      color: theme.colors.text.primary,
+      marginBottom: 12,
+    },
+    tipsContainer: {
+      gap: 12,
+    },
+    tipItem: {
+      backgroundColor: theme.colors.background,
+      padding: 12,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    tipHeader: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginBottom: 8,
+    },
+    iconContainer: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: theme.colors.primary + '20',
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      marginRight: 8,
+    },
+    tipTitle: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: theme.colors.text.primary,
+      flex: 1,
+    },
+    tipDescription: {
+      fontSize: 12,
+      color: theme.colors.text.secondary,
+      lineHeight: 18,
+    },
+  };
+
   // コンパクト表示の場合
   if (compact) {
     return (
-      <View style={styles.compactContainer}>
-        <Text style={styles.compactTitle}>スタイリングTips</Text>
+      <View style={dynamicStyles.compactContainer}>
+        <Text style={dynamicStyles.compactTitle}>スタイリングTips</Text>
         {styleTips.map((tip, index) => (
-          <View key={index} style={styles.compactTipItem}>
-            <Ionicons name={tip.icon as any} size={16} color="#4B5563" style={{ marginTop: 2, marginRight: 8 }} />
-            <Text style={styles.compactTipText}>{tip.title}</Text>
+          <View key={index} style={dynamicStyles.compactTipItem}>
+            <Ionicons name={tip.icon as any} size={16} color={theme.colors.text.secondary} style={{ marginTop: 2, marginRight: 8 }} />
+            <Text style={dynamicStyles.compactTipText}>{tip.title}</Text>
           </View>
         ))}
       </View>
@@ -103,94 +178,23 @@ const StyleTips: React.FC<StyleTipsProps> = ({
 
   // 通常表示の場合
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>あなたにぴったりなスタイリングTips</Text>
-      <View style={styles.tipsContainer}>
+    <View style={dynamicStyles.container}>
+      <Text style={dynamicStyles.title}>あなたにぴったりなスタイリングTips</Text>
+      <View style={dynamicStyles.tipsContainer}>
         {styleTips.map((tip, index) => (
-          <View key={index} style={styles.tipItem}>
-            <View style={styles.tipHeader}>
-              <View style={styles.iconContainer}>
-                <Ionicons name={tip.icon as any} size={20} color="#3B82F6" />
+          <View key={index} style={dynamicStyles.tipItem}>
+            <View style={dynamicStyles.tipHeader}>
+              <View style={dynamicStyles.iconContainer}>
+                <Ionicons name={tip.icon as any} size={20} color={theme.colors.primary} />
               </View>
-              <Text style={styles.tipTitle}>{tip.title}</Text>
+              <Text style={dynamicStyles.tipTitle}>{tip.title}</Text>
             </View>
-            <Text style={styles.tipDescription}>{tip.description}</Text>
+            <Text style={dynamicStyles.tipDescription}>{tip.description}</Text>
           </View>
         ))}
       </View>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  compactContainer: {
-    padding: 12,
-    backgroundColor: '#f9fafb',
-    borderRadius: 8,
-  },
-  compactTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 8,
-  },
-  compactTipItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 4,
-  },
-  compactTipText: {
-    fontSize: 12,
-    color: '#4b5563',
-    flex: 1,
-  },
-  container: {
-    padding: 16,
-    backgroundColor: '#f9fafb',
-    borderRadius: 12,
-    marginVertical: 8,
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1f2937',
-    marginBottom: 12,
-  },
-  tipsContainer: {
-    gap: 12,
-  },
-  tipItem: {
-    backgroundColor: 'white',
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  tipHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  iconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#eff6ff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  tipTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1f2937',
-    flex: 1,
-  },
-  tipDescription: {
-    fontSize: 12,
-    color: '#6b7280',
-    lineHeight: 18,
-  },
-});
 
 export default StyleTips;
