@@ -388,9 +388,8 @@ const FavoritesScreen: React.FC = () => {
       {/* ソート状態表示 */}
       <View style={dynamicStyles.sortStatus}>
         <Text style={dynamicStyles.sortStatusText}>
-          {sortOrder === 'recent' ? '最新順' : 
-           sortOrder === 'price_high' ? '価格が高い順' : '価格が低い順'}
-           で表示中
+          {sortOrder === 'recent' ? '最新順で表示中' : 
+           sortOrder === 'price_high' ? '価格が高い順で表示中' : '価格が低い順で表示中'}
         </Text>
       </View>
       
