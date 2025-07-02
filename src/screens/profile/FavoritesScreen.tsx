@@ -418,7 +418,7 @@ const FavoritesScreen: React.FC = () => {
             ListFooterComponent={renderFooter}
             renderItem={({ item }) => (
               <View style={styles.cardContainer}>
-                <View >
+                <View style={{ position: 'relative' }}>
                   <ProductCard
                     product={item}
                     onPress={() => handleProductPress(item)}
