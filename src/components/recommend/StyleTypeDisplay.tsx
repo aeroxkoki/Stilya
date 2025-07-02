@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, ImageSourcePropType } from 'react-native';
 import { UserPreference } from '@/types';
+import { useStyle } from '@/contexts/ThemeContext';
 
 interface StyleTypeDisplayProps {
   userPreference: UserPreference;
@@ -61,6 +62,8 @@ const STYLE_TYPES: StyleType[] = [
 ];
 
 const StyleTypeDisplay: React.FC<StyleTypeDisplayProps> = ({ userPreference }) => {
+  const { theme } = useStyle();
+  
   if (!userPreference || !userPreference.topTags || userPreference.topTags.length === 0) {
     return null;
   }
@@ -97,28 +100,96 @@ const StyleTypeDisplay: React.FC<StyleTypeDisplayProps> = ({ userPreference }) =
     return null;
   }
   
+  // 動的スタイル
+  const dynamicStyles = {
+    container: {
+      marginVertical: 16,
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: 'bold' as const,
+      color: theme.colors.text.primary,
+      marginBottom: 12,
+      paddingHorizontal: 16,
+    },
+    scrollContent: {
+      paddingHorizontal: 16,
+      paddingVertical: 8
+    },
+    styleCard: {
+      width: 280,
+      backgroundColor: theme.colors.card.background,
+      borderRadius: 12,
+      marginRight: 12,
+      shadowColor: theme.colors.card.shadow,
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    styleImage: {
+      width: '100%' as const,
+      height: 160,
+      borderTopLeftRadius: 12,
+      borderTopRightRadius: 12,
+    },
+    styleInfo: {
+      padding: 16,
+    },
+    styleName: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: theme.colors.text.primary,
+      marginBottom: 4,
+    },
+    styleDescription: {
+      fontSize: 14,
+      color: theme.colors.text.secondary,
+      marginBottom: 12,
+      lineHeight: 20,
+    },
+    tagsContainer: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      gap: 6,
+    },
+    tag: {
+      backgroundColor: theme.colors.surface,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 12,
+    },
+    tagText: {
+      fontSize: 12,
+      color: theme.colors.text.secondary,
+    },
+  };
+  
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>あなたのスタイルタイプ</Text>
+    <View style={dynamicStyles.container}>
+      <Text style={dynamicStyles.title}>あなたのスタイルタイプ</Text>
       <ScrollView 
         horizontal 
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={dynamicStyles.scrollContent}
       >
         {matchedStyles.map(style => (
-          <View key={style.id} style={styles.styleCard}>
+          <View key={style.id} style={dynamicStyles.styleCard}>
             <Image 
               source={style.image} 
-              style={styles.styleImage}
+              style={dynamicStyles.styleImage}
               resizeMode="cover"
             />
-            <View style={styles.styleInfo}>
-              <Text style={styles.styleName}>{style.name}</Text>
-              <Text style={styles.styleDescription}>{style.description}</Text>
-              <View style={styles.tagsContainer}>
+            <View style={dynamicStyles.styleInfo}>
+              <Text style={dynamicStyles.styleName}>{style.name}</Text>
+              <Text style={dynamicStyles.styleDescription}>{style.description}</Text>
+              <View style={dynamicStyles.tagsContainer}>
                 {style.tags.slice(0, 3).map(tag => (
-                  <View key={tag} style={styles.tag}>
-                    <Text style={styles.tagText}>{tag}</Text>
+                  <View key={tag} style={dynamicStyles.tag}>
+                    <Text style={dynamicStyles.tagText}>{tag}</Text>
                   </View>
                 ))}
               </View>
@@ -129,72 +200,5 @@ const StyleTypeDisplay: React.FC<StyleTypeDisplayProps> = ({ userPreference }) =
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    marginVertical: 16,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1f2937',
-    marginBottom: 12,
-    paddingHorizontal: 16,
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 8
-  },
-  styleCard: {
-    width: 280,
-    backgroundColor: 'white',
-    borderRadius: 12,
-    marginRight: 12,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  styleImage: {
-    width: '100%',
-    height: 160,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-  },
-  styleInfo: {
-    padding: 16,
-  },
-  styleName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 4,
-  },
-  styleDescription: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 12,
-    lineHeight: 20,
-  },
-  tagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  tag: {
-    backgroundColor: '#f3f4f6',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  tagText: {
-    fontSize: 12,
-    color: '#4b5563',
-  },
-});
 
 export default StyleTypeDisplay;
