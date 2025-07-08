@@ -342,7 +342,7 @@ export class RecommendationService {
       // tagScoresを数値形式に変換（既存コードとの互換性のため）
       const tagScores: Record<string, number> = {};
       Object.entries(tagFrequency).forEach(([tag, freq]) => {
-        const score = freq.positive - (freq.negative * 0.5);
+        const score = freq.positive - (freq.negative * 1.0); // ネガティブシグナルの重みを強化
         if (score > 0) {
           tagScores[tag] = score;
         }
@@ -798,6 +798,103 @@ function ensureProductDiversityWithStyles<T extends {
   }
   
   return result;
+}
+
+// SwipePatternAnalyzerクラス - 連続的なNoパターンの検出とセッション調整
+export class SwipePatternAnalyzer {
+  // 連続Noパターンの検出
+  static detectConsecutiveNos(
+    swipes: Array<{product_id: string; result: string; created_at: string}>, 
+    threshold: number = 3
+  ): {
+    patterns: Array<{
+      type: 'category' | 'brand' | 'price_range' | 'style';
+      value: string;
+      count: number;
+    }>;
+  } {
+    const patterns: Array<{
+      type: 'category' | 'brand' | 'price_range' | 'style';
+      value: string;
+      count: number;
+    }> = [];
+    
+    // 最新のthreshold件のNoスワイプを分析
+    const recentNoSwipes = swipes
+      .filter(s => s.result === 'no')
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, threshold);
+    
+    if (recentNoSwipes.length < threshold) {
+      return { patterns };
+    }
+    
+    // 共通する特徴を抽出するための一時的な実装
+    // TODO: 実際の商品データと結合して特徴を抽出
+    console.log('[SwipePatternAnalyzer] Analyzing consecutive No patterns:', recentNoSwipes.length);
+    
+    return { patterns };
+  }
+  
+  // セッション内での即時調整
+  static getSessionAdjustments(recentSwipes: Array<{
+    product_id: string; 
+    result: string; 
+    created_at: string;
+    tags?: string[];
+    brand?: string;
+    category?: string;
+  }>): {
+    avoidTags: string[];
+    avoidBrands: string[];
+    boostTags: string[];
+  } {
+    const adjustments = {
+      avoidTags: [] as string[],
+      avoidBrands: [] as string[],
+      boostTags: [] as string[]
+    };
+    
+    // 直近10件のスワイプから即時調整を計算
+    const recent = recentSwipes.slice(0, 10);
+    const tagCounts: Record<string, { yes: number; no: number }> = {};
+    const brandCounts: Record<string, { yes: number; no: number }> = {};
+    
+    recent.forEach(swipe => {
+      // タグの集計
+      if (swipe.tags) {
+        swipe.tags.forEach(tag => {
+          if (!tagCounts[tag]) tagCounts[tag] = { yes: 0, no: 0 };
+          tagCounts[tag][swipe.result === 'yes' ? 'yes' : 'no']++;
+        });
+      }
+      
+      // ブランドの集計
+      if (swipe.brand) {
+        if (!brandCounts[swipe.brand]) brandCounts[swipe.brand] = { yes: 0, no: 0 };
+        brandCounts[swipe.brand][swipe.result === 'yes' ? 'yes' : 'no']++;
+      }
+    });
+    
+    // 避けるべきタグ（No率が高い）
+    Object.entries(tagCounts).forEach(([tag, counts]) => {
+      if (counts.no >= 3 && counts.no > counts.yes * 2) {
+        adjustments.avoidTags.push(tag);
+      } else if (counts.yes >= 3 && counts.yes > counts.no * 2) {
+        adjustments.boostTags.push(tag);
+      }
+    });
+    
+    // 避けるべきブランド
+    Object.entries(brandCounts).forEach(([brand, counts]) => {
+      if (counts.no >= 2 && counts.no > counts.yes) {
+        adjustments.avoidBrands.push(brand);
+      }
+    });
+    
+    console.log('[SwipePatternAnalyzer] Session adjustments:', adjustments);
+    return adjustments;
+  }
 }
 
 // Export individual functions for convenience

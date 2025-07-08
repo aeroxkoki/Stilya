@@ -28,6 +28,7 @@ import { Product } from '@/types';
 import { FilterOptions } from '@/services/productService';
 import CachedImage from '@/components/common/CachedImage';
 import { useFavorites } from '@/hooks/useFavorites';
+import { useRecommendations } from '@/hooks/useRecommendations';
 
 const { width, height } = Dimensions.get('window');
 

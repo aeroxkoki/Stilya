@@ -14,6 +14,7 @@ import { SwipeContainer } from '@/components/swipe';
 import ActionButtons from '@/components/swipe/ActionButtons';
 import FilterModal from '@/components/recommend/FilterModal';
 import { FilterOptions } from '@/services/productService';
+import { updateSessionLearning } from '@/services/enhancedRecommendationService';
 
 // ナビゲーションの型定義
 type SwipeScreenNavigationProp = StackNavigationProp<SwipeStackParamList, 'SwipeHome'>;
@@ -119,6 +120,15 @@ const SwipeScreen: React.FC = () => {
     const swipeTime = Date.now() - swipeStartTime;
     
     console.log(`[SwipeScreen] スワイプ: ${direction} - ${product.title} (ID: ${product.id}) - 時間: ${swipeTime}ms`);
+    
+    // セッション学習を更新（Enhanced推薦システム用）
+    if (user.id) {
+      updateSessionLearning(user.id, {
+        productId: product.id,
+        result: direction === 'right' ? 'yes' : 'no',
+        responseTime: swipeTime
+      });
+    }
     
     // useProductsフックのhandleSwipeを使用（時間情報付き）
     await swipeProduct(product, direction, { swipeTime });

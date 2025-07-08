@@ -104,6 +104,89 @@ async function optimizeImageUrls() {
   }
 }
 
+// Wilson Score計算関数
+function calculateProductQualityScore(data) {
+  const { reviewCount, reviewAverage } = data;
+  
+  if (reviewCount === 0) {
+    return { total: 30, confidence: 'low' }; // ベースラインスコア
+  }
+  
+  // Wilson Score計算（簡略版）
+  const z = 1.96; // 95%信頼区間
+  const n = reviewCount;
+  const p = reviewAverage / 5;
+  
+  const score = (p + z*z/(2*n) - z * Math.sqrt(p*(1-p)/n + z*z/(4*n*n))) / (1 + z*z/n);
+  
+  return {
+    total: Math.round(score * 100),
+    confidence: reviewCount > 50 ? 'high' : reviewCount > 10 ? 'medium' : 'low'
+  };
+}
+
+// 商品品質スコアの定期更新
+async function updateProductQualityScores() {
+  log('INFO', '🏆 商品品質スコアの更新を開始...');
+  
+  try {
+    // priorityフィールドを品質スコア保存に再利用（既存フィールドの活用）
+    const { data: products, error: fetchError } = await supabase
+      .from('external_products')
+      .select('id, review_count, review_average, last_synced')
+      .or('priority.is.null,priority.lt.10') // 未設定または低い値
+      .order('last_synced', { ascending: false })
+      .limit(500);
+    
+    if (fetchError) throw fetchError;
+    
+    let updated = 0;
+    const updates = [];
+    
+    for (const product of products) {
+      const score = calculateProductQualityScore({
+        reviewCount: product.review_count || 0,
+        reviewAverage: product.review_average || 0
+      });
+      
+      // バッチ更新用に蓄積
+      updates.push({
+        id: product.id,
+        priority: score.total // priorityフィールドを品質スコアとして使用
+      });
+      
+      if (updates.length >= 50) {
+        // 50件ごとにバッチ更新
+        const { error } = await supabase
+          .from('external_products')
+          .upsert(updates, { onConflict: 'id' });
+        
+        if (!error) updated += updates.length;
+        updates.length = 0;
+        
+        // レート制限考慮
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+    
+    // 残りを更新
+    if (updates.length > 0) {
+      const { error } = await supabase
+        .from('external_products')
+        .upsert(updates, { onConflict: 'id' });
+      
+      if (!error) updated += updates.length;
+    }
+    
+    log('INFO', `✅ ${updated}件の品質スコアを更新しました`);
+    return updated;
+    
+  } catch (error) {
+    log('ERROR', '❌ 品質スコア更新でエラー:', error);
+    return 0;
+  }
+}
+
 // 期限切れデータのクリーンアップ
 async function cleanupExpiredData() {
   log('INFO', '🧹 期限切れデータのクリーンアップを開始...');
@@ -228,6 +311,7 @@ async function runDailyPatch() {
     optimizedImages: 0,
     cleanedData: 0,
     indexOptimization: false,
+    qualityScores: 0, // 品質スコア更新結果を追加
     health: null,
     duration: 0
   };
@@ -239,13 +323,16 @@ async function runDailyPatch() {
     // 2. 画像URL最適化
     results.optimizedImages = await optimizeImageUrls();
     
-    // 3. 期限切れデータのクリーンアップ
+    // 3. 品質スコア更新を追加
+    results.qualityScores = await updateProductQualityScores();
+    
+    // 4. 期限切れデータのクリーンアップ
     results.cleanedData = await cleanupExpiredData();
     
-    // 4. インデックス最適化
+    // 5. インデックス最適化
     results.indexOptimization = await optimizeIndexes();
     
-    // 5. 健全性チェック
+    // 6. 健全性チェック
     results.health = await performHealthCheck();
     
     // 実行時間
@@ -257,6 +344,7 @@ async function runDailyPatch() {
     console.log('=====================================');
     console.log(`✅ 実行時間: ${results.duration}ms`);
     console.log(`✅ 最適化された画像: ${results.optimizedImages}件`);
+    console.log(`✅ 更新された品質スコア: ${results.qualityScores}件`);
     console.log(`✅ クリーンアップされたデータ: ${results.cleanedData}件`);
     
     // パッチ実行ログを記録
