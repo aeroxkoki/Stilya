@@ -97,5 +97,34 @@ export interface UseAuthReturn {
   signOut: () => Promise<void>;
 }
 
+// Enhanced User Preference Types
+export interface EnhancedUserPreference extends UserPreference {
+  stylePatterns?: Record<string, number>;
+  colorPreferences?: Record<string, number>;
+  priceSensitivity?: {
+    preferredRange: { min: number; max: number };
+    sensitivity: number;
+  };
+  brandLoyalty?: {
+    loyaltyScore: number;
+    topBrands: string[];
+  };
+  totalSwipes?: number;
+  avgResponseTime?: number;
+}
+
+// Session Learning Types
+export interface SessionSwipe {
+  productId: string;
+  result: 'yes' | 'no';
+  timestamp: Date;
+  responseTime: number;
+}
+
+export interface SessionData {
+  recentSwipes: SessionSwipe[];
+  sessionStartTime: Date;
+}
+
 // ナビゲーション関連の型をエクスポート
 export * from '../navigation/types';
