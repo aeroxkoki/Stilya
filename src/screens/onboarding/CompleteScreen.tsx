@@ -79,7 +79,6 @@ const CompleteScreen: React.FC<Props> = ({ navigation }) => {
       await saveUserProfile();
       // 成功時は自動的にMainスタックに遷移（AppNavigatorで処理）
     } catch (error) {
-      console.error('Error saving profile:', error);
       Alert.alert(
         'エラー',
         'プロフィールの保存中にエラーが発生しました。もう一度お試しください。',

@@ -58,13 +58,11 @@ const StyleQuizScreen: React.FC<Props> = ({ navigation }) => {
   const quizProducts = React.useMemo(() => {
     if (!products || products.length === 0) return [];
 
-    // ジェンダーとスタイル選好でフィルタリング
+    // スタイル選好でフィルタリング
     let filteredProducts = products.filter(product => {
-      // ジェンダーフィルタ
-      if (gender && product.gender && product.gender !== 'unisex' && product.gender !== gender) {
-        return false;
-      }
-
+      // ジェンダーフィルタは商品にgender情報がないため、現時点では実装しない
+      // TODO: 将来的にはtagsやcategoryから推測するロジックを実装
+      
       // スタイル選好フィルタ（タグベース）
       if (stylePreference.length > 0 && product.tags) {
         const hasMatchingStyle = stylePreference.some(style => 
