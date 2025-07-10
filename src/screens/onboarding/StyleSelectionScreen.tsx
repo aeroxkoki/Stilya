@@ -1,18 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useStyle } from '@/contexts/ThemeContext';
 import { StyleType, styleThemes } from '@/styles/theme';
 import { Button } from '@/components/common';
 import { OnboardingStackParamList } from '@/navigation/types';
-
-// サンプル商品画像
-const STYLE_SAMPLE_IMAGES = {
-  minimal: require('../../../assets/images/samples/minimal-style.png'),
-  natural: require('../../../assets/images/samples/natural-style.png'),
-  bold: require('../../../assets/images/samples/bold-style.png'),
-};
 
 // スタイル表示名
 const STYLE_NAMES: Record<StyleType, string> = {
@@ -48,6 +41,50 @@ const STYLE_FEATURES: Record<StyleType, string[]> = {
     'エネルギッシュな印象',
     'インパクトを重視したデザイン',
   ],
+};
+
+// スタイルプレビューコンポーネント
+const StylePreview: React.FC<{ style: StyleType }> = ({ style }) => {
+  const theme = styleThemes[style];
+  
+  return (
+    <View style={[styles.previewContainer, { backgroundColor: theme.colors.background }]}>
+      {/* ヘッダー部分 */}
+      <View style={[styles.previewHeader, { backgroundColor: theme.colors.primary }]}>
+        <View style={[styles.previewDot, { backgroundColor: '#fff' }]} />
+        <View style={[styles.previewDot, { backgroundColor: '#fff' }]} />
+        <View style={[styles.previewDot, { backgroundColor: '#fff' }]} />
+      </View>
+      
+      {/* コンテンツ部分 */}
+      <View style={styles.previewContent}>
+        {/* カードのプレビュー */}
+        <View style={[
+          styles.previewCard,
+          { 
+            backgroundColor: theme.colors.surface,
+            borderRadius: theme.radius.m,
+            shadowColor: theme.colors.primary,
+          }
+        ]}>
+          <View style={[styles.previewImage, { backgroundColor: theme.colors.primary + '20' }]} />
+          <View style={styles.previewTextContainer}>
+            <View style={[styles.previewTextLine, { backgroundColor: theme.colors.primary, width: '60%' }]} />
+            <View style={[styles.previewTextLine, { backgroundColor: theme.colors.primary + '40', width: '80%' }]} />
+          </View>
+        </View>
+        
+        {/* ボタンのプレビュー */}
+        <View style={[
+          styles.previewButton,
+          { 
+            backgroundColor: theme.colors.primary,
+            borderRadius: theme.radius.s
+          }
+        ]} />
+      </View>
+    </View>
+  );
 };
 
 type StyleSelectionScreenProps = NativeStackScreenProps<OnboardingStackParamList, 'StyleSelection'>;
@@ -98,22 +135,8 @@ const StyleSelectionScreen: React.FC<StyleSelectionScreenProps> = ({ navigation 
                 onPress={() => handleStyleSelection(style)}
                 activeOpacity={0.7}
               >
-                {/* サンプル画像 */}
-                <View 
-                  style={[
-                    styles.sampleContainer,
-                    { 
-                      borderRadius: theme.radius.s,
-                      backgroundColor: theme.colors.background
-                    }
-                  ]}
-                >
-                  <Image 
-                    source={STYLE_SAMPLE_IMAGES[style]} 
-                    style={styles.sampleImage}
-                    resizeMode="contain"
-                  />
-                </View>
+                {/* スタイルプレビュー */}
+                <StylePreview style={style} />
 
                 {/* スタイル情報 */}
                 <View style={styles.styleInfo}>
@@ -224,15 +247,6 @@ const styles = StyleSheet.create({
     elevation: 2,
     overflow: 'hidden',
   },
-  sampleContainer: {
-    height: 120,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sampleImage: {
-    width: '100%',
-    height: '100%',
-  },
   styleInfo: {
     padding: 15,
   },
@@ -278,6 +292,51 @@ const styles = StyleSheet.create({
     bottom: 20,
     left: 20,
     right: 20,
+  },
+  // スタイルプレビュー用のスタイル
+  previewContainer: {
+    height: 180,
+    padding: 10,
+  },
+  previewHeader: {
+    height: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    gap: 5,
+  },
+  previewDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  previewContent: {
+    flex: 1,
+    padding: 10,
+  },
+  previewCard: {
+    flex: 1,
+    padding: 10,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  previewImage: {
+    height: 60,
+    marginBottom: 8,
+    borderRadius: 8,
+  },
+  previewTextContainer: {
+    gap: 4,
+  },
+  previewTextLine: {
+    height: 8,
+    borderRadius: 4,
+  },
+  previewButton: {
+    height: 28,
+    marginTop: 10,
   },
 });
 
