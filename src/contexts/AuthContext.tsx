@@ -42,6 +42,20 @@ const isSessionExpired = (session: any): boolean => {
   return currentTime > (expiryTime - bufferTime);
 };
 
+// データベースフィールドからアプリケーションフィールドへのマッピング
+const mapProfileData = (dbProfile: any) => {
+  if (!dbProfile) return {};
+  
+  return {
+    gender: dbProfile.gender,
+    stylePreference: dbProfile.style_preferences || [], // DBのstyle_preferencesをstylePreferenceに変換
+    ageGroup: dbProfile.age_group, // DBのage_groupをageGroupに変換
+    nickname: dbProfile.username, // DBのusernameをnicknameに変換
+    createdAt: dbProfile.created_at,
+    // その他のフィールドは除外（id, emailはAuthから取得）
+  };
+};
+
 const refreshSession = async () => {
   try {
     const { data, error } = await supabase.auth.refreshSession();
@@ -69,11 +83,14 @@ const getUserProfile = async (userId: string) => {
 
 const createUserProfile = async (userId: string, profile: any) => {
   try {
+    // アプリケーションフィールドをDBフィールドに変換
+    const dbProfile = mapToDbFields(profile);
+    
     const { data, error } = await supabase
       .from('users')
       .insert({
         id: userId,
-        ...profile,
+        ...dbProfile,
         created_at: new Date().toISOString()
       })
       .select()
@@ -86,11 +103,27 @@ const createUserProfile = async (userId: string, profile: any) => {
   }
 };
 
+// アプリケーションフィールドからデータベースフィールドへのマッピング
+const mapToDbFields = (appData: any) => {
+  const dbData: any = {};
+  
+  // フィールド名の変換
+  if (appData.gender !== undefined) dbData.gender = appData.gender;
+  if (appData.stylePreference !== undefined) dbData.style_preferences = appData.stylePreference;
+  if (appData.ageGroup !== undefined) dbData.age_group = appData.ageGroup;
+  if (appData.nickname !== undefined) dbData.username = appData.nickname;
+  
+  return dbData;
+};
+
 const updateUserProfile = async (userId: string, updates: any) => {
   try {
+    // アプリケーションフィールドをDBフィールドに変換
+    const dbUpdates = mapToDbFields(updates);
+    
     const { data, error } = await supabase
       .from('users')
-      .update(updates)
+      .update(dbUpdates)
       .eq('id', userId)
       .select()
       .single();
@@ -215,7 +248,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                   setUser({
                     id: user.id,
                     email: user.email || '',
-                    ...profileData
+                    ...mapProfileData(profileData)
                   });
                 } else {
                   const profileData = profileResult.success && 'data' in profileResult && profileResult.data ? profileResult.data : {};
@@ -223,7 +256,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                   setUser({
                     id: user.id,
                     email: user.email || '',
-                    ...profileData
+                    ...mapProfileData(profileData)
                   });
                 }
                 setSession(refreshedSession);
@@ -259,7 +292,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               setUser({
                 id: user.id,
                 email: user.email || '',
-                ...profileData
+                ...mapProfileData(profileData)
               });
             } else {
               const profileData = profileResult.success && 'data' in profileResult && profileResult.data ? profileResult.data : {};
@@ -267,7 +300,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               setUser({
                 id: user.id,
                 email: user.email || '',
-                ...profileData
+                ...mapProfileData(profileData)
               });
             }
             setSession(session);
@@ -337,7 +370,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setUser({
             id: user.id,
             email: user.email || '',
-            ...profileData
+            ...mapProfileData(profileData)
           });
           setSession(session);
           setLoading(false);
@@ -490,7 +523,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (profileResult.success && 'data' in profileResult && profileResult.data) {
         setUser({
           ...user,
-          ...profileResult.data,
+          ...mapProfileData(profileResult.data),
         });
       }
       setLoading(false);

@@ -1,0 +1,80 @@
+name: ValueCommerce Daily Sync
+
+on:
+  # 日次実行（日本時間 午前3時）
+  schedule:
+    - cron: '0 18 * * *'  # UTC 18:00 = JST 03:00
+  # 手動実行も可能
+  workflow_dispatch:
+    inputs:
+      force_sync:
+        description: '強制的に同期を実行'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+jobs:
+  sync-valuecommerce:
+    runs-on: ubuntu-latest
+    # タイムアウト設定（30分）
+    timeout-minutes: 30
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check ValueCommerce status
+        id: check_status
+        run: |
+          if [ "${{ secrets.VALUECOMMERCE_ENABLED }}" = "true" ] || [ "${{ github.event.inputs.force_sync }}" = "true" ]; then
+            echo "sync_enabled=true" >> $GITHUB_OUTPUT
+            echo "✅ バリューコマース同期が有効です"
+          else
+            echo "sync_enabled=false" >> $GITHUB_OUTPUT
+            echo "⏭️ バリューコマース同期は無効です"
+          fi
+
+      - name: Run ValueCommerce sync
+        if: steps.check_status.outputs.sync_enabled == 'true'
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          VALUECOMMERCE_TOKEN: ${{ secrets.VALUECOMMERCE_TOKEN }}
+          VALUECOMMERCE_ENABLED: ${{ secrets.VALUECOMMERCE_ENABLED }}
+        run: |
+          echo "🔄 バリューコマース商品同期を開始..."
+          node scripts/sync/sync-valuecommerce-products.js
+
+      - name: Generate summary
+        if: always()
+        run: |
+          echo "## バリューコマース同期結果" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- 実行日時: $(TZ='Asia/Tokyo' date '+%Y-%m-%d %H:%M:%S JST')" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.check_status.outputs.sync_enabled }}" = "true" ]; then
+            echo "- ステータス: ✅ 実行済み" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ステータス: ⏭️ スキップ（無効）" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 設定状態" >> $GITHUB_STEP_SUMMARY
+          echo "- VALUECOMMERCE_ENABLED: ${{ secrets.VALUECOMMERCE_ENABLED }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 強制実行: ${{ github.event.inputs.force_sync || 'false' }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Error notification
+        if: failure()
+        run: |
+          echo "❌ バリューコマース同期でエラーが発生しました" >> $GITHUB_STEP_SUMMARY
+          echo "詳細はログを確認してください" >> $GITHUB_STEP_SUMMARY

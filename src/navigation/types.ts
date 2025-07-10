@@ -16,6 +16,8 @@ export type OnboardingStackParamList = {
   AppIntro: undefined;
   Gender: undefined;
   Style: undefined;
+  StyleQuiz: undefined;
+  StyleSelection: undefined;
   AgeGroup: undefined;
   Complete: undefined;
 };

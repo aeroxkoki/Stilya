@@ -1,5 +1,5 @@
 // Mock image assets for testing
-module.exports = {
+export default {
   welcome: { uri: 'test-asset://welcome' },
   gender: { uri: 'test-asset://gender' },
   style: { uri: 'test-asset://style' },

@@ -7,6 +7,7 @@ interface OnboardingContextType {
   gender?: 'male' | 'female' | 'other';
   stylePreference: string[];
   ageGroup?: string;
+  styleQuizResults?: StyleQuizResult[];
   
   // ステップ管理
   currentStep: number;
@@ -16,6 +17,7 @@ interface OnboardingContextType {
   setGender: (gender: 'male' | 'female' | 'other') => void;
   setStylePreference: (styles: string[]) => void;
   setAgeGroup: (ageGroup: string) => void;
+  setStyleQuizResults: (results: StyleQuizResult[]) => void;
   nextStep: () => void;
   prevStep: () => void;
   
@@ -23,6 +25,14 @@ interface OnboardingContextType {
   saveUserProfile: () => Promise<void>;
   isLoading: boolean;
   error: string | null;
+}
+
+// スタイル診断結果の型定義
+export interface StyleQuizResult {
+  productId: string;
+  liked: boolean;
+  category?: string;
+  tags?: string[];
 }
 
 const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined);
@@ -42,10 +52,11 @@ export const OnboardingProvider: React.FC<{ children: ReactNode }> = ({ children
   const [gender, setGender] = useState<'male' | 'female' | 'other' | undefined>();
   const [stylePreference, setStylePreference] = useState<string[]>([]);
   const [ageGroup, setAgeGroup] = useState<string | undefined>();
+  const [styleQuizResults, setStyleQuizResults] = useState<StyleQuizResult[]>([]);
   
   // ステップ管理
   const [currentStep, setCurrentStep] = useState(1);
-  const totalSteps = 4;
+  const totalSteps = 5; // 診断を含めて5ステップに増加
   
   // 保存状態
   const [isLoading, setIsLoading] = useState(false);
@@ -80,12 +91,30 @@ export const OnboardingProvider: React.FC<{ children: ReactNode }> = ({ children
           {
             id: user.id,
             gender,
-            style_preference: stylePreference,
+            style_preferences: stylePreference, // DBのフィールド名に合わせて修正
             age_group: ageGroup,
           },
         ], { onConflict: 'id' });
 
       if (updateError) throw updateError;
+
+      // スタイル診断結果を保存（スワイプ履歴として記録）
+      if (styleQuizResults && styleQuizResults.length > 0) {
+        const swipeData = styleQuizResults.map(result => ({
+          user_id: user.id,
+          product_id: result.productId,
+          result: result.liked ? 'yes' : 'no',
+        }));
+
+        const { error: swipeError } = await supabase
+          .from('swipes')
+          .insert(swipeData);
+
+        if (swipeError) {
+          console.error('Error saving style quiz results:', swipeError);
+          // スワイプの保存エラーは致命的ではないので続行
+        }
+      }
 
       // AuthContextのユーザー情報も更新
       setUser({
@@ -106,11 +135,13 @@ export const OnboardingProvider: React.FC<{ children: ReactNode }> = ({ children
     gender,
     stylePreference,
     ageGroup,
+    styleQuizResults,
     currentStep,
     totalSteps,
     setGender,
     setStylePreference,
     setAgeGroup,
+    setStyleQuizResults,
     nextStep,
     prevStep,
     saveUserProfile,

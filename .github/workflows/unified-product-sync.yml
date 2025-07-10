@@ -1,0 +1,147 @@
+name: Unified Product Sync (ValueCommerce Integration)
+
+# Note: 既存のproduct-sync.yml（JST 2:00実行）とは別に、
+# バリューコマース統合版として動作します。
+# 将来的にはこちらに統一予定ですが、現在は並行稼働しています。
+
+on:
+  # 日次実行（日本時間 午前4時）- product-sync.ymlとの競合を避ける
+  schedule:
+    - cron: '0 19 * * *'  # UTC 19:00 = JST 04:00
+  # 手動実行も可能
+  workflow_dispatch:
+    inputs:
+      sync_rakuten:
+        description: '楽天APIを同期'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+      sync_valuecommerce:
+        description: 'バリューコマースAPIを同期'
+        required: false
+        default: 'auto'
+        type: choice
+        options:
+          - 'auto'  # 環境変数に従う
+          - 'true'  # 強制実行
+          - 'false' # スキップ
+
+jobs:
+  sync-all-products:
+    runs-on: ubuntu-latest
+    # タイムアウト設定（60分）
+    timeout-minutes: 60
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Set environment
+        run: |
+          echo "🔍 実行環境の確認"
+          echo "- Node.js: $(node -v)"
+          echo "- npm: $(npm -v)"
+          echo "- 実行時刻: $(TZ='Asia/Tokyo' date '+%Y-%m-%d %H:%M:%S JST')"
+
+      - name: Sync Rakuten products
+        if: github.event.inputs.sync_rakuten != 'false'
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          RAKUTEN_APP_ID: ${{ secrets.RAKUTEN_APP_ID }}
+        run: |
+          echo "📦 楽天商品同期を開始..."
+          node scripts/sync/sync-rakuten-products.js || {
+            echo "⚠️ 楽天同期でエラーが発生しましたが、処理を継続します"
+            echo "RAKUTEN_SYNC_STATUS=failed" >> $GITHUB_ENV
+          }
+          echo "RAKUTEN_SYNC_STATUS=${RAKUTEN_SYNC_STATUS:-success}" >> $GITHUB_ENV
+
+      - name: Check ValueCommerce settings
+        id: check_vc
+        run: |
+          if [ "${{ github.event.inputs.sync_valuecommerce }}" = "true" ]; then
+            echo "vc_enabled=true" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event.inputs.sync_valuecommerce }}" = "false" ]; then
+            echo "vc_enabled=false" >> $GITHUB_OUTPUT
+          else
+            # auto: 環境変数に従う
+            if [ "${{ secrets.VALUECOMMERCE_ENABLED }}" = "true" ]; then
+              echo "vc_enabled=true" >> $GITHUB_OUTPUT
+            else
+              echo "vc_enabled=false" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: Sync ValueCommerce products
+        if: steps.check_vc.outputs.vc_enabled == 'true'
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          VALUECOMMERCE_TOKEN: ${{ secrets.VALUECOMMERCE_TOKEN }}
+          VALUECOMMERCE_ENABLED: 'true'
+        run: |
+          echo "📦 バリューコマース商品同期を開始..."
+          node scripts/sync/sync-valuecommerce-products.js || {
+            echo "⚠️ バリューコマース同期でエラーが発生しました"
+            echo "VC_SYNC_STATUS=failed" >> $GITHUB_ENV
+          }
+          echo "VC_SYNC_STATUS=${VC_SYNC_STATUS:-success}" >> $GITHUB_ENV
+
+      - name: Generate summary report
+        if: always()
+        run: |
+          echo "# 📊 商品データ同期レポート" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 実行情報" >> $GITHUB_STEP_SUMMARY
+          echo "- 実行日時: $(TZ='Asia/Tokyo' date '+%Y-%m-%d %H:%M:%S JST')" >> $GITHUB_STEP_SUMMARY
+          echo "- トリガー: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "## 同期結果" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # 楽天結果
+          echo "### 🛍️ 楽天API" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ github.event.inputs.sync_rakuten }}" = "false" ]; then
+            echo "- ステータス: ⏭️ スキップ（手動設定）" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ env.RAKUTEN_SYNC_STATUS }}" = "failed" ]; then
+            echo "- ステータス: ❌ エラー" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ステータス: ✅ 成功" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # バリューコマース結果
+          echo "### 💼 バリューコマースAPI" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.check_vc.outputs.vc_enabled }}" != "true" ]; then
+            echo "- ステータス: ⏭️ スキップ（無効）" >> $GITHUB_STEP_SUMMARY
+            echo "- 理由: VALUECOMMERCE_ENABLED=${{ secrets.VALUECOMMERCE_ENABLED }}" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ env.VC_SYNC_STATUS }}" = "failed" ]; then
+            echo "- ステータス: ❌ エラー" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ステータス: ✅ 成功" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "## 設定情報" >> $GITHUB_STEP_SUMMARY
+          echo "- 楽天同期: ${{ github.event.inputs.sync_rakuten || 'true' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- バリューコマース同期: ${{ github.event.inputs.sync_valuecommerce || 'auto' }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Error notification
+        if: failure()
+        run: |
+          echo "❌ 商品同期処理でエラーが発生しました" >> $GITHUB_STEP_SUMMARY
+          echo "詳細はログを確認してください" >> $GITHUB_STEP_SUMMARY

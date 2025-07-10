@@ -25,7 +25,7 @@ const GenderScreen: React.FC<Props> = ({ navigation }) => {
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={24} color="#333" />
           </TouchableOpacity>
-          <Text >1/4</Text>
+          <Text >1/5</Text>
         </View>
 
         {/* タイトル */}

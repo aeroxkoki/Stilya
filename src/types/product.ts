@@ -24,6 +24,14 @@ export interface Product {
   is_used?: boolean; // Supabase DB 形式のフィールド名
   // 収益最適化用フィールド
   commissionRate?: number; // アフィリエイト手数料率（0.05 = 5%）
+  // バリューコマース対応（実装準備）
+  adTag?: string; // バリューコマースの表示カウント用タグ
+  metadata?: {
+    ad_tag?: string;
+    merchant_id?: string;
+    original_id?: string;
+    [key: string]: any;
+  };
 }
 
 export interface SwipeResult {

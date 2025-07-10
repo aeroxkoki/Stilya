@@ -4,6 +4,7 @@ import WelcomeScreen from '@/screens/onboarding/WelcomeScreen';
 import AppIntroScreen from '@/screens/onboarding/AppIntroScreen';
 import GenderScreen from '@/screens/onboarding/GenderScreen';
 import StyleScreen from '@/screens/onboarding/StyleScreen';
+import StyleQuizScreen from '@/screens/onboarding/StyleQuizScreen';
 import StyleSelectionScreen from '@/screens/onboarding/StyleSelectionScreen';
 import AgeGroupScreen from '@/screens/onboarding/AgeGroupScreen';
 import CompleteScreen from '@/screens/onboarding/CompleteScreen';
@@ -25,6 +26,7 @@ const OnboardingNavigator: React.FC = () => {
       <Stack.Screen name="AppIntro" component={AppIntroScreen} />
       <Stack.Screen name="Gender" component={GenderScreen} />
       <Stack.Screen name="Style" component={StyleScreen} />
+      <Stack.Screen name="StyleQuiz" component={StyleQuizScreen} />
       <Stack.Screen name="StyleSelection" component={StyleSelectionScreen} />
       <Stack.Screen name="AgeGroup" component={AgeGroupScreen} />
       <Stack.Screen name="Complete" component={CompleteScreen} />

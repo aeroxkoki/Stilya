@@ -77,7 +77,7 @@ const StyleScreen: React.FC<Props> = ({ navigation }) => {
   const handleNext = () => {
     setStylePreference(selectedStyles);
     nextStep();
-    navigation.navigate('AgeGroup');
+    navigation.navigate('StyleQuiz');
   };
 
   const handleBack = () => {
@@ -93,7 +93,7 @@ const StyleScreen: React.FC<Props> = ({ navigation }) => {
           <TouchableOpacity onPress={handleBack}>
             <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
           </TouchableOpacity>
-          <Text style={[styles.stepIndicator, { color: theme.colors.text.secondary }]}>2/4</Text>
+          <Text style={[styles.stepIndicator, { color: theme.colors.text.secondary }]}>2/5</Text>
         </View>
 
         {/* タイトル */}

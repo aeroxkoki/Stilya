@@ -253,4 +253,9 @@ process.on('unhandledRejection', (error) => {
 });
 
 // スクリプト実行
-main();
+if (require.main === module) {
+  main();
+}
+
+// エクスポート
+module.exports = { main };

@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   TouchableOpacity,
   View,
@@ -49,6 +49,22 @@ const ProductCard: React.FC<ProductCardProps> = ({
 }) => {
   const { theme, isDarkMode } = useStyle();
   const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  // バリューコマースadTag処理（準備のみ - 現在は無効）
+  useEffect(() => {
+    // VALUECOMMERCE_ENABLEDがtrueの場合のみ実行
+    const valueCommerceEnabled = false; // TODO: 環境変数から読み込む
+    
+    if (valueCommerceEnabled && product.source === 'valuecommerce' && product.adTag) {
+      // React NativeではWebViewを使用してadタグを処理する必要がある
+      // 現在は実装準備のみ
+      console.log('[ProductCard] ValueCommerce adTag ready for:', product.id);
+      
+      // 将来的な実装例：
+      // - WebViewを使用してadタグを実行
+      // - またはネイティブHTTP requestでトラッキング
+    }
+  }, [product]);
 
   // 価格フォーマット
   const formatPrice = (price: number): string => {

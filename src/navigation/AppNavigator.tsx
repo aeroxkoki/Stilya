@@ -11,6 +11,7 @@ import { useAuth } from '../hooks/useAuth';
 
 // Navigators
 import MainNavigator from './MainNavigator';
+import OnboardingNavigator from './OnboardingNavigator';
 
 // Screens
 console.log('[AppNavigator.tsx] 3. スクリーンインポート開始');
@@ -23,6 +24,7 @@ console.log('[AppNavigator.tsx] 4. スクリーンインポート完了');
 type RootStackParamList = {
   Main: undefined;
   Auth: undefined;
+  Onboarding: undefined;
   ProductDetail: { productId: string };
 };
 
@@ -41,9 +43,28 @@ const AppNavigator = () => {
     loading: loading
   });
 
+  // オンボーディング完了チェック
+  const isOnboardingComplete = React.useMemo(() => {
+    if (!user) return false;
+    
+    // gender、stylePreference、ageGroupが設定されているかチェック
+    const hasGender = user.gender !== undefined && user.gender !== null;
+    const hasStylePreference = user.stylePreference && user.stylePreference.length > 0;
+    const hasAgeGroup = user.ageGroup !== undefined && user.ageGroup !== null;
+    
+    return hasGender && hasStylePreference && hasAgeGroup;
+  }, [user]);
+
+  console.log('[AppNavigator.tsx] 7. オンボーディング状態:', {
+    isOnboardingComplete,
+    userGender: user?.gender,
+    userStylePreference: user?.stylePreference,
+    userAgeGroup: user?.ageGroup
+  });
+
   // ローディング中はローディング画面を表示
   if (loading) {
-    console.log('[AppNavigator.tsx] 7. ローディング画面表示');
+    console.log('[AppNavigator.tsx] 8. ローディング画面表示');
     return (
       <View style={{ 
         flex: 1, 
@@ -57,7 +78,7 @@ const AppNavigator = () => {
     );
   }
 
-  console.log('[AppNavigator.tsx] 8. Navigation構築開始');
+  console.log('[AppNavigator.tsx] 9. Navigation構築開始');
   
   return (
     <Stack.Navigator 
@@ -69,14 +90,24 @@ const AppNavigator = () => {
       }}
     >
       {user ? (
-        <>
-          {console.log('[AppNavigator.tsx] 9. ユーザー認証済み - Main画面表示')}
-          <Stack.Screen name="Main" component={MainNavigator} />
-          <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
-        </>
+        // ユーザーが認証されている場合
+        isOnboardingComplete ? (
+          <>
+            {console.log('[AppNavigator.tsx] 10. ユーザー認証済み・オンボーディング完了 - Main画面表示')}
+            <Stack.Screen name="Main" component={MainNavigator} />
+            <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
+          </>
+        ) : (
+          <>
+            {console.log('[AppNavigator.tsx] 11. ユーザー認証済み・オンボーディング未完了 - Onboarding画面表示')}
+            <Stack.Screen name="Onboarding" component={OnboardingNavigator} />
+            <Stack.Screen name="Main" component={MainNavigator} />
+            <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
+          </>
+        )
       ) : (
         <>
-          {console.log('[AppNavigator.tsx] 10. 未認証 - Auth画面表示')}
+          {console.log('[AppNavigator.tsx] 12. 未認証 - Auth画面表示')}
           <Stack.Screen name="Auth" component={AuthScreen} />
         </>
       )}

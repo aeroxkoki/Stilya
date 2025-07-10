@@ -52,6 +52,12 @@ export const normalizeProduct = (dbProduct: any): Product => {
     commissionRate: dbProduct.commission_rate || 0.05, // アフィリエイト手数料率（デフォルト5%）
   };
   
+  // バリューコマース商品の場合、メタデータからadTagを取得
+  if (dbProduct.source === 'valuecommerce' && dbProduct.metadata) {
+    normalized.adTag = dbProduct.metadata.ad_tag;
+    normalized.metadata = dbProduct.metadata;
+  }
+  
   // デバッグ: 正規化後のデータも確認
   if (__DEV__) {
     console.log('[ProductService] normalized product:', {

@@ -2,6 +2,7 @@ import { supabase, handleSupabaseError, handleSupabaseSuccess, TABLES } from './
 import { Product, UserPreference } from '../types';
 import { FilterOptions, normalizeProduct } from './productService';
 import { addScoreNoise, shuffleArray, ensureProductDiversity } from '../utils/randomUtils';
+import { StyleQuizResult } from '../contexts/OnboardingContext';
 
 // レコメンデーションサービスクラス
 export class RecommendationService {
@@ -894,6 +895,143 @@ export class SwipePatternAnalyzer {
     
     console.log('[SwipePatternAnalyzer] Session adjustments:', adjustments);
     return adjustments;
+  }
+}
+
+// スタイル診断結果を分析して初期の好みを設定
+export class StyleQuizAnalyzer {
+  static analyzeQuizResults(quizResults: StyleQuizResult[]): {
+    likedTags: string[];
+    dislikedTags: string[];
+    preferredCategories: string[];
+    dislikedCategories: string[];
+    initialTagScores: Record<string, number>;
+  } {
+    const tagCounts: Record<string, { positive: number; negative: number }> = {};
+    const categoryCounts: Record<string, { positive: number; negative: number }> = {};
+
+    // 診断結果を集計
+    quizResults.forEach(result => {
+      const weight = 1.5; // 診断結果は重要度を高く設定
+
+      // タグの集計
+      if (result.tags && Array.isArray(result.tags)) {
+        result.tags.forEach(tag => {
+          if (!tagCounts[tag]) tagCounts[tag] = { positive: 0, negative: 0 };
+          if (result.liked) {
+            tagCounts[tag].positive += weight;
+          } else {
+            tagCounts[tag].negative += weight;
+          }
+        });
+      }
+
+      // カテゴリの集計
+      if (result.category) {
+        if (!categoryCounts[result.category]) {
+          categoryCounts[result.category] = { positive: 0, negative: 0 };
+        }
+        if (result.liked) {
+          categoryCounts[result.category].positive += weight;
+        } else {
+          categoryCounts[result.category].negative += weight;
+        }
+      }
+    });
+
+    // 好きなタグを抽出
+    const likedTags = Object.entries(tagCounts)
+      .filter(([_, counts]) => counts.positive > counts.negative)
+      .sort(([, a], [, b]) => (b.positive - b.negative) - (a.positive - a.negative))
+      .slice(0, 10)
+      .map(([tag]) => tag);
+
+    // 嫌いなタグを抽出
+    const dislikedTags = Object.entries(tagCounts)
+      .filter(([_, counts]) => counts.negative > counts.positive * 1.2)
+      .sort(([, a], [, b]) => (b.negative - b.positive) - (a.negative - a.positive))
+      .slice(0, 10)
+      .map(([tag]) => tag);
+
+    // 好きなカテゴリを抽出
+    const preferredCategories = Object.entries(categoryCounts)
+      .filter(([_, counts]) => counts.positive > counts.negative)
+      .sort(([, a], [, b]) => (b.positive - b.negative) - (a.positive - a.negative))
+      .slice(0, 5)
+      .map(([category]) => category);
+
+    // 嫌いなカテゴリを抽出
+    const dislikedCategories = Object.entries(categoryCounts)
+      .filter(([_, counts]) => counts.negative > counts.positive * 1.2)
+      .sort(([, a], [, b]) => (b.negative - b.positive) - (a.negative - a.positive))
+      .slice(0, 5)
+      .map(([category]) => category);
+
+    // 初期タグスコアを計算
+    const initialTagScores: Record<string, number> = {};
+    Object.entries(tagCounts).forEach(([tag, counts]) => {
+      const score = counts.positive - counts.negative;
+      if (score > 0) {
+        initialTagScores[tag] = score;
+      }
+    });
+
+    return {
+      likedTags,
+      dislikedTags,
+      preferredCategories,
+      dislikedCategories,
+      initialTagScores,
+    };
+  }
+
+  // スタイル診断結果を保存
+  static async saveQuizResults(userId: string, quizResults: StyleQuizResult[]) {
+    try {
+      // 診断結果を分析
+      const analysis = StyleQuizAnalyzer.analyzeQuizResults(quizResults);
+
+      // ユーザープロファイルに保存するデータを準備
+      const profileData = {
+        user_id: userId,
+        style_quiz_completed: true,
+        style_quiz_results: quizResults,
+        initial_liked_tags: analysis.likedTags,
+        initial_disliked_tags: analysis.dislikedTags,
+        initial_preferred_categories: analysis.preferredCategories,
+        initial_disliked_categories: analysis.dislikedCategories,
+        updated_at: new Date().toISOString(),
+      };
+
+      // Supabaseに保存
+      const { error } = await supabase
+        .from('user_style_preferences')
+        .upsert(profileData, { onConflict: 'user_id' });
+
+      if (error) {
+        console.error('Error saving quiz results:', error);
+        return handleSupabaseError(error);
+      }
+
+      // 診断結果をスワイプ履歴として記録（初期学習データとして）
+      const swipePromises = quizResults.map(result => 
+        supabase
+          .from(TABLES.SWIPES)
+          .insert({
+            user_id: userId,
+            product_id: result.productId,
+            result: result.liked ? 'yes' : 'no',
+            is_style_quiz: true, // 診断結果であることを示すフラグ
+          })
+      );
+
+      await Promise.all(swipePromises);
+
+      return handleSupabaseSuccess(analysis);
+    } catch (error) {
+      console.error('Error in saveQuizResults:', error);
+      return handleSupabaseError(error as Error);
+    }
   }
 }
 

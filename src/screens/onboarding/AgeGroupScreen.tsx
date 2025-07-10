@@ -9,14 +9,13 @@ import { OnboardingStackParamList } from '@/types';
 
 type Props = NativeStackScreenProps<OnboardingStackParamList, 'AgeGroup'>;
 
-// 年代の選択肢
+// 年代の選択肢（DBスキーマに合わせて修正）
 const ageGroups = [
   { id: 'teens', label: '10代' },
-  { id: '20s', label: '20代' },
-  { id: '30s', label: '30代' },
-  { id: '40s', label: '40代' },
-  { id: '50s', label: '50代' },
-  { id: '60plus', label: '60代以上' },
+  { id: 'twenties', label: '20代' },
+  { id: 'thirties', label: '30代' },
+  { id: 'forties', label: '40代' },
+  { id: 'fifties_plus', label: '50代以上' },
 ];
 
 const AgeGroupScreen: React.FC<Props> = ({ navigation }) => {
@@ -40,7 +39,7 @@ const AgeGroupScreen: React.FC<Props> = ({ navigation }) => {
           <TouchableOpacity onPress={handleBack}>
             <Ionicons name="arrow-back" size={24} color="#333" />
           </TouchableOpacity>
-          <Text >3/4</Text>
+          <Text >4/5</Text>
         </View>
 
         {/* タイトル */}

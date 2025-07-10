@@ -57,14 +57,13 @@ const CompleteScreen: React.FC<Props> = ({ navigation }) => {
     feminine: 'フェミニン',
   };
 
-  // 年代のマッピング
+  // 年代のマッピング（DBスキーマに合わせて修正）
   const ageGroupMap: Record<string, string> = {
     teens: '10代',
-    '20s': '20代',
-    '30s': '30代',
-    '40s': '40代',
-    '50s': '50代',
-    '60plus': '60代以上',
+    twenties: '20代',
+    thirties: '30代',
+    forties: '40代',
+    fifties_plus: '50代以上',
   };
 
   // 性別のマッピング
