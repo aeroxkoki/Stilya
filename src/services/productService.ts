@@ -129,7 +129,7 @@ export const fetchProducts = async (limit: number = 20, offset: number = 0, filt
     }
     
     const { data, error, count } = await query
-      .select('*', { count: 'exact' })
+      .select('*')
       .order('priority', { ascending: true, nullsFirst: false }) // 優先度の高い順（1が最高）
       .order('last_synced', { ascending: false }) // 更新日時の新しい順
       .range(offset, offset + limit - 1);

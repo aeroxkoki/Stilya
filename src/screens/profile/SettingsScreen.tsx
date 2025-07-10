@@ -355,6 +355,7 @@ const SettingsScreen: React.FC = () => {
                 <Ionicons name="bug-outline" size={20} color={isDarkMode ? '#aaa' : '#999'} />
               </TouchableOpacity>
               
+              {/* 画像デバッグ機能は一時的にコメントアウト - 画面が未実装のため
               <TouchableOpacity 
                 style={[styles.settingItem, { borderBottomColor: isDarkMode ? '#333' : '#f0f0f0' }]}
                 onPress={() => navigation.navigate('ImageDebug')}
@@ -380,6 +381,7 @@ const SettingsScreen: React.FC = () => {
                 </View>
                 <Ionicons name="medkit-outline" size={20} color={isDarkMode ? '#aaa' : '#999'} />
               </TouchableOpacity>
+              */}
               
               <TouchableOpacity 
                 style={[styles.settingItem, { borderBottomColor: isDarkMode ? '#333' : '#f0f0f0' }]}

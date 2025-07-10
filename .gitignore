@@ -11,6 +11,11 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
+# Backup files
+.backup/
+*.backup
+*.old
+
 # Expo
 .expo/
 dist/
