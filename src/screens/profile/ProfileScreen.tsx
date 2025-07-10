@@ -125,7 +125,7 @@ const ProfileScreen: React.FC = () => {
                   年齢
                 </Text>
                 <Text style={[styles.infoValue, { color: theme.colors.text.primary }]}>
-                  {user?.age_range || '未設定'}
+                  {user?.ageGroup || '未設定'}
                 </Text>
               </View>
               <View style={styles.infoRow}>
@@ -133,7 +133,7 @@ const ProfileScreen: React.FC = () => {
                   好みのスタイル
                 </Text>
                 <Text style={[styles.infoValue, { color: theme.colors.text.primary }]}>
-                  {user?.preferred_styles?.join(', ') || '未設定'}
+                  {user?.stylePreference?.join(', ') || '未設定'}
                 </Text>
               </View>
             </View>

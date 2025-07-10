@@ -4,7 +4,7 @@
  */
 
 import { AuthService } from '../services/authService';
-import { ProductService } from '../services/productService';
+import { fetchProducts } from '../services/productService';
 import { RecommendationService } from '../services/recommendationService';
 import { demoService } from '../services/demoService';
 import { supabase } from '../services/supabase';
@@ -190,7 +190,7 @@ class LocalTestRunner {
         };
       } else {
         // 実データ取得
-        const result = await ProductService.fetchProducts(10);
+        const result = await fetchProducts(10);
         
         if (!result.success) {
           throw new Error(result.error || 'Unknown error');

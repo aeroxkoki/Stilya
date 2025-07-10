@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useStyle } from '@/contexts/ThemeContext';
 import { StyleType, styleThemes } from '@/styles/theme';
 import { Button } from '@/components/common';
-import { OnboardingStackParamList } from '@/navigation/OnboardingNavigator';
+import { OnboardingStackParamList } from '@/navigation/types';
 
 // サンプル商品画像
 const STYLE_SAMPLE_IMAGES = {

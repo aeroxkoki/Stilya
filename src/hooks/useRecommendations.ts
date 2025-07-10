@@ -4,13 +4,13 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/services/supabase';
 import { 
   getRecommendations,
-  analyzeUserPreferences,
-  getPopularProducts
+  analyzeUserPreferences
 } from '@/services/recommendationService';
 import {
   getEnhancedRecommendations,
   analyzeEnhancedPreferences
 } from '@/services/enhancedRecommendationService';
+import { fetchProducts } from '@/services/productService';
 
 interface ApiResponse<T> {
   success: boolean;
@@ -65,7 +65,7 @@ export const useRecommendations = (): UseRecommendationsReturn => {
       // ログインしていない場合は人気商品を表示
       setIsLoading(true);
       try {
-        const result = await getPopularProducts(20) as ApiResponse<Product[]>;
+        const result = await fetchProducts(20, 0);
         if (result.success && result.data) {
           setRecommendations(result.data);
           setError(null);
@@ -96,6 +96,7 @@ export const useRecommendations = (): UseRecommendationsReturn => {
           setUserPreference({
             userId: user.id,
             likedTags: preferenceResult.data.likedTags || [],
+            dislikedTags: preferenceResult.data.dislikedTags || [],
             preferredCategories: preferenceResult.data.preferredCategories || [],
             avgPriceRange: preferenceResult.data.avgPriceRange || { min: 0, max: 100000 },
             brands: preferenceResult.data.brand_loyalty?.topBrands || [],
@@ -124,7 +125,7 @@ export const useRecommendations = (): UseRecommendationsReturn => {
         setRecommendations(recommendResult.data);
       } else {
         // 推薦商品がない場合は人気商品を取得
-        const popularResult = await getPopularProducts(20) as ApiResponse<Product[]>;
+        const popularResult = await fetchProducts(20, 0);
         if (popularResult.success && popularResult.data) {
           setRecommendations(popularResult.data);
         }
@@ -135,7 +136,7 @@ export const useRecommendations = (): UseRecommendationsReturn => {
       
       // エラー時は人気商品を取得
       try {
-        const popularResult = await getPopularProducts(20) as ApiResponse<Product[]>;
+        const popularResult = await fetchProducts(20, 0);
         if (popularResult.success && popularResult.data) {
           setRecommendations(popularResult.data);
         }

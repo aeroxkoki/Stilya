@@ -128,9 +128,9 @@ const SwipeHistoryScreen: React.FC = () => {
     }
     
     if (isFavorite(productId)) {
-      removeFromFavorites(user.id, productId);
+      removeFromFavorites(productId);
     } else {
-      addToFavorites(user.id, productId);
+      addToFavorites(productId);
     }
   };
   

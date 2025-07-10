@@ -44,7 +44,7 @@ const StyleQuizScreen: React.FC<Props> = ({ navigation }) => {
     prevStep 
   } = useOnboarding();
   
-  const { products, loading: productsLoading } = useProducts();
+  const { products, isLoading: productsLoading } = useProducts();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [quizResults, setQuizResults] = useState<StyleQuizResult[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -314,7 +314,7 @@ const StyleQuizScreen: React.FC<Props> = ({ navigation }) => {
           >
             <Animated.View style={[styles.card, animatedStyle]}>
               <Image
-                source={{ uri: currentProduct.thumbnail_url || currentProduct.image_url }}
+                source={{ uri: currentProduct.image_url || currentProduct.imageUrl }}
                 style={styles.productImage}
                 resizeMode="cover"
               />
@@ -330,7 +330,7 @@ const StyleQuizScreen: React.FC<Props> = ({ navigation }) => {
               {/* 商品情報 */}
               <View style={[styles.productInfo, { backgroundColor: theme.colors.card.background }]}>
                 <Text style={[styles.productBrand, { color: theme.colors.text.secondary }]}>
-                  {currentProduct.shop_name}
+                  {currentProduct.brand || 'ブランド不明'}
                 </Text>
                 <Text 
                   style={[styles.productName, { color: theme.colors.text.primary }]} 

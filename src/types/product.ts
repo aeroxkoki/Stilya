@@ -5,6 +5,7 @@ export interface Product {
   price: number;
   imageUrl?: string; // APIによって違う場合があるため、オプショナルに
   image_url?: string; // Supabase DB 形式のフィールド名
+  thumbnail_url?: string; // サムネイル画像URL
   description?: string;
   tags: string[]; 
   category?: string;
@@ -13,6 +14,10 @@ export interface Product {
   source?: string;
   createdAt?: string;
   created_at?: string; // Supabase DB 形式のフィールド名
+  // ショップ情報
+  shop_name?: string; // ショップ名
+  // ジェンダー情報
+  gender?: 'male' | 'female' | 'unisex'; // 商品の性別
   // Phase 1 改良: セール情報（オプショナルで後方互換性を保つ）
   originalPrice?: number; // 元の価格（セール前）
   discountPercentage?: number; // 割引率（%）

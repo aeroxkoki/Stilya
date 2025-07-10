@@ -58,7 +58,6 @@ export const runNetworkDiagnostics = async (): Promise<DiagnosticResult[]> => {
     details: {
       OS: Platform.OS,
       Version: Platform.Version,
-      isPad: Platform.isPad,
       isTV: Platform.isTV,
     }
   });
