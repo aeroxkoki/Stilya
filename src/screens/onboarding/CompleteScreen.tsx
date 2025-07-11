@@ -11,7 +11,7 @@ type Props = NativeStackScreenProps<OnboardingStackParamList, 'Complete'>;
 
 const CompleteScreen: React.FC<Props> = ({ navigation }) => {
   const { theme, setStyleType } = useStyle();
-  const { gender, stylePreference, ageGroup, saveUserProfile, isLoading, error } = useOnboarding();
+  const { gender, stylePreference, ageGroup, styleQuizResults, getSelectionInsights, saveUserProfile, isLoading, error } = useOnboarding();
   const [isSaving, setIsSaving] = useState(false);
 
   // スタイル選択に基づいてテーマを決定
@@ -136,6 +136,53 @@ const CompleteScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         </View>
 
+        {/* スタイル診断結果 */}
+        {styleQuizResults && styleQuizResults.length > 0 && (
+          <View style={[styles.insightsCard, { backgroundColor: theme.colors.surface }]}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>
+              スタイル診断結果
+            </Text>
+            
+            {(() => {
+              const insights = getSelectionInsights();
+              return (
+                <>
+                  <View style={styles.insightItem}>
+                    <Text style={[styles.insightLabel, { color: theme.colors.text.secondary }]}>
+                      好みの一致度
+                    </Text>
+                    <View style={styles.progressBarContainer}>
+                      <View style={[styles.progressBar, { backgroundColor: theme.colors.border }]}>
+                        <View 
+                          style={[
+                            styles.progressFill, 
+                            { 
+                              backgroundColor: theme.colors.primary,
+                              width: `${insights.likePercentage}%` 
+                            }
+                          ]} 
+                        />
+                      </View>
+                      <Text style={[styles.percentageText, { color: theme.colors.text.primary }]}>
+                        {insights.likePercentage}%
+                      </Text>
+                    </View>
+                  </View>
+                  
+                  {insights.consistentWithPreference && (
+                    <View style={styles.consistencyBadge}>
+                      <Ionicons name="checkmark-circle" size={16} color={theme.colors.success} />
+                      <Text style={[styles.consistencyText, { color: theme.colors.success }]}>
+                        選択したスタイルと一致しています
+                      </Text>
+                    </View>
+                  )}
+                </>
+              );
+            })()}
+          </View>
+        )}
+
         {/* エラーメッセージ */}
         {error && (
           <View style={[styles.errorContainer, { backgroundColor: theme.colors.error + '20' }]}>
@@ -226,6 +273,44 @@ const styles = StyleSheet.create({
     left: 20,
     right: 20,
     borderTopWidth: 1,
+  },
+  insightsCard: {
+    padding: 20,
+    borderRadius: 12,
+    marginBottom: 24,
+  },
+  insightItem: {
+    marginBottom: 16,
+  },
+  insightLabel: {
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  progressBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  progressBar: {
+    flex: 1,
+    height: 8,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+  },
+  percentageText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  consistencyBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  consistencyText: {
+    fontSize: 14,
   },
 });
 

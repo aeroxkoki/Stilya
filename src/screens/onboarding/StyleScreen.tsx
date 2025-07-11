@@ -61,8 +61,9 @@ const styleOptions: StyleOption[] = [
 
 const StyleScreen: React.FC<Props> = ({ navigation }) => {
   const { theme } = useStyle();
-  const { stylePreference, setStylePreference, nextStep, prevStep } = useOnboarding();
+  const { stylePreference, setStylePreference, nextStep, prevStep, getRecommendedStyles } = useOnboarding();
   const [selectedStyles, setSelectedStyles] = useState<string[]>(stylePreference);
+  const recommendedStyles = getRecommendedStyles();
 
   const toggleStyle = (styleId: string) => {
     setSelectedStyles(prev => {
@@ -131,6 +132,11 @@ const StyleScreen: React.FC<Props> = ({ navigation }) => {
                       style={styles.image}
                       resizeMode="cover"
                     />
+                    {recommendedStyles.includes(style.id) && (
+                      <View style={styles.recommendedBadge}>
+                        <Text style={styles.recommendedText}>おすすめ</Text>
+                      </View>
+                    )}
                     {isSelected && (
                       <View style={styles.checkmarkContainer}>
                         <View style={[styles.checkmarkBadge, { backgroundColor: theme.colors.primary }]}>
@@ -245,6 +251,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#3B82F6',
     borderRadius: 12,
     padding: 4,
+  },
+  recommendedBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  recommendedText: {
+    fontSize: 10,
+    color: '#92400E',
+    fontWeight: '600',
   },
   cardContent: {
     padding: 12,

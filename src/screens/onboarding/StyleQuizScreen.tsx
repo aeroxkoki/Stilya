@@ -32,7 +32,7 @@ type Props = NativeStackScreenProps<OnboardingStackParamList, 'StyleQuiz'>;
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.3;
-const QUIZ_ITEM_COUNT = 10; // 診断で使用する商品数
+const QUIZ_ITEM_COUNT = 5; // 診断で使用する商品数
 
 const StyleQuizScreen: React.FC<Props> = ({ navigation }) => {
   const { theme } = useStyle();
@@ -58,25 +58,40 @@ const StyleQuizScreen: React.FC<Props> = ({ navigation }) => {
   const quizProducts = React.useMemo(() => {
     if (!products || products.length === 0) return [];
 
-    // スタイル選好でフィルタリング
+    // 既存のフィルタリング処理
     let filteredProducts = products.filter(product => {
-      // ジェンダーフィルタは商品にgender情報がないため、現時点では実装しない
-      // TODO: 将来的にはtagsやcategoryから推測するロジックを実装
-      
-      // スタイル選好フィルタ（タグベース）
       if (stylePreference.length > 0 && product.tags) {
         const hasMatchingStyle = stylePreference.some(style => 
           product.tags?.some(tag => tag.toLowerCase().includes(style.toLowerCase()))
         );
         if (hasMatchingStyle) return true;
       }
-
       return true;
     });
 
-    // ランダムに10個選択
-    const shuffled = [...filteredProducts].sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, QUIZ_ITEM_COUNT);
+    // 新規：選択したスタイルの商品を優先的に選ぶ
+    const priorityProducts: Product[] = [];
+    const otherProducts: Product[] = [];
+    
+    filteredProducts.forEach(product => {
+      const isPreferredStyle = stylePreference.some(style =>
+        product.tags?.some(tag => tag.toLowerCase().includes(style.toLowerCase()))
+      );
+      if (isPreferredStyle && priorityProducts.length < 3) {
+        priorityProducts.push(product);
+      } else {
+        otherProducts.push(product);
+      }
+    });
+    
+    // 優先商品 + ランダムな商品で5枚構成
+    const shuffledOthers = [...otherProducts].sort(() => 0.5 - Math.random());
+    const selectedProducts = [
+      ...priorityProducts,
+      ...shuffledOthers.slice(0, QUIZ_ITEM_COUNT - priorityProducts.length)
+    ];
+    
+    return selectedProducts.slice(0, QUIZ_ITEM_COUNT);
   }, [products, gender, stylePreference]);
 
   // 現在の商品
@@ -291,6 +306,20 @@ const StyleQuizScreen: React.FC<Props> = ({ navigation }) => {
 
         {/* プログレスバー */}
         <View style={styles.progressContainer}>
+          <Text style={[styles.quizProgressText, { color: theme.colors.text.secondary }]}>
+            あと{QUIZ_ITEM_COUNT - currentIndex - 1}枚
+          </Text>
+          <View style={styles.dots}>
+            {[...Array(QUIZ_ITEM_COUNT)].map((_, i) => (
+              <View 
+                key={i}
+                style={[
+                  styles.dot,
+                  { backgroundColor: i <= currentIndex ? theme.colors.primary : theme.colors.border }
+                ]}
+              />
+            ))}
+          </View>
           <View style={[styles.progressBar, { backgroundColor: theme.colors.border }]}>
             <View
               style={[
@@ -420,6 +449,21 @@ const styles = StyleSheet.create({
   progressContainer: {
     paddingHorizontal: 16,
     marginBottom: 20,
+    alignItems: 'center',
+  },
+  quizProgressText: {
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  dots: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   progressBar: {
     height: 4,

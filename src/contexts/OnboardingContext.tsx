@@ -25,6 +25,17 @@ interface OnboardingContextType {
   saveUserProfile: () => Promise<void>;
   isLoading: boolean;
   error: string | null;
+  
+  // 新規追加メソッド
+  getRecommendedStyles: () => string[];
+  getSelectionInsights: () => SelectionInsights;
+}
+
+// 新規型定義
+export interface SelectionInsights {
+  likePercentage: number;
+  dominantStyles: string[];
+  consistentWithPreference: boolean;
 }
 
 // スタイル診断結果の型定義
@@ -131,6 +142,48 @@ export const OnboardingProvider: React.FC<{ children: ReactNode }> = ({ children
     }
   };
 
+  // 新規メソッド: 性別に基づいた推奨スタイル
+  const getRecommendedStyles = (): string[] => {
+    if (gender === 'male') {
+      return ['casual', 'street', 'mode', 'classic'];
+    } else if (gender === 'female') {
+      return ['casual', 'natural', 'feminine', 'classic'];
+    }
+    return ['casual', 'street', 'mode', 'natural', 'classic', 'feminine'];
+  };
+
+  // 新規メソッド: 選択内容の分析結果
+  const getSelectionInsights = (): SelectionInsights => {
+    const quizResults = styleQuizResults || [];
+    const likedItems = quizResults.filter(r => r.liked);
+    
+    // Like率の計算
+    const likePercentage = quizResults.length > 0
+      ? Math.round((likedItems.length / quizResults.length) * 100)
+      : 0;
+    
+    // 最も多くLikeされたタグを集計
+    const tagCounts: Record<string, number> = {};
+    likedItems.forEach(item => {
+      item.tags?.forEach(tag => {
+        tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+      });
+    });
+    
+    // 上位2つのスタイルを特定
+    const dominantStyles = Object.entries(tagCounts)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 2)
+      .map(([tag]) => tag);
+    
+    // 選択したスタイルとの一致度
+    const consistentWithPreference = stylePreference.some(style => 
+      dominantStyles.some(tag => tag.toLowerCase().includes(style.toLowerCase()))
+    );
+    
+    return { likePercentage, dominantStyles, consistentWithPreference };
+  };
+
   const value: OnboardingContextType = {
     gender,
     stylePreference,
@@ -147,6 +200,8 @@ export const OnboardingProvider: React.FC<{ children: ReactNode }> = ({ children
     saveUserProfile,
     isLoading,
     error,
+    getRecommendedStyles,
+    getSelectionInsights,
   };
 
   return <OnboardingContext.Provider value={value}>{children}</OnboardingContext.Provider>;
