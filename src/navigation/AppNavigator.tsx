@@ -31,6 +31,9 @@ type RootStackParamList = {
 // スタックナビゲーター
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+// 開発用フラグ（テスト時にtrueに設定）
+const FORCE_SHOW_ONBOARDING = false; // 👈 オンボーディングをテストする場合はtrueに設定
+
 // ルートナビゲーター
 const AppNavigator = () => {
   const { theme } = useStyle();
@@ -45,6 +48,9 @@ const AppNavigator = () => {
 
   // オンボーディング完了チェック
   const isOnboardingComplete = React.useMemo(() => {
+    // 開発用フラグが有効な場合は強制的に未完了扱い
+    if (FORCE_SHOW_ONBOARDING) return false;
+    
     if (!user) return false;
     
     // gender、stylePreference、ageGroupが設定されているかチェック
@@ -59,7 +65,8 @@ const AppNavigator = () => {
     isOnboardingComplete,
     userGender: user?.gender,
     userStylePreference: user?.stylePreference,
-    userAgeGroup: user?.ageGroup
+    userAgeGroup: user?.ageGroup,
+    FORCE_SHOW_ONBOARDING
   });
 
   // ローディング中はローディング画面を表示

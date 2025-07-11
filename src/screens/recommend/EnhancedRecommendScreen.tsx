@@ -29,6 +29,7 @@ import { FilterOptions } from '@/services/productService';
 import CachedImage from '@/components/common/CachedImage';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useRecommendations } from '@/hooks/useRecommendations';
+import FilterModal from '@/components/recommend/FilterModal';
 
 const { width, height } = Dimensions.get('window');
 
@@ -51,11 +52,16 @@ const EnhancedRecommendScreen: React.FC = () => {
   const [heroProduct, setHeroProduct] = useState<Product | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [filters] = useState<FilterOptions>({
+  const [filters, setFilters] = useState<FilterOptions>({
+    categories: [],
+    priceRange: [0, Infinity],
+    selectedTags: [],
     includeUsed: false
   });
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
   
   // アニメーション値
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -235,6 +241,33 @@ const EnhancedRecommendScreen: React.FC = () => {
   // 初回読み込み
   useEffect(() => {
     loadData(false);
+  }, []);
+  
+  // フィルターが変更されたら再読み込み
+  useEffect(() => {
+    if (filters && Object.keys(filters).length > 0 && !isLoading) {
+      loadData(true);
+    }
+  }, [filters, loadData]);
+  
+  // 利用可能なタグを商品から抽出
+  useEffect(() => {
+    if (products.length > 0) {
+      const tags = new Set<string>();
+      products.forEach(product => {
+        if (product.tags && Array.isArray(product.tags)) {
+          product.tags.forEach(tag => tags.add(tag));
+        }
+      });
+      setAvailableTags(Array.from(tags));
+    }
+  }, [products]);
+  
+  // フィルター適用ハンドラー
+  const handleApplyFilter = useCallback((newFilters: FilterOptions) => {
+    console.log('[EnhancedRecommendScreen] フィルター適用:', newFilters);
+    setFilters(newFilters);
+    setShowFilterModal(false);
   }, []);
   
   // 商品タップハンドラー
@@ -507,10 +540,27 @@ const EnhancedRecommendScreen: React.FC = () => {
           }
         ]}
       >
-        <Text style={[styles.headerTitle, { color: theme.colors.text.primary }]}>
-          For You
-        </Text>
+        <View style={styles.headerContent}>
+          <Text style={[styles.headerTitle, { color: theme.colors.text.primary }]}>
+            For You
+          </Text>
+          <TouchableOpacity
+            style={styles.filterButton}
+            onPress={() => setShowFilterModal(true)}
+          >
+            <Ionicons name="options-outline" size={24} color={theme.colors.text.primary} />
+          </TouchableOpacity>
+        </View>
       </Animated.View>
+      
+      {/* フィルターモーダル */}
+      <FilterModal
+        visible={showFilterModal}
+        onClose={() => setShowFilterModal(false)}
+        onApply={handleApplyFilter}
+        initialFilters={filters}
+        availableTags={availableTags}
+      />
     </View>
   );
 };
@@ -534,10 +584,17 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     paddingHorizontal: 16,
   },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    textAlign: 'center',
+  },
+  filterButton: {
+    padding: 8,
   },
   heroSection: {
     width: width,

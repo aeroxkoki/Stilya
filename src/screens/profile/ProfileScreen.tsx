@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { ProfileStackParamList } from '@/types';
 import { useStyle } from '@/contexts/ThemeContext';
 import DebugProductCount from '@/components/debug/DebugProductCount';
+import { DevMenu } from '@/components/dev/DevMenu';
 
 type ProfileScreenNavigationProp = StackNavigationProp<ProfileStackParamList, 'ProfileHome'>;
 
@@ -18,6 +19,10 @@ const ProfileScreen: React.FC = () => {
   
   // デバッグモーダルの表示状態
   const [showDebugModal, setShowDebugModal] = useState(false);
+  // 開発メニューの表示状態
+  const [showDevMenu, setShowDevMenu] = useState(false);
+  // タップカウント（隠し機能用）
+  const [tapCount, setTapCount] = useState(0);
   
   // 動的スタイルを生成
   const dynamicStyles = {
@@ -46,6 +51,22 @@ const ProfileScreen: React.FC = () => {
         },
       ],
     );
+  };
+
+  // ヘッダータイトルの隠しタップ機能（5回タップで開発メニュー表示）
+  const handleSecretTap = () => {
+    const newCount = tapCount + 1;
+    setTapCount(newCount);
+    
+    if (newCount >= 5) {
+      setShowDevMenu(true);
+      setTapCount(0); // カウントをリセット
+    }
+    
+    // 3秒後にカウントをリセット
+    setTimeout(() => {
+      setTapCount(0);
+    }, 3000);
   };
 
   const handleNavigateToFavorites = () => {
@@ -92,9 +113,11 @@ const ProfileScreen: React.FC = () => {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* ヘッダー */}
         <View style={styles.header}>
-          <Text style={[styles.headerTitle, { color: theme.colors.text.primary }]}>
-            マイページ
-          </Text>
+          <TouchableOpacity onPress={handleSecretTap} activeOpacity={1}>
+            <Text style={[styles.headerTitle, { color: theme.colors.text.primary }]}>
+              マイページ
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* プロフィール情報 */}
@@ -301,6 +324,11 @@ const ProfileScreen: React.FC = () => {
             </ScrollView>
           </SafeAreaView>
         </Modal>
+      )}
+
+      {/* 開発メニュー */}
+      {showDevMenu && (
+        <DevMenu onClose={() => setShowDevMenu(false)} />
       )}
     </SafeAreaView>
   );

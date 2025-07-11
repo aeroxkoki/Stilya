@@ -81,6 +81,31 @@ export const DevMenu: React.FC<DevMenuProps> = ({ onClose }) => {
     if (error) throw error;
   };
 
+  // オンボーディングデータをリセット
+  const resetOnboarding = async () => {
+    if (!user) {
+      Alert.alert('エラー', 'ログインが必要です');
+      return;
+    }
+    
+    const { error } = await supabase
+      .from('users')
+      .update({
+        gender: null,
+        style_preferences: null,
+        age_group: null
+      })
+      .eq('id', user.id);
+      
+    if (error) throw error;
+    
+    Alert.alert(
+      '成功', 
+      'オンボーディングデータをリセットしました。\nアプリを再起動してください。',
+      [{ text: 'OK' }]
+    );
+  };
+
   const menuItems = [
     { 
       title: '🔍 診断を実行', 
@@ -105,6 +130,11 @@ export const DevMenu: React.FC<DevMenuProps> = ({ onClose }) => {
     { 
       title: '🔄 スワイプ履歴クリア', 
       action: () => handleAction('スワイプ履歴クリア', clearSwipeHistory),
+      disabled: !user,
+    },
+    { 
+      title: '🎯 オンボーディングリセット', 
+      action: () => resetOnboarding(),
       disabled: !user,
     },
     { 
