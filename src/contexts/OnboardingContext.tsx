@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { supabase } from '@/services/supabase';
 import { useAuth } from './AuthContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface OnboardingContextType {
   // ユーザープロファイル情報
@@ -13,6 +14,10 @@ interface OnboardingContextType {
   currentStep: number;
   totalSteps: number;
   
+  // 初回ユーザー管理
+  isFirstTimeUser: boolean;
+  setIsFirstTimeUser: (value: boolean) => void;
+  
   // アクション
   setGender: (gender: 'male' | 'female' | 'other') => void;
   setStylePreference: (styles: string[]) => void;
@@ -23,6 +28,7 @@ interface OnboardingContextType {
   
   // データ保存
   saveUserProfile: () => Promise<void>;
+  completeOnboarding: () => Promise<void>;
   isLoading: boolean;
   error: string | null;
   
@@ -65,6 +71,9 @@ export const OnboardingProvider: React.FC<{ children: ReactNode }> = ({ children
   const [ageGroup, setAgeGroup] = useState<string | undefined>();
   const [styleQuizResults, setStyleQuizResults] = useState<StyleQuizResult[]>([]);
   
+  // 初回ユーザー管理
+  const [isFirstTimeUser, setIsFirstTimeUser] = useState(true);
+  
   // ステップ管理
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 5; // 診断を含めて5ステップに増加
@@ -72,6 +81,21 @@ export const OnboardingProvider: React.FC<{ children: ReactNode }> = ({ children
   // 保存状態
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // 初回ユーザーステータスをロード
+  useEffect(() => {
+    const loadFirstTimeStatus = async () => {
+      try {
+        const stored = await AsyncStorage.getItem('isFirstTimeUser');
+        if (stored === 'false') {
+          setIsFirstTimeUser(false);
+        }
+      } catch (error) {
+        console.error('Error loading first time status:', error);
+      }
+    };
+    loadFirstTimeStatus();
+  }, []);
 
   const nextStep = () => {
     if (currentStep < totalSteps) {
@@ -184,6 +208,12 @@ export const OnboardingProvider: React.FC<{ children: ReactNode }> = ({ children
     return { likePercentage, dominantStyles, consistentWithPreference };
   };
 
+  // CompleteScreenへの遷移時に更新
+  const completeOnboarding = async () => {
+    await AsyncStorage.setItem('isFirstTimeUser', 'false');
+    setIsFirstTimeUser(false);
+  };
+
   const value: OnboardingContextType = {
     gender,
     stylePreference,
@@ -191,6 +221,8 @@ export const OnboardingProvider: React.FC<{ children: ReactNode }> = ({ children
     styleQuizResults,
     currentStep,
     totalSteps,
+    isFirstTimeUser,
+    setIsFirstTimeUser,
     setGender,
     setStylePreference,
     setAgeGroup,
@@ -198,6 +230,7 @@ export const OnboardingProvider: React.FC<{ children: ReactNode }> = ({ children
     nextStep,
     prevStep,
     saveUserProfile,
+    completeOnboarding,
     isLoading,
     error,
     getRecommendedStyles,

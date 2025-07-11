@@ -24,6 +24,9 @@ export interface Product {
   isSale?: boolean; // セール中フラグ
   rating?: number; // レビュー評価（1-5）
   reviewCount?: number; // レビュー数
+  review_count?: number; // Supabase DB 形式のフィールド名
+  // 人気度スコア
+  popularity_score?: number; // 人気度スコア（0-9.99）
   // 中古品フラグ
   isUsed?: boolean; // 中古品かどうか
   is_used?: boolean; // Supabase DB 形式のフィールド名

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, SafeAreaView, ActivityIndicator, TouchableOpaci
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
+import Toast from 'react-native-toast-message';
 import { RootStackParamList, MainTabParamList, SwipeStackParamList } from '@/types';
 import { Product } from '@/types/product';
 import { useStyle } from '@/contexts/ThemeContext';
@@ -54,6 +55,7 @@ const SwipeScreen: React.FC = () => {
   const [filters, setFilters] = useState<FilterOptions>({});
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [swipeStartTime, setSwipeStartTime] = useState<number>(Date.now()); // スワイプ開始時刻
+  const [swipeCount, setSwipeCount] = useState(0); // スワイプカウント
   
   // デバッグ用の状態表示
   useEffect(() => {
@@ -120,6 +122,32 @@ const SwipeScreen: React.FC = () => {
     const swipeTime = Date.now() - swipeStartTime;
     
     console.log(`[SwipeScreen] スワイプ: ${direction} - ${product.title} (ID: ${product.id}) - 時間: ${swipeTime}ms`);
+    
+    // スワイプカウントを更新
+    setSwipeCount(prev => {
+      const newCount = prev + 1;
+      
+      // マイクロフィードバック表示
+      if (newCount === 3) {
+        Toast.show({
+          type: 'info',
+          text1: 'いいね！',
+          text2: 'あなたの好みを学習中です 🎯',
+          visibilityTime: 2000,
+          position: 'bottom'
+        });
+      } else if (newCount === 10) {
+        Toast.show({
+          type: 'success',
+          text1: '素晴らしい！',
+          text2: 'もう少しで精度が上がります ✨',
+          visibilityTime: 2000,
+          position: 'bottom'
+        });
+      }
+      
+      return newCount;
+    });
     
     // セッション学習を更新（Enhanced推薦システム用）
     if (user.id) {

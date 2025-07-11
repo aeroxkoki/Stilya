@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, Dimensions, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -11,22 +11,12 @@ type Props = NativeStackScreenProps<OnboardingStackParamList, 'AppIntro'>;
 
 const { width } = Dimensions.get('window');
 
-// アプリ紹介スライドのデータ
+// アプリ紹介スライドのデータ（1枚に削減）
 const slides: IntroSlideProps[] = [
   {
-    title: 'スワイプで好みを学習',
-    description: '左右にスワイプするだけで、あなたの好みを簡単に教えてください。多くのアイテムをチェックするほど、おすすめの精度が上がります。',
-    image: require('@/assets/style-casual.png'),
-  },
-  {
-    title: 'パーソナライズされた提案',
-    description: 'あなたの好みに基づいて、洋服やコーディネートを提案します。スワイプするほど、あなたにぴったりのアイテムが見つかります。',
+    title: 'スワイプで、あなたの"好き"が見つかる',
+    description: '左右にスワイプするだけで、AIがあなたの好みを学習。使うほど精度が上がります。',
     image: require('@/assets/style-mode.png'),
-  },
-  {
-    title: '商品をチェック',
-    description: '気に入ったアイテムはすぐに詳細をチェック。そのまま購入サイトへ移動することもできます。',
-    image: require('@/assets/style-natural.png'),
   },
 ];
 
@@ -34,6 +24,14 @@ const AppIntroScreen: React.FC<Props> = ({ navigation }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
   const { theme } = useStyle();
+
+  // 自動遷移の追加（3秒後に自動で次へ）
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      navigation.navigate('Gender');
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [navigation]);
 
   const handleNext = () => {
     if (currentIndex === slides.length - 1) {

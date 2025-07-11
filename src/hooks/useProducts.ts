@@ -6,6 +6,8 @@ import { getSwipeHistory } from '@/services/swipeService';
 import { recordSwipe } from '@/services/swipeService'; 
 import { useImagePrefetch } from '@/utils/imageUtils';
 import { InteractionManager } from 'react-native';
+import { getInitialProducts } from '@/services/initialProductService';
+import { useOnboarding } from '@/contexts/OnboardingContext';
 
 interface ProductsState {
   products: Product[];
@@ -35,6 +37,7 @@ interface UseProductsReturn {
  */
 export const useProducts = (): UseProductsReturn => {
   const { user, isInitialized } = useAuth();
+  const { gender, stylePreference, isFirstTimeUser } = useOnboarding();
   const [productsData, setProductsData] = useState<ProductsState>({
     products: [],
     hasMore: true,
@@ -128,7 +131,43 @@ export const useProducts = (): UseProductsReturn => {
       console.log('[useProducts] Exclude product IDs:', Array.from(productsData.allProductIds).slice(0, 10)); // 最初の10個を表示
       console.log('[useProducts] Filters:', filtersRef.current);
       
-      // ミックス商品取得機能を使用（ランダム性と推薦のバランス）
+      // 初回ユーザーの場合は特別な商品セットを取得
+      if (isFirstTimeUser && currentPage === 0 && reset) {
+        console.log('[useProducts] First time user - loading initial products');
+        
+        const initialProducts = await getInitialProducts({
+          gender,
+          selectedStyles: stylePreference
+        }, pageSize * 2);
+        
+        if (initialProducts.length > 0) {
+          setProductsData({
+            products: initialProducts,
+            hasMore: true,
+            totalFetched: initialProducts.length,
+            allProductIds: new Set(initialProducts.map(p => p.id))
+          });
+          
+          setIsLoading(false);
+          loadingRef.current = false;
+          setPage(1); // 次回は通常の取得に戻る
+          
+          // 画像をプリフェッチ
+          InteractionManager.runAfterInteractions(() => {
+            const imagesToPrefetch = initialProducts
+              .map(p => p.imageUrl || p.image_url)
+              .filter(Boolean) as string[];
+              
+            if (imagesToPrefetch.length > 0) {
+              prefetchImages(imagesToPrefetch, true);
+            }
+          });
+          
+          return;
+        }
+      }
+      
+      // 通常の商品取得ロジック（既存のコード）
       const response = await fetchMixedProducts(
         user?.id || null,
         pageSize * 2, // 多めに取得
@@ -279,7 +318,7 @@ export const useProducts = (): UseProductsReturn => {
       setRefreshing(false);
       loadingRef.current = false;
     }
-  }, [page, pageSize, productsData.hasMore, productsData.allProductIds, prefetchImages, user]);
+  }, [page, pageSize, productsData.hasMore, productsData.allProductIds, prefetchImages, user, isFirstTimeUser, gender, stylePreference]);
 
   // 初回マウント時に商品データを取得（認証初期化完了後）
   useEffect(() => {
