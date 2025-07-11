@@ -11,7 +11,7 @@ type Props = NativeStackScreenProps<OnboardingStackParamList, 'Complete'>;
 
 const CompleteScreen: React.FC<Props> = ({ navigation }) => {
   const { theme, setStyleType } = useStyle();
-  const { gender, stylePreference, ageGroup, styleQuizResults, getSelectionInsights, saveUserProfile, isLoading, error } = useOnboarding();
+  const { gender, stylePreference, ageGroup, styleQuizResults, getSelectionInsights, saveUserProfile, completeOnboarding, isLoading, error } = useOnboarding();
   const [isSaving, setIsSaving] = useState(false);
 
   // スタイル選択に基づいてテーマを決定
@@ -77,6 +77,8 @@ const CompleteScreen: React.FC<Props> = ({ navigation }) => {
     setIsSaving(true);
     try {
       await saveUserProfile();
+      // 初回ユーザーフラグを更新
+      await completeOnboarding();
       // 成功時は自動的にMainスタックに遷移（AppNavigatorで処理）
     } catch (error) {
       Alert.alert(
