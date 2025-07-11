@@ -4,71 +4,152 @@ import { supabase } from '@/services/supabase';
 interface InitialProductConfig {
   gender?: 'male' | 'female' | 'other';
   selectedStyles: string[];
+  ageGroup?: string;
 }
+
+// 性別に基づくタグマッピング
+const GENDER_TAG_MAPPING = {
+  male: ['メンズ', 'メンズファッション', 'mens', 'men', '男性', 'ユニセックス'],
+  female: ['レディース', 'レディースファッション', 'ladies', 'women', '女性', 'ユニセックス'],
+  other: ['ユニセックス', 'unisex', '男女兼用']
+};
+
+// 年代に基づく価格帯マッピング
+const AGE_PRICE_MAPPING = {
+  teens: { min: 1000, max: 5000 },      // 10代：低価格帯
+  twenties: { min: 2000, max: 10000 },  // 20代：中価格帯
+  thirties: { min: 3000, max: 20000 },  // 30代：中〜高価格帯
+  forties: { min: 5000, max: 30000 },   // 40代：高価格帯
+  fifties_plus: { min: 5000, max: 50000 } // 50代以上：高価格帯
+};
+
+// スタイルと関連タグのマッピング
+const STYLE_TAG_MAPPING: Record<string, string[]> = {
+  casual: ['カジュアル', 'casual', 'デイリー', 'daily', 'ラフ'],
+  street: ['ストリート', 'street', 'スケーター', 'skater', 'ヒップホップ'],
+  mode: ['モード', 'mode', 'モダン', 'modern', 'シンプル', 'ミニマル'],
+  natural: ['ナチュラル', 'natural', 'オーガニック', 'organic', '自然', 'リラックス'],
+  classic: ['クラシック', 'classic', 'トラッド', 'trad', 'ベーシック', 'basic'],
+  feminine: ['フェミニン', 'feminine', 'ガーリー', 'girly', 'キュート', 'cute']
+};
 
 export const getInitialProducts = async (
   config: InitialProductConfig,
   limit: number = 30
 ): Promise<Product[]> => {
   try {
+    console.log('[InitialProductService] Fetching with config:', config);
     const products: Product[] = [];
     
-    // 1. 人気商品（40%）- popularity_scoreを使用
-    const popularCount = Math.floor(limit * 0.4);
+    // 性別に基づくタグを取得
+    const genderTags = config.gender ? GENDER_TAG_MAPPING[config.gender] : [];
+    
+    // 年代に基づく価格帯を取得
+    const priceRange = config.ageGroup ? AGE_PRICE_MAPPING[config.ageGroup as keyof typeof AGE_PRICE_MAPPING] : { min: 0, max: 50000 };
+    
+    // スタイルに基づくタグを展開
+    const styleTags: string[] = [];
+    config.selectedStyles.forEach(style => {
+      const mappedTags = STYLE_TAG_MAPPING[style.toLowerCase()] || [style];
+      styleTags.push(...mappedTags);
+    });
+    
+    // 1. ターゲット商品（50%）- 性別・スタイル・価格帯を考慮
+    const targetCount = Math.floor(limit * 0.5);
+    let targetQuery = supabase
+      .from('external_products')
+      .select('*')
+      .eq('is_active', true)
+      .not('image_url', 'is', null)
+      .gte('price', priceRange.min)
+      .lte('price', priceRange.max);
+    
+    // 性別タグでフィルタリング（OR条件）
+    if (genderTags.length > 0) {
+      const genderFilter = genderTags.map(tag => `tags.cs.{${tag}}`).join(',');
+      targetQuery = targetQuery.or(genderFilter);
+    }
+    
+    const { data: targetProducts } = await targetQuery
+      .order('popularity_score', { ascending: false, nullsFirst: false })
+      .limit(targetCount);
+    
+    if (targetProducts) {
+      // スタイルタグとのマッチング度でソート
+      const scoredProducts = targetProducts.map(product => {
+        let score = 0;
+        if (product.tags && Array.isArray(product.tags)) {
+          product.tags.forEach(tag => {
+            if (styleTags.some(styleTag => 
+              tag.toLowerCase().includes(styleTag.toLowerCase()) || 
+              styleTag.toLowerCase().includes(tag.toLowerCase())
+            )) {
+              score += 1;
+            }
+          });
+        }
+        return { ...product, styleScore: score };
+      });
+      
+      // スタイルスコアが高い順にソート
+      scoredProducts.sort((a, b) => b.styleScore - a.styleScore);
+      products.push(...scoredProducts);
+    }
+    
+    // 2. 人気商品（30%）- 幅広く人気のある商品
+    const popularCount = Math.floor(limit * 0.3);
     const { data: popularProducts } = await supabase
       .from('external_products')
       .select('*')
+      .eq('is_active', true)
+      .not('image_url', 'is', null)
       .order('popularity_score', { ascending: false, nullsFirst: false })
-      .order('review_count', { ascending: false }) // サブソートとして使用
+      .order('review_count', { ascending: false })
       .limit(popularCount);
     
-    if (popularProducts) products.push(...popularProducts);
+    if (popularProducts) {
+      const newProducts = popularProducts.filter(p => 
+        !products.some(existing => existing.id === p.id)
+      );
+      products.push(...newProducts);
+    }
     
-    // 2. スタイルマッチ商品（30%）
-    const styleCount = Math.floor(limit * 0.3);
-    if (config.selectedStyles.length > 0) {
-      const { data: styleProducts } = await supabase
+    // 3. 探索用商品（20%）- ユーザーの好みを広げるため
+    const exploreCount = limit - products.length;
+    if (exploreCount > 0) {
+      const { data: exploreProducts } = await supabase
         .from('external_products')
         .select('*')
-        .contains('tags', config.selectedStyles)
-        .limit(styleCount);
+        .eq('is_active', true)
+        .not('image_url', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(exploreCount * 2);
       
-      if (styleProducts) products.push(...styleProducts);
+      if (exploreProducts) {
+        const shuffled = shuffleArray(exploreProducts);
+        const newProducts = shuffled
+          .filter(p => !products.some(existing => existing.id === p.id))
+          .slice(0, exploreCount);
+        products.push(...newProducts);
+      }
     }
     
-    // 3. 価格帯別商品（20%）- external_productsを使用
-    const priceCount = Math.floor(limit * 0.2);
-    const { data: priceProducts } = await supabase
-      .from('external_products')
-      .select('*')
-      .gte('price', 3000)
-      .lte('price', 10000)
-      .order('created_at', { ascending: false })
-      .limit(priceCount);
-    
-    if (priceProducts) products.push(...priceProducts);
-    
-    // 4. ランダム商品（10%）- external_productsを使用
-    const randomCount = limit - products.length;
-    const { data: randomProducts } = await supabase
-      .from('external_products')
-      .select('*')
-      .limit(randomCount * 2) // ランダム性を高めるため多めに取得
-      .then(result => {
-        if (!result.data) return result;
-        // 手動でシャッフルしてから必要数だけ取得
-        const shuffled = shuffleArray(result.data);
-        return { ...result, data: shuffled.slice(0, randomCount) };
-      });
-    
-    if (randomProducts && randomProducts.data) {
-      products.push(...randomProducts.data);
-    }
-    
-    // 重複を除去してシャッフル
+    // 重複を除去
     const uniqueProducts = Array.from(
       new Map(products.map(p => [p.id, p])).values()
     );
+    
+    console.log('[InitialProductService] Fetched products:', {
+      total: uniqueProducts.length,
+      withGenderTags: uniqueProducts.filter(p => 
+        p.tags?.some(tag => genderTags.some(gt => 
+          tag.toLowerCase().includes(gt.toLowerCase())
+        ))
+      ).length,
+      inPriceRange: uniqueProducts.filter(p => 
+        p.price >= priceRange.min && p.price <= priceRange.max
+      ).length
+    });
     
     return shuffleWithStructure(uniqueProducts, limit);
   } catch (error) {

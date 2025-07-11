@@ -37,7 +37,7 @@ interface UseProductsReturn {
  */
 export const useProducts = (): UseProductsReturn => {
   const { user, isInitialized } = useAuth();
-  const { gender, stylePreference, isFirstTimeUser } = useOnboarding();
+  const { gender, stylePreference, ageGroup, isFirstTimeUser } = useOnboarding();
   const [productsData, setProductsData] = useState<ProductsState>({
     products: [],
     hasMore: true,
@@ -137,7 +137,8 @@ export const useProducts = (): UseProductsReturn => {
         
         const initialProducts = await getInitialProducts({
           gender,
-          selectedStyles: stylePreference
+          selectedStyles: stylePreference,
+          ageGroup
         }, pageSize * 2);
         
         if (initialProducts.length > 0) {
@@ -318,7 +319,7 @@ export const useProducts = (): UseProductsReturn => {
       setRefreshing(false);
       loadingRef.current = false;
     }
-  }, [page, pageSize, productsData.hasMore, productsData.allProductIds, prefetchImages, user, isFirstTimeUser, gender, stylePreference]);
+  }, [page, pageSize, productsData.hasMore, productsData.allProductIds, prefetchImages, user, isFirstTimeUser, gender, stylePreference, ageGroup]);
 
   // 初回マウント時に商品データを取得（認証初期化完了後）
   useEffect(() => {
