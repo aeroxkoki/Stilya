@@ -11,12 +11,14 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSwipe } from '@/hooks/useSwipe';
+import { useFavorites } from '@/hooks/useFavorites';
 import { Product } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useNetwork } from '@/contexts/NetworkContext';
 import { useStyle } from '@/contexts/ThemeContext';
 import StyledSwipeCard from './StyledSwipeCard';
 import SwipeCardEnhanced from './SwipeCardEnhanced';
+import SwipeCardImproved from './SwipeCardImproved';
 import QuickViewModal from './QuickViewModal';
 
 const { width } = Dimensions.get('window');
@@ -66,6 +68,14 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
   // アニメーション値
   const position = useRef(new Animated.ValueXY()).current;
   const swipeIndicatorOpacity = useRef(new Animated.Value(0)).current;
+  
+  // お気に入り機能のフックを使用
+  const {
+    favorites: savedItems,
+    addToFavorites,
+    removeFromFavorites,
+    isFavorite
+  } = useFavorites();
 
   // 商品が少なくなってきたら追加読み込み
   useEffect(() => {
@@ -219,6 +229,21 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
       setShowQuickView(true);
     }
   }, [currentProduct]);
+  
+  // 保存ボタンのハンドラー
+  const handleSaveButtonPress = useCallback(async () => {
+    if (!currentProduct) return;
+    
+    try {
+      if (isFavorite(currentProduct.id)) {
+        await removeFromFavorites(currentProduct.id);
+      } else {
+        await addToFavorites(currentProduct.id);
+      }
+    } catch (error) {
+      console.error('[StyledSwipeContainer] 保存処理エラー:', error);
+    }
+  }, [currentProduct, isFavorite, addToFavorites, removeFromFavorites]);
 
   // クイックビューから詳細画面への遷移
   const handleQuickViewDetail = useCallback(() => {
@@ -351,74 +376,85 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
         </View>
       )}
       
-      <Animated.View
-        style={[styles.cardContainer, animatedCardStyle]}
-        {...panResponder.panHandlers}
-        testID="animated-card-container"
-      >
-        {currentProduct && (
-          useEnhancedCard ? (
-            <SwipeCardEnhanced
-              product={currentProduct}
-              onPress={handleCardPress}
-              onLongPress={handleCardLongPress}
-              onSwipeLeft={isConnected === false ? undefined : handleNoButtonPress}
-              onSwipeRight={isConnected === false ? undefined : handleYesButtonPress}
-              animatedStyle={animatedCardStyle}
-              swipeDirection={swipeDirection}
-              testID="current-swipe-card"
+      {/* カードスタック */}
+      <View style={styles.cardStackContainer}>
+        {/* 背景カード（次のカード） */}
+        {products[currentIndex + 1] && (
+          <View style={[styles.backgroundCard, { transform: [{ scale: 0.95 }] }]}>
+            <SwipeCardImproved
+              product={products[currentIndex + 1]}
+              testID="next-swipe-card"
+              isTopCard={false}
             />
-          ) : (
-            <StyledSwipeCard
-              product={currentProduct}
-              onPress={handleCardPress}
-              onLongPress={handleCardLongPress}
-              onSwipeLeft={isConnected === false ? undefined : handleNoButtonPress}
-              onSwipeRight={isConnected === false ? undefined : handleYesButtonPress}
-              testID="current-swipe-card"
-            />
-          )
+          </View>
         )}
         
-        {/* スワイプインジケーター (従来のカードのみ表示) */}
-        {!useEnhancedCard && (
-          <>
+        {/* 前面カード（現在のカード） */}
+        {currentProduct && (
+          useEnhancedCard ? (
+            <SwipeCardImproved
+              product={currentProduct}
+              onPress={handleCardPress}
+              onLongPress={handleCardLongPress}
+              onSwipeLeft={isConnected === false ? undefined : handleNoButtonPress}
+              onSwipeRight={isConnected === false ? undefined : handleYesButtonPress}
+              onSave={handleSaveButtonPress}
+              isSaved={savedItems.includes(currentProduct.id)}
+              testID="current-swipe-card"
+              isTopCard={true}
+            />
+          ) : (
             <Animated.View
-              style={[
-                styles.swipeIndicator,
-                styles.yesIndicator,
-                { 
-                  opacity: position.x.interpolate({
-                    inputRange: [0, SWIPE_THRESHOLD],
-                    outputRange: [0, 1],
-                    extrapolate: 'clamp',
-                  }),
-                  backgroundColor: theme.colors.success
-                }
-              ]}
+              style={[styles.cardContainer, animatedCardStyle]}
+              {...panResponder.panHandlers}
             >
-              <Text style={styles.indicatorText}>YES</Text>
+              <StyledSwipeCard
+                product={currentProduct}
+                onPress={handleCardPress}
+                onLongPress={handleCardLongPress}
+                onSwipeLeft={isConnected === false ? undefined : handleNoButtonPress}
+                onSwipeRight={isConnected === false ? undefined : handleYesButtonPress}
+                testID="current-swipe-card"
+              />
+              
+              {/* スワイプインジケーター (従来のカードのみ表示) */}
+              <Animated.View
+                style={[
+                  styles.swipeIndicator,
+                  styles.yesIndicator,
+                  { 
+                    opacity: position.x.interpolate({
+                      inputRange: [0, SWIPE_THRESHOLD],
+                      outputRange: [0, 1],
+                      extrapolate: 'clamp',
+                    }),
+                    backgroundColor: theme.colors.success
+                  }
+                ]}
+              >
+                <Text style={styles.indicatorText}>YES</Text>
+              </Animated.View>
+              
+              <Animated.View
+                style={[
+                  styles.swipeIndicator,
+                  styles.noIndicator,
+                  { 
+                    opacity: position.x.interpolate({
+                      inputRange: [-SWIPE_THRESHOLD, 0],
+                      outputRange: [1, 0],
+                      extrapolate: 'clamp',
+                    }),
+                    backgroundColor: theme.colors.error
+                  }
+                ]}
+              >
+                <Text style={styles.indicatorText}>NO</Text>
+              </Animated.View>
             </Animated.View>
-            
-            <Animated.View
-              style={[
-                styles.swipeIndicator,
-                styles.noIndicator,
-                { 
-                  opacity: position.x.interpolate({
-                    inputRange: [-SWIPE_THRESHOLD, 0],
-                    outputRange: [1, 0],
-                    extrapolate: 'clamp',
-                  }),
-                  backgroundColor: theme.colors.error
-                }
-              ]}
-            >
-              <Text style={styles.indicatorText}>NO</Text>
-            </Animated.View>
-          </>
+          )
         )}
-      </Animated.View>
+      </View>
       
       {/* クイックビューモーダル */}
       <QuickViewModal
@@ -511,6 +547,16 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: 'bold',
     fontSize: 24,
+  },
+  cardStackContainer: {
+    width: '100%',
+    height: '80%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  backgroundCard: {
+    position: 'absolute',
+    opacity: 0.5,
   },
 });
 
