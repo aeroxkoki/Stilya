@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, SafeAreaView, TouchableOpacity, ScrollView, Image, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, SafeAreaView, TouchableOpacity, ScrollView, StyleSheet, Dimensions } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/common';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { OnboardingStackParamList } from '@/types';
 import { useStyle } from '@/contexts/ThemeContext';
+import { StylePlaceholder } from '@/components/common/ImagePlaceholder';
 
 type Props = NativeStackScreenProps<OnboardingStackParamList, 'Style'>;
 
@@ -17,7 +18,6 @@ interface StyleOption {
   id: string;
   name: string;
   description: string;
-  image: any; // 実際のプロジェクトではImageSourcePropType型を使用
 }
 
 const styleOptions: StyleOption[] = [
@@ -25,37 +25,31 @@ const styleOptions: StyleOption[] = [
     id: 'casual',
     name: 'カジュアル',
     description: '日常的でリラックスした着こなし',
-    image: require('@/assets/style-casual.png'),
   },
   {
     id: 'street',
     name: 'ストリート',
     description: '個性的で都会的なスタイル',
-    image: require('@/assets/style-street.png'),
   },
   {
     id: 'mode',
     name: 'モード',
     description: 'モノトーンを基調としたスタイリッシュな装い',
-    image: require('@/assets/style-mode.png'),
   },
   {
     id: 'natural',
     name: 'ナチュラル',
     description: '自然体で優しい雰囲気のコーディネート',
-    image: require('@/assets/style-natural.png'),
   },
   {
     id: 'classic',
     name: 'クラシック',
     description: '上品で落ち着いた大人のスタイル',
-    image: require('@/assets/style-classic.png'),
   },
   {
     id: 'feminine',
     name: 'フェミニン',
     description: '女性らしさを強調した華やかな装い',
-    image: require('@/assets/style-feminine.png'),
   },
 ];
 
@@ -127,10 +121,10 @@ const StyleScreen: React.FC<Props> = ({ navigation }) => {
                       isSelected && styles.cardSelected
                     ]}
                   >
-                    <Image 
-                      source={style.image} 
-                      style={styles.image}
-                      resizeMode="cover"
+                    <StylePlaceholder 
+                      styleName={style.id} 
+                      width={CARD_WIDTH}
+                      height={120}
                     />
                     {recommendedStyles.includes(style.id) && (
                       <View style={styles.recommendedBadge}>
@@ -237,10 +231,6 @@ const styles = StyleSheet.create({
   cardSelected: {
     borderWidth: 2,
     borderColor: '#3B82F6',
-  },
-  image: {
-    width: '100%',
-    height: 120,
   },
   checkmarkContainer: {
     position: 'absolute',

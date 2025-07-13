@@ -6,6 +6,7 @@ import { Button } from '@/components/common';
 import IntroSlide, { IntroSlideProps } from '@/components/onboarding/IntroSlide';
 import { OnboardingStackParamList } from '@/types';
 import { useStyle } from '@/contexts/ThemeContext';
+import { StylePlaceholder } from '@/components/common/ImagePlaceholder';
 
 type Props = NativeStackScreenProps<OnboardingStackParamList, 'AppIntro'>;
 
@@ -16,7 +17,7 @@ const slides: IntroSlideProps[] = [
   {
     title: 'スワイプで、あなたの"好き"が見つかる',
     description: '左右にスワイプするだけで、AIがあなたの好みを学習。使うほど精度が上がります。',
-    image: require('@/assets/style-mode.png'),
+    styleName: 'mode', // プレースホルダー用のスタイル名
   },
 ];
 

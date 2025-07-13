@@ -307,14 +307,16 @@ const SwipeScreen: React.FC = () => {
         )}
       </View>
       
-      {/* アクションボタン */}
-      <ActionButtons
-        onPressNo={() => currentProduct && handleSwipe(currentProduct, 'left')}
-        onPressYes={() => currentProduct && handleSwipe(currentProduct, 'right')}
-        onPressSave={handleFavorite}
-        isSaved={currentProduct ? isFavorite(currentProduct.id) : false}
-        disabled={!currentProduct}
-      />
+      {/* アクションボタン（SwipeCardImprovedに統合されたため無効化） */}
+      {false && (
+        <ActionButtons
+          onPressNo={() => currentProduct && handleSwipe(currentProduct, 'left')}
+          onPressYes={() => currentProduct && handleSwipe(currentProduct, 'right')}
+          onPressSave={handleFavorite}
+          isSaved={currentProduct ? isFavorite(currentProduct.id) : false}
+          disabled={!currentProduct}
+        />
+      )}
       
       {/* フィルターモーダル */}
       <FilterModal

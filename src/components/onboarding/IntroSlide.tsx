@@ -1,23 +1,28 @@
 import React from 'react';
 import { StyleSheet, Dimensions } from 'react-native';
-import { View, Text, Image } from '../common/StyledComponents';
+import { View, Text } from '../common/StyledComponents';
+import { StylePlaceholder } from '../common/ImagePlaceholder';
 
 const { width, height } = Dimensions.get('window');
 
 export interface IntroSlideProps {
   title: string;
   description: string;
-  image: any;
+  styleName?: string;
 }
 
-const IntroSlide: React.FC<IntroSlideProps> = ({ title, description, image }) => {
+const IntroSlide: React.FC<IntroSlideProps> = ({ title, description, styleName }) => {
   return (
     <View style={styles.container}>
-      <Image 
-        source={image} 
-        style={styles.image} 
-        resizeMode="contain"
-      />
+      {styleName ? (
+        <StylePlaceholder 
+          styleName={styleName}
+          width={width * 0.7}
+          height={height * 0.3}
+        />
+      ) : (
+        <View style={[styles.imagePlaceholder, { width: width * 0.7, height: height * 0.3 }]} />
+      )}
       
       <Text style={styles.title}>
         {title}
@@ -40,6 +45,11 @@ const styles = StyleSheet.create({
   image: {
     width: width * 0.7,
     height: height * 0.3,
+    marginBottom: 40,
+  },
+  imagePlaceholder: {
+    backgroundColor: '#E5E7EB',
+    borderRadius: 12,
     marginBottom: 40,
   },
   title: {

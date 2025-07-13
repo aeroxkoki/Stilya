@@ -396,8 +396,8 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
               product={currentProduct}
               onPress={handleCardPress}
               onLongPress={handleCardLongPress}
-              onSwipeLeft={isConnected === false ? undefined : handleNoButtonPress}
-              onSwipeRight={isConnected === false ? undefined : handleYesButtonPress}
+              onSwipeLeft={isConnected === false ? undefined : () => handleSwipeLeft(currentProduct)}
+              onSwipeRight={isConnected === false ? undefined : () => handleSwipeRight(currentProduct)}
               onSave={handleSaveButtonPress}
               isSaved={savedItems.includes(currentProduct.id)}
               testID="current-swipe-card"

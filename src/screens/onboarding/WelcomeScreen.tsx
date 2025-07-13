@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, Text, SafeAreaView, Image, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, SafeAreaView, StyleSheet, Dimensions } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Button } from '@/components/common';
 import { OnboardingStackParamList } from '@/types';
 import { useStyle } from '@/contexts/ThemeContext';
+import { LogoPlaceholder, WelcomeIllustrationPlaceholder } from '@/assets/images/placeholder-components';
 
 type Props = NativeStackScreenProps<OnboardingStackParamList, 'Welcome'>;
 
@@ -17,20 +18,15 @@ const WelcomeScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.content}>
         {/* ヘッダー */}
         <View style={styles.header}>
-          <Image
-            source={require('@/assets/logo-placeholder.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
+          <LogoPlaceholder size={80} />
           <Text style={[styles.appName, { color: theme.colors.text.primary }]}>Stilya</Text>
         </View>
 
         {/* メインコンテンツ */}
         <View style={styles.mainContent}>
-          <Image
-            source={require('@/assets/welcome-illustration.png')}
-            style={styles.illustration}
-            resizeMode="contain"
+          <WelcomeIllustrationPlaceholder 
+            width={width * 0.8} 
+            height={height * 0.3} 
           />
           
           <Text style={[styles.mainTitle, { color: theme.colors.text.primary }]}>
@@ -73,30 +69,22 @@ const styles = StyleSheet.create({
     paddingTop: height * 0.05,
     marginBottom: height * 0.05,
   },
-  logo: {
-    width: 80,
-    height: 80,
-    marginBottom: 12,
-  },
   appName: {
     fontSize: 32,
     fontWeight: 'bold',
+    marginTop: 12,
   },
   mainContent: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  illustration: {
-    width: width * 0.8,
-    height: height * 0.3,
-    marginBottom: 32,
-  },
   mainTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 16,
+    marginTop: 32,
   },
   description: {
     fontSize: 16,

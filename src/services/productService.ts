@@ -6,6 +6,7 @@ import { getUserPreferences } from './userPreferenceService';
 import { optimizeImageUrl, API_OPTIMIZATION } from '@/utils/supabaseOptimization';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/utils/env';
 import { shuffleArray, ensureProductDiversity, getTimeBasedOffset } from '@/utils/randomUtils';
+import { convertCategoriesToTags } from '@/utils/categoryMapping';
 
 /**
  * DBの商品データをアプリ用の形式に正規化
@@ -100,9 +101,12 @@ export const fetchProducts = async (limit: number = 20, offset: number = 0, filt
     
     // フィルター条件を適用
     if (filters) {
-      // カテゴリーフィルター
+      // カテゴリーフィルター（英語カテゴリーを日本語タグに変換してフィルタリング）
       if (filters.categories && filters.categories.length > 0) {
-        query = query.in('category', filters.categories);
+        const categoryTags = convertCategoriesToTags(filters.categories);
+        if (categoryTags.length > 0) {
+          query = query.or(categoryTags.map(tag => `tags.cs.{${tag}}`).join(','));
+        }
       }
       
       // 価格範囲フィルター
@@ -305,8 +309,12 @@ export const fetchProductsByTags = async (
     
     // 追加フィルター条件を適用
     if (filters) {
+      // カテゴリーフィルター（英語カテゴリーを日本語タグに変換してフィルタリング）
       if (filters.categories && filters.categories.length > 0) {
-        query = query.in('category', filters.categories);
+        const categoryTags = convertCategoriesToTags(filters.categories);
+        if (categoryTags.length > 0) {
+          query = query.or(categoryTags.map(tag => `tags.cs.{${tag}}`).join(','));
+        }
       }
       
       if (filters.priceRange) {
@@ -652,8 +660,12 @@ export const fetchRandomizedProducts = async (
     
     // フィルター条件を適用
     if (filters) {
+      // カテゴリーフィルター（英語カテゴリーを日本語タグに変換してフィルタリング）
       if (filters.categories && filters.categories.length > 0) {
-        query = query.in('category', filters.categories);
+        const categoryTags = convertCategoriesToTags(filters.categories);
+        if (categoryTags.length > 0) {
+          query = query.or(categoryTags.map(tag => `tags.cs.{${tag}}`).join(','));
+        }
       }
       
       if (filters.priceRange) {
@@ -690,8 +702,12 @@ export const fetchRandomizedProducts = async (
     
     // カウントクエリにも同じフィルターを適用
     if (filters) {
+      // カテゴリーフィルター（英語カテゴリーを日本語タグに変換してフィルタリング）
       if (filters.categories && filters.categories.length > 0) {
-        countQuery = countQuery.in('category', filters.categories);
+        const categoryTags = convertCategoriesToTags(filters.categories);
+        if (categoryTags.length > 0) {
+          countQuery = countQuery.or(categoryTags.map(tag => `tags.cs.{${tag}}`).join(','));
+        }
       }
       
       if (filters.priceRange) {

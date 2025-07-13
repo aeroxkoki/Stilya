@@ -22,19 +22,30 @@ interface FilterModalProps {
 
 // カテゴリーの表示名マッピング
 const CATEGORY_LABELS: Record<string, string> = {
-  'tops': 'トップス',
-  'bottoms': 'ボトムス',
-  'outerwear': 'アウター',
-  'accessories': 'アクセサリー',
-  'shoes': 'シューズ',
-  'bags': 'バッグ',
-  'dresses': 'ワンピース',
-  'sets': 'セットアップ'
+  'ec-brand': 'ECブランド',
+  'office': 'オフィス',
+  'select': 'セレクト',
+  'lifestyle': 'ライフスタイル',
+  'basic': 'ベーシック',
+  'trend': 'トレンド',
+  'high-brand': 'ハイブランド',
+  'fast-fashion': 'ファストファッション'
 };
 
 // 利用可能なカテゴリー
 const AVAILABLE_CATEGORIES = [
-  'tops', 'bottoms', 'outerwear', 'accessories', 'shoes', 'bags', 'dresses', 'sets'
+  'ec-brand', 'office', 'select', 'lifestyle', 'basic', 'trend', 'high-brand', 'fast-fashion'
+];
+
+// タグベースのカテゴリー（商品タイプ）
+const PRODUCT_TYPE_TAGS = [
+  'トップス', 'パンツ', 'シャツ', 'ニット', 'ワンピース', 'スカート', 'ジャケット', 'ブラウス'
+];
+
+// スタイルタグ
+const STYLE_TAGS = [
+  'カジュアル', 'きれいめ', 'ナチュラル', 'ベーシック', 'トレンド', 
+  '大人カジュアル', 'ミニマル', 'エレガント', 'フェミニン', 'モード'
 ];
 
 // 価格帯の選択肢
