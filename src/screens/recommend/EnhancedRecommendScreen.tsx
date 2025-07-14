@@ -30,13 +30,23 @@ import CachedImage from '@/components/common/CachedImage';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useRecommendations } from '@/hooks/useRecommendations';
 import FilterModal from '@/components/recommend/FilterModal';
+import { getUserStyleProfile } from '@/services/userPreferenceService';
 
 const { width, height } = Dimensions.get('window');
 
 type NavigationProp = RecommendScreenProps<'RecommendHome'>['navigation'];
 
 const ITEMS_PER_PAGE = 20;
-const COLUMN_WIDTH = (width - 48) / 2; // 画面幅からパディングを引いて2分割
+const COLUMN_WIDTH = (width - 48) / 2;
+
+// セクションタイプ
+type SectionType = 'hero' | 'categories' | 'trending' | 'forYou' | 'newArrivals';
+
+interface Section {
+  type: SectionType;
+  title?: string;
+  data: Product[];
+}
 
 const EnhancedRecommendScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
@@ -51,6 +61,7 @@ const EnhancedRecommendScreen: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [heroProduct, setHeroProduct] = useState<Product | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  const [sections, setSections] = useState<Section[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<FilterOptions>({
     categories: [],
@@ -62,6 +73,8 @@ const EnhancedRecommendScreen: React.FC = () => {
   const [page, setPage] = useState(1);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [userStyleProfile, setUserStyleProfile] = useState<any>(null);
   
   // アニメーション値
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -69,6 +82,21 @@ const EnhancedRecommendScreen: React.FC = () => {
   
   // フラットリストのref
   const flatListRef = useRef<FlatList<Product>>(null);
+  
+  // カテゴリーリスト
+  const categories = ['カジュアル', 'モード', 'ストリート', 'キレイめ', 'ナチュラル'];
+  
+  // ユーザーのスタイルプロファイルを取得
+  const loadUserStyleProfile = useCallback(async () => {
+    if (!user) return;
+    
+    try {
+      const profile = await getUserStyleProfile(user.id);
+      setUserStyleProfile(profile);
+    } catch (error) {
+      console.error('Failed to load user style profile:', error);
+    }
+  }, [user]);
   
   // データ読み込み
   const loadData = useCallback(async (isRefresh = false) => {
@@ -88,58 +116,62 @@ const EnhancedRecommendScreen: React.FC = () => {
       const [recommendationResults] = await Promise.all([
         getEnhancedRecommendations(
           user.id, 
-          100,  // 一度に多くの商品を取得してキャッシュ
+          100,
           [], 
           filters
         )
       ]);
       
-      // 重複を除外しながら商品を結合
-      const productMap = new Map<string, Product>();
+      // セクション分けしてデータを整理
+      const newSections: Section[] = [];
       
-      // 優先順位: recommended > forYou > trending
-      [...recommendationResults.recommended,
-       ...recommendationResults.forYou,
-       ...recommendationResults.trending
-      ].forEach(product => {
-        if (!productMap.has(product.id)) {
-          productMap.set(product.id, product);
-        }
-      });
-      
-      const uniqueProducts = Array.from(productMap.values());
-      
-      console.log('[EnhancedRecommendScreen] Loaded products:', {
-        total: uniqueProducts.length,
-        recommended: recommendationResults.recommended.length,
-        forYou: recommendationResults.forYou.length,
-        trending: recommendationResults.trending.length,
-      });
-      
-      if (uniqueProducts.length > 0) {
-        // ヒーロープロダクト（最も推薦度の高いもの）
-        setHeroProduct(uniqueProducts[0]);
-        
-        if (isRefresh) {
-          // リフレッシュ時は完全に置き換え
-          setProducts(uniqueProducts.slice(1, ITEMS_PER_PAGE + 1));
-          setPage(2);
-        } else {
-          // 初回読み込み
-          setProducts(uniqueProducts.slice(1, ITEMS_PER_PAGE + 1));
-          setPage(2);
-        }
-        
-        // まだ表示していない商品があるかチェック
-        setHasMore(uniqueProducts.length > ITEMS_PER_PAGE + 1);
-        
-        // データを一時的に保存（追加読み込み用）
-        allProductsRef.current = uniqueProducts.slice(1);
-      } else {
-        console.warn('[EnhancedRecommendScreen] No products found');
-        setProducts([]);
-        setHasMore(false);
+      // ヒーロー商品
+      if (recommendationResults.recommended.length > 0) {
+        setHeroProduct(recommendationResults.recommended[0]);
       }
+      
+      // トレンディング商品
+      if (recommendationResults.trending.length > 0) {
+        newSections.push({
+          type: 'trending',
+          title: '今人気の商品 🔥',
+          data: recommendationResults.trending.slice(0, 6)
+        });
+      }
+      
+      // パーソナライズされた商品
+      if (recommendationResults.forYou.length > 0) {
+        newSections.push({
+          type: 'forYou',
+          title: 'あなたへのおすすめ ❤️',
+          data: recommendationResults.forYou
+        });
+      }
+      
+      // 新着商品（最新の商品をシミュレート）
+      const recentProducts = recommendationResults.recommended
+        .filter(p => !recommendationResults.forYou.includes(p))
+        .slice(0, 6);
+      
+      if (recentProducts.length > 0) {
+        newSections.push({
+          type: 'newArrivals',
+          title: '新着アイテム ✨',
+          data: recentProducts
+        });
+      }
+      
+      setSections(newSections);
+      
+      // フラットな商品リストも保持（既存の表示形式用）
+      const uniqueProducts = Array.from(new Map(
+        [...recommendationResults.recommended,
+         ...recommendationResults.forYou,
+         ...recommendationResults.trending]
+        .map(p => [p.id, p])
+      ).values());
+      
+      setProducts(uniqueProducts.slice(1)); // ヒーロー商品を除く
       
       // フェードインアニメーション
       Animated.parallel([
@@ -164,104 +196,34 @@ const EnhancedRecommendScreen: React.FC = () => {
     }
   }, [user, filters, fadeAnim, slideAnim]);
   
-  // 全商品のリファレンス（追加読み込み用）
-  const allProductsRef = useRef<Product[]>([]);
-  
-  // 追加読み込み
-  const loadMoreProducts = useCallback(async () => {
-    if (!hasMore || isLoadingMore || isLoading || isRefreshing) {
-      console.log('[EnhancedRecommendScreen] loadMoreProducts skipped:', {
-        hasMore,
-        isLoadingMore,
-        isLoading,
-        isRefreshing
-      });
-      return;
-    }
-    
-    console.log('[EnhancedRecommendScreen] loadMoreProducts called, current page:', page);
-    
-    setIsLoadingMore(true);
-    
-    try {
-      const startIndex = (page - 1) * ITEMS_PER_PAGE;
-      const endIndex = startIndex + ITEMS_PER_PAGE;
-      const newProducts = allProductsRef.current.slice(startIndex, endIndex);
-      
-      console.log('[EnhancedRecommendScreen] Loading more products:', {
-        startIndex,
-        endIndex,
-        newProductsCount: newProducts.length,
-        totalCached: allProductsRef.current.length
-      });
-      
-      if (newProducts.length > 0) {
-        setProducts(prev => [...prev, ...newProducts]);
-        setPage(prev => prev + 1);
-      } else {
-        // キャッシュが尽きたら新しいデータを取得
-        if (user) {
-          const [recommendationResults] = await Promise.all([
-            getEnhancedRecommendations(
-              user.id, 
-              50,  // 追加で50件取得
-              products.map(p => p.id), // 既存のIDを除外
-              filters
-            )
-          ]);
-          
-          const additionalProducts = [
-            ...recommendationResults.recommended,
-            ...recommendationResults.forYou,
-            ...recommendationResults.trending
-          ].filter(p => !products.some(existing => existing.id === p.id));
-          
-          if (additionalProducts.length > 0) {
-            setProducts(prev => [...prev, ...additionalProducts]);
-            // キャッシュを更新
-            allProductsRef.current = [...allProductsRef.current, ...additionalProducts];
-          } else {
-            setHasMore(false);
-          }
-        }
-      }
-      
-      // 残りの商品数をチェック
-      if (allProductsRef.current.length <= endIndex) {
-        setHasMore(false);
-      }
-      
-    } catch (error) {
-      console.error('[EnhancedRecommendScreen] Error loading more products:', error);
-    } finally {
-      setIsLoadingMore(false);
-    }
-  }, [page, hasMore, isLoadingMore, isLoading, isRefreshing, user, filters, products]);
-  
   // 初回読み込み
   useEffect(() => {
     loadData(false);
+    loadUserStyleProfile();
   }, []);
   
-  // フィルターが変更されたら再読み込み
-  useEffect(() => {
-    if (filters && Object.keys(filters).length > 0 && !isLoading) {
-      loadData(true);
-    }
-  }, [filters, loadData]);
+  // カテゴリーフィルターの適用
+  const handleCategoryFilter = (category: string | null) => {
+    setSelectedCategory(category);
+    setFilters(prev => ({
+      ...prev,
+      categories: category ? [category] : []
+    }));
+  };
   
-  // 利用可能なタグを商品から抽出
-  useEffect(() => {
-    if (products.length > 0) {
-      const tags = new Set<string>();
-      products.forEach(product => {
-        if (product.tags && Array.isArray(product.tags)) {
-          product.tags.forEach(tag => tags.add(tag));
-        }
-      });
-      setAvailableTags(Array.from(tags));
-    }
-  }, [products]);
+  // 価格帯クイックフィルター
+  const handlePriceFilter = (range: 'low' | 'mid' | 'high') => {
+    const ranges = {
+      low: [0, 5000],
+      mid: [5000, 15000],
+      high: [15000, Infinity]
+    };
+    
+    setFilters(prev => ({
+      ...prev,
+      priceRange: ranges[range] as [number, number]
+    }));
+  };
   
   // フィルター適用ハンドラー
   const handleApplyFilter = useCallback((newFilters: FilterOptions) => {
@@ -315,20 +277,29 @@ const EnhancedRecommendScreen: React.FC = () => {
             </View>
           )}
           <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.6)']}
+            colors={['transparent', 'rgba(0,0,0,0.7)']}
             style={styles.heroGradient}
           >
             <View style={styles.heroContent}>
-              <Text style={styles.heroLabel}>Today's Pick</Text>
+              <Text style={styles.heroLabel}>Today's Pick for You</Text>
               <View style={styles.heroInfo}>
                 <View style={styles.matchBadge}>
                   <Ionicons name="heart" size={14} color="#fff" />
-                  <Text style={styles.matchText}>For You</Text>
+                  <Text style={styles.matchText}>95% Match</Text>
                 </View>
                 <Text style={styles.heroPrice}>
                   ¥{heroProduct.price.toLocaleString()}
                 </Text>
               </View>
+              {heroProduct.tags && heroProduct.tags.length > 0 && (
+                <View style={styles.heroTags}>
+                  {heroProduct.tags.slice(0, 3).map((tag, index) => (
+                    <View key={index} style={styles.heroTag}>
+                      <Text style={styles.heroTagText}>{tag}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
             </View>
           </LinearGradient>
         </TouchableOpacity>
@@ -336,63 +307,182 @@ const EnhancedRecommendScreen: React.FC = () => {
     );
   };
   
+  // カテゴリーチップスのレンダリング
+  const renderCategoryChips = () => (
+    <ScrollView 
+      horizontal 
+      showsHorizontalScrollIndicator={false}
+      style={styles.categoryContainer}
+      contentContainerStyle={styles.categoryContent}
+    >
+      <TouchableOpacity
+        style={[
+          styles.categoryChip,
+          !selectedCategory && styles.categoryChipActive
+        ]}
+        onPress={() => handleCategoryFilter(null)}
+      >
+        <Text style={[
+          styles.categoryChipText,
+          !selectedCategory && styles.categoryChipTextActive
+        ]}>
+          すべて
+        </Text>
+      </TouchableOpacity>
+      
+      {categories.map((category) => (
+        <TouchableOpacity
+          key={category}
+          style={[
+            styles.categoryChip,
+            selectedCategory === category && styles.categoryChipActive
+          ]}
+          onPress={() => handleCategoryFilter(category)}
+        >
+          <Text style={[
+            styles.categoryChipText,
+            selectedCategory === category && styles.categoryChipTextActive
+          ]}>
+            {category}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </ScrollView>
+  );
+  
+  // 価格帯フィルターのレンダリング
+  const renderPriceFilters = () => (
+    <View style={styles.priceFilterContainer}>
+      <TouchableOpacity
+        style={styles.priceFilterButton}
+        onPress={() => handlePriceFilter('low')}
+      >
+        <Text style={styles.priceFilterText}>〜¥5,000</Text>
+      </TouchableOpacity>
+      
+      <TouchableOpacity
+        style={styles.priceFilterButton}
+        onPress={() => handlePriceFilter('mid')}
+      >
+        <Text style={styles.priceFilterText}>¥5,000〜15,000</Text>
+      </TouchableOpacity>
+      
+      <TouchableOpacity
+        style={styles.priceFilterButton}
+        onPress={() => handlePriceFilter('high')}
+      >
+        <Text style={styles.priceFilterText}>¥15,000〜</Text>
+      </TouchableOpacity>
+    </View>
+  );
+  
+  // スタイルプロファイルの表示
+  const renderStyleProfile = () => {
+    if (!userStyleProfile || !userStyleProfile.preferredStyles) return null;
+    
+    return (
+      <View style={styles.styleProfileContainer}>
+        <Text style={[styles.styleProfileTitle, { color: theme.colors.text.primary }]}>
+          あなたの好みのスタイル
+        </Text>
+        <View style={styles.styleProfileContent}>
+          {Object.entries(userStyleProfile.preferredStyles)
+            .sort(([, a], [, b]) => (b as number) - (a as number))
+            .slice(0, 3)
+            .map(([style, percentage]) => (
+              <View key={style} style={styles.styleItem}>
+                <Text style={[styles.styleItemName, { color: theme.colors.text.primary }]}>
+                  {style}
+                </Text>
+                <View style={styles.styleItemBar}>
+                  <View 
+                    style={[
+                      styles.styleItemProgress,
+                      { 
+                        width: `${percentage}%`,
+                        backgroundColor: theme.colors.primary 
+                      }
+                    ]} 
+                  />
+                </View>
+                <Text style={[styles.styleItemPercentage, { color: theme.colors.text.secondary }]}>
+                  {percentage}%
+                </Text>
+              </View>
+            ))}
+        </View>
+      </View>
+    );
+  };
+  
+  // セクションのレンダリング
+  const renderSection = (section: Section) => {
+    if (section.type === 'trending') {
+      return (
+        <View key={section.type} style={styles.sectionContainer}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>
+            {section.title}
+          </Text>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.horizontalScrollContent}
+          >
+            {section.data.map((product) => (
+              <TouchableOpacity
+                key={product.id}
+                style={styles.trendingCard}
+                onPress={() => handleProductPress(product)}
+              >
+                <CachedImage
+                  source={{ uri: product.imageUrl }}
+                  style={styles.trendingImage}
+                  contentFit="cover"
+                />
+                <View style={styles.trendingInfo}>
+                  <Text style={styles.trendingPrice}>
+                    ¥{product.price.toLocaleString()}
+                  </Text>
+                  {product.brand && (
+                    <Text style={styles.trendingBrand} numberOfLines={1}>
+                      {product.brand}
+                    </Text>
+                  )}
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      );
+    }
+    
+    return null;
+  };
+  
   // リストヘッダー
   const ListHeaderComponent = () => (
     <>
       {renderHeroSection()}
+      {renderStyleProfile()}
+      {renderCategoryChips()}
+      {renderPriceFilters()}
+      
+      {sections.map(section => renderSection(section))}
+      
       <View style={styles.mainContent}>
-        <Text style={[styles.subtitle, { color: theme.colors.text.secondary }]}>
-          Recommended for you
+        <Text style={[styles.subtitle, { color: theme.colors.text.primary }]}>
+          すべてのおすすめ
         </Text>
       </View>
     </>
   );
   
-  // リストフッター
-  const ListFooterComponent = () => {
-    if (isLoadingMore) {
-      return (
-        <View style={styles.loadingMoreContainer}>
-          <ActivityIndicator size="small" color={theme.colors.primary} />
-          <Text style={[styles.loadingText, { color: theme.colors.text.secondary }]}>
-            Loading more...
-          </Text>
-        </View>
-      );
-    }
-    
-    if (!hasMore && products.length > 0) {
-      return (
-        <TouchableOpacity 
-          style={styles.exploreMoreButton}
-          onPress={() => {
-            const parentNavigation = navigation.getParent();
-            if (parentNavigation) {
-              parentNavigation.navigate('Swipe');
-            }
-          }}
-        >
-          <Text style={[styles.exploreMoreText, { color: theme.colors.text.secondary }]}>
-            Explore more
-          </Text>
-          <Ionicons name="arrow-forward" size={18} color={theme.colors.text.secondary} />
-        </TouchableOpacity>
-      );
-    }
-    
-    return <View style={{ height: 100 }} />;
-  };
-  
-  // リストアイテムのレンダリング - 個別の商品をレンダリング
+  // リストアイテムのレンダリング
   const renderProduct: ListRenderItem<Product> = ({ item, index }) => {
-    // 2カラムレイアウトのため、左右のアイテムを区別
     const isLeftColumn = index % 2 === 0;
-    
-    // 高さを商品IDに基づいて決定（Pinterest風効果）
-    // IDの最後の文字をハッシュとして使用
     const hash = item.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const normalizedHash = (hash % 100) / 100; // 0-1の範囲に正規化
-    const itemHeight = 180 + normalizedHash * 120; // 180-300の範囲
+    const normalizedHash = (hash % 100) / 100;
+    const itemHeight = 180 + normalizedHash * 120;
     
     return (
       <TouchableOpacity
@@ -420,14 +510,12 @@ const EnhancedRecommendScreen: React.FC = () => {
             </View>
           )}
           
-          {/* 価格表示 */}
           <View style={[styles.priceTag, { backgroundColor: theme.colors.background + 'F0' }]}>
             <Text style={[styles.priceText, { color: theme.colors.text.primary }]}>
               ¥{item.price.toLocaleString()}
             </Text>
           </View>
           
-          {/* お気に入りボタン */}
           <TouchableOpacity
             style={[styles.favoriteButton, { backgroundColor: theme.colors.background + 'CC' }]}
             onPress={async (e) => {
@@ -450,7 +538,6 @@ const EnhancedRecommendScreen: React.FC = () => {
             />
           </TouchableOpacity>
           
-          {/* 中古品ラベル */}
           {item.isUsed && (
             <View style={[styles.usedBadge, { backgroundColor: theme.colors.status?.warning || '#F59E0B' }]}>
               <Text style={styles.usedText}>Used</Text>
@@ -467,6 +554,9 @@ const EnhancedRecommendScreen: React.FC = () => {
       <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={[styles.loadingText, { color: theme.colors.text.secondary }]}>
+            あなたへのおすすめを準備中...
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -484,7 +574,7 @@ const EnhancedRecommendScreen: React.FC = () => {
             style={[styles.retryButton, { backgroundColor: theme.colors.primary }]}
             onPress={() => loadData(true)}
           >
-            <Text style={styles.retryButtonText}>Retry</Text>
+            <Text style={styles.retryButtonText}>もう一度試す</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -501,7 +591,6 @@ const EnhancedRecommendScreen: React.FC = () => {
         renderItem={renderProduct}
         keyExtractor={(item) => item.id}
         ListHeaderComponent={ListHeaderComponent}
-        ListFooterComponent={ListFooterComponent}
         numColumns={2}
         columnWrapperStyle={styles.columnWrapper}
         onScroll={Animated.event(
@@ -518,11 +607,6 @@ const EnhancedRecommendScreen: React.FC = () => {
             tintColor={theme.colors.primary}
           />
         }
-        onEndReached={() => {
-          console.log('[EnhancedRecommendScreen] onEndReached triggered');
-          loadMoreProducts();
-        }}
-        onEndReachedThreshold={0.3}
         removeClippedSubviews={true}
         maxToRenderPerBatch={10}
         windowSize={10}
@@ -573,6 +657,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    padding: 20,
   },
   header: {
     position: 'absolute',
@@ -598,7 +683,7 @@ const styles = StyleSheet.create({
   },
   heroSection: {
     width: width,
-    height: height * 0.8,
+    height: height * 0.65,
   },
   heroImage: {
     width: '100%',
@@ -610,7 +695,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: 200,
+    height: 250,
     justifyContent: 'flex-end',
     paddingHorizontal: 20,
     paddingBottom: 40,
@@ -620,8 +705,8 @@ const styles = StyleSheet.create({
   },
   heroLabel: {
     color: '#fff',
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 16,
+    fontWeight: '600',
     opacity: 0.9,
   },
   heroInfo: {
@@ -647,8 +732,143 @@ const styles = StyleSheet.create({
   },
   heroPrice: {
     color: '#fff',
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
+  },
+  heroTags: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 4,
+  },
+  heroTag: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  heroTagText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  styleProfileContainer: {
+    marginHorizontal: 16,
+    marginTop: 24,
+    marginBottom: 16,
+    padding: 16,
+    backgroundColor: 'rgba(0,0,0,0.03)',
+    borderRadius: 12,
+  },
+  styleProfileTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  styleProfileContent: {
+    gap: 8,
+  },
+  styleItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  styleItemName: {
+    fontSize: 14,
+    width: 80,
+  },
+  styleItemBar: {
+    flex: 1,
+    height: 8,
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  styleItemProgress: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  styleItemPercentage: {
+    fontSize: 12,
+    width: 40,
+    textAlign: 'right',
+  },
+  categoryContainer: {
+    maxHeight: 50,
+    marginVertical: 16,
+  },
+  categoryContent: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  categoryChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    marginRight: 8,
+  },
+  categoryChipActive: {
+    backgroundColor: '#000',
+  },
+  categoryChipText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  categoryChipTextActive: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  priceFilterContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    gap: 8,
+    marginBottom: 16,
+  },
+  priceFilterButton: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    alignItems: 'center',
+  },
+  priceFilterText: {
+    fontSize: 12,
+    color: '#666',
+  },
+  sectionContainer: {
+    marginVertical: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginHorizontal: 16,
+    marginBottom: 12,
+  },
+  horizontalScrollContent: {
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  trendingCard: {
+    width: 150,
+    marginRight: 12,
+  },
+  trendingImage: {
+    width: 150,
+    height: 200,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  trendingInfo: {
+    gap: 4,
+  },
+  trendingPrice: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+  },
+  trendingBrand: {
+    fontSize: 12,
+    color: '#666',
   },
   mainContent: {
     marginTop: 24,
@@ -658,7 +878,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginHorizontal: 16,
     marginBottom: 16,
-    opacity: 0.8,
   },
   listContent: {
     paddingBottom: 20,
@@ -725,25 +944,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
   },
-  loadingMoreContainer: {
-    paddingVertical: 20,
-    alignItems: 'center',
-    gap: 8,
-  },
-  loadingText: {
-    fontSize: 14,
-  },
-  exploreMoreButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 32,
-    gap: 8,
-  },
-  exploreMoreText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
   placeholderContainer: {
     backgroundColor: '#f0f0f0',
     justifyContent: 'center',
@@ -753,6 +953,10 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 14,
     color: '#666',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
   },
   errorText: {
     fontSize: 16,

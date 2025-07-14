@@ -86,6 +86,93 @@ export interface UserPreferences {
   };
 }
 
+// ユーザーのスタイルプロファイルを取得
+export async function getUserStyleProfile(userId: string) {
+  try {
+    const { data: swipeData } = await supabase
+      .from('swipes')
+      .select('product_id, result')
+      .eq('user_id', userId)
+      .eq('result', 'yes')
+      .order('created_at', { ascending: false })
+      .limit(100);
+
+    if (!swipeData || swipeData.length === 0) {
+      return null;
+    }
+
+    // 商品情報を取得
+    const productIds = swipeData.map(s => s.product_id);
+    const { data: products } = await supabase
+      .from('external_products')
+      .select('tags, category')
+      .in('id', productIds);
+
+    if (!products || products.length === 0) {
+      return null;
+    }
+
+    // スタイルカテゴリーの集計
+    const styleCount: Record<string, number> = {
+      'カジュアル': 0,
+      'モード': 0,
+      'ストリート': 0,
+      'キレイめ': 0,
+      'ナチュラル': 0,
+      'フェミニン': 0,
+      'クラシック': 0
+    };
+
+    // タグからスタイルを推測
+    products.forEach(product => {
+      product.tags?.forEach((tag: string) => {
+        const lowerTag = tag.toLowerCase();
+        
+        if (lowerTag.includes('カジュアル') || lowerTag.includes('casual')) {
+          styleCount['カジュアル']++;
+        }
+        if (lowerTag.includes('モード') || lowerTag.includes('mode')) {
+          styleCount['モード']++;
+        }
+        if (lowerTag.includes('ストリート') || lowerTag.includes('street')) {
+          styleCount['ストリート']++;
+        }
+        if (lowerTag.includes('きれいめ') || lowerTag.includes('キレイめ') || lowerTag.includes('elegant')) {
+          styleCount['キレイめ']++;
+        }
+        if (lowerTag.includes('ナチュラル') || lowerTag.includes('natural')) {
+          styleCount['ナチュラル']++;
+        }
+        if (lowerTag.includes('フェミニン') || lowerTag.includes('feminine')) {
+          styleCount['フェミニン']++;
+        }
+        if (lowerTag.includes('クラシック') || lowerTag.includes('classic')) {
+          styleCount['クラシック']++;
+        }
+      });
+    });
+
+    // パーセンテージに変換
+    const total = Object.values(styleCount).reduce((sum, count) => sum + count, 0);
+    const preferredStyles: Record<string, number> = {};
+    
+    Object.entries(styleCount).forEach(([style, count]) => {
+      if (count > 0) {
+        preferredStyles[style] = Math.round((count / total) * 100);
+      }
+    });
+
+    return {
+      preferredStyles,
+      totalSwipes: swipeData.length
+    };
+
+  } catch (error) {
+    console.error('[getUserStyleProfile] Error:', error);
+    return null;
+  }
+}
+
 export async function getUserPreferences(userId: string | undefined | null): Promise<UserPreferences | null> {
   try {
     // userIdの検証
