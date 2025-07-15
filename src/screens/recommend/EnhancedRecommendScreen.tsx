@@ -25,11 +25,11 @@ import {
   getEnhancedRecommendations
 } from '@/services/integratedRecommendationService';
 import { Product } from '@/types';
-import { FilterOptions } from '@/services/productService';
 import CachedImage from '@/components/common/CachedImage';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useRecommendations } from '@/hooks/useRecommendations';
-import FilterModal from '@/components/recommend/FilterModal';
+import { SimpleFilterModal } from '@/components/common';
+import { useFilters } from '@/contexts/FilterContext';
 import { getUserStyleProfile } from '@/services/userPreferenceService';
 
 const { width, height } = Dimensions.get('window');
@@ -53,6 +53,7 @@ const EnhancedRecommendScreen: React.FC = () => {
   const { user } = useAuth();
   const { theme } = useStyle();
   const { isFavorite, addToFavorites, removeFromFavorites } = useFavorites();
+  const { globalFilters } = useFilters();
   const scrollY = useRef(new Animated.Value(0)).current;
   
   // 状態管理
@@ -63,17 +64,9 @@ const EnhancedRecommendScreen: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<FilterOptions>({
-    categories: [],
-    priceRange: [0, Infinity],
-    selectedTags: [],
-    includeUsed: false
-  });
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
   const [showFilterModal, setShowFilterModal] = useState(false);
-  const [availableTags, setAvailableTags] = useState<string[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [userStyleProfile, setUserStyleProfile] = useState<any>(null);
   
   // アニメーション値
@@ -82,9 +75,6 @@ const EnhancedRecommendScreen: React.FC = () => {
   
   // フラットリストのref
   const flatListRef = useRef<FlatList<Product>>(null);
-  
-  // カテゴリーリスト
-  const categories = ['カジュアル', 'モード', 'ストリート', 'キレイめ', 'ナチュラル'];
   
   // ユーザーのスタイルプロファイルを取得
   const loadUserStyleProfile = useCallback(async () => {
@@ -118,7 +108,7 @@ const EnhancedRecommendScreen: React.FC = () => {
           user.id, 
           100,
           [], 
-          filters
+          globalFilters
         )
       ]);
       
@@ -194,7 +184,7 @@ const EnhancedRecommendScreen: React.FC = () => {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [user, filters, fadeAnim, slideAnim]);
+  }, [user, globalFilters, fadeAnim, slideAnim]);
   
   // 初回読み込み
   useEffect(() => {
@@ -202,35 +192,10 @@ const EnhancedRecommendScreen: React.FC = () => {
     loadUserStyleProfile();
   }, []);
   
-  // カテゴリーフィルターの適用
-  const handleCategoryFilter = (category: string | null) => {
-    setSelectedCategory(category);
-    setFilters(prev => ({
-      ...prev,
-      categories: category ? [category] : []
-    }));
-  };
-  
-  // 価格帯クイックフィルター
-  const handlePriceFilter = (range: 'low' | 'mid' | 'high') => {
-    const ranges = {
-      low: [0, 5000],
-      mid: [5000, 15000],
-      high: [15000, Infinity]
-    };
-    
-    setFilters(prev => ({
-      ...prev,
-      priceRange: ranges[range] as [number, number]
-    }));
-  };
-  
-  // フィルター適用ハンドラー
-  const handleApplyFilter = useCallback((newFilters: FilterOptions) => {
-    console.log('[EnhancedRecommendScreen] フィルター適用:', newFilters);
-    setFilters(newFilters);
-    setShowFilterModal(false);
-  }, []);
+  // グローバルフィルターの変更を監視
+  useEffect(() => {
+    loadData(false);
+  }, [globalFilters]);
   
   // 商品タップハンドラー
   const handleProductPress = (product: Product) => {
@@ -306,75 +271,6 @@ const EnhancedRecommendScreen: React.FC = () => {
       </Animated.View>
     );
   };
-  
-  // カテゴリーチップスのレンダリング
-  const renderCategoryChips = () => (
-    <ScrollView 
-      horizontal 
-      showsHorizontalScrollIndicator={false}
-      style={styles.categoryContainer}
-      contentContainerStyle={styles.categoryContent}
-    >
-      <TouchableOpacity
-        style={[
-          styles.categoryChip,
-          !selectedCategory && styles.categoryChipActive
-        ]}
-        onPress={() => handleCategoryFilter(null)}
-      >
-        <Text style={[
-          styles.categoryChipText,
-          !selectedCategory && styles.categoryChipTextActive
-        ]}>
-          すべて
-        </Text>
-      </TouchableOpacity>
-      
-      {categories.map((category) => (
-        <TouchableOpacity
-          key={category}
-          style={[
-            styles.categoryChip,
-            selectedCategory === category && styles.categoryChipActive
-          ]}
-          onPress={() => handleCategoryFilter(category)}
-        >
-          <Text style={[
-            styles.categoryChipText,
-            selectedCategory === category && styles.categoryChipTextActive
-          ]}>
-            {category}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </ScrollView>
-  );
-  
-  // 価格帯フィルターのレンダリング
-  const renderPriceFilters = () => (
-    <View style={styles.priceFilterContainer}>
-      <TouchableOpacity
-        style={styles.priceFilterButton}
-        onPress={() => handlePriceFilter('low')}
-      >
-        <Text style={styles.priceFilterText}>〜¥5,000</Text>
-      </TouchableOpacity>
-      
-      <TouchableOpacity
-        style={styles.priceFilterButton}
-        onPress={() => handlePriceFilter('mid')}
-      >
-        <Text style={styles.priceFilterText}>¥5,000〜15,000</Text>
-      </TouchableOpacity>
-      
-      <TouchableOpacity
-        style={styles.priceFilterButton}
-        onPress={() => handlePriceFilter('high')}
-      >
-        <Text style={styles.priceFilterText}>¥15,000〜</Text>
-      </TouchableOpacity>
-    </View>
-  );
   
   // スタイルプロファイルの表示
   const renderStyleProfile = () => {
@@ -464,8 +360,6 @@ const EnhancedRecommendScreen: React.FC = () => {
     <>
       {renderHeroSection()}
       {renderStyleProfile()}
-      {renderCategoryChips()}
-      {renderPriceFilters()}
       
       {sections.map(section => renderSection(section))}
       
@@ -638,12 +532,9 @@ const EnhancedRecommendScreen: React.FC = () => {
       </Animated.View>
       
       {/* フィルターモーダル */}
-      <FilterModal
+      <SimpleFilterModal
         visible={showFilterModal}
         onClose={() => setShowFilterModal(false)}
-        onApply={handleApplyFilter}
-        initialFilters={filters}
-        availableTags={availableTags}
       />
     </View>
   );

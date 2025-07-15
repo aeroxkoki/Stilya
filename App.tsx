@@ -11,6 +11,7 @@ import { ProductProvider } from './src/contexts/ProductContext';
 import { OnboardingProvider } from './src/contexts/OnboardingContext';
 import { NetworkProvider } from './src/contexts/NetworkContext';
 import { StyleProvider } from './src/contexts/ThemeContext';
+import { FilterProvider } from './src/contexts/FilterContext';
 import { DevMenu } from './src/components/dev/DevMenu';
 
 // Supabase
@@ -69,35 +70,37 @@ const App: React.FC = () => {
           <StyleProvider>
             <AuthProvider>
               <ProductProvider>
-                <OnboardingProvider>
-                  <NavigationContainer>
-                    <StatusBar style="auto" />
-                    <AppNavigator />
-                    
-                    {/* 開発メニュー */}
-                    {__DEV__ && (
-                      <>
-                        <TouchableOpacity
-                          style={{
-                            position: 'absolute',
-                            bottom: 100,
-                            right: 20,
-                            backgroundColor: 'rgba(0,0,0,0.7)',
-                            padding: 10,
-                            borderRadius: 25,
-                            zIndex: 999,
-                          }}
-                          onPress={() => setShowDevMenu(!showDevMenu)}
-                        >
-                          <Text style={{ color: 'white', fontSize: 20 }}>🛠</Text>
-                        </TouchableOpacity>
-                        {showDevMenu && (
-                          <DevMenu onClose={() => setShowDevMenu(false)} />
-                        )}
-                      </>
-                    )}
-                  </NavigationContainer>
-                </OnboardingProvider>
+                <FilterProvider>
+                  <OnboardingProvider>
+                    <NavigationContainer>
+                      <StatusBar style="auto" />
+                      <AppNavigator />
+                      
+                      {/* 開発メニュー */}
+                      {__DEV__ && (
+                        <>
+                          <TouchableOpacity
+                            style={{
+                              position: 'absolute',
+                              bottom: 100,
+                              right: 20,
+                              backgroundColor: 'rgba(0,0,0,0.7)',
+                              padding: 10,
+                              borderRadius: 25,
+                              zIndex: 999,
+                            }}
+                            onPress={() => setShowDevMenu(!showDevMenu)}
+                          >
+                            <Text style={{ color: 'white', fontSize: 20 }}>🛠</Text>
+                          </TouchableOpacity>
+                          {showDevMenu && (
+                            <DevMenu onClose={() => setShowDevMenu(false)} />
+                          )}
+                        </>
+                      )}
+                    </NavigationContainer>
+                  </OnboardingProvider>
+                </FilterProvider>
               </ProductProvider>
             </AuthProvider>
           </StyleProvider>

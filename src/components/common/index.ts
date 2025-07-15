@@ -6,3 +6,4 @@ export { default as Input } from './Input';
 export { default as Loading } from './Loading';
 export { default as ProductCard } from './ProductCard';
 export { default as Tags } from './Tags';
+export { default as SimpleFilterModal } from './SimpleFilterModal';

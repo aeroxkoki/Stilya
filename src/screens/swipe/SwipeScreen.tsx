@@ -8,13 +8,12 @@ import { RootStackParamList, MainTabParamList, SwipeStackParamList } from '@/typ
 import { Product } from '@/types/product';
 import { useStyle } from '@/contexts/ThemeContext';
 import { useAuth } from '@/hooks/useAuth';
-import { EmptyState } from '@/components/common';
+import { EmptyState, SimpleFilterModal } from '@/components/common';
 import { useProducts } from '@/hooks/useProducts';
 import { useFavorites } from '@/hooks/useFavorites';
 import { SwipeContainer } from '@/components/swipe';
 import ActionButtons from '@/components/swipe/ActionButtons';
-import FilterModal from '@/components/recommend/FilterModal';
-import { FilterOptions } from '@/services/productService';
+import { useFilters } from '@/contexts/FilterContext';
 import { updateSessionLearning } from '@/services/enhancedRecommendationService';
 
 // ナビゲーションの型定義
@@ -25,6 +24,7 @@ const SwipeScreen: React.FC = () => {
   const navigation = useNavigation<SwipeScreenNavigationProp>();
   const { user, isInitialized } = useAuth();
   const { theme } = useStyle();
+  const { globalFilters } = useFilters();
   
   // 商品とスワイプ状態の管理
   const { 
@@ -52,8 +52,6 @@ const SwipeScreen: React.FC = () => {
   // 状態管理
   const [showEmptyState, setShowEmptyState] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
-  const [filters, setFilters] = useState<FilterOptions>({});
-  const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [swipeStartTime, setSwipeStartTime] = useState<number>(Date.now()); // スワイプ開始時刻
   const [swipeCount, setSwipeCount] = useState(0); // スワイプカウント
   
@@ -96,18 +94,10 @@ const SwipeScreen: React.FC = () => {
     }
   }, [isLoading, products.length, currentIndex]);
   
-  // 利用可能なタグを商品から抽出
+  // グローバルフィルターの変更を監視
   useEffect(() => {
-    if (products.length > 0) {
-      const tags = new Set<string>();
-      products.forEach(product => {
-        if (product.tags && Array.isArray(product.tags)) {
-          product.tags.forEach(tag => tags.add(tag));
-        }
-      });
-      setAvailableTags(Array.from(tags));
-    }
-  }, [products]);
+    setProductFilters(globalFilters);
+  }, [globalFilters, setProductFilters]);
   
   // 商品が変わったときにスワイプ開始時刻をリセット
   useEffect(() => {
@@ -195,14 +185,6 @@ const SwipeScreen: React.FC = () => {
     setShowEmptyState(false);
     resetProducts();
   }, [resetProducts]);
-  
-  // フィルター適用
-  const handleApplyFilter = useCallback((newFilters: FilterOptions) => {
-    console.log('[SwipeScreen] フィルター適用:', newFilters);
-    setFilters(newFilters);
-    setProductFilters(newFilters);
-    setShowFilterModal(false);
-  }, [setProductFilters]);
   
   // 認証状態の確認
   if (!isInitialized) {
@@ -319,12 +301,9 @@ const SwipeScreen: React.FC = () => {
       )}
       
       {/* フィルターモーダル */}
-      <FilterModal
+      <SimpleFilterModal
         visible={showFilterModal}
         onClose={() => setShowFilterModal(false)}
-        onApply={handleApplyFilter}
-        initialFilters={filters}
-        availableTags={availableTags}
       />
     </SafeAreaView>
   );

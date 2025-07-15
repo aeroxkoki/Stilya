@@ -74,18 +74,106 @@ export const normalizeProduct = (dbProduct: any): Product => {
 /**
  * フィルターオプションの型定義
  */
-export interface FilterOptions {
+export interface ProductFilterOptions {
   categories?: string[];
   priceRange?: [number, number];
   selectedTags?: string[];
   includeUsed?: boolean; // 中古品を含むかどうか（デフォルト: false）
 }
 
+import { FilterOptions } from '@/contexts/FilterContext';
+
+/**
+ * FilterOptions (コンテキスト用) をProductFilterOptions (DB用) に変換する
+ * 
+ * @param filters コンテキストで使用されるフィルターオプション
+ * @returns データベースクエリ用のフィルターオプション
+ */
+export const convertToProductFilters = (filters: FilterOptions): ProductFilterOptions => {
+  const productFilters: ProductFilterOptions = {
+    priceRange: filters.priceRange,
+    selectedTags: [],
+    includeUsed: undefined // デフォルトは新品・中古品両方を含む
+  };
+  
+  // スタイルをタグに変換
+  if (filters.style && filters.style !== 'すべて') {
+    productFilters.selectedTags = [filters.style];
+  }
+  
+  // 気分タグを追加
+  if (filters.moods && filters.moods.length > 0) {
+    // 新着フィルターは時間ベースなので、ここでは除外
+    const nonTemporalMoods = filters.moods.filter(mood => mood !== '新着');
+    productFilters.selectedTags = [...(productFilters.selectedTags || []), ...nonTemporalMoods];
+  }
+  
+  return productFilters;
+};
+
+/**
+ * FilterOptions に基づいてクエリをフィルタリングする
+ * Supabaseクエリに直接適用する場合に使用
+ * 
+ * @param query Supabaseクエリビルダー
+ * @param filters フィルターオプション
+ * @returns フィルタリングされたクエリ
+ */
+export const applyFiltersToQuery = (query: any, filters: FilterOptions) => {
+  let filteredQuery = query;
+  
+  // 価格範囲フィルター
+  if (filters.priceRange) {
+    const [minPrice, maxPrice] = filters.priceRange;
+    if (minPrice > 0) {
+      filteredQuery = filteredQuery.gte('price', minPrice);
+    }
+    if (maxPrice < 50000) {
+      filteredQuery = filteredQuery.lte('price', maxPrice);
+    }
+  }
+  
+  // スタイルフィルター（タグベース）
+  if (filters.style && filters.style !== 'すべて') {
+    const styleMap: Record<string, string> = {
+      'カジュアル': 'カジュアル',
+      'きれいめ': 'きれいめ',
+      'ナチュラル': 'ナチュラル'
+    };
+    if (styleMap[filters.style]) {
+      filteredQuery = filteredQuery.contains('tags', [styleMap[filters.style]]);
+    }
+  }
+  
+  // 気分フィルター
+  if (filters.moods && filters.moods.length > 0) {
+    // 新着フィルター
+    if (filters.moods.includes('新着')) {
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      filteredQuery = filteredQuery.gte('created_at', sevenDaysAgo);
+    }
+    
+    // セールフィルター
+    if (filters.moods.includes('セール')) {
+      // is_saleフィールドがある場合は使用、なければタグで判定
+      filteredQuery = filteredQuery.or('is_sale.eq.true,tags.cs.{セール}');
+    }
+    
+    // 人気フィルター（後でスワイプ履歴との結合で実装）
+    if (filters.moods.includes('人気')) {
+      // 現時点ではタグベースで判定
+      filteredQuery = filteredQuery.contains('tags', ['人気']);
+    }
+  }
+  
+  return filteredQuery;
+};
+
 /**
  * 商品を取得（Supabase優先、楽天APIフォールバック）
  * MVP戦略に基づいた優先度付き取得
  */
-export const fetchProducts = async (limit: number = 20, offset: number = 0, filters?: FilterOptions) => {
+export const fetchProducts = async (limit: number = 20, offset: number = 0, filters?: ProductFilterOptions) => {
   try {
     console.log('[ProductService] Fetching products from Supabase...');
     console.log('[ProductService] Request params:', { limit, offset, filters });
@@ -293,7 +381,7 @@ const saveProductsToSupabase = async (products: Product[]) => {
 export const fetchProductsByTags = async (
   tags: string[], 
   limit: number = 20,
-  filters?: FilterOptions
+  filters?: ProductFilterOptions
 ) => {
   try {
     // Supabaseから取得
@@ -634,7 +722,7 @@ const insertSampleProducts = async () => {
 export const fetchRandomizedProducts = async (
   limit: number = 20,
   offset: number = 0,
-  filters?: FilterOptions,
+  filters?: ProductFilterOptions,
   seed?: string // ランダム性のシード（同じシードなら同じ結果）
 ) => {
   try {
@@ -841,7 +929,7 @@ export const fetchMixedProducts = async (
   userId: string | null,
   limit: number = 20,
   offset: number = 0,
-  filters?: FilterOptions,
+  filters?: ProductFilterOptions,
   excludeProductIds?: string[] // 既に表示された商品IDのリスト
 ) => {
   try {
@@ -950,5 +1038,99 @@ export const fetchMixedProducts = async (
     console.error('[ProductService] Error stack:', error.stack);
     // エラー時は通常の商品取得にフォールバック
     return fetchProducts(limit, offset, filters);
+  }
+};
+
+/**
+ * グローバルフィルターを適用して商品を取得
+ * FilterContext で使用される関数
+ * 
+ * @param filters グローバルフィルターオプション
+ * @param limit 取得する商品数
+ * @param offset オフセット
+ * @returns フィルタリングされた商品の配列
+ */
+export const getFilteredProducts = async (
+  filters: import('@/contexts/FilterContext').FilterOptions,
+  limit: number = 20,
+  offset: number = 0
+) => {
+  try {
+    console.log('[ProductService] getFilteredProducts called:', { filters, limit, offset });
+    
+    let query = supabase
+      .from('external_products')
+      .select('*')
+      .eq('is_active', true)
+      .not('image_url', 'is', null)
+      .not('image_url', 'eq', '');
+    
+    // 価格範囲フィルター
+    if (filters.priceRange) {
+      const [minPrice, maxPrice] = filters.priceRange;
+      if (minPrice > 0) {
+        query = query.gte('price', minPrice);
+      }
+      if (maxPrice < 50000) {
+        query = query.lte('price', maxPrice);
+      }
+    }
+    
+    // スタイルフィルター（タグベース）
+    if (filters.style && filters.style !== 'すべて') {
+      const styleMap: Record<string, string> = {
+        'カジュアル': 'カジュアル',
+        'きれいめ': 'きれいめ',
+        'ナチュラル': 'ナチュラル'
+      };
+      if (styleMap[filters.style]) {
+        query = query.contains('tags', [styleMap[filters.style]]);
+      }
+    }
+    
+    // 気分フィルター
+    if (filters.moods && filters.moods.length > 0) {
+      // 新着フィルター
+      if (filters.moods.includes('新着')) {
+        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        query = query.gte('created_at', sevenDaysAgo);
+      }
+      
+      // セールフィルター
+      if (filters.moods.includes('セール')) {
+        // tagsにセールが含まれる商品
+        query = query.contains('tags', ['セール']);
+      }
+      
+      // 人気フィルター（将来的にスワイプ履歴から判定）
+      if (filters.moods.includes('人気')) {
+        // 現時点ではタグベースで判定
+        query = query.contains('tags', ['人気']);
+      }
+    }
+    
+    // ソートとページネーション
+    query = query
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+    
+    const { data, error } = await query;
+    
+    if (error) {
+      console.error('[ProductService] Error in getFilteredProducts:', error);
+      return { success: false, error: error.message, data: [] };
+    }
+    
+    const normalizedProducts = data.map(normalizeProduct);
+    console.log('[ProductService] getFilteredProducts returning:', normalizedProducts.length);
+    
+    return { 
+      success: true, 
+      data: normalizedProducts 
+    };
+    
+  } catch (error: any) {
+    console.error('[ProductService] Error in getFilteredProducts:', error);
+    return { success: false, error: error.message || 'Failed to fetch filtered products', data: [] };
   }
 };

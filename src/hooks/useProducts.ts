@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { fetchProducts, fetchProductsByTags, fetchScoredProducts, FilterOptions, fetchMixedProducts } from '@/services/productService';
+import { fetchProducts, fetchProductsByTags, fetchScoredProducts, ProductFilterOptions, fetchMixedProducts } from '@/services/productService';
 import { Product } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import { getSwipeHistory } from '@/services/swipeService';
