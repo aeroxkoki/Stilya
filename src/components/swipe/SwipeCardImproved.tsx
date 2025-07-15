@@ -10,6 +10,7 @@ import {
   Vibration,
   Platform
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import CachedImage from '@/components/common/CachedImage';
 import { Ionicons } from '@expo/vector-icons';
 import { Product } from '@/types';
@@ -116,8 +117,15 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = ({
         
         // スワイプ完了判定
         if (gesture.dx > SWIPE_THRESHOLD && onSwipeRight) {
-          // 右スワイプ
-          Vibration.vibrate(10);
+          // 右スワイプ（いいね！）- ポジティブなフィードバック
+          if (Platform.OS === 'ios') {
+            // iOS: Haptic Engineを使用
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+          } else {
+            // Android: 最適化されたバイブレーションパターン
+            // [wait, vibrate, wait, vibrate] - ダブルタップパターン
+            Vibration.vibrate([0, 50, 30, 50]);
+          }
           Animated.timing(position, {
             toValue: { x: width, y: gesture.dy },
             duration: SWIPE_OUT_DURATION,
@@ -127,8 +135,14 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = ({
             resetPosition();
           });
         } else if (gesture.dx < -SWIPE_THRESHOLD && onSwipeLeft) {
-          // 左スワイプ
-          Vibration.vibrate(10);
+          // 左スワイプ（スキップ）- 軽めのフィードバック
+          if (Platform.OS === 'ios') {
+            // iOS: Haptic Engineを使用
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          } else {
+            // Android: シンプルな短い振動
+            Vibration.vibrate(30);
+          }
           Animated.timing(position, {
             toValue: { x: -width, y: gesture.dy },
             duration: SWIPE_OUT_DURATION,
@@ -157,7 +171,16 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = ({
   };
   
   // ボタンアニメーション
-  const animateButton = (callback?: () => void) => {
+  const animateButton = (callback?: () => void, isLikeAction?: boolean) => {
+    // 保存ボタンの場合は中間のフィードバック
+    if (callback === onSave) {
+      if (Platform.OS === 'ios') {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      } else {
+        Vibration.vibrate(40); // 中間の長さ
+      }
+    }
+    
     Animated.sequence([
       Animated.timing(buttonScale, {
         toValue: 0.9,
@@ -179,7 +202,22 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = ({
     const toValue = direction === 'right' ? width : -width;
     const callback = direction === 'right' ? onSwipeRight : onSwipeLeft;
     
-    Vibration.vibrate(10);
+    // バイブレーションフィードバック
+    if (direction === 'right') {
+      // いいね！ボタン - ポジティブなフィードバック
+      if (Platform.OS === 'ios') {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      } else {
+        Vibration.vibrate([0, 50, 30, 50]); // ダブルタップパターン
+      }
+    } else {
+      // スキップボタン - 軽めのフィードバック
+      if (Platform.OS === 'ios') {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      } else {
+        Vibration.vibrate(30);
+      }
+    }
     
     // インジケーター表示
     const opacity = direction === 'right' ? likeOpacity : nopeOpacity;
