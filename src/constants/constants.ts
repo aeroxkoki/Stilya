@@ -96,7 +96,7 @@ export const AGE_GROUPS = [
   { id: 'twenties', label: '20代' },
   { id: 'thirties', label: '30代' },
   { id: 'forties', label: '40代' },
-  { id: 'fifties', label: '50代以上' },
+  { id: 'fifties_plus', label: '50代以上' },
 ];
 
 // 性別区分
