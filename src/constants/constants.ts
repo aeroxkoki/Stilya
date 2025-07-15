@@ -51,7 +51,7 @@ export const FASHION_STYLES = [
   { id: 'street', label: 'ストリート', jpTag: 'ストリート' },
   { id: 'mode', label: 'モード', jpTag: 'モード' },
   { id: 'natural', label: 'ナチュラル', jpTag: 'ナチュラル' },
-  { id: 'classic', label: 'クラシック', jpTag: 'きれいめ' }, // クラシックは「きれいめ」にマッピング
+  { id: 'classic', label: 'クラシック', jpTag: 'クラシック' }, // 統一
   { id: 'feminine', label: 'フェミニン', jpTag: 'フェミニン' },
 ];
 
@@ -61,7 +61,7 @@ export const STYLE_ID_TO_JP_TAG: Record<string, string> = {
   'street': 'ストリート',
   'mode': 'モード',
   'natural': 'ナチュラル',
-  'classic': 'きれいめ',
+  'classic': 'クラシック', // 「きれいめ」から「クラシック」に統一
   'feminine': 'フェミニン',
 };
 
@@ -71,12 +71,24 @@ export const JP_TAG_TO_STYLE_ID: Record<string, string> = {
   'ストリート': 'street',
   'モード': 'mode',
   'ナチュラル': 'natural',
-  'きれいめ': 'classic',
+  'クラシック': 'classic',
   'フェミニン': 'feminine',
+  // 互換性のためのエイリアス
+  'きれいめ': 'classic', // 後方互換性
+};
+
+// スタイルと関連タグのマッピング（initialProductServiceから移動）
+export const STYLE_TAG_MAPPING: Record<string, string[]> = {
+  casual: ['カジュアル', 'casual', 'デイリー', 'daily', 'ラフ'],
+  street: ['ストリート', 'street', 'スケーター', 'skater', 'ヒップホップ'],
+  mode: ['モード', 'mode', 'モダン', 'modern', 'シンプル', 'ミニマル'],
+  natural: ['ナチュラル', 'natural', 'オーガニック', 'organic', '自然', 'リラックス'],
+  classic: ['クラシック', 'classic', 'きれいめ', 'トラッド', 'trad', 'ベーシック', 'basic', 'オフィス', 'OL'],
+  feminine: ['フェミニン', 'feminine', 'ガーリー', 'girly', 'キュート', 'cute'],
 };
 
 // フィルターで使用するスタイルオプション（日本語表示用）
-export const FILTER_STYLE_OPTIONS = ['すべて', 'カジュアル', 'きれいめ', 'ナチュラル', 'モード', 'ストリート', 'フェミニン'];
+export const FILTER_STYLE_OPTIONS = ['すべて', 'カジュアル', 'クラシック', 'ナチュラル', 'モード', 'ストリート', 'フェミニン'];
 
 // 年代区分
 export const AGE_GROUPS = [

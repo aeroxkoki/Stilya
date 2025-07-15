@@ -83,7 +83,7 @@ export const getSmartDefaults = async (userId: string): Promise<FilterOptions> =
     if (!tagError && tagData && tagData.length > 0) {
       // タグの出現回数をカウント
       const tagCounts: Record<string, number> = {};
-      const styleOptions = ['カジュアル', 'きれいめ', 'ナチュラル', 'モード', 'ストリート', 'フェミニン'];
+      const styleOptions = ['カジュアル', 'クラシック', 'ナチュラル', 'モード', 'ストリート', 'フェミニン'];
       
       tagData.forEach(item => {
         const tags = item.external_products?.tags || [];

@@ -1,5 +1,7 @@
-// Fashion styles (for onboarding)
-export type FashionStyle = 'casual' | 'street' | 'mode' | 'natural' | 'classic' | 'feminine';
+import { FASHION_STYLES } from '@/constants/constants';
+
+// Fashion styles (for onboarding) - constantsから生成
+export type FashionStyle = typeof FASHION_STYLES[number]['id'];
 
 // App theme styles 
 export type StyleType = 'minimal' | 'natural' | 'bold';

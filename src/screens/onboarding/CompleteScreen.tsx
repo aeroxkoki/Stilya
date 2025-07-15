@@ -6,6 +6,7 @@ import { Button } from '@/components/common';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { OnboardingStackParamList, fashionStyleToTheme, FashionStyle, StyleType } from '@/types';
 import { useStyle } from '@/contexts/ThemeContext';
+import { STYLE_ID_TO_JP_TAG } from '@/constants/constants';
 
 type Props = NativeStackScreenProps<OnboardingStackParamList, 'Complete'>;
 
@@ -47,16 +48,6 @@ const CompleteScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, [stylePreference, setStyleType]);
 
-  // スタイル名のマッピング
-  const styleMap: Record<string, string> = {
-    casual: 'カジュアル',
-    street: 'ストリート',
-    mode: 'モード',
-    natural: 'ナチュラル',
-    classic: 'クラシック',
-    feminine: 'フェミニン',
-  };
-
   // 年代のマッピング（DBスキーマに合わせて修正）
   const ageGroupMap: Record<string, string> = {
     teens: '10代',
@@ -93,7 +84,7 @@ const CompleteScreen: React.FC<Props> = ({ navigation }) => {
 
   // 選択したスタイルの名前を取得
   const getStyleNames = () => {
-    return stylePreference.map((style: any) => styleMap[style] || style).join('、');
+    return stylePreference.map((style: any) => STYLE_ID_TO_JP_TAG[style] || style).join('、');
   };
 
   return (

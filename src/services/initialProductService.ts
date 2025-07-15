@@ -1,5 +1,6 @@
 import { Product } from '@/types';
 import { supabase } from '@/services/supabase';
+import { STYLE_TAG_MAPPING } from '@/constants/constants';
 
 interface InitialProductConfig {
   gender?: 'male' | 'female' | 'other';
@@ -21,16 +22,6 @@ const AGE_PRICE_MAPPING = {
   thirties: { min: 3000, max: 20000 },  // 30代：中〜高価格帯
   forties: { min: 5000, max: 30000 },   // 40代：高価格帯
   fifties_plus: { min: 5000, max: 50000 } // 50代以上：高価格帯
-};
-
-// スタイルと関連タグのマッピング
-const STYLE_TAG_MAPPING: Record<string, string[]> = {
-  casual: ['カジュアル', 'casual', 'デイリー', 'daily', 'ラフ'],
-  street: ['ストリート', 'street', 'スケーター', 'skater', 'ヒップホップ'],
-  mode: ['モード', 'mode', 'モダン', 'modern', 'シンプル', 'ミニマル'],
-  natural: ['ナチュラル', 'natural', 'オーガニック', 'organic', '自然', 'リラックス'],
-  classic: ['クラシック', 'classic', 'トラッド', 'trad', 'ベーシック', 'basic'],
-  feminine: ['フェミニン', 'feminine', 'ガーリー', 'girly', 'キュート', 'cute']
 };
 
 export const getInitialProducts = async (

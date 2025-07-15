@@ -9,6 +9,7 @@ import { ProfileStackParamList } from '@/types';
 import { useStyle } from '@/contexts/ThemeContext';
 import DebugProductCount from '@/components/debug/DebugProductCount';
 import { DevMenu } from '@/components/dev/DevMenu';
+import { STYLE_ID_TO_JP_TAG } from '@/constants/constants';
 
 type ProfileScreenNavigationProp = StackNavigationProp<ProfileStackParamList, 'ProfileHome'>;
 

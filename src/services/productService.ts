@@ -189,14 +189,9 @@ export const applyFiltersToQuery = (query: any, filters: FilterOptions) => {
   
   // スタイルフィルター（タグベース）
   if (filters.style && filters.style !== 'すべて') {
-    const styleMap: Record<string, string> = {
-      'カジュアル': 'カジュアル',
-      'きれいめ': 'きれいめ',
-      'ナチュラル': 'ナチュラル'
-    };
-    if (styleMap[filters.style]) {
-      filteredQuery = filteredQuery.contains('tags', [styleMap[filters.style]]);
-    }
+    // フィルターのスタイル名（日本語）をそのままタグとして使用
+    // 全てのスタイルオプションに対応
+    filteredQuery = filteredQuery.contains('tags', [filters.style]);
   }
   
   // 気分フィルター
