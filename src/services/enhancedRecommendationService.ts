@@ -116,7 +116,7 @@ export class EnhancedRecommendationService {
   private static analyzeStylePatterns(likedTags: string[]): Record<string, number> {
     const styleKeywords = {
       casual: ['カジュアル', 'リラックス', 'デイリー', 'ベーシック'],
-      formal: ['フォーマル', 'ビジネス', 'オフィス', 'きれいめ'],
+      formal: ['フォーマル', 'ビジネス', 'オフィス', 'クラシック'],
       street: ['ストリート', 'スポーティ', 'アスレジャー', 'スニーカー'],
       elegant: ['エレガント', 'フェミニン', 'ガーリー', '上品'],
       mode: ['モード', 'アバンギャルド', 'デザイナー', 'コレクション'],
