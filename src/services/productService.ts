@@ -1,99 +1,153 @@
-import { supabase, handleSupabaseError, handleSupabaseSuccess } from './supabase';
-import { Product } from '@/types';
-import { fetchRakutenFashionProducts } from './rakutenService';
-import { sortProductsByScore, filterOutOfSeasonProducts } from '@/utils/productScoring';
-import { getUserPreferences } from './userPreferenceService';
-import { optimizeImageUrl, API_OPTIMIZATION } from '@/utils/supabaseOptimization';
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/utils/env';
-import { shuffleArray, ensureProductDiversity, getTimeBasedOffset } from '@/utils/randomUtils';
-import { convertCategoriesToTags } from '@/utils/categoryMapping';
+import { supabase } from './supabase';
+import { Product } from '@/types/product';
+import { FilterOptions } from '@/contexts/FilterContext';
+import { UserPreference } from '@/services/userPreferenceService';
+import { calculateProductScore } from '@/utils/productScoring';
+import { STYLE_ID_TO_JP_TAG } from '@/constants/constants';
+import axios from 'axios';
+
+const RAKUTEN_API_BASE_URL = 'https://app.rakuten.co.jp/services/api/Product/Search/20170426';
+const RAKUTEN_APP_ID = '1082075033088952260';
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
 /**
- * DBの商品データをアプリ用の形式に正規化
+ * 楽天APIからファッション商品を取得
+ * @param keyword 検索キーワード
+ * @param limit 取得件数
+ * @param offset オフセット
+ * @returns 商品リスト
  */
-export const normalizeProduct = (dbProduct: any): Product => {
-  // 引数のnullチェック
-  if (!dbProduct) {
-    throw new Error('[normalizeProduct] Product data is null or undefined');
-  }
-  
-  // imageUrlが未定義またはnullの場合のフォールバック処理
-  const originalImageUrl = dbProduct.image_url || dbProduct.imageUrl || '';
-  const optimizedUrl = originalImageUrl ? optimizeImageUrl(originalImageUrl) : '';
-  
-  // デバッグ: 商品データの画像URL情報をログ出力
-  // 画像表示問題の調査のため、一時的に常にログを出力
-  if (__DEV__) {
-    console.log('[ProductService] normalizeProduct:', {
-      productId: dbProduct.id,
-      title: dbProduct.title?.substring(0, 30) + '...',
-      originalImageUrl: originalImageUrl,
-      optimizedUrl: optimizedUrl,
-      hasImageUrl: !!originalImageUrl,
-      source: dbProduct.source,
-      // データベースから取得した生のフィールドも確認
-      dbFields: Object.keys(dbProduct),
-      has_ex: originalImageUrl?.includes('_ex=')
+export const fetchRakutenFashionProducts = async (
+  keyword?: string, 
+  limit: number = 20, 
+  offset: number = 0
+) => {
+  try {
+    const params = {
+      applicationId: RAKUTEN_APP_ID,
+      keyword: keyword || 'レディースファッション メンズファッション',
+      genreId: '100371', // ファッションカテゴリ
+      hits: Math.min(limit, 30), // 楽天APIの制限
+      page: Math.floor(offset / 30) + 1,
+      sort: '-updateTimestamp',
+      format: 'json'
+    };
+
+    const response = await axios.get(RAKUTEN_API_BASE_URL, { params });
+    
+    if (!response.data || !response.data.Products) {
+      console.error('[ProductService] No products in Rakuten API response');
+      return { success: false, data: [] };
+    }
+
+    const products = response.data.Products.map((item: any) => {
+      const product = item.Product;
+      return {
+        id: `rakuten_${product.productId}`,
+        title: product.productName,
+        brand: product.makerName || product.brandName || 'ブランド不明',
+        price: product.maxPrice,
+        image_url: product.mediumImageUrl || product.smallImageUrl,
+        description: product.productCaption || product.catchcopy || '',
+        tags: extractTagsFromProduct(product),
+        affiliate_url: product.affiliateUrl || product.productUrl,
+        source: 'rakuten',
+        is_active: true,
+      };
     });
+
+    console.log(`[ProductService] Fetched ${products.length} products from Rakuten API`);
+    return { success: true, data: products };
+    
+  } catch (error: any) {
+    console.error('[ProductService] Error fetching from Rakuten API:', error);
+    return { success: false, error: error.message };
   }
-  
-  const normalized: Product = {
-    id: dbProduct.id,
-    title: dbProduct.title,
-    brand: dbProduct.brand,
-    price: dbProduct.price,
-    imageUrl: optimizedUrl, // 高画質画像URLに最適化
-    description: dbProduct.description,
-    tags: dbProduct.tags || [],
-    category: dbProduct.category,
-    affiliateUrl: dbProduct.affiliate_url,
-    source: dbProduct.source,
-    createdAt: dbProduct.created_at,
-    isUsed: dbProduct.is_used || false, // 中古品フラグ
-    commissionRate: dbProduct.commission_rate || 0.05, // アフィリエイト手数料率（デフォルト5%）
-  };
-  
-  // バリューコマース商品の場合、メタデータからadTagを取得
-  if (dbProduct.source === 'valuecommerce' && dbProduct.metadata) {
-    normalized.adTag = dbProduct.metadata.ad_tag;
-    normalized.metadata = dbProduct.metadata;
-  }
-  
-  // デバッグ: 正規化後のデータも確認
-  if (__DEV__) {
-    console.log('[ProductService] normalized product:', {
-      id: normalized.id,
-      imageUrl: normalized.imageUrl,
-      hasImageUrl: !!normalized.imageUrl
-    });
-  }
-  
-  return normalized;
 };
 
-/**
- * フィルターオプションの型定義
- */
+// タグ抽出ヘルパー関数
+const extractTagsFromProduct = (product: any): string[] => {
+  const tags: string[] = [];
+  
+  // カテゴリ情報からタグを抽出
+  if (product.productName) {
+    const name = product.productName.toLowerCase();
+    if (name.includes('カジュアル')) tags.push('カジュアル');
+    if (name.includes('きれいめ') || name.includes('キレイめ')) tags.push('きれいめ');
+    if (name.includes('ナチュラル')) tags.push('ナチュラル');
+    if (name.includes('ワンピース')) tags.push('ワンピース');
+    if (name.includes('スカート')) tags.push('スカート');
+    if (name.includes('パンツ')) tags.push('パンツ');
+    if (name.includes('シャツ')) tags.push('シャツ');
+    if (name.includes('ニット')) tags.push('ニット');
+  }
+  
+  return tags;
+};
+
+// Product正規化関数
+const normalizeProduct = (product: any): Product => {
+  return {
+    id: product.id || '',
+    title: product.title || '商品名なし',
+    brand: product.brand || 'ブランド不明',
+    price: product.price || 0,
+    image_url: product.image_url || '',
+    description: product.description || '',
+    tags: product.tags || [],
+    category: product.category,
+    affiliate_url: product.affiliate_url || '',
+    source: product.source || 'unknown',
+    is_active: product.is_active !== false,
+    priority: product.priority || 999,
+    created_at: product.created_at,
+    updated_at: product.updated_at,
+    last_synced: product.last_synced
+  };
+};
+
+// カテゴリーをタグに変換するヘルパー関数
+const convertCategoriesToTags = (categories: string[]): string[] => {
+  const categoryToTagMap: Record<string, string[]> = {
+    'ec-brand': ['ECブランド', 'オンライン'],
+    'office': ['オフィス', 'ビジネス', 'きれいめ'],
+    'select': ['セレクトショップ', 'トレンド'],
+    'lifestyle': ['ライフスタイル', 'カジュアル'],
+    'basic': ['ベーシック', 'シンプル'],
+    'trend': ['トレンド', '最新'],
+    'high-brand': ['ハイブランド', 'ラグジュアリー'],
+    'fast-fashion': ['ファストファッション', 'プチプラ']
+  };
+
+  const tags: string[] = [];
+  categories.forEach(category => {
+    if (categoryToTagMap[category]) {
+      tags.push(...categoryToTagMap[category]);
+    }
+  });
+  
+  return [...new Set(tags)]; // 重複を除去
+};
+
+// 既存のProductFilterOptionsインターフェース
 export interface ProductFilterOptions {
   categories?: string[];
   priceRange?: [number, number];
   selectedTags?: string[];
-  includeUsed?: boolean; // 中古品を含むかどうか（デフォルト: false）
+  includeUsed?: boolean;
 }
 
-import { FilterOptions } from '@/contexts/FilterContext';
-
 /**
- * FilterOptions (コンテキスト用) をProductFilterOptions (DB用) に変換する
- * 
- * @param filters コンテキストで使用されるフィルターオプション
- * @returns データベースクエリ用のフィルターオプション
+ * FilterOptions を ProductFilterOptions に変換
+ * @param filters グローバルフィルターオプション
+ * @returns 商品フィルターオプション
  */
 export const convertToProductFilters = (filters: FilterOptions): ProductFilterOptions => {
   const productFilters: ProductFilterOptions = {
     priceRange: filters.priceRange,
     selectedTags: [],
-    includeUsed: undefined // デフォルトは新品・中古品両方を含む
+    includeUsed: filters.includeUsed ?? true  // デフォルトはtrue
   };
   
   // スタイルをタグに変換
@@ -159,15 +213,79 @@ export const applyFiltersToQuery = (query: any, filters: FilterOptions) => {
       filteredQuery = filteredQuery.or('is_sale.eq.true,tags.cs.{セール}');
     }
     
-    // 人気フィルター（後でスワイプ履歴との結合で実装）
+    // 人気フィルター
     if (filters.moods.includes('人気')) {
-      // 現時点ではタグベースで判定
-      filteredQuery = filteredQuery.contains('tags', ['人気']);
+      // 現時点では「人気」タグで判定
+      // TODO: 将来的にはスワイプ数を集計する別テーブルまたはビューを作成して対応
+      filteredQuery = filteredQuery.contains('tags', ['人気', 'トレンド', 'ベストセラー']);
     }
   }
   
+  // 中古品フィルター
+  if (filters.includeUsed === false) {
+    filteredQuery = filteredQuery.eq('is_used', false);
+  }
+  // includeUsed === true または undefined の場合は、フィルターを適用しない（新品・中古品両方を含む）
+  
   return filteredQuery;
 };
+
+/**
+ * フィルターオプションに基づいて商品を取得する新しい関数
+ * @param filters FilterOptions
+ * @param limit 取得件数
+ * @param offset オフセット
+ * @returns フィルタリングされた商品リスト
+ */
+export async function getFilteredProducts(
+  filters: FilterOptions,
+  limit: number = 20,
+  offset: number = 0
+): Promise<{ success: boolean; data?: Product[]; error?: string; count?: number }> {
+  try {
+    console.log('[ProductService] Getting filtered products:', { filters, limit, offset });
+    
+    let query = supabase
+      .from('external_products')
+      .select('*', { count: 'exact' })
+      .eq('is_active', true)
+      .not('image_url', 'is', null)
+      .not('image_url', 'eq', '');
+    
+    // フィルターを適用
+    query = applyFiltersToQuery(query, filters);
+    
+    // ページネーション
+    query = query
+      .order('priority', { ascending: true, nullsFirst: false })
+      .order('last_synced', { ascending: false })
+      .range(offset, offset + limit - 1);
+    
+    const { data, error, count } = await query;
+    
+    if (error) {
+      console.error('[ProductService] Error fetching filtered products:', error);
+      return { success: false, error: error.message };
+    }
+    
+    if (!data || data.length === 0) {
+      console.log('[ProductService] No products found with filters:', filters);
+      return { success: true, data: [], count: 0 };
+    }
+    
+    const products = data
+      .filter(product => product != null)
+      .map(product => normalizeProduct(product))
+      .filter((product): product is Product => product !== null);
+    
+    console.log(`[ProductService] Found ${products.length} filtered products`);
+    
+    return { success: true, data: products, count: count || 0 };
+  } catch (error: any) {
+    console.error('[ProductService] Error in getFilteredProducts:', error);
+    return { success: false, error: error.message };
+  }
+}
 
 /**
  * 商品を取得（Supabase優先、楽天APIフォールバック）
@@ -297,94 +415,60 @@ export const fetchProducts = async (limit: number = 20, offset: number = 0, filt
     
     const rakutenResult = await fetchRakutenFashionProducts(
       undefined, // keyword
-      100371,    // genreId (レディースファッション)
-      Math.floor(offset / limit) + 1, // page
-      Math.min(limit, 30) // 楽天APIの最大値は30件
+      limit,
+      offset
     );
     
-    if (rakutenResult.products.length > 0) {
-      console.log(`[ProductService] Fetched ${rakutenResult.products.length} products from Rakuten`);
-      
-      // Supabaseに商品を保存（非同期、エラーを無視）
-      saveProductsToSupabase(rakutenResult.products).catch(err => {
-        console.error('[ProductService] Failed to save products to Supabase:', err);
+    if (rakutenResult.success && rakutenResult.data) {
+      // 楽天APIの結果をSupabaseに保存（バックグラウンドで）
+      saveProductsToSupabase(rakutenResult.data).catch(err => {
+        console.error('[ProductService] Failed to save Rakuten products to Supabase:', err);
       });
       
-      return { success: true, data: rakutenResult.products };
+      return rakutenResult;
     }
     
-    // どちらからも商品が取得できない場合
-    return { 
-      success: false, 
-      error: 'No products available',
-      data: [] 
-    };
+    return { success: false, error: 'Failed to fetch products from both sources' };
     
   } catch (error: any) {
-    console.error('[ProductService] Error fetching products:', error);
-    
-    // エラー時は楽天APIから直接取得を試みる
-    const rakutenResult = await fetchRakutenFashionProducts(
-      undefined, // keyword
-      100371,    // genreId
-      Math.floor(offset / limit) + 1, // page
-      Math.min(limit, 30)
-    );
-    
-    if (rakutenResult.products.length > 0) {
-      return { success: true, data: rakutenResult.products };
-    }
-    
-    return { success: false, error: error.message, data: [] };
+    console.error('[ProductService] Unexpected error in fetchProducts:', error);
+    return { success: false, error: error.message };
   }
 };
 
 /**
- * 楽天商品をSupabaseに保存
+ * スワイプ履歴に基づいてスコアリングされた商品を取得（推薦用）
+ * 
+ * @param userId ユーザーID
+ * @param limit 取得件数
+ * @param offset オフセット（ページネーション用）
+ * @param options 推薦オプション
+ * @returns スコアリングされた商品リスト
  */
-const saveProductsToSupabase = async (products: Product[]) => {
-  try {
-    // external_productsテーブルに保存する形式に変換
-    const externalProducts = products.map(product => ({
-      id: product.id,
-      title: product.title,
-      brand: product.brand,
-      price: product.price,
-      image_url: product.imageUrl,
-      description: product.description,
-      tags: product.tags || [],
-      category: product.category || 'その他',
-      affiliate_url: product.affiliateUrl,
-      source: 'rakuten',
-      is_active: true,
-      created_at: new Date().toISOString(),
-      last_synced: new Date().toISOString(),
-      priority: 99, // 楽天商品は低優先度
-      is_used: false // 楽天APIは新品のみ
-    }));
-    
-    const { error } = await supabase
-      .from('external_products')
-      .upsert(externalProducts, { onConflict: 'id' });
-    
-    if (error) {
-      console.error('[ProductService] Error saving products to Supabase:', error);
-    }
-  } catch (error) {
-    console.error('[ProductService] Error in saveProductsToSupabase:', error);
-  }
-};
-
-/**
- * 特定のタグに基づいて商品を取得
- */
-export const fetchProductsByTags = async (
-  tags: string[], 
+export const fetchScoredProducts = async (
+  userId: string,
   limit: number = 20,
-  filters?: ProductFilterOptions
+  offset: number = 0,
+  options?: {
+    excludeIds?: string[];
+    enablePriceFilter?: boolean;
+    priceFlexibility?: number;
+    enableSeasonalFilter?: boolean;
+  }
 ) => {
   try {
-    // Supabaseから取得
+    console.log('[ProductService] Fetching scored products for user:', userId);
+    
+    // ユーザー嗜好を取得
+    const { getUserPreferences } = await import('./userPreferenceService');
+    const userPref = await getUserPreferences(userId);
+    
+    if (!userPref) {
+      console.log('[ProductService] No user preferences found, fetching default products');
+      return fetchProducts(limit, offset);
+    }
+    
+    // クエリを構築
     let query = supabase
       .from('external_products')
       .select('*')
@@ -392,110 +476,61 @@ export const fetchProductsByTags = async (
       .not('image_url', 'is', null)
       .not('image_url', 'eq', '');
     
-    // タグでフィルタリング（OR条件）
-    query = query.or(tags.map(tag => `tags.cs.{${tag}}`).join(','));
+    // 除外IDがある場合
+    if (options?.excludeIds && options.excludeIds.length > 0) {
+      query = query.not('id', 'in', `(${options.excludeIds.join(',')})`);
+    }
     
-    // 追加フィルター条件を適用
-    if (filters) {
-      // カテゴリーフィルター（英語カテゴリーを日本語タグに変換してフィルタリング）
-      if (filters.categories && filters.categories.length > 0) {
-        const categoryTags = convertCategoriesToTags(filters.categories);
-        if (categoryTags.length > 0) {
-          query = query.or(categoryTags.map(tag => `tags.cs.{${tag}}`).join(','));
-        }
-      }
-      
-      if (filters.priceRange) {
-        const [minPrice, maxPrice] = filters.priceRange;
-        if (minPrice > 0) {
-          query = query.gte('price', minPrice);
-        }
-        if (maxPrice < Infinity) {
-          query = query.lte('price', maxPrice);
-        }
-      }
-      
-      if (filters.includeUsed === false) {
-        query = query.eq('is_used', false);
+    // 価格フィルター（ユーザーの平均価格帯に基づく）
+    if (options?.enablePriceFilter && userPref.avgPrice) {
+      const flexibility = options.priceFlexibility || 1.5;
+      const minPrice = Math.max(0, userPref.avgPrice * (1 - flexibility));
+      const maxPrice = userPref.avgPrice * flexibility;
+      query = query.gte('price', minPrice).lte('price', maxPrice);
+    }
+    
+    // 季節フィルター（現在の季節に合った商品）
+    if (options?.enableSeasonalFilter) {
+      const currentMonth = new Date().getMonth() + 1;
+      const seasonTags = getSeasonTags(currentMonth);
+      if (seasonTags.length > 0) {
+        query = query.or(seasonTags.map(tag => `tags.cs.{${tag}}`).join(','));
       }
     }
     
+    // より多くの商品を取得してスコアリング
     const { data, error } = await query
-      .order('priority', { ascending: true })
-      .order('last_synced', { ascending: false })
-      .limit(limit);
+      .limit(limit * 3) // スコアリング用に多めに取得
+      .order('last_synced', { ascending: false });
     
     if (error) {
-      console.error('[ProductService] Error fetching products by tags:', error);
+      console.error('[ProductService] Error fetching products:', error);
       return { success: false, error: error.message };
     }
     
-    const products = (data || [])
-      .filter(product => product != null)
+    if (!data || data.length === 0) {
+      console.log('[ProductService] No products found for scoring');
+      return { success: true, data: [] };
+    }
+    
+    // 商品をスコアリング
+    const scoredProducts = data
       .map(product => {
-        try {
-          return normalizeProduct(product);
-        } catch (err) {
-          console.error('[ProductService] Error normalizing product in fetchProductsByTags:', err);
-          return null;
-        }
+        const normalizedProduct = normalizeProduct(product);
+        const score = calculateProductScore(normalizedProduct, userPref);
+        return {
+          ...normalizedProduct,
+          score
+        };
       })
-      .filter((product): product is Product => product !== null);
+      .sort((a, b) => b.score - a.score); // スコアの高い順にソート
     
-    return { success: true, data: products };
-  } catch (error: any) {
-    console.error('[ProductService] Error in fetchProductsByTags:', error);
-    return { success: false, error: error.message };
-  }
-};
-
-/**
- * スコアリングに基づいて商品を取得（改善版）
- * ユーザーの好みと嗜好を考慮
- */
-export const fetchScoredProducts = async (
-  userId: string | null,
-  limit: number = 20,
-  offset: number = 0,
-  options?: {
-    enablePriceFilter?: boolean;
-    enableSeasonalFilter?: boolean;
-    priceFlexibility?: number; // 価格の柔軟性（1.0 = ±0%、1.3 = ±30%）
-  }
-) => {
-  try {
-    // デフォルトの商品を取得
-    const productsResult = await fetchProducts(limit * 2, offset); // 多めに取得してフィルタリング
+    // オフセットを適用して必要な数だけ返す
+    const products = scoredProducts
+      .slice(offset, offset + limit)
+      .map(({ score, ...product }) => product); // スコアを除去
     
-    if (!productsResult.success || !productsResult.data) {
-      return productsResult;
-    }
-    
-    let products = productsResult.data;
-    
-    // ユーザーがいる場合、嗜好に基づいてスコアリング
-    if (userId) {
-      const preferences = await getUserPreferences(userId);
-      
-      if (preferences) {
-        // 価格フィルタリング
-        if (options?.enablePriceFilter && preferences.priceRange) {
-          const flexibility = options.priceFlexibility || 1.2;
-          const minPrice = preferences.priceRange.min / flexibility;
-          const maxPrice = preferences.priceRange.max * flexibility;
-          
-          products = products.filter(p => p.price >= minPrice && p.price <= maxPrice);
-        }
-        
-        // スコアリング
-        products = sortProductsByScore(products, preferences);
-      }
-    }
-    
-    // 季節フィルタリング
-    if (options?.enableSeasonalFilter) {
-      products = filterOutOfSeasonProducts(products);
-    }
+    console.log(`[ProductService] Scored and returned ${products.length} products`);
     
     // 必要な数だけ返す
     return {
@@ -597,7 +632,7 @@ const insertSampleProducts = async () => {
       description: '暖かいウールブレンドのニットセーター',
       tags: ['カジュアル', 'ニット', '秋冬', 'トップス'],
       category: 'トップス',
-      affiliate_url: 'https://www2.hm.com/',
+      affiliate_url: 'https://www.hm.com/',
       source: 'manual',
       priority: 4,
       is_active: true,
@@ -606,102 +641,22 @@ const insertSampleProducts = async () => {
     },
     {
       id: `sample_005_${Date.now()}_5`,
-      title: 'ワイドパンツ',
-      brand: 'UNIQLO',
-      price: 3990,
-      image_url: 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=400',
-      description: 'ゆったりとしたシルエットのワイドパンツ',
-      tags: ['カジュアル', 'ワイド', 'コンフォート', 'ボトムス'],
-      category: 'ボトムス',
-      affiliate_url: 'https://www.uniqlo.com/',
+      title: 'フラワープリントワンピース',
+      brand: 'ZARA',
+      price: 7990,
+      image_url: 'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=400',
+      description: '華やかなフラワープリントのワンピース',
+      tags: ['フェミニン', 'ワンピース', '春夏', 'デート'],
+      category: 'ワンピース',
+      affiliate_url: 'https://www.zara.com/',
       source: 'manual',
       priority: 5,
       is_active: true,
       last_synced: new Date().toISOString(),
       created_at: new Date().toISOString()
-    },
-    {
-      id: `sample_006_${Date.now()}_6`,
-      title: 'ストライプシャツ',
-      brand: 'GAP',
-      price: 4990,
-      image_url: 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=400',
-      description: 'クラシックなストライプパターンのシャツ',
-      tags: ['ビジネス', 'ストライプ', 'コットン', 'トップス'],
-      category: 'トップス',
-      affiliate_url: 'https://www.gap.co.jp/',
-      source: 'manual',
-      priority: 6,
-      is_active: true,
-      last_synced: new Date().toISOString(),
-      created_at: new Date().toISOString()
-    },
-    {
-      id: `sample_007_${Date.now()}_7`,
-      title: 'フレアスカート',
-      brand: 'FOREVER21',
-      price: 3490,
-      image_url: 'https://images.unsplash.com/photo-1594633312515-7ad9334a2349?w=400',
-      description: '動きやすいフレアシルエットのスカート',
-      tags: ['フェミニン', 'カジュアル', 'フレア', 'スカート'],
-      category: 'スカート',
-      affiliate_url: 'https://www.forever21.co.jp/',
-      source: 'manual',
-      priority: 7,
-      is_active: true,
-      last_synced: new Date().toISOString(),
-      created_at: new Date().toISOString()
-    },
-    {
-      id: `sample_008_${Date.now()}_8`,
-      title: 'チノパンツ',
-      brand: 'MUJI',
-      price: 3990,
-      image_url: 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=400',
-      description: 'ベーシックなチノパンツ',
-      tags: ['ベーシック', 'チノ', 'オフィス', 'ボトムス'],
-      category: 'ボトムス',
-      affiliate_url: 'https://www.muji.com/',
-      source: 'manual',
-      priority: 8,
-      is_active: true,
-      last_synced: new Date().toISOString(),
-      created_at: new Date().toISOString()
-    },
-    {
-      id: `sample_009_${Date.now()}_9`,
-      title: 'パーカー',
-      brand: 'NIKE',
-      price: 6990,
-      image_url: 'https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?w=400',
-      description: 'スポーティーなパーカー',
-      tags: ['スポーツ', 'カジュアル', 'パーカー', 'トップス'],
-      category: 'トップス',
-      affiliate_url: 'https://www.nike.com/jp/',
-      source: 'manual',
-      priority: 9,
-      is_active: true,
-      last_synced: new Date().toISOString(),
-      created_at: new Date().toISOString()
-    },
-    {
-      id: `sample_010_${Date.now()}_10`,
-      title: 'ワンピース',
-      brand: 'ZARA',
-      price: 7990,
-      image_url: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=400',
-      description: 'エレガントなワンピース',
-      tags: ['フォーマル', 'エレガント', 'ワンピース'],
-      category: 'ワンピース',
-      affiliate_url: 'https://www.zara.com/',
-      source: 'manual',
-      priority: 10,
-      is_active: true,
-      last_synced: new Date().toISOString(),
-      created_at: new Date().toISOString()
     }
   ];
-  
+
   try {
     const { error } = await supabase
       .from('external_products')
@@ -709,46 +664,119 @@ const insertSampleProducts = async () => {
     
     if (error) {
       console.error('[ProductService] Error inserting sample products:', error);
+    } else {
+      console.log('[ProductService] Sample products inserted successfully');
     }
-  } catch (error) {
-    console.error('[ProductService] Error in insertSampleProducts:', error);
+  } catch (err) {
+    console.error('[ProductService] Unexpected error inserting sample products:', err);
   }
 };
 
 /**
- * ランダムな商品を取得（単純化版）
- * 特定の条件やフィルターを考慮しつつ、ランダム性を保つ
+ * 楽天APIから取得した商品をSupabaseに保存
  */
-export const fetchRandomizedProducts = async (
-  limit: number = 20,
-  offset: number = 0,
-  filters?: ProductFilterOptions,
-  seed?: string // ランダム性のシード（同じシードなら同じ結果）
-) => {
+const saveProductsToSupabase = async (products: Product[]) => {
   try {
-    // 時刻ベースのoffset調整（より多様な商品を取得するため）
-    const timeOffset = getTimeBasedOffset();
+    const { error } = await supabase
+      .from('external_products')
+      .upsert(
+        products.map(product => ({
+          ...product,
+          last_synced: new Date().toISOString()
+        })),
+        { onConflict: 'id' }
+      );
     
-    console.log('[ProductService] Fetching randomized products with:', {
-      limit,
-      offset,
-      timeOffset,
-      filters
-    });
+    if (error) {
+      console.error('[ProductService] Error saving products to Supabase:', error);
+    } else {
+      console.log(`[ProductService] Saved ${products.length} products to Supabase`);
+    }
+  } catch (err) {
+    console.error('[ProductService] Unexpected error saving products:', err);
+  }
+};
+
+/**
+ * 商品詳細を取得
+ */
+export const fetchProductDetail = async (productId: string): Promise<Product | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('external_products')
+      .select('*')
+      .eq('id', productId)
+      .single();
     
-    // より多くの商品を取得してランダム化の効果を高める
-    const poolSize = Math.min(limit * 5, 100); // 最大100件まで
+    if (error) {
+      console.error('[ProductService] Error fetching product detail:', error);
+      return null;
+    }
     
-    let query = supabase
+    return normalizeProduct(data);
+  } catch (error) {
+    console.error('[ProductService] Unexpected error fetching product detail:', error);
+    return null;
+  }
+};
+
+/**
+ * 季節に応じたタグを取得
+ */
+const getSeasonTags = (month: number): string[] => {
+  if (month >= 3 && month <= 5) {
+    return ['春', '春夏', 'ライト'];
+  } else if (month >= 6 && month <= 8) {
+    return ['夏', '春夏', 'クール', '涼しい'];
+  } else if (month >= 9 && month <= 11) {
+    return ['秋', '秋冬', 'ウォーム'];
+  } else {
+    return ['冬', '秋冬', '暖かい', 'ニット'];
+  }
+};
+
+/**
+ * 商品検索（キーワード検索）
+ */
+export const searchProducts = async (
+  keyword: string,
+  limit: number = 20,
+  offset: number = 0
+): Promise<{ success: boolean; data?: Product[]; error?: string }> => {
+  try {
+    const { data, error } = await supabase
       .from('external_products')
       .select('*')
       .eq('is_active', true)
-      .not('image_url', 'is', null)
-      .not('image_url', 'eq', '');
+      .or(`title.ilike.%${keyword}%,brand.ilike.%${keyword}%,description.ilike.%${keyword}%`)
+      .order('priority', { ascending: true })
+      .range(offset, offset + limit - 1);
     
-    // フィルター条件を適用
+    if (error) {
+      console.error('[ProductService] Error searching products:', error);
+      return { success: false, error: error.message };
+    }
+    
+    const products = data?.map(normalizeProduct) || [];
+    return { success: true, data: products };
+  } catch (error: any) {
+    console.error('[ProductService] Unexpected error searching products:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * 商品の総数を取得
+ */
+export const getProductCount = async (filters?: ProductFilterOptions): Promise<number> => {
+  try {
+    let query = supabase
+      .from('external_products')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_active', true);
+    
     if (filters) {
-      // カテゴリーフィルター（英語カテゴリーを日本語タグに変換してフィルタリング）
+      // フィルター条件を適用
       if (filters.categories && filters.categories.length > 0) {
         const categoryTags = convertCategoriesToTags(filters.categories);
         if (categoryTags.length > 0) {
@@ -775,362 +803,171 @@ export const fetchRandomizedProducts = async (
       }
     }
     
-    // ランダムな順序を選択（時間ベース）
-    const orderOptions = ['created_at', 'last_synced', 'price', 'priority'];
-    const randomOrder = orderOptions[Math.abs(timeOffset) % orderOptions.length];
-    const randomDirection = timeOffset % 2 === 0;
-    
-    // 総数を取得してランダムなoffsetを計算
-    let countQuery = supabase
-      .from('external_products')
-      .select('id', { count: 'exact', head: true })
-      .eq('is_active', true)
-      .not('image_url', 'is', null)
-      .not('image_url', 'eq', '');
-    
-    // カウントクエリにも同じフィルターを適用
-    if (filters) {
-      // カテゴリーフィルター（英語カテゴリーを日本語タグに変換してフィルタリング）
-      if (filters.categories && filters.categories.length > 0) {
-        const categoryTags = convertCategoriesToTags(filters.categories);
-        if (categoryTags.length > 0) {
-          countQuery = countQuery.or(categoryTags.map(tag => `tags.cs.{${tag}}`).join(','));
-        }
-      }
-      
-      if (filters.priceRange) {
-        const [minPrice, maxPrice] = filters.priceRange;
-        if (minPrice > 0) {
-          countQuery = countQuery.gte('price', minPrice);
-        }
-        if (maxPrice < Infinity) {
-          countQuery = countQuery.lte('price', maxPrice);
-        }
-      }
-      
-      if (filters.selectedTags && filters.selectedTags.length > 0) {
-        countQuery = countQuery.or(filters.selectedTags.map(tag => `tags.cs.{${tag}}`).join(','));
-      }
-      
-      if (filters.includeUsed === false) {
-        countQuery = countQuery.eq('is_used', false);
-      }
-    }
-    
-    const { count: totalCount } = await countQuery;
-    
-    console.log(`[ProductService] Total products with filters: ${totalCount}`);
-    
-    // offset計算を簡潔に（総商品数を超えないように）
-    let actualOffset = offset + timeOffset;
-    
-    // 商品数を超えた場合はランダムな位置から開始
-    if (totalCount && actualOffset >= totalCount) {
-      actualOffset = Math.floor(Math.random() * Math.max(0, totalCount - poolSize));
-      console.log(`[ProductService] Offset exceeded total, using random: ${actualOffset}`);
-    }
-    
-    console.log(`[ProductService] Final offset: ${actualOffset}, poolSize: ${poolSize}`);
-    
-    const { data, error } = await query
-      .order(randomOrder, { ascending: randomDirection })
-      .range(actualOffset, actualOffset + poolSize - 1);
+    const { count, error } = await query;
     
     if (error) {
-      console.error('[ProductService] Error fetching randomized products:', error);
-      return { success: false, error: error.message };
+      console.error('[ProductService] Error getting product count:', error);
+      return 0;
     }
     
-    if (!data || data.length === 0) {
-      return { success: true, data: [] };
-    }
-    
-    // null/undefinedの商品をフィルタリング
-    const validProducts = data.filter(product => product != null);
-    
-    if (validProducts.length === 0) {
-      console.warn('[ProductService] No valid products after filtering null/undefined');
-      return { success: true, data: [] };
-    }
-    
-    // 商品をシャッフル
-    let products = shuffleArray(validProducts, seed);
-    
-    // 商品の多様性を確保
-    products = ensureProductDiversity(products, {
-      maxSameCategory: 2,
-      maxSameBrand: 2,
-      windowSize: 5
-    });
-    
-    // 必要な数だけ取得（normalizeProduct呼び出し前にnullチェック）
-    const normalizedProducts = products
-      .slice(0, limit)
-      .filter(product => product != null) // normalizeProduct呼び出し前にnullチェック
-      .map(product => {
-        try {
-          return normalizeProduct(product);
-        } catch (err) {
-          console.error('[ProductService] Error normalizing product:', err, 'Product:', product);
-          return null;
-        }
-      })
-      .filter((product): product is Product => product !== null); // null除外と型ガード
-    
-    console.log(`[ProductService] Fetched ${normalizedProducts.length} randomized products`);
-    return { success: true, data: normalizedProducts };
-    
-  } catch (error: any) {
-    console.error('[ProductService] Error in fetchRandomizedProducts:', error);
-    return { success: false, error: error.message || 'Failed to fetch randomized products' };
+    return count || 0;
+  } catch (error) {
+    console.error('[ProductService] Unexpected error getting product count:', error);
+    return 0;
   }
 };
 
 /**
- * 探索モードと推薦モードをミックスした商品取得（簡潔化版）
- * スワイプ画面用：70% ランダム + 30% 推薦
- * 重複する5-2-3パターンを削除し、RecommendationServiceに委譲
+ * ランダムな商品を取得（初回ユーザー向け）
  */
-// 商品IDで単一商品を取得
-export const fetchProductById = async (productId: string) => {
+export const fetchRandomProducts = async (limit: number = 20): Promise<Product[]> => {
   try {
-    // IDの検証
-    if (!productId || productId.trim() === '') {
-      console.warn('[ProductService] fetchProductById called with empty ID');
-      return { success: false, error: 'Invalid product ID' };
-    }
-
+    // 総数を取得
+    const count = await getProductCount();
+    if (count === 0) return [];
+    
+    // ランダムなオフセットを生成
+    const randomOffset = Math.floor(Math.random() * Math.max(0, count - limit));
+    
     const { data, error } = await supabase
       .from('external_products')
       .select('*')
-      .eq('id', productId)
-      .maybeSingle(); // single()の代わりにmaybeSingle()を使用（0件でもエラーにならない）
-
+      .eq('is_active', true)
+      .not('image_url', 'is', null)
+      .not('image_url', 'eq', '')
+      .range(randomOffset, randomOffset + limit - 1);
+    
     if (error) {
-      console.error('[ProductService] Error fetching product by ID:', productId, error);
-      return handleSupabaseError(error);
-    }
-
-    if (!data) {
-      // 商品が見つからない場合は、warningレベルのログ（繰り返しエラーを避ける）
-      console.warn(`[ProductService] Product not found: ${productId}`);
-      return { success: false, error: 'Product not found' };
-    }
-
-    const normalizedProduct = normalizeProduct(data);
-    return handleSupabaseSuccess(normalizedProduct);
-  } catch (error: any) {
-    console.error('[ProductService] Error in fetchProductById:', productId, error);
-    return { success: false, error: error.message || 'Failed to fetch product' };
-  }
-};
-
-export const fetchMixedProducts = async (
-  userId: string | null,
-  limit: number = 20,
-  offset: number = 0,
-  filters?: ProductFilterOptions,
-  excludeProductIds?: string[] // 既に表示された商品IDのリスト
-) => {
-  try {
-    console.log('[fetchMixedProducts] Called with:', { 
-      userId, 
-      limit, 
-      offset, 
-      filters,
-      excludeProductIdsCount: excludeProductIds?.length || 0 
-    });
-    
-    // 初回ユーザー最適化：最初の20スワイプは特別な選定
-    let adjustedFilters = { ...filters };
-    const isFirstTime = offset === 0 && (!excludeProductIds || excludeProductIds.length === 0);
-    
-    if (isFirstTime) {
-      console.log('[fetchMixedProducts] Applying first-time user optimization');
-      adjustedFilters = {
-        ...filters,
-        priceRange: filters?.priceRange || [0, 10000], // デフォルトで1万円以下
-        includeUsed: false // 初回は新品のみ
-      };
+      console.error('[ProductService] Error fetching random products:', error);
+      return [];
     }
     
-    // 除外IDのセットを作成（高速化のため）
-    const excludeIdSet = new Set<string>(excludeProductIds || []);
-    
-    // ユーザーがログインしている場合、integratedRecommendationServiceを使用
-    if (userId && !isFirstTime) {
-      try {
-        const { getEnhancedRecommendations } = await import('./integratedRecommendationService');
-        const recommendationResult = await getEnhancedRecommendations(
-          userId,
-          limit,
-          Array.from(excludeIdSet),
-          adjustedFilters
-        );
-        
-        // 全ての推薦結果を統合
-        const allRecommended = [
-          ...recommendationResult.recommended,
-          ...recommendationResult.trending,
-          ...recommendationResult.forYou
-        ];
-        
-        // 重複を除去しながら必要な数を取得
-        const uniqueProducts = allRecommended.filter(
-          (product, index, self) => 
-            self.findIndex(p => p.id === product.id) === index &&
-            !excludeIdSet.has(product.id)
-        );
-        
-        console.log('[fetchMixedProducts] Got integrated recommendations:', uniqueProducts.length);
-        
-        if (uniqueProducts.length >= limit) {
-          return { success: true, data: uniqueProducts.slice(0, limit) };
-        }
-        
-        // 不足分はランダム商品で補完
-        if (uniqueProducts.length > 0) {
-          const remainingCount = limit - uniqueProducts.length;
-          const randomResult = await fetchRandomizedProducts(
-            remainingCount,
-            offset,
-            adjustedFilters,
-            `mixed-${userId}-${new Date().getTime()}`
-          );
-          
-          if (randomResult.success && randomResult.data) {
-            const additionalProducts = randomResult.data.filter(
-              product => !excludeIdSet.has(product.id)
-            );
-            return { 
-              success: true, 
-              data: [...uniqueProducts, ...additionalProducts].slice(0, limit) 
-            };
-          }
-        }
-      } catch (error) {
-        console.error('[fetchMixedProducts] Failed to get integrated recommendations:', error);
-      }
-    }
-    
-    // ログインしていない場合、またはエラーの場合はランダム商品を返す
-    const randomResult = await fetchRandomizedProducts(
-      limit * 2, // 除外を考慮して多めに取得
-      offset,
-      adjustedFilters,
-      `mixed-guest-${new Date().getTime()}`
-    );
-    
-    if (randomResult.success && randomResult.data) {
-      const filteredProducts = randomResult.data.filter(
-        product => !excludeIdSet.has(product.id)
-      );
-      
-      console.log('[fetchMixedProducts] Returning random products:', filteredProducts.length);
-      return { success: true, data: filteredProducts.slice(0, limit) };
-    }
-    
-    // 全てのフォールバックが失敗した場合
-    return { success: false, error: 'Failed to fetch mixed products', data: [] };
-    
-  } catch (error: any) {
-    console.error('[ProductService] Error in fetchMixedProducts:', error);
-    console.error('[ProductService] Error stack:', error.stack);
-    // エラー時は通常の商品取得にフォールバック
-    return fetchProducts(limit, offset, filters);
+    return data?.map(normalizeProduct) || [];
+  } catch (error) {
+    console.error('[ProductService] Unexpected error fetching random products:', error);
+    return [];
   }
 };
 
 /**
- * グローバルフィルターを適用して商品を取得
- * FilterContext で使用される関数
- * 
- * @param filters グローバルフィルターオプション
- * @param limit 取得する商品数
- * @param offset オフセット
- * @returns フィルタリングされた商品の配列
+ * タグに基づいて商品を取得
+ * @param tags タグリスト
+ * @param limit 取得件数
+ * @param filters フィルターオプション
+ * @returns 商品リスト
  */
-export const getFilteredProducts = async (
-  filters: import('@/contexts/FilterContext').FilterOptions,
+export const fetchProductsByTags = async (
+  tags: string[],
   limit: number = 20,
-  offset: number = 0
-) => {
+  filters?: FilterOptions
+): Promise<{ success: boolean; data?: Product[]; error?: string }> => {
   try {
-    console.log('[ProductService] getFilteredProducts called:', { filters, limit, offset });
-    
+    if (!tags || tags.length === 0) {
+      return { success: true, data: [] };
+    }
+
+    console.log('[ProductService] Fetching products by tags:', tags);
+
     let query = supabase
       .from('external_products')
       .select('*')
       .eq('is_active', true)
       .not('image_url', 'is', null)
       .not('image_url', 'eq', '');
-    
-    // 価格範囲フィルター
-    if (filters.priceRange) {
-      const [minPrice, maxPrice] = filters.priceRange;
-      if (minPrice > 0) {
-        query = query.gte('price', minPrice);
-      }
-      if (maxPrice < 50000) {
-        query = query.lte('price', maxPrice);
-      }
+
+    // タグによるフィルタリング
+    query = query.contains('tags', tags);
+
+    // フィルターを適用
+    if (filters) {
+      query = applyFiltersToQuery(query, filters);
     }
-    
-    // スタイルフィルター（タグベース）
-    if (filters.style && filters.style !== 'すべて') {
-      const styleMap: Record<string, string> = {
-        'カジュアル': 'カジュアル',
-        'きれいめ': 'きれいめ',
-        'ナチュラル': 'ナチュラル'
-      };
-      if (styleMap[filters.style]) {
-        query = query.contains('tags', [styleMap[filters.style]]);
-      }
-    }
-    
-    // 気分フィルター
-    if (filters.moods && filters.moods.length > 0) {
-      // 新着フィルター
-      if (filters.moods.includes('新着')) {
-        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-        query = query.gte('created_at', sevenDaysAgo);
-      }
-      
-      // セールフィルター
-      if (filters.moods.includes('セール')) {
-        // tagsにセールが含まれる商品
-        query = query.contains('tags', ['セール']);
-      }
-      
-      // 人気フィルター（将来的にスワイプ履歴から判定）
-      if (filters.moods.includes('人気')) {
-        // 現時点ではタグベースで判定
-        query = query.contains('tags', ['人気']);
-      }
-    }
-    
-    // ソートとページネーション
+
+    // ランダムに並び替え
     query = query
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
-    
+      .order('priority', { ascending: true })
+      .order('last_synced', { ascending: false })
+      .limit(limit);
+
     const { data, error } = await query;
-    
+
     if (error) {
-      console.error('[ProductService] Error in getFilteredProducts:', error);
-      return { success: false, error: error.message, data: [] };
+      console.error('[ProductService] Error fetching products by tags:', error);
+      return { success: false, error: error.message };
     }
-    
-    const normalizedProducts = data.map(normalizeProduct);
-    console.log('[ProductService] getFilteredProducts returning:', normalizedProducts.length);
-    
-    return { 
-      success: true, 
-      data: normalizedProducts 
-    };
-    
+
+    const products = data?.map(normalizeProduct) || [];
+    console.log(`[ProductService] Found ${products.length} products with tags:`, tags);
+
+    return { success: true, data: products };
   } catch (error: any) {
-    console.error('[ProductService] Error in getFilteredProducts:', error);
-    return { success: false, error: error.message || 'Failed to fetch filtered products', data: [] };
+    console.error('[ProductService] Unexpected error fetching products by tags:', error);
+    return { success: false, error: error.message };
   }
 };
+
+/**
+ * ランダム化された商品を取得（シードによる擬似ランダム）
+ * @param limit 取得件数
+ * @param offset オフセット
+ * @param filters フィルターオプション
+ * @param seed ランダムシード
+ * @returns 商品リスト
+ */
+export const fetchRandomizedProducts = async (
+  limit: number = 20,
+  offset: number = 0,
+  filters?: FilterOptions,
+  seed?: string
+): Promise<{ success: boolean; data?: Product[]; error?: string }> => {
+  try {
+    console.log('[ProductService] Fetching randomized products:', { limit, offset, seed });
+
+    let query = supabase
+      .from('external_products')
+      .select('*')
+      .eq('is_active', true)
+      .not('image_url', 'is', null)
+      .not('image_url', 'eq', '');
+
+    // フィルターを適用
+    if (filters) {
+      query = applyFiltersToQuery(query, filters);
+    }
+
+    // シード付きランダム化（PostgreSQLのsetseed使用）
+    if (seed) {
+      // シードから数値を生成（0-1の範囲）
+      const seedValue = seed.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 100 / 100;
+      // 注：実際のランダム化はデータベース側で実装する必要があります
+      // ここでは優先度とタイムスタンプでの疑似ランダムを使用
+      const randomSort = seedValue > 0.5 ? 'priority' : 'last_synced';
+      query = query.order(randomSort, { ascending: seedValue > 0.5 });
+    } else {
+      // デフォルトのソート
+      query = query
+        .order('priority', { ascending: true })
+        .order('last_synced', { ascending: false });
+    }
+
+    query = query.range(offset, offset + limit - 1);
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('[ProductService] Error fetching randomized products:', error);
+      return { success: false, error: error.message };
+    }
+
+    const products = data?.map(normalizeProduct) || [];
+    console.log(`[ProductService] Found ${products.length} randomized products`);
+
+    return { success: true, data: products };
+  } catch (error: any) {
+    console.error('[ProductService] Unexpected error fetching randomized products:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// normalizeProductをエクスポート
+export { normalizeProduct };

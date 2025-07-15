@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { FilterOptions } from '@/contexts/FilterContext';
+import { STYLE_ID_TO_JP_TAG } from '@/constants/constants';
 
 /**
  * ユーザーの過去の行動履歴から、スマートなデフォルトフィルター値を生成する
@@ -10,6 +11,13 @@ import { FilterOptions } from '@/contexts/FilterContext';
 export const getSmartDefaults = async (userId: string): Promise<FilterOptions> => {
   try {
     console.log('[SmartFilterService] Getting smart defaults for user:', userId);
+    
+    // ユーザーのプロファイルを取得
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('style_preferences')
+      .eq('id', userId)
+      .single();
     
     // 1. 過去30日のスワイプ履歴から平均価格を計算
     const thirtyDaysAgo = new Date();
@@ -61,10 +69,21 @@ export const getSmartDefaults = async (userId: string): Promise<FilterOptions> =
       .limit(100);
     
     let topStyle = 'すべて';
+    
+    // ユーザーのプロファイルにスタイル選択がある場合、それを優先
+    if (!userError && userData && userData.style_preferences && userData.style_preferences.length > 0) {
+      const firstStyleId = userData.style_preferences[0];
+      const jpTag = STYLE_ID_TO_JP_TAG[firstStyleId];
+      if (jpTag) {
+        topStyle = jpTag;
+      }
+    }
+    
+    // スワイプ履歴からもスタイルを分析
     if (!tagError && tagData && tagData.length > 0) {
       // タグの出現回数をカウント
       const tagCounts: Record<string, number> = {};
-      const styleOptions = ['カジュアル', 'きれいめ', 'ナチュラル'];
+      const styleOptions = ['カジュアル', 'きれいめ', 'ナチュラル', 'モード', 'ストリート', 'フェミニン'];
       
       tagData.forEach(item => {
         const tags = item.external_products?.tags || [];

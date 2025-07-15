@@ -76,6 +76,16 @@ const EnhancedRecommendScreen: React.FC = () => {
   // フラットリストのref
   const flatListRef = useRef<FlatList<Product>>(null);
   
+  // フィルターがアクティブかどうかを判定
+  const isFilterActive = (): boolean => {
+    return (
+      globalFilters.priceRange[0] > 0 ||
+      globalFilters.priceRange[1] < 50000 ||
+      (globalFilters.style && globalFilters.style !== 'すべて') ||
+      globalFilters.moods.length > 0
+    );
+  };
+  
   // ユーザーのスタイルプロファイルを取得
   const loadUserStyleProfile = useCallback(async () => {
     if (!user) return;
@@ -526,7 +536,12 @@ const EnhancedRecommendScreen: React.FC = () => {
             style={styles.filterButton}
             onPress={() => setShowFilterModal(true)}
           >
-            <Ionicons name="options-outline" size={24} color={theme.colors.text.primary} />
+            <View>
+              <Ionicons name="options-outline" size={24} color={theme.colors.text.primary} />
+              {isFilterActive() && (
+                <View style={[styles.activeFilterDot, { backgroundColor: theme.colors.primary }]} />
+              )}
+            </View>
           </TouchableOpacity>
         </View>
       </Animated.View>
@@ -683,49 +698,6 @@ const styles = StyleSheet.create({
     width: 40,
     textAlign: 'right',
   },
-  categoryContainer: {
-    maxHeight: 50,
-    marginVertical: 16,
-  },
-  categoryContent: {
-    paddingHorizontal: 16,
-    gap: 8,
-  },
-  categoryChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.05)',
-    marginRight: 8,
-  },
-  categoryChipActive: {
-    backgroundColor: '#000',
-  },
-  categoryChipText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  categoryChipTextActive: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-  priceFilterContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    gap: 8,
-    marginBottom: 16,
-  },
-  priceFilterButton: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: 'rgba(0,0,0,0.05)',
-    alignItems: 'center',
-  },
-  priceFilterText: {
-    fontSize: 12,
-    color: '#666',
-  },
   sectionContainer: {
     marginVertical: 16,
   },
@@ -863,6 +835,14 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  activeFilterDot: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
 });
 

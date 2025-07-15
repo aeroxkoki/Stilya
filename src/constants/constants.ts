@@ -44,18 +44,39 @@ export const BATCH_CONFIG = {
   },
 };
 
-// ファッションスタイルタグ（一部）
+// ファッションスタイルタグ（統一版）
+// オンボーディング、フィルター、商品タグで使用
 export const FASHION_STYLES = [
-  { id: 'casual', label: 'カジュアル' },
-  { id: 'formal', label: 'フォーマル' },
-  { id: 'street', label: 'ストリート' },
-  { id: 'minimal', label: 'ミニマル' },
-  { id: 'vintage', label: 'ビンテージ' },
-  { id: 'mode', label: 'モード' },
-  { id: 'feminine', label: 'フェミニン' },
-  { id: 'sporty', label: 'スポーティ' },
-  { id: 'elegant', label: 'エレガント' },
+  { id: 'casual', label: 'カジュアル', jpTag: 'カジュアル' },
+  { id: 'street', label: 'ストリート', jpTag: 'ストリート' },
+  { id: 'mode', label: 'モード', jpTag: 'モード' },
+  { id: 'natural', label: 'ナチュラル', jpTag: 'ナチュラル' },
+  { id: 'classic', label: 'クラシック', jpTag: 'きれいめ' }, // クラシックは「きれいめ」にマッピング
+  { id: 'feminine', label: 'フェミニン', jpTag: 'フェミニン' },
 ];
+
+// スタイルIDから日本語タグへのマッピング
+export const STYLE_ID_TO_JP_TAG: Record<string, string> = {
+  'casual': 'カジュアル',
+  'street': 'ストリート',
+  'mode': 'モード',
+  'natural': 'ナチュラル',
+  'classic': 'きれいめ',
+  'feminine': 'フェミニン',
+};
+
+// 日本語タグからスタイルIDへのマッピング
+export const JP_TAG_TO_STYLE_ID: Record<string, string> = {
+  'カジュアル': 'casual',
+  'ストリート': 'street',
+  'モード': 'mode',
+  'ナチュラル': 'natural',
+  'きれいめ': 'classic',
+  'フェミニン': 'feminine',
+};
+
+// フィルターで使用するスタイルオプション（日本語表示用）
+export const FILTER_STYLE_OPTIONS = ['すべて', 'カジュアル', 'きれいめ', 'ナチュラル', 'モード', 'ストリート', 'フェミニン'];
 
 // 年代区分
 export const AGE_GROUPS = [

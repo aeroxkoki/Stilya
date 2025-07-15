@@ -1,6 +1,7 @@
 import { supabase, handleSupabaseError, handleSupabaseSuccess, TABLES } from './supabase';
 import { Product, UserPreference } from '../types';
-import { FilterOptions, normalizeProduct } from './productService';
+import { normalizeProduct } from './productService';
+import { FilterOptions } from '@/contexts/FilterContext';
 import { addScoreNoise, shuffleArray, ensureProductDiversity } from '../utils/randomUtils';
 import { StyleQuizResult } from '../contexts/OnboardingContext';
 

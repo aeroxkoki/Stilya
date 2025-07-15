@@ -8,6 +8,7 @@ import {
   ScrollView,
   Animated,
   Dimensions,
+  Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useStyle } from '@/contexts/ThemeContext';
@@ -22,7 +23,7 @@ const { width } = Dimensions.get('window');
 
 const SimpleFilterModal: React.FC<SimpleFilterModalProps> = ({ visible, onClose }) => {
   const { theme } = useStyle();
-  const { globalFilters, setPriceRange, setStyle, toggleMood, resetFilters } = useFilters();
+  const { globalFilters, setPriceRange, setStyle, toggleMood, resetFilters, setIncludeUsed } = useFilters();
   
   // アニメーション値
   const fadeAnim = new Animated.Value(0);
@@ -30,6 +31,7 @@ const SimpleFilterModal: React.FC<SimpleFilterModalProps> = ({ visible, onClose 
   
   // ローカル状態（価格スライダー用）
   const [tempPriceRange, setTempPriceRange] = useState(globalFilters.priceRange);
+  const [tempIncludeUsed, setTempIncludeUsed] = useState(globalFilters.includeUsed ?? true);
   
   // モーダルが開いたときのアニメーション
   useEffect(() => {
@@ -68,7 +70,8 @@ const SimpleFilterModal: React.FC<SimpleFilterModalProps> = ({ visible, onClose 
       globalFilters.priceRange[0] > 0 ||
       globalFilters.priceRange[1] < 50000 ||
       (globalFilters.style && globalFilters.style !== 'すべて') ||
-      globalFilters.moods.length > 0
+      globalFilters.moods.length > 0 ||
+      globalFilters.includeUsed === false
     );
   };
   
@@ -81,6 +84,7 @@ const SimpleFilterModal: React.FC<SimpleFilterModalProps> = ({ visible, onClose 
   // 適用ボタンを押したときの処理
   const handleApply = () => {
     setPriceRange(tempPriceRange);
+    setIncludeUsed(tempIncludeUsed);
     onClose();
   };
   
@@ -88,6 +92,7 @@ const SimpleFilterModal: React.FC<SimpleFilterModalProps> = ({ visible, onClose 
   const handleReset = () => {
     resetFilters();
     setTempPriceRange([0, 50000]);
+    setTempIncludeUsed(true);
   };
   
   return (

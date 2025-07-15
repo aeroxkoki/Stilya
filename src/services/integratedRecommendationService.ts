@@ -1,6 +1,7 @@
 import { Product } from '@/types';
 import { getRecommendations, analyzeUserPreferences } from './recommendationService';
-import { fetchProducts, fetchProductsByTags, FilterOptions, fetchRandomizedProducts } from './productService';
+import { fetchProducts, fetchProductsByTags, fetchRandomizedProducts, convertToProductFilters } from './productService';
+import { FilterOptions } from '@/contexts/FilterContext';
 
 interface OutfitRecommendation {
   top: Product | null;
@@ -25,9 +26,8 @@ export const getEnhancedRecommendations = async (
   isLoading: boolean;
 }> => {
   try {
-    // デフォルトフィルター（中古品を含まない）
+    // デフォルトフィルター
     const defaultFilters: FilterOptions = {
-      includeUsed: false,
       ...filters
     };
 
@@ -50,11 +50,6 @@ export const getEnhancedRecommendations = async (
 
     // 内部レコメンドの結果を取得
     let internalRecs = internalRecsResult.success && 'data' in internalRecsResult && internalRecsResult.data ? internalRecsResult.data : [];
-    
-    // 内部レコメンドにもフィルター適用（中古品除外）
-    if (!defaultFilters.includeUsed) {
-      internalRecs = internalRecs.filter(product => !product.isUsed);
-    }
 
     // ユーザーの好みに基づく商品
     let forYouProducts: Product[] = [];
@@ -68,11 +63,6 @@ export const getEnhancedRecommendations = async (
       forYouProducts = tagResult.success && 'data' in tagResult && tagResult.data ? tagResult.data : [];
       
       console.log('[integratedRecommendationService] ForYou products:', forYouProducts.length);
-      
-      // フィルター適用（中古品除外）
-      if (!defaultFilters.includeUsed) {
-        forYouProducts = forYouProducts.filter(product => !product.isUsed);
-      }
     }
 
     // データが少ない場合は補完（より多くの商品を取得）
@@ -154,9 +144,8 @@ export const getEnhancedCategoryRecommendations = async (
   isLoading: boolean;
 }> => {
   try {
-    // デフォルトフィルター（中古品を含まない）
+    // デフォルトフィルター
     const defaultFilters: FilterOptions = {
-      includeUsed: false,
       ...filters
     };
 
@@ -166,7 +155,8 @@ export const getEnhancedCategoryRecommendations = async (
     for (const category of categories) {
       try {
         // TODO: カテゴリベースの商品取得機能を実装する必要がある
-        const result = await fetchProducts(limit, 0, defaultFilters);
+        const productFilters = convertToProductFilters(defaultFilters);
+        const result = await fetchProducts(limit, 0, productFilters);
         categoryProducts[category] = result.success && 'data' in result && result.data ? result.data : [];
       } catch (error) {
         console.error(`Error fetching products for category ${category}:`, error);
@@ -199,9 +189,8 @@ export const getOutfitRecommendations = async (
   outfits: OutfitRecommendation[]
 }> => {
   try {
-    // デフォルトフィルター（中古品を含まない）
+    // デフォルトフィルター
     const defaultFilters: FilterOptions = {
-      includeUsed: false,
       ...filters
     };
 

@@ -55,6 +55,16 @@ const SwipeScreen: React.FC = () => {
   const [swipeStartTime, setSwipeStartTime] = useState<number>(Date.now()); // スワイプ開始時刻
   const [swipeCount, setSwipeCount] = useState(0); // スワイプカウント
   
+  // フィルターがアクティブかどうかを判定
+  const isFilterActive = (): boolean => {
+    return (
+      globalFilters.priceRange[0] > 0 ||
+      globalFilters.priceRange[1] < 50000 ||
+      (globalFilters.style && globalFilters.style !== 'すべて') ||
+      globalFilters.moods.length > 0
+    );
+  };
+  
   // デバッグ用の状態表示
   useEffect(() => {
     console.log('[SwipeScreen] Debug Info:', {
@@ -260,7 +270,12 @@ const SwipeScreen: React.FC = () => {
           style={styles.headerButton}
           onPress={() => setShowFilterModal(true)}
         >
-          <Ionicons name="options-outline" size={24} color={theme.colors.text.primary} />
+          <View>
+            <Ionicons name="options-outline" size={24} color={theme.colors.text.primary} />
+            {isFilterActive() && (
+              <View style={[styles.activeFilterDot, { backgroundColor: theme.colors.primary }]} />
+            )}
+          </View>
         </TouchableOpacity>
         
         <Text style={[styles.headerTitle, { color: theme.colors.text.primary }]}>Stilya</Text>
@@ -341,6 +356,14 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
+  },
+  activeFilterDot: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
 });
 

@@ -1,12 +1,13 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { 
   fetchProducts,
-  fetchProductById,
+  fetchProductDetail,
   fetchProductsByTags,
-  FilterOptions
+  ProductFilterOptions
 } from '@/services/productService';
 import { saveSwipeResult, getSwipeHistory as getSwipeHistoryService, SwipeData } from '@/services/swipeService';
 import { Product } from '@/types';
+import { FilterOptions } from '@/contexts/FilterContext';
 
 interface ProductContextType {
   products: Product[];

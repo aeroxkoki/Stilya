@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { fetchProducts, fetchProductsByTags, fetchScoredProducts, ProductFilterOptions, fetchMixedProducts } from '@/services/productService';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { fetchProducts, fetchProductsByTags, fetchScoredProducts, ProductFilterOptions, convertToProductFilters } from '@/services/productService';
 import { Product } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import { getSwipeHistory } from '@/services/swipeService';
@@ -8,6 +8,8 @@ import { useImagePrefetch } from '@/utils/imageUtils';
 import { InteractionManager } from 'react-native';
 import { getInitialProducts } from '@/services/initialProductService';
 import { useOnboarding } from '@/contexts/OnboardingContext';
+import { FilterOptions } from '@/contexts/FilterContext';
+import { STYLE_ID_TO_JP_TAG } from '@/constants/constants';
 
 interface ProductsState {
   products: Product[];
@@ -50,10 +52,9 @@ export const useProducts = (): UseProductsReturn => {
   const [page, setPage] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [filters, setActiveFilters] = useState<FilterOptions>({
-    categories: [],
-    priceRange: [0, Infinity],
-    selectedTags: [],
-    includeUsed: false // デフォルトは新品のみ
+    priceRange: [0, 50000],
+    style: 'すべて',
+    moods: []
   });
   
   const pageSize = 20;
@@ -87,6 +88,23 @@ export const useProducts = (): UseProductsReturn => {
     
     fetchSwipeHistory();
   }, [user]);
+
+  // オンボーディングのスタイル選択を考慮したフィルター取得
+  const getEffectiveFilters = useCallback((): FilterOptions => {
+    const effectiveFilters = { ...filters };
+    
+    // オンボーディングで選択されたスタイルがあり、フィルターが「すべて」の場合、オンボーディングの選択を反映
+    if (stylePreference && stylePreference.length > 0 && filters.style === 'すべて') {
+      // 最初のスタイルを日本語タグに変換して使用
+      const firstStyle = stylePreference[0];
+      const jpTag = STYLE_ID_TO_JP_TAG[firstStyle];
+      if (jpTag) {
+        effectiveFilters.style = jpTag;
+      }
+    }
+    
+    return effectiveFilters;
+  }, [filters, stylePreference]);
 
   // 商品データを取得（最適化版）
   const loadProducts = useCallback(async (reset = false) => {
@@ -125,11 +143,13 @@ export const useProducts = (): UseProductsReturn => {
       // ローディング状態を管理
       setIsLoading(prevState => reset ? true : prevState);
       
+      const effectiveFilters = getEffectiveFilters();
+      
       console.log('[useProducts] Loading products - page:', currentPage, 'offset:', currentPage * pageSize);
       console.log('[useProducts] Swipe history size:', swipedProductsRef.current.size);
       console.log('[useProducts] All products seen:', productsData.allProductIds.size);
       console.log('[useProducts] Exclude product IDs:', Array.from(productsData.allProductIds).slice(0, 10)); // 最初の10個を表示
-      console.log('[useProducts] Filters:', filtersRef.current);
+      console.log('[useProducts] Filters:', effectiveFilters);
       
       // 初回ユーザーの場合は特別な商品セットを取得
       if (isFirstTimeUser && currentPage === 0 && reset) {
@@ -149,284 +169,226 @@ export const useProducts = (): UseProductsReturn => {
             allProductIds: new Set(initialProducts.map(p => p.id))
           });
           
+          // 画像をプリフェッチ
+          const imagesToPrefetch = initialProducts.slice(0, 5).map(p => p.image_url);
+          await prefetchImages(imagesToPrefetch);
+          
           setIsLoading(false);
           loadingRef.current = false;
-          setPage(1); // 次回は通常の取得に戻る
-          
-          // 画像をプリフェッチ
-          InteractionManager.runAfterInteractions(() => {
-            const imagesToPrefetch = initialProducts
-              .map(p => p.imageUrl || p.image_url)
-              .filter(Boolean) as string[];
-              
-            if (imagesToPrefetch.length > 0) {
-              prefetchImages(imagesToPrefetch, true);
-            }
-          });
-          
+          setPage(1);
           return;
         }
       }
       
-      // 通常の商品取得ロジック（既存のコード）
-      const response = await fetchMixedProducts(
-        user?.id || null,
-        pageSize * 2, // 多めに取得
+      // フィルターを適用した商品取得
+      const productFilters = convertToProductFilters(effectiveFilters);
+      
+      // fetchProductsにフィルターを渡す
+      const result = await fetchProducts(
+        pageSize * 2, // 多めに取得してフィルタリング余地を残す
         currentPage * pageSize,
-        filtersRef.current,
-        Array.from(productsData.allProductIds) // 既に表示された商品IDを渡す
+        productFilters
       );
       
-      // レスポンスの検証
-      if (!response) {
-        console.error('[useProducts] No response from fetchMixedProducts');
-        setError('商品データの取得に失敗しました');
-        loadingRef.current = false;
-        return;
+      if (!result.success || !result.data) {
+        throw new Error(result.error || 'Failed to fetch products');
       }
       
-      if (!response.success) {
-        console.error('[useProducts] fetchMixedProducts failed:', response.error);
-        setError(response.error || '商品データの取得に失敗しました');
-        loadingRef.current = false;
-        return;
-      }
+      // 既に見た商品（スワイプ済み＋現在のセッション）を除外
+      const excludeIds = new Set([
+        ...Array.from(swipedProductsRef.current),
+        ...Array.from(productsData.allProductIds)
+      ]);
       
-      const newProducts = response.data || [];
-      console.log('[useProducts] Fetched products:', newProducts.length);
-      console.log('[useProducts] First 5 product IDs from fetchMixedProducts:', newProducts.slice(0, 5).map(p => p.id));
+      console.log('[useProducts] Excluding IDs:', excludeIds.size);
       
-      // fetchMixedProductsが既に除外処理を行っているので、ここでは追加のフィルタリングのみ行う
-      let filteredProducts = newProducts;
-      if (recycleCountRef.current === 0) {
-        // スワイプ済みの商品のみ除外（allProductIdsは既にfetchMixedProductsで除外済み）
-        const beforeFilterCount = filteredProducts.length;
-        filteredProducts = newProducts.filter(
-          product => !swipedProductsRef.current.has(product.id)
-        );
-        console.log('[useProducts] Filtered out swiped products:', beforeFilterCount - filteredProducts.length);
-      }
-      // リサイクルモードでは追加のフィルタリングは行わない
+      // 重複を除去して新しい商品のみを追加
+      const newProducts = result.data.filter(product => !excludeIds.has(product.id));
       
-      console.log('[useProducts] After filtering:', filteredProducts.length);
-      console.log('[useProducts] Current page:', currentPage, 'Offset:', currentPage * pageSize);
-      console.log('[useProducts] Total products loaded so far:', productsData.products.length);
-      console.log('[useProducts] Recycle mode:', recycleCountRef.current > 0 ? 'ON' : 'OFF');
-
-      // 商品が取得できなかった場合の判定
-      const hasMoreProducts = newProducts.length >= pageSize;
-
-      // 結果が十分でない場合の処理
-      if (filteredProducts.length === 0 && hasMoreProducts && retryCountRef.current < maxRetries && recycleCountRef.current === 0) {
-        console.log('[useProducts] No new products after filtering, retrying...');
-        retryCountRef.current++;
-        
-        if (!reset) {
-          setPage(prevPage => prevPage + 1);
+      console.log('[useProducts] New products after filtering:', newProducts.length);
+      
+      if (newProducts.length === 0 && result.data.length > 0) {
+        // 新しい商品がない場合、リトライまたはリサイクル
+        if (retryCountRef.current < maxRetries) {
+          retryCountRef.current++;
+          console.log('[useProducts] No new products, retrying... (attempt', retryCountRef.current, ')');
+          setPage(currentPage + 1);
           loadingRef.current = false;
-          // 再帰的に次のページを読み込む
-          setTimeout(() => loadProducts(false), 100);
+          await loadProducts(false);
           return;
+        } else if (recycleCountRef.current < 2) {
+          // 商品を一巡した場合、スワイプ済み商品を再利用（最大2回まで）
+          recycleCountRef.current++;
+          console.log('[useProducts] Recycling swiped products (cycle', recycleCountRef.current, ')');
+          
+          // すべての商品IDをクリアして再スタート
+          setProductsData(prev => ({
+            ...prev,
+            allProductIds: new Set()
+          }));
+          
+          // ただし現在のセッションでスワイプした商品は引き続き除外
+          const sessionSwipedIds = Array.from(productsData.allProductIds);
+          const recycledProducts = result.data.filter(product => 
+            !sessionSwipedIds.includes(product.id)
+          );
+          
+          if (recycledProducts.length > 0) {
+            const updatedAllProductIds = new Set([
+              ...productsData.allProductIds,
+              ...recycledProducts.map(p => p.id)
+            ]);
+            
+            setProductsData(prev => ({
+              products: reset ? recycledProducts : [...prev.products, ...recycledProducts],
+              hasMore: true,
+              totalFetched: prev.totalFetched + recycledProducts.length,
+              allProductIds: updatedAllProductIds
+            }));
+            
+            // 画像プリフェッチ
+            const nextImages = recycledProducts.slice(0, 5).map(p => p.image_url);
+            prefetchImages(nextImages).catch(console.error);
+            
+            retryCountRef.current = 0;
+          }
+        } else {
+          // すべてのリトライとリサイクルを使い果たした
+          console.log('[useProducts] All products exhausted after retries and recycling');
+          setProductsData(prev => ({
+            ...prev,
+            hasMore: false
+          }));
         }
-      }
-      
-      // リトライ上限に達した場合、リサイクルモードに切り替え
-      if (filteredProducts.length === 0 && retryCountRef.current >= maxRetries && recycleCountRef.current === 0) {
-        console.log('[useProducts] Max retries reached, switching to recycle mode...');
+      } else {
+        // 新しい商品がある場合
+        const updatedAllProductIds = new Set([
+          ...productsData.allProductIds,
+          ...newProducts.map(p => p.id)
+        ]);
         
-        // リサイクルモードを有効化
-        recycleCountRef.current = 1;
-        
-        // スワイプ履歴をクリア（リサイクルのため）
-        console.log('[useProducts] Clearing swipe history for recycling...');
-        swipedProductsRef.current.clear();
-        
-        // 全商品IDもクリア
         setProductsData(prev => ({
-          ...prev,
-          allProductIds: new Set()
+          products: reset ? newProducts : [...prev.products, ...newProducts],
+          hasMore: newProducts.length >= pageSize * 0.5, // 半分以上取得できれば継続
+          totalFetched: prev.totalFetched + newProducts.length,
+          allProductIds: updatedAllProductIds
         }));
         
-        // リトライカウントをリセット
-        retryCountRef.current = 0;
+        // 次の商品の画像をプリフェッチ（非同期）
+        InteractionManager.runAfterInteractions(() => {
+          const nextImages = newProducts.slice(0, 5).map(p => p.image_url);
+          prefetchImages(nextImages).catch(console.error);
+        });
         
-        // ページをリセットして最初から再取得
-        setPage(0);
-        
-        // 再度商品を取得
-        loadingRef.current = false;
-        setTimeout(() => loadProducts(false), 100);
-        return;
-      }
-
-      // 商品データを更新
-      setProductsData(prev => {
-        const newAllProductIds = new Set(prev.allProductIds);
-        
-        // 新しい商品のIDを追加する前に、重複チェック
-        const duplicateIds = filteredProducts.filter(p => prev.allProductIds.has(p.id));
-        if (duplicateIds.length > 0) {
-          console.error('[useProducts] 🚨 重複する商品IDが検出されました:', duplicateIds.map(p => ({ id: p.id, title: p.title })));
-        }
-        
-        filteredProducts.forEach(p => newAllProductIds.add(p.id));
-        
-        const updatedProducts = reset 
-          ? filteredProducts 
-          : [...prev.products, ...filteredProducts.filter(
-              p => !prev.products.some(existing => existing.id === p.id)
-            )];
-
-        // 商品配列内の重複チェック
-        const productIds = updatedProducts.map(p => p.id);
-        const duplicateProductIds = productIds.filter((id, index) => productIds.indexOf(id) !== index);
-        if (duplicateProductIds.length > 0) {
-          console.error('[useProducts] 🚨 商品配列内に重複IDが存在:', duplicateProductIds);
-        }
-
-        console.log('[useProducts] Total products after update:', updatedProducts.length);
-        console.log('[useProducts] All product IDs count:', newAllProductIds.size);
-
-        return {
-          products: updatedProducts,
-          hasMore: hasMoreProducts || retryCountRef.current < maxRetries || recycleCountRef.current > 0,
-          totalFetched: prev.totalFetched + filteredProducts.length,
-          allProductIds: newAllProductIds
-        };
-      });
-      
-      // ページを進める（resetでない場合のみ）
-      if (!reset && filteredProducts.length > 0) {
-        setPage(prevPage => prevPage + 1);
-        retryCountRef.current = 0; // 成功したらリトライカウントをリセット
+        retryCountRef.current = 0; // リトライカウントをリセット
       }
       
-      // 画像をプリフェッチ（バックグラウンドで、UIブロックなし）
-      InteractionManager.runAfterInteractions(() => {
-        const imagesToPrefetch = filteredProducts
-          .map(p => p.imageUrl || p.image_url)
-          .filter(Boolean) as string[];
-          
-        if (imagesToPrefetch.length > 0) {
-          prefetchImages(imagesToPrefetch, reset); // 最初のロードは高優先度
-        }
-      });
-    } catch (err) {
-      setError('商品データの読み込みに失敗しました。');
-      console.error('Error loading products:', err);
+      setPage(currentPage + 1);
+      
+    } catch (error: any) {
+      console.error('[useProducts] Error loading products:', error);
+      setError(error.message || 'Failed to load products');
+      setProductsData(prev => ({
+        ...prev,
+        hasMore: false
+      }));
     } finally {
       setIsLoading(false);
-      setRefreshing(false);
       loadingRef.current = false;
     }
-  }, [page, pageSize, productsData.hasMore, productsData.allProductIds, prefetchImages, user, isFirstTimeUser, gender, stylePreference, ageGroup]);
+  }, [
+    page,
+    productsData.hasMore,
+    productsData.allProductIds,
+    user,
+    pageSize,
+    filters,
+    isFirstTimeUser,
+    gender,
+    stylePreference,
+    ageGroup,
+    prefetchImages,
+    getEffectiveFilters
+  ]);
 
-  // 初回マウント時に商品データを取得（認証初期化完了後）
+  // 初回ロード
   useEffect(() => {
-    console.log('[useProducts] Init effect - isInitialized:', isInitialized, 'loadingRef:', loadingRef.current);
-    
-    // 初期化が完了していない場合でも、商品を取得する
-    // ユーザー認証は商品表示には不要
-    if (!loadingRef.current && productsData.products.length === 0) {
-      console.log('[useProducts] Starting initial load (auth not required for products)...');
+    if (isInitialized && !loadingRef.current && productsData.products.length === 0) {
+      console.log('[useProducts] Initial load triggered');
       loadProducts(true);
     }
-  }, []); // 依存関係を空にして、マウント時に一度だけ実行
+  }, [isInitialized]);
 
-  // 追加データ読み込み
-  const loadMore = useCallback(async (reset = false) => {
-    if (reset) {
-      await loadProducts(true);
+  // フィルター変更時の処理を修正
+  useEffect(() => {
+    filtersRef.current = filters;
+    // フィルター変更時は即座にリロード
+    console.log('[useProducts] Filters changed, reloading products');
+    loadProducts(true);
+  }, [filters]); // loadProductsを依存配列から除外
+
+  // スワイプ処理
+  const handleSwipe = useCallback((product: Product, direction: 'left' | 'right', metadata?: { swipeTime?: number }) => {
+    if (!user || !user.id) {
+      console.error('[useProducts] Cannot record swipe: No user');
       return;
     }
-    if (isLoading || !productsData.hasMore || loadingRef.current) return;
     
-    await loadProducts(false);
-  }, [isLoading, productsData.hasMore, loadProducts]);
-
-  // データリセット
-  const resetProducts = useCallback(() => {
-    loadProducts(true);
-  }, [loadProducts]);
-
-  // データ更新（引っ張り更新など）
-  const refreshProducts = useCallback(async () => {
-    setRefreshing(true);
-    await loadProducts(true);
-  }, [loadProducts]);
-
-  // スワイプハンドラー（最適化版）
-  const handleSwipe = useCallback(async (product: Product, direction: 'left' | 'right', metadata?: { swipeTime?: number }) => {
-    if (!product || !user || !user.id) return;
+    // スワイプをローカルで記録
+    swipedProductsRef.current.add(product.id);
     
-    console.log('[useProducts] handleSwipe called - currentIndex:', currentIndex, 'productsLength:', productsData.products.length);
+    console.log(`[useProducts] Recording swipe: ${direction} for product ${product.id}`);
     
-    // スワイプデータを記録（非同期、待たない）
-    // recordSwipe内でUserPreferenceServiceが呼ばれるので、ここでは呼ばない
-    const result = direction === 'right' ? 'yes' : 'no';
-    recordSwipe(user.id, product.id, result, metadata).catch(err => {
-      console.error('Error recording swipe:', err);
+    // Supabaseに記録（非同期）- エラーハンドリングを改善
+    recordSwipe({
+      userId: user.id,
+      productId: product.id,
+      result: direction === 'right' ? 'yes' : 'no',
+      swipeTime: metadata?.swipeTime
+    }).catch(error => {
+      console.error('[useProducts] Failed to record swipe:', error);
+      // エラーが発生してもアプリは継続
     });
     
-    // リサイクルモードでなければ、スワイプ済みリストに追加
-    if (recycleCountRef.current === 0) {
-      swipedProductsRef.current.add(product.id);
-    }
-    
     // 次の商品へ
-    setCurrentIndex(prevIndex => {
-      const nextIndex = prevIndex + 1;
-      console.log('[useProducts] Next index:', nextIndex, 'hasMore:', productsData.hasMore);
+    setCurrentIndex(prev => {
+      const nextIndex = prev + 1;
       
-      // 残りの商品が少なくなったら追加ロード
-      // 非同期で処理（UIをブロックしない）
-      if (productsData.products.length - nextIndex <= 5 && productsData.hasMore && !loadingRef.current) {
-        console.log('[useProducts] Triggering loadMore - remaining products:', productsData.products.length - nextIndex);
-        InteractionManager.runAfterInteractions(() => {
-          loadMore();
-        });
+      // 残り5枚になったら追加ロード
+      if (nextIndex >= productsData.products.length - 5 && productsData.hasMore && !loadingRef.current) {
+        console.log('[useProducts] Loading more products (5 cards remaining)');
+        loadMore(false);
       }
       
       return nextIndex;
     });
-  }, [currentIndex, productsData.products.length, productsData.hasMore, loadMore, user]);
+  }, [user, productsData.products.length, productsData.hasMore]);
 
-  // フィルターをセットして商品を再読み込み
-  const setFilters = useCallback((newFilters: FilterOptions) => {
-    // フィルターが実際に変更された場合のみ更新
-    const hasChanged = 
-      JSON.stringify(newFilters.categories) !== JSON.stringify(filters.categories) ||
-      JSON.stringify(newFilters.priceRange) !== JSON.stringify(filters.priceRange) ||
-      JSON.stringify(newFilters.selectedTags) !== JSON.stringify(filters.selectedTags) ||
-      newFilters.includeUsed !== filters.includeUsed;
-    
-    if (hasChanged) {
-      // filtersRefを即座に更新（loadProductsが正しいフィルターを使用するため）
-      filtersRef.current = newFilters;
-      setActiveFilters(newFilters);
-      
-      // フィルター変更時は明示的にリセット
-      setPage(0);
-      setProductsData({
-        products: [],
-        hasMore: true,
-        totalFetched: 0,
-        allProductIds: new Set()
-      });
-      setCurrentIndex(0);
-      recycleCountRef.current = 0; // リサイクルモードをリセット
-      retryCountRef.current = 0; // リトライカウントもリセット
-      
-      // スワイプ履歴は保持するが、新しい商品取得のために一時的にクリア
-      const tempSwipedProducts = new Set(swipedProductsRef.current);
-      
-      // 新しいフィルターで再読み込み
-      loadProducts(true).then(() => {
-        // 読み込み完了後にスワイプ履歴を復元
-        swipedProductsRef.current = tempSwipedProducts;
-      });
+  // もっと読み込む
+  const loadMore = useCallback(async (reset = false) => {
+    if (!loadingRef.current || reset) {
+      await loadProducts(reset);
     }
-  }, [filters, loadProducts]);
+  }, [loadProducts]);
+
+  // リセット
+  const resetProducts = useCallback(() => {
+    console.log('[useProducts] Resetting products');
+    loadProducts(true);
+  }, [loadProducts]);
+
+  // リフレッシュ
+  const refreshProducts = useCallback(async () => {
+    setRefreshing(true);
+    await loadProducts(true);
+    setRefreshing(false);
+  }, [loadProducts]);
+
+  // フィルター設定
+  const setFilters = useCallback((newFilters: FilterOptions) => {
+    console.log('[useProducts] Setting filters:', newFilters);
+    setActiveFilters(newFilters);
+  }, []);
 
   return {
     products: productsData.products,

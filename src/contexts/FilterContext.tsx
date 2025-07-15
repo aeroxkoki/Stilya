@@ -1,12 +1,14 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/services/supabase';
+import { FILTER_STYLE_OPTIONS } from '@/constants/constants';
 
 // 簡素化されたフィルターオプション
 export interface FilterOptions {
   priceRange: [number, number];  // 予算範囲
   style?: string;                // スタイル（単一選択）
   moods: string[];              // 気分タグ（複数選択）
+  includeUsed?: boolean;        // 中古品を含むかどうか（デフォルト: true）
 }
 
 // コンテキストの型定義
@@ -19,17 +21,19 @@ interface FilterContextType {
   setPriceRange: (range: [number, number]) => void;
   setStyle: (style: string | undefined) => void;
   toggleMood: (mood: string) => void;
+  setIncludeUsed: (include: boolean) => void;
 }
 
 // デフォルトフィルター
 const defaultFilters: FilterOptions = {
   priceRange: [0, 50000],
   style: 'すべて',
-  moods: []
+  moods: [],
+  includeUsed: true  // デフォルトで中古品も含む
 };
 
-// スタイルオプション
-export const STYLE_OPTIONS = ['すべて', 'カジュアル', 'きれいめ', 'ナチュラル'];
+// スタイルオプション（constants.tsから取得）
+export const STYLE_OPTIONS = FILTER_STYLE_OPTIONS;
 
 // 気分タグオプション
 export const MOOD_OPTIONS = ['新着', '人気', 'セール'];
@@ -113,6 +117,13 @@ export const FilterProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     });
   };
 
+  const setIncludeUsed = (include: boolean) => {
+    setGlobalFilters(prev => ({
+      ...prev,
+      includeUsed: include
+    }));
+  };
+
   return (
     <FilterContext.Provider value={{
       globalFilters,
@@ -121,7 +132,8 @@ export const FilterProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       getSmartDefaults,
       setPriceRange,
       setStyle,
-      toggleMood
+      toggleMood,
+      setIncludeUsed
     }}>
       {children}
     </FilterContext.Provider>
