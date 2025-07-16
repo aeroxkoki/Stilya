@@ -88,12 +88,16 @@ const extractTagsFromProduct = (product: any): string[] => {
 
 // Product正規化関数
 const normalizeProduct = (product: any): Product => {
+  // imageUrlとimage_urlの両方をサポート
+  const imageUrl = product.imageUrl || product.image_url || '';
+  
   return {
     id: product.id || '',
     title: product.title || '商品名なし',
     brand: product.brand || 'ブランド不明',
     price: product.price || 0,
-    image_url: product.image_url || '',
+    imageUrl: imageUrl,  // imageUrlを使用
+    image_url: imageUrl,  // 互換性のために両方設定
     description: product.description || '',
     tags: product.tags || [],
     category: product.category,
@@ -103,7 +107,8 @@ const normalizeProduct = (product: any): Product => {
     priority: product.priority || 999,
     created_at: product.created_at,
     updated_at: product.updated_at,
-    last_synced: product.last_synced
+    last_synced: product.last_synced,
+    isUsed: product.is_used || false  // is_usedフィールドも追加
   };
 };
 

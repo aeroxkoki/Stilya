@@ -223,6 +223,19 @@ const EnhancedRecommendScreen: React.FC = () => {
   const renderHeroSection = () => {
     if (!heroProduct) return null;
     
+    // デバッグ情報
+    console.log('[EnhancedRecommendScreen] Hero product:', {
+      id: heroProduct.id,
+      title: heroProduct.title,
+      imageUrl: heroProduct.imageUrl,
+      image_url: heroProduct.image_url,
+      brand: heroProduct.brand,
+      price: heroProduct.price
+    });
+    
+    // imageUrlとimage_urlの両方をチェック
+    const imageUrl = heroProduct.imageUrl || heroProduct.image_url;
+    
     return (
       <Animated.View 
         style={[
@@ -237,18 +250,17 @@ const EnhancedRecommendScreen: React.FC = () => {
           activeOpacity={0.95}
           onPress={() => handleProductPress(heroProduct)}
         >
-          {heroProduct.imageUrl && heroProduct.imageUrl.trim() !== '' && !heroProduct.imageUrl.includes('placehold.co') ? (
-            <Image
-              source={{ uri: heroProduct.imageUrl }}
+          {imageUrl && imageUrl.trim() !== '' && !imageUrl.includes('placehold.co') ? (
+            <CachedImage
+              source={{ uri: imageUrl }}
               style={styles.heroImage}
-              onError={(error) => {
-                console.error('[HeroImage] Failed to load:', heroProduct.imageUrl);
-              }}
+              contentFit="cover"
+              debugMode={true} // デバッグモードを有効化
             />
           ) : (
             <View style={[styles.heroImage, styles.placeholderContainer]}>
               <Ionicons name="image-outline" size={60} color="#666" />
-              <Text style={styles.placeholderText}>Loading...</Text>
+              <Text style={styles.placeholderText}>No Image</Text>
             </View>
           )}
           <LinearGradient
@@ -334,29 +346,34 @@ const EnhancedRecommendScreen: React.FC = () => {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.horizontalScrollContent}
           >
-            {section.data.map((product) => (
-              <TouchableOpacity
-                key={product.id}
-                style={styles.trendingCard}
-                onPress={() => handleProductPress(product)}
-              >
-                <CachedImage
-                  source={{ uri: product.imageUrl }}
-                  style={styles.trendingImage}
-                  contentFit="cover"
-                />
-                <View style={styles.trendingInfo}>
-                  <Text style={styles.trendingPrice}>
-                    ¥{product.price.toLocaleString()}
-                  </Text>
-                  {product.brand && (
-                    <Text style={styles.trendingBrand} numberOfLines={1}>
-                      {product.brand}
+            {section.data.map((product) => {
+              // imageUrlとimage_urlの両方をチェック
+              const imageUrl = product.imageUrl || product.image_url;
+              
+              return (
+                <TouchableOpacity
+                  key={product.id}
+                  style={styles.trendingCard}
+                  onPress={() => handleProductPress(product)}
+                >
+                  <CachedImage
+                    source={{ uri: imageUrl }}
+                    style={styles.trendingImage}
+                    contentFit="cover"
+                  />
+                  <View style={styles.trendingInfo}>
+                    <Text style={styles.trendingPrice}>
+                      ¥{product.price.toLocaleString()}
                     </Text>
-                  )}
-                </View>
-              </TouchableOpacity>
-            ))}
+                    {product.brand && (
+                      <Text style={styles.trendingBrand} numberOfLines={1}>
+                        {product.brand}
+                      </Text>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
           </ScrollView>
         </View>
       );
@@ -388,6 +405,9 @@ const EnhancedRecommendScreen: React.FC = () => {
     const normalizedHash = (hash % 100) / 100;
     const itemHeight = 180 + normalizedHash * 120;
     
+    // imageUrlとimage_urlの両方をチェック
+    const imageUrl = item.imageUrl || item.image_url;
+    
     return (
       <TouchableOpacity
         activeOpacity={0.95}
@@ -402,9 +422,9 @@ const EnhancedRecommendScreen: React.FC = () => {
         ]}
       >
         <View style={[styles.productImageContainer, { backgroundColor: theme.colors.surface }]}>
-          {item.imageUrl && item.imageUrl.trim() !== '' && !item.imageUrl.includes('placehold.co') ? (
+          {imageUrl && imageUrl.trim() !== '' && !imageUrl.includes('placehold.co') ? (
             <CachedImage
-              source={{ uri: item.imageUrl }}
+              source={{ uri: imageUrl }}
               style={styles.productImage}
               contentFit="cover"
             />
