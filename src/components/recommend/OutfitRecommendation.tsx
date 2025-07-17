@@ -33,8 +33,7 @@ const OutfitRecommendation: React.FC<OutfitRecommendationProps> = ({
   // アイテムのURL取得ヘルパー
   const getImage = (product: Product | null | undefined): string => {
     if (!product) return '';
-    // ここでimageUrlかimage_urlの区別をしておく
-    return product.imageUrl || product.image_url || '';
+    return product.imageUrl || '';
   };
   
   // コーディネートの合計金額を計算

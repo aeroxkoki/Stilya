@@ -341,7 +341,7 @@ const StyleQuizScreen: React.FC<Props> = ({ navigation }) => {
           >
             <Animated.View style={[styles.card, animatedStyle]}>
               <Image
-                source={{ uri: currentProduct.image_url || currentProduct.imageUrl }}
+                source={{ uri: currentProduct.imageUrl }}
                 style={styles.productImage}
                 resizeMode="cover"
               />

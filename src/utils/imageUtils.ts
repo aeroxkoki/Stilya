@@ -62,10 +62,10 @@ export const optimizeImageUrl = (url: string | undefined | null): string => {
 
 /**
  * 商品データから画像URLを取得する統一関数
- * imageUrlとimage_urlの両方に対応
+ * Product型のimageUrlフィールドを使用
  */
 export const getProductImageUrl = (product: any): string => {
-  const rawUrl = product?.imageUrl || product?.image_url || '';
+  const rawUrl = product?.imageUrl || '';
   return optimizeImageUrl(rawUrl);
 };
 

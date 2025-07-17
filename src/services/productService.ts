@@ -86,29 +86,66 @@ const extractTagsFromProduct = (product: any): string[] => {
   return tags;
 };
 
-// Product正規化関数
-const normalizeProduct = (product: any): Product => {
-  // imageUrlとimage_urlの両方をサポート
-  const imageUrl = product.imageUrl || product.image_url || '';
-  
+// Product正規化関数（DBのsnake_caseからアプリのcamelCaseへ変換）
+const normalizeProduct = (dbProduct: any): Product => {
   return {
-    id: product.id || '',
-    title: product.title || '商品名なし',
-    brand: product.brand || 'ブランド不明',
-    price: product.price || 0,
-    imageUrl: imageUrl,  // imageUrlを使用
-    image_url: imageUrl,  // 互換性のために両方設定
-    description: product.description || '',
-    tags: product.tags || [],
-    category: product.category,
-    affiliate_url: product.affiliate_url || '',
-    source: product.source || 'unknown',
-    is_active: product.is_active !== false,
-    priority: product.priority || 999,
-    created_at: product.created_at,
-    updated_at: product.updated_at,
-    last_synced: product.last_synced,
-    isUsed: product.is_used || false  // is_usedフィールドも追加
+    id: dbProduct.id || '',
+    title: dbProduct.title || '商品名なし',
+    brand: dbProduct.brand || 'ブランド不明',
+    price: dbProduct.price || 0,
+    imageUrl: dbProduct.image_url || '',
+    thumbnailUrl: dbProduct.thumbnail_url,
+    description: dbProduct.description || '',
+    tags: dbProduct.tags || [],
+    category: dbProduct.category,
+    affiliateUrl: dbProduct.affiliate_url || '',
+    source: dbProduct.source || 'unknown',
+    createdAt: dbProduct.created_at,
+    
+    // ショップ情報
+    shopName: dbProduct.shop_name,
+    
+    // ジェンダー情報
+    gender: dbProduct.gender,
+    
+    // セール情報
+    originalPrice: dbProduct.original_price,
+    discountPercentage: dbProduct.discount_percentage,
+    isSale: dbProduct.is_sale,
+    rating: dbProduct.rating,
+    reviewCount: dbProduct.review_count,
+    
+    // 人気度スコア
+    popularityScore: dbProduct.popularity_score,
+    
+    // 中古品フラグ
+    isUsed: dbProduct.is_used || false,
+    
+    // 収益最適化
+    commissionRate: dbProduct.commission_rate,
+    
+    // バリューコマース対応
+    adTag: dbProduct.ad_tag,
+    metadata: dbProduct.metadata ? {
+      adTag: dbProduct.metadata.ad_tag,
+      merchantId: dbProduct.metadata.merchant_id,
+      originalId: dbProduct.metadata.original_id,
+      ...dbProduct.metadata
+    } : undefined,
+    
+    // 内部管理用フィールド
+    priority: dbProduct.priority || 999,
+    isActive: dbProduct.is_active !== false,
+    lastSynced: dbProduct.last_synced,
+    updatedAt: dbProduct.updated_at,
+    featuresExtracted: dbProduct.features_extracted,
+    styleTags: dbProduct.style_tags,
+    colorTags: dbProduct.color_tags,
+    seasonTags: dbProduct.season_tags,
+    qualityScore: dbProduct.quality_score,
+    genreId: dbProduct.genre_id,
+    sourceBrand: dbProduct.source_brand,
+    reviewAverage: dbProduct.review_average
   };
 };
 
@@ -673,19 +710,68 @@ const insertSampleProducts = async () => {
 };
 
 /**
+ * Product型（camelCase）をDBProduct型（snake_case）に変換
+ */
+const denormalizeProduct = (product: Product): any => {
+  return {
+    id: product.id,
+    title: product.title,
+    brand: product.brand,
+    price: product.price,
+    image_url: product.imageUrl,
+    thumbnail_url: product.thumbnailUrl,
+    description: product.description,
+    tags: product.tags,
+    category: product.category,
+    affiliate_url: product.affiliateUrl,
+    source: product.source,
+    created_at: product.createdAt,
+    shop_name: product.shopName,
+    gender: product.gender,
+    original_price: product.originalPrice,
+    discount_percentage: product.discountPercentage,
+    is_sale: product.isSale,
+    rating: product.rating,
+    review_count: product.reviewCount,
+    popularity_score: product.popularityScore,
+    is_used: product.isUsed,
+    commission_rate: product.commissionRate,
+    ad_tag: product.adTag,
+    metadata: product.metadata ? {
+      ad_tag: product.metadata.adTag,
+      merchant_id: product.metadata.merchantId,
+      original_id: product.metadata.originalId,
+      ...product.metadata
+    } : undefined,
+    priority: product.priority,
+    is_active: product.isActive,
+    last_synced: product.lastSynced,
+    updated_at: product.updatedAt,
+    features_extracted: product.featuresExtracted,
+    style_tags: product.styleTags,
+    color_tags: product.colorTags,
+    season_tags: product.seasonTags,
+    quality_score: product.qualityScore,
+    genre_id: product.genreId,
+    source_brand: product.sourceBrand,
+    review_average: product.reviewAverage
+  };
+};
+
+/**
  * 楽天APIから取得した商品をSupabaseに保存
  */
 const saveProductsToSupabase = async (products: Product[]) => {
   try {
+    // Product型をDB形式に変換
+    const dbProducts = products.map(product => ({
+      ...denormalizeProduct(product),
+      last_synced: new Date().toISOString()
+    }));
+    
     const { error } = await supabase
       .from('external_products')
-      .upsert(
-        products.map(product => ({
-          ...product,
-          last_synced: new Date().toISOString()
-        })),
-        { onConflict: 'id' }
-      );
+      .upsert(dbProducts, { onConflict: 'id' });
     
     if (error) {
       console.error('[ProductService] Error saving products to Supabase:', error);

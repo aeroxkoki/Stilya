@@ -91,7 +91,8 @@ export default ({ config }) => {
         permissions: [
           "CAMERA",
           "READ_EXTERNAL_STORAGE",
-          "WRITE_EXTERNAL_STORAGE"
+          "WRITE_EXTERNAL_STORAGE",
+          "VIBRATE"
         ]
       },
       web: {

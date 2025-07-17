@@ -43,8 +43,8 @@ const StyledSwipeCard: React.FC<StyledSwipeCardProps> = ({
   // Animation values
   const scaleAnim = useRef(new Animated.Value(1)).current;
   
-  // imageUrlとimage_urlの両方の形式に対応
-  const imageUrl = product.imageUrl || product.image_url || 'https://via.placeholder.com/350x500?text=No+Image';
+  // imageUrlを使用
+  const imageUrl = product.imageUrl || 'https://via.placeholder.com/350x500?text=No+Image';
 
   // 初期アニメーション
   useEffect(() => {

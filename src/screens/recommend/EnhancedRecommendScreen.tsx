@@ -228,13 +228,12 @@ const EnhancedRecommendScreen: React.FC = () => {
       id: heroProduct.id,
       title: heroProduct.title,
       imageUrl: heroProduct.imageUrl,
-      image_url: heroProduct.image_url,
       brand: heroProduct.brand,
       price: heroProduct.price
     });
     
-    // imageUrlとimage_urlの両方をチェック
-    const imageUrl = heroProduct.imageUrl || heroProduct.image_url;
+    // imageUrlを使用
+    const imageUrl = heroProduct.imageUrl;
     
     return (
       <Animated.View 

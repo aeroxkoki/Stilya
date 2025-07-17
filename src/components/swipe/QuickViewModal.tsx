@@ -42,7 +42,7 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({
   
   if (!product) return null;
 
-  const imageUrl = product.imageUrl || product.image_url || 'https://via.placeholder.com/350x500?text=No+Image';
+  const imageUrl = product.imageUrl || 'https://via.placeholder.com/350x500?text=No+Image';
 
   return (
     <Modal

@@ -94,8 +94,8 @@ const SwipeCardEnhanced: React.FC<SwipeCardEnhancedProps> = ({
     return null;
   };
   
-  // imageUrlとimage_urlの両方の形式に対応
-  const imageUrl = product.imageUrl || product.image_url || 'https://via.placeholder.com/350x500?text=No+Image';
+  // imageUrlを使用
+  const imageUrl = product.imageUrl || 'https://via.placeholder.com/350x500?text=No+Image';
   
   // デバッグ: 画像URLの状態を詳細に確認
   React.useEffect(() => {
@@ -104,15 +104,13 @@ const SwipeCardEnhanced: React.FC<SwipeCardEnhancedProps> = ({
         productId: product.id,
         productTitle: product.title?.substring(0, 30) + '...',
         hasImageUrl: !!product.imageUrl,
-        hasImage_url: !!product.image_url,
         imageUrlValue: product.imageUrl,
-        image_urlValue: product.image_url,
         finalImageUrl: imageUrl,
         isPlaceholder: imageUrl.includes('placeholder'),
         source: product.source
       });
     }
-  }, [product.id, product.imageUrl, product.image_url, imageUrl]);
+  }, [product.id, product.imageUrl, imageUrl]);
   
   // 画像読み込みエラーハンドリング
   const [imageError, setImageError] = useState(false);

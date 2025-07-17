@@ -118,13 +118,20 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = ({
         // スワイプ完了判定
         if (gesture.dx > SWIPE_THRESHOLD && onSwipeRight) {
           // 右スワイプ（いいね！）- ポジティブなフィードバック
-          if (Platform.OS === 'ios') {
-            // iOS: Haptic Engineを使用
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-          } else {
-            // Android: 最適化されたバイブレーションパターン
-            // [wait, vibrate, wait, vibrate] - ダブルタップパターン
-            Vibration.vibrate([0, 50, 30, 50]);
+          console.log('[SwipeCard] 右スワイプ検出 - バイブレーション開始');
+          try {
+            if (Platform.OS === 'ios') {
+              // iOS: Haptic Engineを使用
+              console.log('[SwipeCard] iOS - Haptic Engineを使用');
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+            } else {
+              // Android: 最適化されたバイブレーションパターン
+              // [wait, vibrate, wait, vibrate] - ダブルタップパターン
+              console.log('[SwipeCard] Android - バイブレーションパターン: [0, 50, 30, 50]');
+              Vibration.vibrate([0, 50, 30, 50]);
+            }
+          } catch (error) {
+            console.error('[SwipeCard] バイブレーションエラー:', error);
           }
           Animated.timing(position, {
             toValue: { x: width, y: gesture.dy },
@@ -136,12 +143,19 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = ({
           });
         } else if (gesture.dx < -SWIPE_THRESHOLD && onSwipeLeft) {
           // 左スワイプ（スキップ）- 軽めのフィードバック
-          if (Platform.OS === 'ios') {
-            // iOS: Haptic Engineを使用
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          } else {
-            // Android: シンプルな短い振動
-            Vibration.vibrate(30);
+          console.log('[SwipeCard] 左スワイプ検出 - バイブレーション開始');
+          try {
+            if (Platform.OS === 'ios') {
+              // iOS: Haptic Engineを使用
+              console.log('[SwipeCard] iOS - Haptic Engineを使用（軽め）');
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            } else {
+              // Android: シンプルな短い振動
+              console.log('[SwipeCard] Android - バイブレーション: 30ms');
+              Vibration.vibrate(30);
+            }
+          } catch (error) {
+            console.error('[SwipeCard] バイブレーションエラー:', error);
           }
           Animated.timing(position, {
             toValue: { x: -width, y: gesture.dy },
@@ -174,10 +188,17 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = ({
   const animateButton = (callback?: () => void, isLikeAction?: boolean) => {
     // 保存ボタンの場合は中間のフィードバック
     if (callback === onSave) {
-      if (Platform.OS === 'ios') {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      } else {
-        Vibration.vibrate(40); // 中間の長さ
+      console.log('[SwipeCard] 保存ボタン - バイブレーション開始');
+      try {
+        if (Platform.OS === 'ios') {
+          console.log('[SwipeCard] iOS - Haptic Engine (Medium)');
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        } else {
+          console.log('[SwipeCard] Android - 中間振動 (40ms)');
+          Vibration.vibrate(40); // 中間の長さ
+        }
+      } catch (error) {
+        console.error('[SwipeCard] 保存ボタンのバイブレーションエラー:', error);
       }
     }
     
@@ -203,20 +224,29 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = ({
     const callback = direction === 'right' ? onSwipeRight : onSwipeLeft;
     
     // バイブレーションフィードバック
-    if (direction === 'right') {
-      // いいね！ボタン - ポジティブなフィードバック
-      if (Platform.OS === 'ios') {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    console.log(`[SwipeCard] プログラム的${direction === 'right' ? '右' : '左'}スワイプ - バイブレーション開始`);
+    try {
+      if (direction === 'right') {
+        // いいね！ボタン - ポジティブなフィードバック
+        if (Platform.OS === 'ios') {
+          console.log('[SwipeCard] iOS - Haptic Engine (Heavy)');
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+        } else {
+          console.log('[SwipeCard] Android - ダブルタップパターン');
+          Vibration.vibrate([0, 50, 30, 50]); // ダブルタップパターン
+        }
       } else {
-        Vibration.vibrate([0, 50, 30, 50]); // ダブルタップパターン
+        // スキップボタン - 軽めのフィードバック
+        if (Platform.OS === 'ios') {
+          console.log('[SwipeCard] iOS - Haptic Engine (Light)');
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        } else {
+          console.log('[SwipeCard] Android - 短い振動 (30ms)');
+          Vibration.vibrate(30);
+        }
       }
-    } else {
-      // スキップボタン - 軽めのフィードバック
-      if (Platform.OS === 'ios') {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      } else {
-        Vibration.vibrate(30);
-      }
+    } catch (error) {
+      console.error('[SwipeCard] プログラム的スワイプのバイブレーションエラー:', error);
     }
     
     // インジケーター表示

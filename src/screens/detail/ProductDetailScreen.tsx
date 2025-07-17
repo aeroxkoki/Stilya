@@ -278,7 +278,7 @@ const ProductDetailScreen: React.FC = () => {
         {/* 商品画像 */}
         <View style={[styles.imageContainer, { backgroundColor: theme.colors.surface }]}>
           <CachedImage
-            source={{ uri: product.imageUrl || product.image_url || '' }}
+            source={{ uri: product.imageUrl || '' }}
             style={styles.productImage}
             contentFit="cover"
             highQuality={true}

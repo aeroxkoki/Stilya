@@ -3,43 +3,59 @@ export interface Product {
   title: string;
   brand: string;
   price: number;
-  imageUrl?: string; // APIによって違う場合があるため、オプショナルに
-  image_url?: string; // Supabase DB 形式のフィールド名
-  thumbnail_url?: string; // サムネイル画像URL
+  imageUrl: string;
+  thumbnailUrl?: string;
   description?: string;
   tags: string[]; 
   category?: string;
-  affiliateUrl?: string; // データソースによってはないことも
-  affiliate_url?: string; // Supabase DB 形式のフィールド名
+  affiliateUrl: string;
   source?: string;
   createdAt?: string;
-  created_at?: string; // Supabase DB 形式のフィールド名
+  
   // ショップ情報
-  shop_name?: string; // ショップ名
+  shopName?: string;
+  
   // ジェンダー情報
-  gender?: 'male' | 'female' | 'unisex'; // 商品の性別
+  gender?: 'male' | 'female' | 'unisex';
+  
   // Phase 1 改良: セール情報（オプショナルで後方互換性を保つ）
-  originalPrice?: number; // 元の価格（セール前）
-  discountPercentage?: number; // 割引率（%）
-  isSale?: boolean; // セール中フラグ
-  rating?: number; // レビュー評価（1-5）
-  reviewCount?: number; // レビュー数
-  review_count?: number; // Supabase DB 形式のフィールド名
+  originalPrice?: number;
+  discountPercentage?: number;
+  isSale?: boolean;
+  rating?: number;
+  reviewCount?: number;
+  
   // 人気度スコア
-  popularity_score?: number; // 人気度スコア（0-9.99）
+  popularityScore?: number;
+  
   // 中古品フラグ
-  isUsed?: boolean; // 中古品かどうか
-  is_used?: boolean; // Supabase DB 形式のフィールド名
+  isUsed?: boolean;
+  
   // 収益最適化用フィールド
-  commissionRate?: number; // アフィリエイト手数料率（0.05 = 5%）
+  commissionRate?: number;
+  
   // バリューコマース対応（実装準備）
-  adTag?: string; // バリューコマースの表示カウント用タグ
+  adTag?: string;
   metadata?: {
-    ad_tag?: string;
-    merchant_id?: string;
-    original_id?: string;
+    adTag?: string;
+    merchantId?: string;
+    originalId?: string;
     [key: string]: any;
   };
+  
+  // 内部管理用フィールド
+  priority?: number;
+  isActive?: boolean;
+  lastSynced?: string;
+  updatedAt?: string;
+  featuresExtracted?: boolean;
+  styleTags?: string[];
+  colorTags?: string[];
+  seasonTags?: string[];
+  qualityScore?: number;
+  genreId?: number;
+  sourceBrand?: string;
+  reviewAverage?: number;
 }
 
 export interface SwipeResult {
@@ -69,4 +85,49 @@ export interface ProductService {
   fetchRecommendedProducts: (userId: string, limit?: number) => Promise<Product[]>;
   recordProductClick: (productId: string, product?: Product) => Promise<boolean>;
   saveSwipeResult: (productId: string, result: 'yes' | 'no') => Promise<boolean>;
+}
+
+// データベースの商品型（snake_case）
+export interface DBProduct {
+  id: string;
+  title: string;
+  brand: string;
+  price: number;
+  image_url: string;
+  thumbnail_url?: string;
+  description?: string;
+  tags: string[];
+  category?: string;
+  affiliate_url: string;
+  source?: string;
+  created_at?: string;
+  shop_name?: string;
+  gender?: 'male' | 'female' | 'unisex';
+  original_price?: number;
+  discount_percentage?: number;
+  is_sale?: boolean;
+  rating?: number;
+  review_count?: number;
+  popularity_score?: number;
+  is_used?: boolean;
+  commission_rate?: number;
+  ad_tag?: string;
+  metadata?: {
+    ad_tag?: string;
+    merchant_id?: string;
+    original_id?: string;
+    [key: string]: any;
+  };
+  priority?: number;
+  is_active?: boolean;
+  last_synced?: string;
+  updated_at?: string;
+  features_extracted?: boolean;
+  style_tags?: string[];
+  color_tags?: string[];
+  season_tags?: string[];
+  quality_score?: number;
+  genre_id?: number;
+  source_brand?: string;
+  review_average?: number;
 }
