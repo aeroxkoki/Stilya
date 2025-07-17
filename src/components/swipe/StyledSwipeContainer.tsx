@@ -378,14 +378,17 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
       
       {/* カードスタック */}
       <View style={styles.cardStackContainer}>
-        {/* 背景カード（次のカード） */}
-        {products[currentIndex + 1] && (
-          <View style={[styles.backgroundCard, { transform: [{ scale: 0.95 }] }]}>
-            <SwipeCardImproved
-              product={products[currentIndex + 1]}
-              testID="next-swipe-card"
-              isTopCard={false}
-            />
+        {/* 進捗インジケーター - 残り商品数を控えめに表示 */}
+        {products.length > 0 && currentIndex < products.length && (
+          <View style={[styles.progressContainer, { backgroundColor: theme.colors.background }]}>
+            <Text style={[styles.progressText, { color: theme.colors.text.hint }]}>
+              {currentIndex + 1} / {products.length}
+            </Text>
+            {hasMoreProducts && (
+              <Text style={[styles.progressSubText, { color: theme.colors.text.hint }]}>
+                +まだまだあります
+              </Text>
+            )}
           </View>
         )}
         
@@ -557,6 +560,24 @@ const styles = StyleSheet.create({
   backgroundCard: {
     position: 'absolute',
     opacity: 0.5,
+  },
+  progressContainer: {
+    position: 'absolute',
+    top: 10,
+    alignSelf: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 20,
+    zIndex: 1,
+  },
+  progressText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  progressSubText: {
+    fontSize: 12,
+    marginTop: 2,
   },
 });
 
