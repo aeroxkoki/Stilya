@@ -134,9 +134,9 @@ export const convertToProductFilters = (filters: FilterOptions): ProductFilterOp
     includeUsed: filters.includeUsed ?? true  // デフォルトはtrue
   };
   
-  // スタイルをタグに変換
-  if (filters.style && filters.style !== 'すべて') {
-    productFilters.selectedTags = [filters.style];
+  // スタイルをタグに変換（複数選択対応）
+  if (filters.styles && filters.styles.length > 0) {
+    productFilters.selectedTags = [...filters.styles];
   }
   
   // 気分タグを追加
@@ -171,11 +171,11 @@ export const applyFiltersToQuery = (query: any, filters: FilterOptions) => {
     }
   }
   
-  // スタイルフィルター（タグベース）
-  if (filters.style && filters.style !== 'すべて') {
-    // フィルターのスタイル名（日本語）をそのままタグとして使用
-    // 全てのスタイルオプションに対応
-    filteredQuery = filteredQuery.contains('tags', [filters.style]);
+  // スタイルフィルター（タグベース）- 複数選択対応
+  if (filters.styles && filters.styles.length > 0) {
+    // 複数スタイルのいずれかを含む商品を取得
+    const styleConditions = filters.styles.map(style => `tags.cs.{${style}}`).join(',');
+    filteredQuery = filteredQuery.or(styleConditions);
   }
   
   // 気分フィルター

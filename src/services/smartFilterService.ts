@@ -15,7 +15,7 @@ export const getSmartDefaults = async (userId: string): Promise<FilterOptions> =
     // ユーザーのプロファイルを取得
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .select('style_preferences')
+      .select('style_preferences, gender, age_group')
       .eq('id', userId)
       .single();
     
@@ -57,47 +57,51 @@ export const getSmartDefaults = async (userId: string): Promise<FilterOptions> =
     const minPrice = Math.max(0, Math.round(averagePrice * 0.5));
     const maxPrice = Math.min(50000, Math.round(averagePrice * 1.5));
     
-    // 2. 最も「Yes」スワイプされたスタイルタグを特定
-    const { data: tagData, error: tagError } = await supabase
-      .from('swipes')
-      .select(`
-        external_products!inner(tags)
-      `)
-      .eq('user_id', userId)
-      .eq('result', 'yes')
-      .gte('created_at', thirtyDaysAgo.toISOString())
-      .limit(100);
-    
-    let topStyle = 'すべて';
+    // 2. スタイルの設定
+    let topStyles: string[] = [];
     
     // ユーザーのプロファイルにスタイル選択がある場合、それを優先
     if (!userError && userData && userData.style_preferences && userData.style_preferences.length > 0) {
-      const firstStyleId = userData.style_preferences[0];
-      const jpTag = STYLE_ID_TO_JP_TAG[firstStyleId];
-      if (jpTag) {
-        topStyle = jpTag;
-      }
+      topStyles = userData.style_preferences.map((styleId: string) => {
+        const jpTag = STYLE_ID_TO_JP_TAG[styleId];
+        return jpTag || styleId;
+      }).filter(Boolean);
     }
     
-    // スワイプ履歴からもスタイルを分析
-    if (!tagError && tagData && tagData.length > 0) {
-      // タグの出現回数をカウント
-      const tagCounts: Record<string, number> = {};
-      const styleOptions = ['カジュアル', 'クラシック', 'ナチュラル', 'モード', 'ストリート', 'フェミニン'];
+    // スワイプ履歴からもスタイルを分析（補完用）
+    if (topStyles.length === 0) {
+      const { data: tagData, error: tagError } = await supabase
+        .from('swipes')
+        .select(`
+          external_products!inner(tags)
+        `)
+        .eq('user_id', userId)
+        .eq('result', 'yes')
+        .gte('created_at', thirtyDaysAgo.toISOString())
+        .limit(100);
       
-      tagData.forEach(item => {
-        const tags = item.external_products?.tags || [];
-        tags.forEach((tag: string) => {
-          if (styleOptions.includes(tag)) {
-            tagCounts[tag] = (tagCounts[tag] || 0) + 1;
-          }
+      if (!tagError && tagData && tagData.length > 0) {
+        // タグの出現回数をカウント
+        const tagCounts: Record<string, number> = {};
+        const styleOptions = ['カジュアル', 'クラシック', 'ナチュラル', 'モード', 'ストリート', 'フェミニン'];
+        
+        tagData.forEach(item => {
+          const tags = item.external_products?.tags || [];
+          tags.forEach((tag: string) => {
+            if (styleOptions.includes(tag)) {
+              tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+            }
+          });
         });
-      });
-      
-      // 最も多いスタイルを選択
-      const sortedTags = Object.entries(tagCounts).sort(([, a], [, b]) => b - a);
-      if (sortedTags.length > 0 && sortedTags[0][1] >= 3) { // 3回以上出現したら採用
-        topStyle = sortedTags[0][0];
+        
+        // 上位2つのスタイルを選択
+        const sortedTags = Object.entries(tagCounts).sort(([, a], [, b]) => b - a);
+        if (sortedTags.length > 0) {
+          topStyles = sortedTags
+            .filter(([, count]) => count >= 3) // 3回以上出現したら採用
+            .slice(0, 2)
+            .map(([tag]) => tag);
+        }
       }
     }
     
@@ -125,16 +129,25 @@ export const getSmartDefaults = async (userId: string): Promise<FilterOptions> =
       suggestedMoods.push('新着');
     }
     
+    // 4. 性別と年齢層の設定
+    const gender = userData?.gender || 'all';
+    const ageGroup = userData?.age_group || undefined;
+    
     console.log('[SmartFilterService] Smart defaults calculated:', {
       priceRange: [minPrice, maxPrice],
-      style: topStyle,
-      moods: suggestedMoods
+      styles: topStyles,
+      moods: suggestedMoods,
+      gender,
+      ageGroup
     });
     
     return {
       priceRange: [minPrice, maxPrice],
-      style: topStyle,
-      moods: suggestedMoods
+      styles: topStyles,
+      moods: suggestedMoods,
+      includeUsed: true,
+      gender,
+      ageGroup
     };
     
   } catch (error) {
@@ -149,7 +162,10 @@ export const getSmartDefaults = async (userId: string): Promise<FilterOptions> =
 const getDefaultFilters = (): FilterOptions => {
   return {
     priceRange: [0, 50000],
-    style: 'すべて',
-    moods: []
+    styles: [],
+    moods: [],
+    includeUsed: true,
+    gender: 'all',
+    ageGroup: undefined
   };
 };

@@ -23,7 +23,7 @@ const { width } = Dimensions.get('window');
 
 const SimpleFilterModal: React.FC<SimpleFilterModalProps> = ({ visible, onClose }) => {
   const { theme } = useStyle();
-  const { globalFilters, setPriceRange, setStyle, toggleMood, resetFilters, setIncludeUsed } = useFilters();
+  const { globalFilters, setPriceRange, toggleStyle, toggleMood, resetFilters, setIncludeUsed, clearStyles } = useFilters();
   
   // アニメーション値
   const fadeAnim = new Animated.Value(0);
@@ -69,7 +69,7 @@ const SimpleFilterModal: React.FC<SimpleFilterModalProps> = ({ visible, onClose 
     return (
       globalFilters.priceRange[0] > 0 ||
       globalFilters.priceRange[1] < 50000 ||
-      (globalFilters.style && globalFilters.style !== 'すべて') ||
+      globalFilters.styles.length > 0 ||
       globalFilters.moods.length > 0 ||
       globalFilters.includeUsed === false
     );
@@ -154,19 +154,22 @@ const SimpleFilterModal: React.FC<SimpleFilterModalProps> = ({ visible, onClose 
                       style={[
                         styles.priceOption,
                         {
-                          backgroundColor: isSelected
-                            ? theme.colors.primary
-                            : 'rgba(0, 0, 0, 0.05)',
+                          backgroundColor: isSelected 
+                            ? theme.colors.primary 
+                            : theme.colors.surface,
+                          borderColor: isSelected 
+                            ? theme.colors.primary 
+                            : theme.colors.border,
                         }
                       ]}
                       onPress={() => setTempPriceRange(option.range as [number, number])}
                     >
-                      <Text
+                      <Text 
                         style={[
                           styles.priceOptionText,
-                          {
-                            color: isSelected
-                              ? 'white'
+                          { 
+                            color: isSelected 
+                              ? '#fff' 
                               : theme.colors.text.primary
                           }
                         ]}
@@ -179,39 +182,67 @@ const SimpleFilterModal: React.FC<SimpleFilterModalProps> = ({ visible, onClose 
               </View>
             </View>
             
-            {/* スタイル選択 */}
+            {/* スタイル選択（複数選択可能） */}
             <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>
-                スタイル
-              </Text>
-              <View style={styles.optionsContainer}>
-                {STYLE_OPTIONS.map((style) => (
-                  <TouchableOpacity
-                    key={style}
-                    style={[
-                      styles.optionButton,
-                      {
-                        backgroundColor: globalFilters.style === style 
-                          ? theme.colors.primary 
-                          : 'rgba(0, 0, 0, 0.05)',
-                      }
-                    ]}
-                    onPress={() => setStyle(style)}
-                  >
-                    <Text
-                      style={[
-                        styles.optionText,
-                        {
-                          color: globalFilters.style === style
-                            ? 'white'
-                            : theme.colors.text.primary
-                        }
-                      ]}
-                    >
-                      {style}
+              <View style={styles.sectionHeader}>
+                <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>
+                  スタイル
+                </Text>
+                {globalFilters.styles.length > 0 && (
+                  <TouchableOpacity onPress={clearStyles}>
+                    <Text style={[styles.clearText, { color: theme.colors.primary }]}>
+                      クリア
                     </Text>
                   </TouchableOpacity>
-                ))}
+                )}
+              </View>
+              <Text style={[styles.sectionSubtitle, { color: theme.colors.text.secondary }]}>
+                複数選択可能
+              </Text>
+              <View style={styles.styleOptionsContainer}>
+                {STYLE_OPTIONS.map((style) => {
+                  const isSelected = globalFilters.styles.includes(style);
+                  
+                  return (
+                    <TouchableOpacity
+                      key={style}
+                      style={[
+                        styles.styleOption,
+                        {
+                          backgroundColor: isSelected 
+                            ? theme.colors.primary + '15'
+                            : theme.colors.surface,
+                          borderColor: isSelected 
+                            ? theme.colors.primary 
+                            : theme.colors.border,
+                          borderWidth: isSelected ? 2 : 1,
+                        }
+                      ]}
+                      onPress={() => toggleStyle(style)}
+                    >
+                      <Text 
+                        style={[
+                          styles.styleOptionText,
+                          { 
+                            color: isSelected 
+                              ? theme.colors.primary 
+                              : theme.colors.text.primary
+                          }
+                        ]}
+                      >
+                        {style}
+                      </Text>
+                      {isSelected && (
+                        <Ionicons 
+                          name="checkmark-circle" 
+                          size={16} 
+                          color={theme.colors.primary} 
+                          style={styles.checkIcon}
+                        />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             </View>
             
@@ -220,63 +251,95 @@ const SimpleFilterModal: React.FC<SimpleFilterModalProps> = ({ visible, onClose 
               <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>
                 気分
               </Text>
-              <View style={styles.optionsContainer}>
-                {MOOD_OPTIONS.map((mood) => (
-                  <TouchableOpacity
-                    key={mood}
-                    style={[
-                      styles.optionButton,
-                      {
-                        backgroundColor: globalFilters.moods.includes(mood)
-                          ? theme.colors.primary 
-                          : 'rgba(0, 0, 0, 0.05)',
-                      }
-                    ]}
-                    onPress={() => toggleMood(mood)}
-                  >
-                    <Text
+              <View style={styles.moodOptionsContainer}>
+                {MOOD_OPTIONS.map((mood) => {
+                  const isSelected = globalFilters.moods.includes(mood);
+                  
+                  return (
+                    <TouchableOpacity
+                      key={mood}
                       style={[
-                        styles.optionText,
+                        styles.moodOption,
                         {
-                          color: globalFilters.moods.includes(mood)
-                            ? 'white'
-                            : theme.colors.text.primary
+                          backgroundColor: isSelected 
+                            ? theme.colors.secondary + '15'
+                            : theme.colors.surface,
+                          borderColor: isSelected 
+                            ? theme.colors.secondary 
+                            : theme.colors.border,
                         }
                       ]}
+                      onPress={() => toggleMood(mood)}
                     >
-                      {mood}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                      <Text 
+                        style={[
+                          styles.moodOptionText,
+                          { 
+                            color: isSelected 
+                              ? theme.colors.secondary 
+                              : theme.colors.text.primary
+                          }
+                        ]}
+                      >
+                        {mood === '新着' && '🆕 '}
+                        {mood === '人気' && '🔥 '}
+                        {mood === 'セール' && '💰 '}
+                        {mood}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+            
+            {/* 中古品を含む */}
+            <View style={styles.section}>
+              <View style={styles.usedOptionContainer}>
+                <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>
+                  中古品を含む
+                </Text>
+                <Switch
+                  value={tempIncludeUsed}
+                  onValueChange={setTempIncludeUsed}
+                  trackColor={{ false: theme.colors.border, true: theme.colors.primary + '50' }}
+                  thumbColor={tempIncludeUsed ? theme.colors.primary : '#f4f3f4'}
+                />
               </View>
             </View>
           </ScrollView>
           
-          {/* アクションボタン */}
-          <View style={styles.footer}>
+          {/* フッター */}
+          <View style={[styles.footer, { borderTopColor: theme.colors.border }]}>
             <TouchableOpacity
-              style={[styles.resetButton, { borderColor: theme.colors.border }]}
+              style={[styles.footerButton, styles.resetButton]}
               onPress={handleReset}
               disabled={!isFilterActive()}
             >
-              <Text
+              <Text 
                 style={[
-                  styles.resetButtonText,
+                  styles.resetButtonText, 
                   { 
                     color: isFilterActive() 
                       ? theme.colors.primary 
-                      : theme.colors.text.secondary 
+                      : theme.colors.text.disabled 
                   }
                 ]}
               >
                 リセット
               </Text>
             </TouchableOpacity>
+            
             <TouchableOpacity
-              style={[styles.applyButton, { backgroundColor: theme.colors.primary }]}
+              style={[
+                styles.footerButton, 
+                styles.applyButton,
+                { backgroundColor: theme.colors.primary }
+              ]}
               onPress={handleApply}
             >
-              <Text style={styles.applyButtonText}>適用する</Text>
+              <Text style={styles.applyButtonText}>
+                {isFilterActive() ? '適用する' : '閉じる'}
+              </Text>
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -291,112 +354,143 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    maxHeight: 320,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
+    maxHeight: '90%',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: -2,
     },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 10,
   },
   title: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: 'bold',
   },
   closeButton: {
     padding: 4,
   },
   scrollContent: {
     flex: 1,
+    paddingHorizontal: 20,
   },
   section: {
     marginBottom: 24,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  sectionSubtitle: {
+    fontSize: 12,
     marginBottom: 12,
+  },
+  clearText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
   priceOptionsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginHorizontal: -6,
+    gap: 8,
+    marginTop: 12,
   },
   priceOption: {
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
-    margin: 6,
-    minWidth: 44,
-    minHeight: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderWidth: 1,
   },
   priceOptionText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  optionsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -6,
-  },
-  optionButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    margin: 6,
-    minWidth: 44,
-    minHeight: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  optionText: {
     fontSize: 14,
     fontWeight: '500',
   },
+  styleOptionsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  styleOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    gap: 4,
+  },
+  styleOptionText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  checkIcon: {
+    marginLeft: 4,
+  },
+  moodOptionsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
+  },
+  moodOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  moodOptionText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  usedOptionContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   footer: {
     flexDirection: 'row',
-    paddingTop: 16,
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0, 0, 0, 0.1)',
-    marginTop: 8,
+  },
+  footerButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
   },
   resetButton: {
-    flex: 1,
-    paddingVertical: 12,
     borderWidth: 1,
-    borderRadius: 8,
-    marginRight: 8,
-    alignItems: 'center',
-    minHeight: 44,
+    borderColor: '#E5E7EB',
   },
   resetButtonText: {
     fontSize: 16,
     fontWeight: '600',
   },
   applyButton: {
-    flex: 2,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    minHeight: 44,
+    backgroundColor: '#3B82F6',
   },
   applyButtonText: {
-    color: 'white',
     fontSize: 16,
     fontWeight: '600',
+    color: '#fff',
   },
 });
 
