@@ -4,7 +4,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Button } from '@/components/common';
 import { OnboardingStackParamList } from '@/types';
 import { useStyle } from '@/contexts/ThemeContext';
-import { LogoPlaceholder, WelcomeIllustrationPlaceholder } from '@/assets/images/placeholder-components';
+import { StilyaLogo, WelcomeIllustration } from '@/components/common/SvgIllustrations';
 
 type Props = NativeStackScreenProps<OnboardingStackParamList, 'Welcome'>;
 
@@ -18,13 +18,13 @@ const WelcomeScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.content}>
         {/* ヘッダー */}
         <View style={styles.header}>
-          <LogoPlaceholder size={80} />
+          <StilyaLogo width={80} height={80} />
           <Text style={[styles.appName, { color: theme.colors.text.primary }]}>Stilya</Text>
         </View>
 
         {/* メインコンテンツ */}
         <View style={styles.mainContent}>
-          <WelcomeIllustrationPlaceholder 
+          <WelcomeIllustration 
             width={width * 0.8} 
             height={height * 0.3} 
           />

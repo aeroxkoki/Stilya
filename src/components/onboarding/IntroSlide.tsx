@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Dimensions } from 'react-native';
 import { View, Text } from '../common/StyledComponents';
-import { StylePlaceholder } from '../common/ImagePlaceholder';
+import { SwipeIntroIllustration } from '../common/SvgIllustrations';
 
 const { width, height } = Dimensions.get('window');
 
@@ -14,15 +14,10 @@ export interface IntroSlideProps {
 const IntroSlide: React.FC<IntroSlideProps> = ({ title, description, styleName }) => {
   return (
     <View style={styles.container}>
-      {styleName ? (
-        <StylePlaceholder 
-          styleName={styleName}
-          width={width * 0.7}
-          height={height * 0.3}
-        />
-      ) : (
-        <View style={[styles.imagePlaceholder, { width: width * 0.7, height: height * 0.3 }]} />
-      )}
+      <SwipeIntroIllustration 
+        width={width * 0.7}
+        height={height * 0.3}
+      />
       
       <Text style={styles.title}>
         {title}

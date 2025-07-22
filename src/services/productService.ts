@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { Product } from '@/types/product';
+import { Product, dbProductToProduct, productToDBProduct } from '@/types/product';
 import { FilterOptions } from '@/contexts/FilterContext';
 import { UserPreference } from '@/services/userPreferenceService';
 import { calculateProductScore } from '@/utils/productScoring';
@@ -88,65 +88,7 @@ const extractTagsFromProduct = (product: any): string[] => {
 
 // Product正規化関数（DBのsnake_caseからアプリのcamelCaseへ変換）
 const normalizeProduct = (dbProduct: any): Product => {
-  return {
-    id: dbProduct.id || '',
-    title: dbProduct.title || '商品名なし',
-    brand: dbProduct.brand || 'ブランド不明',
-    price: dbProduct.price || 0,
-    imageUrl: dbProduct.image_url || '',
-    thumbnailUrl: dbProduct.thumbnail_url,
-    description: dbProduct.description || '',
-    tags: dbProduct.tags || [],
-    category: dbProduct.category,
-    affiliateUrl: dbProduct.affiliate_url || '',
-    source: dbProduct.source || 'unknown',
-    createdAt: dbProduct.created_at,
-    
-    // ショップ情報
-    shopName: dbProduct.shop_name,
-    
-    // ジェンダー情報
-    gender: dbProduct.gender,
-    
-    // セール情報
-    originalPrice: dbProduct.original_price,
-    discountPercentage: dbProduct.discount_percentage,
-    isSale: dbProduct.is_sale,
-    rating: dbProduct.rating,
-    reviewCount: dbProduct.review_count,
-    
-    // 人気度スコア
-    popularityScore: dbProduct.popularity_score,
-    
-    // 中古品フラグ
-    isUsed: dbProduct.is_used || false,
-    
-    // 収益最適化
-    commissionRate: dbProduct.commission_rate,
-    
-    // バリューコマース対応
-    adTag: dbProduct.ad_tag,
-    metadata: dbProduct.metadata ? {
-      adTag: dbProduct.metadata.ad_tag,
-      merchantId: dbProduct.metadata.merchant_id,
-      originalId: dbProduct.metadata.original_id,
-      ...dbProduct.metadata
-    } : undefined,
-    
-    // 内部管理用フィールド
-    priority: dbProduct.priority || 999,
-    isActive: dbProduct.is_active !== false,
-    lastSynced: dbProduct.last_synced,
-    updatedAt: dbProduct.updated_at,
-    featuresExtracted: dbProduct.features_extracted,
-    styleTags: dbProduct.style_tags,
-    colorTags: dbProduct.color_tags,
-    seasonTags: dbProduct.season_tags,
-    qualityScore: dbProduct.quality_score,
-    genreId: dbProduct.genre_id,
-    sourceBrand: dbProduct.source_brand,
-    reviewAverage: dbProduct.review_average
-  };
+  return dbProductToProduct(dbProduct);
 };
 
 // カテゴリーをタグに変換するヘルパー関数
@@ -713,49 +655,7 @@ const insertSampleProducts = async () => {
  * Product型（camelCase）をDBProduct型（snake_case）に変換
  */
 const denormalizeProduct = (product: Product): any => {
-  return {
-    id: product.id,
-    title: product.title,
-    brand: product.brand,
-    price: product.price,
-    image_url: product.imageUrl,
-    thumbnail_url: product.thumbnailUrl,
-    description: product.description,
-    tags: product.tags,
-    category: product.category,
-    affiliate_url: product.affiliateUrl,
-    source: product.source,
-    created_at: product.createdAt,
-    shop_name: product.shopName,
-    gender: product.gender,
-    original_price: product.originalPrice,
-    discount_percentage: product.discountPercentage,
-    is_sale: product.isSale,
-    rating: product.rating,
-    review_count: product.reviewCount,
-    popularity_score: product.popularityScore,
-    is_used: product.isUsed,
-    commission_rate: product.commissionRate,
-    ad_tag: product.adTag,
-    metadata: product.metadata ? {
-      ad_tag: product.metadata.adTag,
-      merchant_id: product.metadata.merchantId,
-      original_id: product.metadata.originalId,
-      ...product.metadata
-    } : undefined,
-    priority: product.priority,
-    is_active: product.isActive,
-    last_synced: product.lastSynced,
-    updated_at: product.updatedAt,
-    features_extracted: product.featuresExtracted,
-    style_tags: product.styleTags,
-    color_tags: product.colorTags,
-    season_tags: product.seasonTags,
-    quality_score: product.qualityScore,
-    genre_id: product.genreId,
-    source_brand: product.sourceBrand,
-    review_average: product.reviewAverage
-  };
+  return productToDBProduct(product);
 };
 
 /**
