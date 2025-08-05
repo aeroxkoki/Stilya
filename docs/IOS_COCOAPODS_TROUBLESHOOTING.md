@@ -1,93 +1,49 @@
-# iOS CocoaPods トラブルシューティングガイド
+# iOS CocoaPods トラブルシューティング
 
-## 「The sandbox is not in sync with the Podfile.lock」エラーの解決方法
+## 解決済みの問題
 
-このエラーは、CocoaPodsの依存関係が同期されていない場合に発生します。
+### 問題: "The sandbox is not in sync with the Podfile.lock"
 
-### エラーの原因
-
-1. `Podfile.lock`が存在しないか、古い
-2. `Pods`ディレクトリとの不整合
-3. 他の開発者がPodfileを更新したが、`pod install`が実行されていない
-
-### 解決手順
-
-#### 1. プロジェクトディレクトリに移動
-
-```bash
-cd /path/to/your/project/ios
+#### エラーメッセージ
+```
+The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.
 ```
 
-#### 2. 既存のPodsを削除（オプション）
+#### 原因
+- Podfile.lockとPodsディレクトリの同期が取れていない
+- node_modulesの変更後にpod installが実行されていない
+- CocoaPodsのキャッシュの問題
 
-問題が続く場合は、クリーンな状態から始めることを推奨：
+#### 解決方法
 
+1. **Podsディレクトリとlockファイルのクリーンアップ**
 ```bash
-rm -rf Pods
-rm -rf ~/Library/Developer/Xcode/DerivedData/YourProject*
+cd ios
+rm -rf Pods Podfile.lock
 ```
 
-#### 3. pod installを実行
-
+2. **pod installの実行**
 ```bash
-pod install
+pod install --verbose
 ```
 
-#### 4. Xcodeでの開き方を確認
-
-重要：`pod install`実行後は、必ず`.xcworkspace`ファイルを使用してプロジェクトを開いてください：
-
+3. **変更のコミット**
 ```bash
-open YourProject.xcworkspace
+git add ios/Podfile.lock ios/Podfile.properties.json ios/Stilya.xcodeproj/project.pbxproj
+git commit -m "fix: CocoaPods sync error resolved by reinstalling pods"
 ```
 
-**注意**: `.xcodeproj`ファイルではなく、`.xcworkspace`ファイルを使用することが重要です。
+#### 注意事項
+- Expo managed workflowを維持しながら開発ビルドを使用する場合、iOSディレクトリが生成されます
+- Podsディレクトリは`.gitignore`に含まれているため、GitHubにはプッシュされません
+- Podfile.lockは必ずコミットしてください（チーム間での依存関係の一貫性を保つため）
 
-### Expo開発ビルドでの注意事項
+#### 予防策
+- `npm install`や`yarn install`を実行した後は、必ず`cd ios && pod install`を実行する
+- 定期的に`pod repo update`を実行してCocoaPodsのスペックリポジトリを更新する
+- チーム内でCocoaPodsのバージョンを統一する
 
-Expo managed workflowから開発ビルドに移行した場合：
-
-1. `.gitignore`ファイルで`ios/`ディレクトリが無視されていないことを確認
-2. `Podfile.lock`をGitリポジトリにコミット
-3. チームメンバー全員が`pod install`を実行
-
-### よくある問題と解決方法
-
-#### CocoaPodsがインストールされていない
-
-```bash
-# CocoaPodsのインストール
-sudo gem install cocoapods
-
-# または、Homebrewを使用
-brew install cocoapods
-```
-
-#### pod installが失敗する
-
-```bash
-# CocoaPodsのリポジトリを更新
-pod repo update
-
-# キャッシュをクリア
-pod cache clean --all
-```
-
-#### M1/M2 Macでの問題
-
-```bash
-# Rosettaを使用してpod installを実行
-arch -x86_64 pod install
-```
-
-### 推奨されるワークフロー
-
-1. 新しいブランチをチェックアウトした後は必ず`pod install`を実行
-2. `Podfile`を変更した場合は、`pod install`を実行して`Podfile.lock`を更新
-3. `Podfile.lock`は必ずGitにコミット
-4. CI/CDパイプラインでも`pod install`を実行
-
-### 関連ドキュメント
-
-- [DEVELOPMENT_BUILD_GUIDE.md](./DEVELOPMENT_BUILD_GUIDE.md)
-- [IPHONE_SETUP_GUIDE.md](./IPHONE_SETUP_GUIDE.md)
+## 実行日時
+- 2025年8月5日
+- CocoaPods version: 1.16.2
+- Expo SDK: 53.0.0
