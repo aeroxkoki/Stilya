@@ -134,7 +134,7 @@ keystore-base64.txt
 
 # Cleanup scripts
 cleanup-*.sh
-fix-*.sh
+# fix-*.sh  # Commented out to allow fix scripts
 start-*.sh
 
 # Expo generated
