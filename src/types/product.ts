@@ -79,6 +79,8 @@ export const dbProductToProduct = (dbProduct: DBProduct): Product => {
     affiliateUrl: dbProduct.affiliate_url,
     source: dbProduct.source,
     createdAt: dbProduct.created_at,
+    shopName: dbProduct.shop_name,
+    gender: dbProduct.gender as Product['gender'],
     originalPrice: dbProduct.original_price,
     discountPercentage: dbProduct.discount_percentage,
     isSale: dbProduct.is_sale,
@@ -87,6 +89,7 @@ export const dbProductToProduct = (dbProduct: DBProduct): Product => {
     popularityScore: dbProduct.popularity_score,
     isUsed: dbProduct.is_used,
     commissionRate: dbProduct.commission_rate,
+    adTag: dbProduct.ad_tag,
     metadata: dbProduct.metadata as Product['metadata'],
     priority: dbProduct.priority,
     isActive: dbProduct.is_active,
@@ -118,6 +121,8 @@ export const productToDBProduct = (product: Partial<Product>): Partial<DBProduct
   if (product.affiliateUrl !== undefined) dbProduct.affiliate_url = product.affiliateUrl;
   if (product.source !== undefined) dbProduct.source = product.source;
   if (product.createdAt !== undefined) dbProduct.created_at = product.createdAt;
+  if (product.shopName !== undefined) dbProduct.shop_name = product.shopName;
+  if (product.gender !== undefined) dbProduct.gender = product.gender;
   if (product.originalPrice !== undefined) dbProduct.original_price = product.originalPrice;
   if (product.discountPercentage !== undefined) dbProduct.discount_percentage = product.discountPercentage;
   if (product.isSale !== undefined) dbProduct.is_sale = product.isSale;
@@ -126,6 +131,7 @@ export const productToDBProduct = (product: Partial<Product>): Partial<DBProduct
   if (product.popularityScore !== undefined) dbProduct.popularity_score = product.popularityScore;
   if (product.isUsed !== undefined) dbProduct.is_used = product.isUsed;
   if (product.commissionRate !== undefined) dbProduct.commission_rate = product.commissionRate;
+  if (product.adTag !== undefined) dbProduct.ad_tag = product.adTag;
   if (product.metadata !== undefined) dbProduct.metadata = product.metadata;
   if (product.priority !== undefined) dbProduct.priority = product.priority;
   if (product.isActive !== undefined) dbProduct.is_active = product.isActive;

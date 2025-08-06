@@ -67,6 +67,8 @@ open ios/Stilya.xcworkspace
 
 #### CocoaPodsエラーの対処
 
+##### 一般的なエラー対処法
+
 Xcodeで"The sandbox is not in sync with the Podfile.lock"エラーが発生した場合：
 
 ```bash
@@ -87,6 +89,19 @@ cd ..
 # 4. Xcodeで再度ビルド
 open ios/Stilya.xcworkspace
 ```
+
+##### SIGTERMエラーの解決方法
+
+pod install時にSIGTERMエラーが発生する場合（2025年1月時点の既知の問題）：
+
+```bash
+# 1. 診断スクリプトの実行
+./scripts/diagnose-cocoapods.sh
+
+# 2. 安全な修復スクリプトの実行
+./scripts/fix-ios-build-safe.sh
+
+# 3. 手
 
 #### 開発サーバーの起動
 

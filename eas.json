@@ -1,11 +1,11 @@
 {
   "cli": {
-    "version": ">=14.1.0",
+    "version": ">= 5.9.1",
     "appVersionSource": "local"
   },
   "build": {
     "development": {
-      "node": "20.18.1",
+      "node": "20.11.1",
       "distribution": "internal",
       "android": {
         "buildType": "apk"
@@ -18,24 +18,23 @@
       }
     },
     "preview": {
-      "node": "20.18.1",
+      "node": "20.11.1",
       "distribution": "internal",
       "android": {
         "buildType": "apk"
       },
-      "ios": {
-        "simulator": false
-      },
       "env": {
         "NODE_ENV": "development"
-      }
+      },
+      "channel": "preview"
     },
     "production": {
-      "node": "20.18.1",
+      "node": "20.11.1",
       "distribution": "store",
       "env": {
         "NODE_ENV": "production"
-      }
+      },
+      "channel": "production"
     }
   },
   "submit": {

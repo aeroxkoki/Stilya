@@ -1,0 +1,40 @@
+#!/bin/bash
+
+echo "🔍 Supabase Project Verification Script"
+echo "======================================="
+echo ""
+echo "このスクリプトは、Supabaseプロジェクトの設定を確認します。"
+echo ""
+echo "1. Supabaseダッシュボードにアクセスしてください："
+echo "   https://app.supabase.com"
+echo ""
+echo "2. プロジェクトを選択（または新規作成）してください"
+echo ""
+echo "3. Settings > API から以下の情報を取得してください："
+echo "   - Project URL (例: https://xxxxxxxxxxxx.supabase.co)"
+echo "   - anon public key"
+echo ""
+echo "4. 取得した情報を.envファイルに設定してください："
+echo "   EXPO_PUBLIC_SUPABASE_URL=<your-project-url>"
+echo "   EXPO_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>"
+echo ""
+echo "現在の設定:"
+echo "------------"
+
+if [ -f .env ]; then
+    echo "EXPO_PUBLIC_SUPABASE_URL=$(grep EXPO_PUBLIC_SUPABASE_URL .env | cut -d'=' -f2)"
+    echo ""
+    echo "⚠️  注意: 現在のURL 'ddypgpljprljqrblpuli.supabase.co' は無効です。"
+    echo "新しいプロジェクトURLに更新してください。"
+else
+    echo "❌ .envファイルが見つかりません"
+fi
+
+echo ""
+echo "プロジェクト作成が必要な場合："
+echo "1. https://app.supabase.com にアクセス"
+echo "2. 'New project' をクリック"
+echo "3. プロジェクト名: 'stilya-prod' (推奨)"
+echo "4. データベースパスワードを設定"
+echo "5. Region: Northeast Asia (Tokyo) を選択"
+echo ""

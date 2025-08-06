@@ -106,3 +106,6 @@ export const StyleProvider: React.FC<StyleProviderProps> = ({ children }) => {
 
 // カスタムフック
 export const useStyle = () => useContext(StyleContext);
+
+// 互換性のためのエイリアス
+export const useTheme = useStyle;

@@ -17,15 +17,21 @@ export default ({ config }) => {
         resizeMode: "contain",
         backgroundColor: "#ffffff"
       },
+      // assetBundlePatterns: [
+      //   "**/*"
+      // ],
       assetBundlePatterns: [
         "**/*"
       ],
-      // 開発ビルド用の設定を追加
-      developmentClient: {
-        silentLaunch: false
-      },
       updates: {
-        enabled: false // 開発ビルドではOTA更新を無効化
+        enabled: true,
+        fallbackToCacheTimeout: 10000
+      },
+      // React Native 0.79.2に必要な設定
+      jsEngine: "hermes",
+      // 開発サーバーの設定
+      packagerOpts: {
+        sourceExts: ["js", "jsx", "ts", "tsx", "json", "svg"]
       },
       ios: {
         supportsTablet: false,
@@ -116,17 +122,17 @@ export default ({ config }) => {
           projectId: "beb25e0f-344b-4f2f-8b64-20614b9744a3"
         },
         // 環境変数から読み込む（ハードコードしない）
-        supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || "",
-        supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || "",
+        supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL || "",
+        supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || "",
         // LinkShare API設定
-        linkshareApiToken: process.env.LINKSHARE_API_TOKEN || "",
-        linkshareMerchantId: process.env.LINKSHARE_MERCHANT_ID || "",
-        linkshareApplicationId: process.env.LINKSHARE_APPLICATION_ID || "",
-        linkshareAffiliateId: process.env.LINKSHARE_AFFILIATE_ID || "",
-        // 楽天API設定（EXPO_PUBLIC_プレフィックスに対応）
-        rakutenAppId: process.env.EXPO_PUBLIC_RAKUTEN_APP_ID || process.env.RAKUTEN_APP_ID || "",
-        rakutenAffiliateId: process.env.EXPO_PUBLIC_RAKUTEN_AFFILIATE_ID || process.env.RAKUTEN_AFFILIATE_ID || "",
-        rakutenAppSecret: process.env.EXPO_PUBLIC_RAKUTEN_APP_SECRET || process.env.RAKUTEN_APP_SECRET || "",
+        linkshareApiToken: process.env.EXPO_PUBLIC_LINKSHARE_API_TOKEN || "",
+        linkshareMerchantId: process.env.EXPO_PUBLIC_LINKSHARE_MERCHANT_ID || "",
+        linkshareApplicationId: process.env.EXPO_PUBLIC_LINKSHARE_APPLICATION_ID || "",
+        linkshareAffiliateId: process.env.EXPO_PUBLIC_LINKSHARE_AFFILIATE_ID || "",
+        // 楽天API設定
+        rakutenAppId: process.env.EXPO_PUBLIC_RAKUTEN_APP_ID || "",
+        rakutenAffiliateId: process.env.EXPO_PUBLIC_RAKUTEN_AFFILIATE_ID || "",
+        rakutenAppSecret: process.env.EXPO_PUBLIC_RAKUTEN_APP_SECRET || "",
         enableDevFeatures: process.env.NODE_ENV === 'development'
       }
     }
