@@ -6,7 +6,8 @@ import { calculateProductScore } from '@/utils/productScoring';
 import { STYLE_ID_TO_JP_TAG } from '@/constants/constants';
 import axios from 'axios';
 
-const RAKUTEN_API_BASE_URL = 'https://app.rakuten.co.jp/services/api/Product/Search/20170426';
+// 楽天市場検索API（IchibaItem/Search）を使用
+const RAKUTEN_API_BASE_URL = 'https://app.rakuten.co.jp/services/api/IchibaItem/Search/20220601';
 const RAKUTEN_APP_ID = '1082075033088952260';
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
@@ -24,34 +25,37 @@ export const fetchRakutenFashionProducts = async (
   offset: number = 0
 ) => {
   try {
+    // 楽天市場検索APIのパラメータ
     const params = {
       applicationId: RAKUTEN_APP_ID,
-      keyword: keyword || 'レディースファッション メンズファッション',
-      genreId: '100371', // ファッションカテゴリ
-      hits: Math.min(limit, 30), // 楽天APIの制限
+      keyword: keyword || 'ファッション',
+      // ファッションジャンルID（メンズ・レディース・キッズ・バッグ・小物・ブランド雑貨の親カテゴリ）
+      genreId: '216131', // レディースファッション
+      hits: Math.min(limit, 30), // 楽天APIの制限（最大30件）
       page: Math.floor(offset / 30) + 1,
-      sort: '-updateTimestamp',
-      format: 'json'
+      sort: '-updateTimestamp', // 更新日時降順
+      formatVersion: '2'
     };
 
+    console.log('[ProductService] Calling Rakuten API with params:', params);
     const response = await axios.get(RAKUTEN_API_BASE_URL, { params });
     
-    if (!response.data || !response.data.Products) {
-      console.error('[ProductService] No products in Rakuten API response');
+    if (!response.data || !response.data.Items) {
+      console.error('[ProductService] No items in Rakuten API response');
       return { success: false, data: [] };
     }
 
-    const products = response.data.Products.map((item: any) => {
-      const product = item.Product;
+    const products = response.data.Items.map((item: any) => {
+      const product = item.Item;
       return {
-        id: `rakuten_${product.productId}`,
-        title: product.productName,
-        brand: product.makerName || product.brandName || 'ブランド不明',
-        price: product.maxPrice,
-        image_url: product.mediumImageUrl || product.smallImageUrl,
-        description: product.productCaption || product.catchcopy || '',
+        id: `rakuten_${product.itemCode}`,
+        title: product.itemName,
+        brand: product.shopName || 'ブランド不明',
+        price: product.itemPrice,
+        image_url: product.mediumImageUrls?.[0]?.imageUrl || product.smallImageUrls?.[0]?.imageUrl || '',
+        description: product.itemCaption || '',
         tags: extractTagsFromProduct(product),
-        affiliate_url: product.affiliateUrl || product.productUrl,
+        affiliate_url: product.affiliateUrl || product.itemUrl,
         source: 'rakuten',
         is_active: true,
       };
@@ -71,8 +75,8 @@ const extractTagsFromProduct = (product: any): string[] => {
   const tags: string[] = [];
   
   // カテゴリ情報からタグを抽出
-  if (product.productName) {
-    const name = product.productName.toLowerCase();
+  const name = (product.itemName || product.productName || '').toLowerCase();
+  if (name) {
     if (name.includes('カジュアル')) tags.push('カジュアル');
     if (name.includes('きれいめ') || name.includes('キレイめ')) tags.push('きれいめ');
     if (name.includes('ナチュラル')) tags.push('ナチュラル');
@@ -81,6 +85,8 @@ const extractTagsFromProduct = (product: any): string[] => {
     if (name.includes('パンツ')) tags.push('パンツ');
     if (name.includes('シャツ')) tags.push('シャツ');
     if (name.includes('ニット')) tags.push('ニット');
+    if (name.includes('メンズ')) tags.push('メンズ');
+    if (name.includes('レディース')) tags.push('レディース');
   }
   
   return tags;
