@@ -104,16 +104,6 @@ export default ({ config }) => {
       web: {
         favicon: "./assets/favicon.png"
       },
-      plugins: [
-        [
-          "expo-build-properties",
-          {
-            ios: {
-              deploymentTarget: "15.1"
-            }
-          }
-        ]
-      ],
       scheme: "stilya",
       // New Architectureを無効化（これだけで大幅にPodが削減される）
       newArchEnabled: false,
