@@ -1,4 +1,4 @@
-import Expo
+import ExpoModulesCore
 import React
 import ReactAppDependencyProvider
 
