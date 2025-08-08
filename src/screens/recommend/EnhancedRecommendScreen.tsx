@@ -470,23 +470,11 @@ const EnhancedRecommendScreen: React.FC = () => {
             </View>
           )}
           
-          {/* セールバッジ */}
-          {item.isSale && item.discountPercentage && (
-            <View style={[styles.saleBadge, { backgroundColor: theme.colors.status?.error || '#EF4444' }]}>
-              <Text style={styles.saleText}>-{item.discountPercentage}%</Text>
-            </View>
-          )}
-          
-          {/* 価格タグ（改善版） */}
+          {/* 価格タグ（シンプル版） */}
           <View style={[styles.priceTag, { backgroundColor: theme.colors.background + 'F5' }]}>
             <Text style={[styles.priceText, { color: theme.colors.text.primary, fontSize: 16 }]}>
               ¥{item.price.toLocaleString()}
             </Text>
-            {item.originalPrice && item.originalPrice > item.price && (
-              <Text style={[styles.originalPriceText, { color: theme.colors.text.secondary }]}>
-                ¥{item.originalPrice.toLocaleString()}
-              </Text>
-            )}
           </View>
           
           <TouchableOpacity
@@ -884,19 +872,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
   },
-  saleBadge: {
-    position: 'absolute',
-    top: 38,
-    right: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-  },
-  saleText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '700',
-  },
   priceTag: {
     position: 'absolute',
     bottom: 8,
@@ -911,11 +886,6 @@ const styles = StyleSheet.create({
   priceText: {
     fontSize: 14,
     fontWeight: '800',
-  },
-  originalPriceText: {
-    fontSize: 12,
-    textDecorationLine: 'line-through',
-    opacity: 0.6,
   },
   favoriteButton: {
     position: 'absolute',
