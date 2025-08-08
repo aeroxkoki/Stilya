@@ -50,6 +50,7 @@ export interface StyleQuizResult {
   liked: boolean;
   category?: string;
   tags?: string[];
+  isTutorial?: boolean; // チュートリアル商品かどうか
 }
 
 const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined);
@@ -133,21 +134,27 @@ export const OnboardingProvider: React.FC<{ children: ReactNode }> = ({ children
 
       if (updateError) throw updateError;
 
-      // スタイル診断結果を保存（スワイプ履歴として記録）
+      // スタイル診断結果を保存（チュートリアル商品を除外）
       if (styleQuizResults && styleQuizResults.length > 0) {
-        const swipeData = styleQuizResults.map(result => ({
-          user_id: user.id,
-          product_id: result.productId,
-          result: result.liked ? 'yes' : 'no',
-        }));
+        // チュートリアル以外の結果のみを保存
+        const realQuizResults = styleQuizResults.filter(result => !result.isTutorial);
+        
+        if (realQuizResults.length > 0) {
+          const swipeData = realQuizResults.map(result => ({
+            user_id: user.id,
+            product_id: result.productId,
+            result: result.liked ? 'yes' : 'no',
+            is_style_quiz: true, // 診断であることを示すフラグ
+          }));
 
-        const { error: swipeError } = await supabase
-          .from('swipes')
-          .insert(swipeData);
+          const { error: swipeError } = await supabase
+            .from('swipes')
+            .insert(swipeData);
 
-        if (swipeError) {
-          console.error('Error saving style quiz results:', swipeError);
-          // スワイプの保存エラーは致命的ではないので続行
+          if (swipeError) {
+            console.error('Error saving style quiz results:', swipeError);
+            // スワイプの保存エラーは致命的ではないので続行
+          }
         }
       }
 
@@ -178,7 +185,8 @@ export const OnboardingProvider: React.FC<{ children: ReactNode }> = ({ children
 
   // 新規メソッド: 選択内容の分析結果
   const getSelectionInsights = (): SelectionInsights => {
-    const quizResults = styleQuizResults || [];
+    // チュートリアル以外の結果のみを分析対象にする
+    const quizResults = (styleQuizResults || []).filter(r => !r.isTutorial);
     const likedItems = quizResults.filter(r => r.liked);
     
     // Like率の計算
