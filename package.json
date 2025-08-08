@@ -18,18 +18,7 @@
     "clear-cache": "npx expo start --clear",
     "check-env": "node -e \"console.log('SUPABASE_URL:', process.env.EXPO_PUBLIC_SUPABASE_URL ? 'Set' : 'Not set')\"",
     "start:expo-go": "expo start",
-    "full-reset": "./scripts/maintenance/full-clean.sh",
-    "sync-products": "node scripts/sync/sync-mvp-brands.js",
-    "types:generate": "./scripts/utils/generate-types.sh",
-    "types:check": "tsc --noEmit",
-    "monitor:capacity": "node scripts/monitoring/supabase-free-tier-monitor.js",
-    "cleanup:dry-run": "node scripts/maintenance/smart-deletion-manager.js --dry-run",
-    "cleanup:execute": "node scripts/maintenance/smart-deletion-manager.js",
-    "cleanup:emergency": "node scripts/maintenance/emergency-deletion.js",
-    "db:migrate": "node scripts/database/migrate-schema.js",
-    "db:check": "node scripts/utils/check-products.ts",
-    "patch:daily": "node scripts/maintenance/simple-daily-patch.js",
-    "optimize:performance": "node scripts/optimize-performance.js"
+    "types:check": "tsc --noEmit"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.0",

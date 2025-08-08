@@ -6,7 +6,7 @@ import SettingsScreen from '@/screens/profile/SettingsScreen';
 import FavoritesScreen from '@/screens/profile/FavoritesScreen';
 import SwipeHistoryScreen from '@/screens/profile/SwipeHistoryScreen';
 import ProductDetailScreen from '@/screens/detail/ProductDetailScreen';
-import { DebugSupabaseScreen } from '@/screens/debug/SupabaseDiagnosticScreen';
+// import { DebugSupabaseScreen } from '@/screens/debug/SupabaseDiagnosticScreen';
 import AdminScreen from '@/screens/settings/AdminScreen';
 import { useStyle } from '@/contexts/ThemeContext';
 
@@ -27,14 +27,14 @@ const ProfileNavigator: React.FC = () => {
       <Stack.Screen name="Favorites" component={FavoritesScreen} />
       <Stack.Screen name="SwipeHistory" component={SwipeHistoryScreen} />
       <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
-      <Stack.Screen 
+      {/* <Stack.Screen 
         name="SupabaseDiagnostic" 
         component={DebugSupabaseScreen} 
         options={{ 
           headerShown: true,
           title: 'データベース診断' 
         }} 
-      />
+      /> */}
       <Stack.Screen 
         name="Admin" 
         component={AdminScreen} 
