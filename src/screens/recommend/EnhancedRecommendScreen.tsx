@@ -400,9 +400,16 @@ const EnhancedRecommendScreen: React.FC = () => {
   // リストアイテムのレンダリング
   const renderProduct: ListRenderItem<Product> = ({ item, index }) => {
     const isLeftColumn = index % 2 === 0;
+    
+    // 品質スコアに基づいて高品質商品を大きく表示
+    const isHighQuality = item.qualityScore && item.qualityScore >= 80;
+    const isSpecialItem = isHighQuality || (item.popularityScore && item.popularityScore >= 70);
+    
+    // 特別な商品は大きめのサイズ
+    const baseHeight = isSpecialItem ? 220 : 180;
     const hash = item.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     const normalizedHash = (hash % 100) / 100;
-    const itemHeight = 180 + normalizedHash * 120;
+    const itemHeight = baseHeight + normalizedHash * (isSpecialItem ? 40 : 80);
     
     // imageUrlとimage_urlの両方をチェック
     const imageUrl = item.imageUrl || item.image_url;
@@ -417,10 +424,15 @@ const EnhancedRecommendScreen: React.FC = () => {
             marginLeft: isLeftColumn ? 16 : 8,
             marginRight: isLeftColumn ? 8 : 16,
             height: itemHeight,
-          }
+          },
+          isSpecialItem && styles.specialProductCard
         ]}
       >
-        <View style={[styles.productImageContainer, { backgroundColor: theme.colors.surface }]}>
+        <View style={[
+          styles.productImageContainer, 
+          { backgroundColor: theme.colors.surface },
+          isSpecialItem && styles.specialImageContainer
+        ]}>
           {imageUrl && imageUrl.trim() !== '' && !imageUrl.includes('placehold.co') ? (
             <CachedImage
               source={{ uri: imageUrl }}
@@ -433,14 +445,52 @@ const EnhancedRecommendScreen: React.FC = () => {
             </View>
           )}
           
-          <View style={[styles.priceTag, { backgroundColor: theme.colors.background + 'F0' }]}>
-            <Text style={[styles.priceText, { color: theme.colors.text.primary }]}>
+          {/* 品質スコアバッジ（改善版） */}
+          {item.qualityScore && item.qualityScore >= 70 && (
+            <View style={[
+              styles.qualityScoreBadge, 
+              { 
+                backgroundColor: item.qualityScore >= 90 
+                  ? theme.colors.primary 
+                  : item.qualityScore >= 80 
+                    ? theme.colors.status?.success || '#10B981'
+                    : theme.colors.status?.info || '#3B82F6'
+              }
+            ]}>
+              <Ionicons name="star" size={12} color="#fff" />
+              <Text style={styles.qualityScoreText}>{item.qualityScore}点</Text>
+            </View>
+          )}
+          
+          {/* 人気度バッジ */}
+          {item.popularityScore && item.popularityScore >= 70 && (
+            <View style={[styles.popularityBadge, { backgroundColor: '#FF6B6B' }]}>
+              <Ionicons name="flame" size={12} color="#fff" />
+              <Text style={styles.popularityText}>人気</Text>
+            </View>
+          )}
+          
+          {/* セールバッジ */}
+          {item.isSale && item.discountPercentage && (
+            <View style={[styles.saleBadge, { backgroundColor: theme.colors.status?.error || '#EF4444' }]}>
+              <Text style={styles.saleText}>-{item.discountPercentage}%</Text>
+            </View>
+          )}
+          
+          {/* 価格タグ（改善版） */}
+          <View style={[styles.priceTag, { backgroundColor: theme.colors.background + 'F5' }]}>
+            <Text style={[styles.priceText, { color: theme.colors.text.primary, fontSize: 16 }]}>
               ¥{item.price.toLocaleString()}
             </Text>
+            {item.originalPrice && item.originalPrice > item.price && (
+              <Text style={[styles.originalPriceText, { color: theme.colors.text.secondary }]}>
+                ¥{item.originalPrice.toLocaleString()}
+              </Text>
+            )}
           </View>
           
           <TouchableOpacity
-            style={[styles.favoriteButton, { backgroundColor: theme.colors.background + 'CC' }]}
+            style={[styles.favoriteButton, { backgroundColor: theme.colors.background + 'E6' }]}
             onPress={async (e) => {
               e.stopPropagation();
               try {
@@ -463,7 +513,7 @@ const EnhancedRecommendScreen: React.FC = () => {
           
           {item.isUsed && (
             <View style={[styles.usedBadge, { backgroundColor: theme.colors.status?.warning || '#F59E0B' }]}>
-              <Text style={styles.usedText}>Used</Text>
+              <Text style={styles.usedText}>中古</Text>
             </View>
           )}
         </View>
@@ -770,15 +820,26 @@ const styles = StyleSheet.create({
   productCard: {
     width: COLUMN_WIDTH,
     marginBottom: 12,
-    borderRadius: 8,
+    borderRadius: 12,
     overflow: 'hidden',
+  },
+  specialProductCard: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
   },
   productImageContainer: {
     width: '100%',
     height: '100%',
-    borderRadius: 8,
+    borderRadius: 12,
     overflow: 'hidden',
     position: 'relative',
+  },
+  specialImageContainer: {
+    borderWidth: 2,
+    borderColor: 'rgba(59, 130, 246, 0.2)',
   },
   productImage: {
     width: '100%',
@@ -791,17 +852,70 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#f0f0f0',
   },
+  qualityScoreBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    gap: 4,
+  },
+  qualityScoreText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  popularityBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    gap: 4,
+  },
+  popularityText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  saleBadge: {
+    position: 'absolute',
+    top: 38,
+    right: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+  },
+  saleText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
   priceTag: {
     position: 'absolute',
     bottom: 8,
     left: 8,
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 8,
     borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 6,
   },
   priceText: {
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: '800',
+  },
+  originalPriceText: {
+    fontSize: 12,
+    textDecorationLine: 'line-through',
+    opacity: 0.6,
   },
   favoriteButton: {
     position: 'absolute',

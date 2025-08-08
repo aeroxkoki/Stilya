@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
   TouchableOpacity,
   View,
@@ -49,6 +49,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
 }) => {
   const { theme, isDarkMode } = useStyle();
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const heartScaleAnim = useRef(new Animated.Value(1)).current;
+  const heartOpacityAnim = useRef(new Animated.Value(0)).current;
+  
+  // ダブルタップ検出用
+  const [lastTap, setLastTap] = useState<number | null>(null);
+  const DOUBLE_TAP_DELAY = 300;
 
   // バリューコマースadTag処理（準備のみ - 現在は無効）
   useEffect(() => {
@@ -66,24 +72,76 @@ const ProductCard: React.FC<ProductCardProps> = ({
     }
   }, [product]);
 
-  // 価格フォーマット
+  // 価格フォーマット（改善版）
   const formatPrice = (price: number): string => {
-    return price.toLocaleString('ja-JP', { style: 'currency', currency: 'JPY' });
+    return `¥${price.toLocaleString('ja-JP')}`;
+  };
+
+  // ハートアニメーションの実行
+  const animateHeart = () => {
+    Animated.parallel([
+      Animated.sequence([
+        Animated.spring(heartScaleAnim, {
+          toValue: 1.5,
+          friction: 3,
+          tension: 200,
+          useNativeDriver: true,
+        }),
+        Animated.spring(heartScaleAnim, {
+          toValue: 1,
+          friction: 5,
+          tension: 100,
+          useNativeDriver: true,
+        })
+      ]),
+      Animated.sequence([
+        Animated.timing(heartOpacityAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(heartOpacityAnim, {
+          toValue: 0,
+          duration: 500,
+          delay: 300,
+          useNativeDriver: true,
+        })
+      ])
+    ]).start();
   };
 
   // お気に入りボタンのハンドラ
   const handleFavoritePress = () => {
     if (onFavoritePress) {
-      // ハートアニメーション
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.spring);
+      animateHeart();
       onFavoritePress(product.id);
     }
   };
 
-  // カードのタッチエフェクト
+  // ダブルタップ処理
+  const handleDoubleTap = () => {
+    const now = Date.now();
+    if (lastTap && (now - lastTap) < DOUBLE_TAP_DELAY) {
+      // ダブルタップ検出
+      if (onFavoritePress && !isFavorite) {
+        animateHeart();
+        onFavoritePress(product.id);
+      }
+    } else {
+      setLastTap(now);
+      // シングルタップ
+      setTimeout(() => {
+        if (lastTap === now) {
+          onPress(product.id);
+        }
+      }, DOUBLE_TAP_DELAY);
+    }
+  };
+
+  // カードのタッチエフェクト（改善版）
   const handlePressIn = () => {
     Animated.spring(scaleAnim, {
-      toValue: 0.97,
+      toValue: 0.94,  // より強いフィードバック
       friction: 5,
       tension: 150,
       useNativeDriver: true,
@@ -107,7 +165,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
           horizontal ? styles.horizontalContainer : styles.verticalContainer,
           compact && styles.compactContainer,
           { 
-            borderRadius: theme.radius.m, 
+            borderRadius: 12,  // 統一された角丸
             backgroundColor: theme.colors.card.background,
             shadowColor: isDarkMode ? '#000' : '#222',
             borderColor: theme.colors.border,
@@ -115,7 +173,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
           },
           style,
         ]}
-        onPress={() => onPress(product.id)}
+        onPress={showFavoriteButton ? handleDoubleTap : () => onPress(product.id)}
         activeOpacity={0.9}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
@@ -131,6 +189,35 @@ const ProductCard: React.FC<ProductCardProps> = ({
             resizeMode="cover"
             showLoadingIndicator={true}
           />
+          
+          {/* ダブルタップハートアニメーション */}
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.animatedHeart,
+              {
+                opacity: heartOpacityAnim,
+                transform: [{ scale: heartScaleAnim }]
+              }
+            ]}
+          >
+            <Feather name="heart" size={50} color={theme.colors.primary} />
+          </Animated.View>
+          
+          {/* 品質スコアバッジ（高品質商品のみ表示） */}
+          {product.qualityScore && product.qualityScore >= 80 && (
+            <View style={[styles.qualityBadge, { backgroundColor: theme.colors.primary + 'F0' }]}>
+              <Feather name="award" size={12} color="#fff" />
+              <Text style={styles.qualityBadgeText}>高品質</Text>
+            </View>
+          )}
+          
+          {/* セールバッジ */}
+          {product.isSale && product.discountPercentage && (
+            <View style={[styles.saleBadge, { backgroundColor: theme.colors.status.error }]}>
+              <Text style={styles.saleBadgeText}>-{product.discountPercentage}%</Text>
+            </View>
+          )}
           
           {/* 中古品ラベル */}
           {product.isUsed && (
@@ -149,10 +236,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 { 
                   backgroundColor: isDarkMode 
                     ? 'rgba(0, 0, 0, 0.5)' 
-                    : 'rgba(255, 255, 255, 0.8)',
+                    : 'rgba(255, 255, 255, 0.9)',
                   borderWidth: 1,
                   borderColor: isFavorite 
-                    ? theme.colors.status.error 
+                    ? theme.colors.primary 
                     : 'transparent',
                 },
               ]}
@@ -160,48 +247,59 @@ const ProductCard: React.FC<ProductCardProps> = ({
               hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
             >
               <Feather
-                name={isFavorite ? 'heart' : 'heart'}
-                size={16}
-                color={isFavorite ? theme.colors.status.error : theme.colors.text.hint}
+                name="heart"
+                size={18}
+                color={isFavorite ? theme.colors.primary : theme.colors.text.hint}
               />
             </TouchableOpacity>
           )}
         </View>
 
         <View style={[styles.infoContainer, compact && styles.compactInfoContainer]}>
+          {/* ブランド名を最上部に配置 */}
           {product.brand && (
             <Text style={[
               styles.brand, 
               compact && styles.compactBrand,
-              { color: theme.colors.text.secondary }
-            ]}>
-              {product.brand}
+              { color: theme.colors.text.hint, opacity: 0.8 }
+            ]} numberOfLines={1}>
+              {product.brand.toUpperCase()}
             </Text>
           )}
           
+          {/* 商品名を1行に制限 */}
           <Text
             style={[
               styles.title, 
               compact && styles.compactTitle,
               { color: theme.colors.text.primary }
             ]}
-            numberOfLines={compact ? 1 : 2}
+            numberOfLines={1}
             ellipsizeMode="tail"
           >
             {product.title}
           </Text>
           
-          <Text style={[
-            styles.price, 
-            compact && styles.compactPrice,
-            { color: theme.colors.primary }
-          ]}>
-            {formatPrice(product.price)}
-          </Text>
+          {/* 価格を大きく強調 */}
+          <View style={styles.priceContainer}>
+            <Text style={[
+              styles.price, 
+              compact && styles.compactPrice,
+              { color: theme.colors.primary }
+            ]}>
+              {formatPrice(product.price)}
+            </Text>
+            {product.originalPrice && product.originalPrice > product.price && (
+              <Text style={[styles.originalPrice, { color: theme.colors.text.hint }]}>
+                {formatPrice(product.originalPrice)}
+              </Text>
+            )}
+          </View>
 
+          {/* タグを最大2個に制限 */}
           {showTags && product.tags && product.tags.length > 0 && (
             <View style={styles.tagsContainer}>
-              {product.tags.slice(0, compact ? 1 : (horizontal ? 1 : 2)).map((tag, index) => (
+              {product.tags.slice(0, 2).map((tag, index) => (
                 <View
                   key={index}
                   style={[
@@ -209,7 +307,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                     compact && styles.compactTag,
                     { 
                       backgroundColor: isDarkMode 
-                        ? 'rgba(255, 255, 255, 0.1)' 
+                        ? 'rgba(255, 255, 255, 0.08)' 
                         : theme.colors.input.background
                     },
                   ]}
@@ -237,10 +335,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
 const styles = StyleSheet.create({
   container: {
     overflow: 'hidden',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
   },
   verticalContainer: {
     width: '100%',
@@ -257,14 +355,14 @@ const styles = StyleSheet.create({
   imageContainer: {
     position: 'relative',
     overflow: 'hidden',
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
   },
   horizontalImageContainer: {
     width: 120,
     height: '100%',
     borderTopRightRadius: 0,
-    borderBottomLeftRadius: 8,
+    borderBottomLeftRadius: 12,
   },
   compactImageContainer: {
     height: 140,
@@ -274,33 +372,69 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     height: undefined,
   },
+  animatedHeart: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    marginTop: -25,
+    marginLeft: -25,
+  },
   favoriteButton: {
     position: 'absolute',
     top: 8,
     right: 8,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  usedLabel: {
+  qualityBadge: {
     position: 'absolute',
     top: 8,
     left: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    gap: 4,
   },
-  usedLabelText: {
+  qualityBadgeText: {
+    color: 'white',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  saleBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+  },
+  saleBadgeText: {
     color: 'white',
     fontSize: 12,
     fontWeight: 'bold',
+  },
+  usedLabel: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+  },
+  usedLabelText: {
+    color: 'white',
+    fontSize: 11,
+    fontWeight: '700',
   },
   infoContainer: {
     padding: 12,
@@ -310,53 +444,62 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   brand: {
-    fontSize: 12,
-    marginBottom: 4,
-    fontWeight: '500',
+    fontSize: 11,
+    marginBottom: 2,
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
   compactBrand: {
-    fontSize: 10,
-    marginBottom: 2,
+    fontSize: 9,
+    marginBottom: 1,
   },
   title: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '500',
     marginBottom: 6,
-    height: 40,
+    height: 18,
+    lineHeight: 18,
   },
   compactTitle: {
-    fontSize: 12,
+    fontSize: 11,
     marginBottom: 4,
     height: 'auto',
   },
-  price: {
-    fontSize: 16,
-    fontWeight: '700',
+  priceContainer: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 6,
     marginBottom: 8,
   },
+  price: {
+    fontSize: 20,
+    fontWeight: '800',
+  },
   compactPrice: {
+    fontSize: 16,
+  },
+  originalPrice: {
     fontSize: 14,
-    marginBottom: 4,
+    textDecorationLine: 'line-through',
+    opacity: 0.6,
   },
   tagsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    gap: 4,
   },
   tag: {
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginRight: 6,
-    marginBottom: 6,
+    paddingVertical: 3,
+    borderRadius: 8,
   },
   compactTag: {
     paddingHorizontal: 6,
     paddingVertical: 2,
-    marginRight: 4,
-    marginBottom: 4,
   },
   tagText: {
     fontSize: 10,
+    fontWeight: '500',
   },
   compactTagText: {
     fontSize: 8,
