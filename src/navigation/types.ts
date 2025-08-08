@@ -10,16 +10,20 @@ export type AuthStackParamList = {
   ForgotPassword: undefined;
 };
 
-// Onboarding Stack
+// Onboarding Stack (新しいフロー)
 export type OnboardingStackParamList = {
   Welcome: undefined;
-  AppIntro: undefined;
-  Gender: undefined;
-  Style: undefined;
-  StyleQuiz: undefined;
-  StyleSelection: undefined;
-  AgeGroup: undefined;
+  QuickProfile: undefined;
+  UnifiedSwipe: undefined;
+  StyleReveal: undefined;
   Complete: undefined;
+  // Legacy screens (互換性のため残す)
+  AppIntro?: undefined;
+  Gender?: undefined;
+  Style?: undefined;
+  StyleQuiz?: undefined;
+  StyleSelection?: undefined;
+  AgeGroup?: undefined;
 };
 
 // Swipe Stack
