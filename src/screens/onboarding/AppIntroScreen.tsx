@@ -1,52 +1,24 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Dimensions, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Button } from '@/components/common';
-import IntroSlide, { IntroSlideProps } from '@/components/onboarding/IntroSlide';
+import { TutorialSwipeContainer } from '@/components/onboarding';
 import { OnboardingStackParamList } from '@/types';
 import { useStyle } from '@/contexts/ThemeContext';
-import { StylePlaceholder } from '@/components/common/ImagePlaceholder';
 
 type Props = NativeStackScreenProps<OnboardingStackParamList, 'AppIntro'>;
 
-const { width } = Dimensions.get('window');
-
-// アプリ紹介スライドのデータ（1枚に削減）
-const slides: IntroSlideProps[] = [
-  {
-    title: 'スワイプで、あなたの"好き"が見つかる',
-    description: '左右にスワイプするだけで、AIがあなたの好みを学習。使うほど精度が上がります。',
-    styleName: 'mode', // プレースホルダー用のスタイル名
-  },
-];
-
 const AppIntroScreen: React.FC<Props> = ({ navigation }) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const flatListRef = useRef<FlatList>(null);
   const { theme } = useStyle();
+  const [tutorialCompleted, setTutorialCompleted] = useState(false);
 
-  // 自動遷移の追加（3秒後に自動で次へ）
-  useEffect(() => {
-    const timer = setTimeout(() => {
+  const handleTutorialComplete = () => {
+    setTutorialCompleted(true);
+    // 完了後、1秒待ってから次へ進む
+    setTimeout(() => {
       navigation.navigate('Gender');
-    }, 3000);
-    return () => clearTimeout(timer);
-  }, [navigation]);
-
-  const handleNext = () => {
-    if (currentIndex === slides.length - 1) {
-      // 最後のスライドの場合は性別選択画面へ
-      navigation.navigate('Gender');
-    } else {
-      // 次のスライドへ
-      const nextIndex = currentIndex + 1;
-      flatListRef.current?.scrollToIndex({
-        animated: true,
-        index: nextIndex,
-      });
-      setCurrentIndex(nextIndex);
-    }
+    }, 1000);
   };
 
   const handleSkip = () => {
@@ -55,28 +27,7 @@ const AppIntroScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const handleBack = () => {
-    if (currentIndex === 0) {
-      // 最初のスライドの場合はウェルカム画面へ戻る
-      navigation.goBack();
-    } else {
-      // 前のスライドへ
-      const prevIndex = currentIndex - 1;
-      flatListRef.current?.scrollToIndex({
-        animated: true,
-        index: prevIndex,
-      });
-      setCurrentIndex(prevIndex);
-    }
-  };
-
-  const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
-    if (viewableItems[0]) {
-      setCurrentIndex(viewableItems[0].index);
-    }
-  }).current;
-
-  const renderItem = ({ item }: { item: IntroSlideProps }) => {
-    return <IntroSlide {...item} />;
+    navigation.goBack();
   };
 
   return (
@@ -91,44 +42,23 @@ const AppIntroScreen: React.FC<Props> = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      <FlatList
-        ref={flatListRef}
-        data={slides}
-        renderItem={renderItem}
-        keyExtractor={(_, index) => index.toString()}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={{ viewAreaCoveragePercentThreshold: 50 }}
-        initialNumToRender={1}
-        getItemLayout={(_, index) => ({
-          length: width,
-          offset: width * index,
-          index,
-        })}
-      />
+      {/* チュートリアルスワイプコンテナ */}
+      <TutorialSwipeContainer onComplete={handleTutorialComplete} />
 
-      {/* インジケーター */}
-      <View style={styles.pagination}>
-        {slides.map((_, index) => (
-          <View
-            key={index}
-            style={[
-              styles.paginationDot,
-              {
-                backgroundColor: index === currentIndex ? theme.colors.primary : theme.colors.border
-              }
-            ]}
-          />
-        ))}
-      </View>
-
-      <View style={styles.buttonContainer}>
-        <Button isFullWidth onPress={handleNext}>
-          {currentIndex === slides.length - 1 ? '始める' : '次へ'}
-        </Button>
-      </View>
+      {/* 完了メッセージ */}
+      {tutorialCompleted && (
+        <View style={styles.completedOverlay}>
+          <View style={[styles.completedCard, { backgroundColor: theme.colors.card }]}>
+            <Ionicons name="checkmark-circle" size={60} color={theme.colors.primary} />
+            <Text style={[styles.completedTitle, { color: theme.colors.text.primary }]}>
+              準備完了！
+            </Text>
+            <Text style={[styles.completedText, { color: theme.colors.text.secondary }]}>
+              次はあなたについて教えてください
+            </Text>
+          </View>
+        </View>
+      )}
     </View>
   );
 };
@@ -147,20 +77,36 @@ const styles = StyleSheet.create({
   skipText: {
     fontSize: 16,
   },
-  pagination: {
-    flexDirection: 'row',
+  completedOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     justifyContent: 'center',
-    paddingVertical: 20,
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
-  paginationDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginHorizontal: 4,
+  completedCard: {
+    padding: 32,
+    borderRadius: 20,
+    alignItems: 'center',
+    marginHorizontal: 32,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
-  buttonContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 32,
+  completedTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  completedText: {
+    fontSize: 16,
+    textAlign: 'center',
   },
 });
 
