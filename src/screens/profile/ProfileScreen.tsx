@@ -9,7 +9,7 @@ import { ProfileStackParamList } from '@/types';
 import { useStyle } from '@/contexts/ThemeContext';
 import DebugProductCount from '@/components/debug/DebugProductCount';
 import { DevMenu } from '@/components/dev/DevMenu';
-import { STYLE_ID_TO_JP_TAG } from '@/constants/constants';
+import { STYLE_ID_TO_JP_TAG, AGE_GROUPS } from '@/constants/constants';
 
 type ProfileScreenNavigationProp = StackNavigationProp<ProfileStackParamList, 'ProfileHome'>;
 
@@ -109,6 +109,22 @@ const ProfileScreen: React.FC = () => {
     other: 'その他',
   };
 
+  // 年齢グループの日本語表示を取得
+  const getAgeGroupLabel = (ageGroupId?: string): string => {
+    if (!ageGroupId) return '未設定';
+    const ageGroup = AGE_GROUPS.find(group => group.id === ageGroupId);
+    return ageGroup?.label || ageGroupId;
+  };
+
+  // スタイル選好の日本語表示を取得
+  const getStylePreferenceLabel = (stylePreferences?: string[]): string => {
+    if (!stylePreferences || stylePreferences.length === 0) return '未設定';
+    
+    return stylePreferences
+      .map(style => STYLE_ID_TO_JP_TAG[style] || style)
+      .join('、');
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -149,7 +165,7 @@ const ProfileScreen: React.FC = () => {
                   年齢
                 </Text>
                 <Text style={[styles.infoValue, { color: theme.colors.text.primary }]}>
-                  {user?.ageGroup || '未設定'}
+                  {getAgeGroupLabel(user?.ageGroup)}
                 </Text>
               </View>
               <View style={styles.infoRow}>
@@ -157,7 +173,7 @@ const ProfileScreen: React.FC = () => {
                   好みのスタイル
                 </Text>
                 <Text style={[styles.infoValue, { color: theme.colors.text.primary }]}>
-                  {user?.stylePreference?.join(', ') || '未設定'}
+                  {getStylePreferenceLabel(user?.stylePreference)}
                 </Text>
               </View>
             </View>
