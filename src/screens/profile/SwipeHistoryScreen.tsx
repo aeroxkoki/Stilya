@@ -290,15 +290,15 @@ const SwipeHistoryScreen: React.FC = () => {
                     onPress={() => handleProductPress(item)}
                   />
                   {/* フィルターがallの場合、Yes/No表示 */}
-                  {filter === 'all' && (
+                  {filter === 'all' && item.swipeResult && (
                     <View
                       style={[
                         styles.resultBadge,
-                        { backgroundColor: index % 2 === 0 ? '#3B82F6' : '#F87171' }
+                        { backgroundColor: item.swipeResult === 'yes' ? '#3B82F6' : '#F87171' }
                       ]}
                     >
                       <Text style={dynamicStyles.resultBadgeText}>
-                        {index % 2 === 0 ? 'Yes' : 'No'}
+                        {item.swipeResult === 'yes' ? 'Yes' : 'No'}
                       </Text>
                     </View>
                   )}

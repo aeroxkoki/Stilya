@@ -62,6 +62,9 @@ export interface Product {
   genreId?: number | null;
   sourceBrand?: string | null;
   reviewAverage?: number | null;
+  
+  // スワイプ履歴で使用
+  swipeResult?: 'yes' | 'no';
 }
 
 // データベースからアプリの型への変換

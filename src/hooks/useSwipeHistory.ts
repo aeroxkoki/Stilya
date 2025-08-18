@@ -48,6 +48,12 @@ export const useSwipeHistory = (): UseSwipeHistoryReturn => {
         
         console.log(`[useSwipeHistory] Fetching ${uniqueProductIds.length} unique products from ${swipeData.length} swipes`);
         
+        // スワイプ結果のマップを作成
+        const swipeResultMap = new Map<string, 'yes' | 'no'>();
+        swipeData.forEach(swipe => {
+          swipeResultMap.set(swipe.productId, swipe.result);
+        });
+        
         // 商品詳細を取得（バッチ処理）
         const batchSize = 10;
         const validProducts: Product[] = [];
@@ -66,7 +72,12 @@ export const useSwipeHistory = (): UseSwipeHistoryReturn => {
                 // IDが正しい形式で、重複していないことを確認
                 if (product.id && !seenIds.has(product.id)) {
                   seenIds.add(product.id);
-                  validProducts.push(product);
+                  // スワイプ結果を商品データに追加
+                  const productWithSwipeResult = {
+                    ...product,
+                    swipeResult: swipeResultMap.get(product.id) || undefined
+                  };
+                  validProducts.push(productWithSwipeResult);
                 }
               }
             });
