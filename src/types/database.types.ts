@@ -90,12 +90,14 @@ export type Database = {
           affiliate_url: string | null
           brand: string | null
           category: string | null
+          category_tags: string[] | null
           color_tags: string[] | null
           commission_rate: number | null
           created_at: string | null
           description: string | null
           discount_percentage: number | null
           features_extracted: boolean | null
+          gender: string | null
           genre_id: number | null
           id: string
           image_url: string | null
@@ -124,12 +126,14 @@ export type Database = {
           affiliate_url?: string | null
           brand?: string | null
           category?: string | null
+          category_tags?: string[] | null
           color_tags?: string[] | null
           commission_rate?: number | null
           created_at?: string | null
           description?: string | null
           discount_percentage?: number | null
           features_extracted?: boolean | null
+          gender?: string | null
           genre_id?: number | null
           id: string
           image_url?: string | null
@@ -158,12 +162,14 @@ export type Database = {
           affiliate_url?: string | null
           brand?: string | null
           category?: string | null
+          category_tags?: string[] | null
           color_tags?: string[] | null
           commission_rate?: number | null
           created_at?: string | null
           description?: string | null
           discount_percentage?: number | null
           features_extracted?: boolean | null
+          gender?: string | null
           genre_id?: number | null
           id?: string
           image_url?: string | null

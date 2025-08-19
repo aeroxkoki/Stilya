@@ -48,7 +48,7 @@ const SimilarProducts: React.FC<SimilarProductsProps> = ({
             onPress={() => onProductPress(product)}
           >
             <Image
-              source={{ uri: product.imageUrl }}
+              source={{ uri: product.imageUrl || undefined }}
               style={styles.image}
               resizeMode="cover"
             />

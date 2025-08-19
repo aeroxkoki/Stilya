@@ -5,6 +5,7 @@ import {
   fetchProductsByTags,
   ProductFilterOptions
 } from '@/services/productService';
+import { fetchProductById } from '@/services/product';
 import { saveSwipeResult, getSwipeHistory as getSwipeHistoryService, SwipeData } from '@/services/swipeService';
 import { Product } from '@/types';
 import { FilterOptions } from '@/contexts/FilterContext';

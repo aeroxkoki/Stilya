@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Product } from '@/types';
 import { getSwipeHistory as getSwipeHistoryService, SwipeData } from '@/services/swipeService';
-import { fetchProductById } from '@/services/productService';
+import { fetchProductById } from '@/services/product';
 import { useAuth } from './useAuth';
 
 interface UseSwipeHistoryReturn {

@@ -237,6 +237,43 @@ export const searchProducts = async (
   }
 };
 
+// 単一商品の詳細取得
+export const fetchProductById = async (productId: string): Promise<Product | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('external_products')
+      .select('*')
+      .eq('id', productId)
+      .single();
+
+    if (error) {
+      console.error('Error fetching product by ID:', error);
+      return null;
+    }
+
+    if (!data) {
+      return null;
+    }
+
+    // データをProduct型に変換
+    return {
+      id: data.id,
+      title: data.title,
+      imageUrl: data.image_url,
+      brand: data.brand,
+      price: data.price,
+      tags: data.tags,
+      category: data.category,
+      affiliateUrl: data.affiliate_url,
+      source: data.source,
+      createdAt: data.created_at,
+    };
+  } catch (error) {
+    console.error('Error in fetchProductById:', error);
+    return null;
+  }
+};
+
 // クリックログの記録
 export const logProductClick = async (userId: string, productId: string): Promise<void> => {
   try {

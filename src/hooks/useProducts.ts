@@ -53,8 +53,9 @@ export const useProducts = (): UseProductsReturn => {
   const [refreshing, setRefreshing] = useState(false);
   const [filters, setActiveFilters] = useState<FilterOptions>({
     priceRange: [0, 50000],
-    style: 'すべて',
-    moods: []
+    styles: [],
+    moods: [],
+    gender: 'all'
   });
   
   const pageSize = 20;
@@ -93,13 +94,14 @@ export const useProducts = (): UseProductsReturn => {
   const getEffectiveFilters = useCallback((): FilterOptions => {
     const effectiveFilters = { ...filters };
     
-    // オンボーディングで選択されたスタイルがあり、フィルターが「すべて」の場合、オンボーディングの選択を反映
-    if (stylePreference && stylePreference.length > 0 && filters.style === 'すべて') {
-      // 最初のスタイルを日本語タグに変換して使用
-      const firstStyle = stylePreference[0];
-      const jpTag = STYLE_ID_TO_JP_TAG[firstStyle];
-      if (jpTag) {
-        effectiveFilters.style = jpTag;
+    // オンボーディングで選択されたスタイルがあり、フィルターが空の場合、オンボーディングの選択を反映
+    if (stylePreference && stylePreference.length > 0 && filters.styles.length === 0) {
+      // 選択されたスタイルを日本語タグに変換して使用
+      const jpTags = stylePreference
+        .map(style => STYLE_ID_TO_JP_TAG[style])
+        .filter(tag => tag !== undefined);
+      if (jpTags.length > 0) {
+        effectiveFilters.styles = jpTags;
       }
     }
     

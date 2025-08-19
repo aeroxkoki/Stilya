@@ -87,7 +87,7 @@ export const DevBuildDiagnostics: React.FC = () => {
           status: 'error',
           message: 'Metro Bundlerに接続できません',
           details: {
-            error: error.message,
+            error: error instanceof Error ? error.message : String(error),
             hint: '開発サーバーが起動していることを確認してください',
           }
         }]);
@@ -116,7 +116,7 @@ export const DevBuildDiagnostics: React.FC = () => {
           status: 'error',
           message: 'Supabaseへの接続テストに失敗しました',
           details: {
-            error: error.message,
+            error: error instanceof Error ? error.message : String(error),
           }
         }]);
       }
@@ -139,8 +139,10 @@ export const DevBuildDiagnostics: React.FC = () => {
 
       // 6. メモリ使用量の確認
       setCurrentTest('メモリ使用量の確認');
-      if (global.performance && global.performance.memory) {
-        const memory = global.performance.memory;
+      // ブラウザ環境のperformance.memoryは型定義がないため、anyとして扱う
+      const performanceWithMemory = global.performance as any;
+      if (performanceWithMemory && performanceWithMemory.memory) {
+        const memory = performanceWithMemory.memory;
         const usagePercent = (memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100;
         
         setResults(prev => [...prev, {
@@ -156,7 +158,7 @@ export const DevBuildDiagnostics: React.FC = () => {
       }
 
     } catch (error) {
-      Alert.alert('診断エラー', `診断中にエラーが発生しました: ${error.message}`);
+      Alert.alert('診断エラー', `診断中にエラーが発生しました: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setIsRunning(false);
       setCurrentTest('');

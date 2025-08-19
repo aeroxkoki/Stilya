@@ -54,7 +54,7 @@ const ProductHorizontalList: React.FC<ProductHorizontalListProps> = ({
           >
             <View style={styles.productCard}>
               <Image
-                source={{ uri: product.imageUrl }}
+                source={{ uri: product.imageUrl || undefined }}
                 style={styles.productImage}
                 resizeMode="cover"
               />

@@ -7,8 +7,7 @@ import {
   StyleSheet,
   ActivityIndicator
 } from 'react-native';
-import { fetchMixedProducts } from '@/services/productService';
-import { FilterOptions } from '@/services/productService';
+import { fetchMixedProducts, FilterOptions } from '@/services/productService';
 
 const FilterDebugScreen = () => {
   const [results, setResults] = useState<any[]>([]);

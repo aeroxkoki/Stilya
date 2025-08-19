@@ -177,10 +177,21 @@ export const applyFiltersToQuery = (query: any, filters: FilterOptions) => {
     }
   }
   
+  // 性別フィルター（gender列を直接使用）
+  if (filters.gender && filters.gender !== 'all') {
+    if (filters.gender === 'unisex') {
+      // ユニセックスの場合
+      filteredQuery = filteredQuery.eq('gender', 'unisex');
+    } else {
+      // male/femaleの場合は、該当する性別とunisexも含む
+      filteredQuery = filteredQuery.in('gender', [filters.gender, 'unisex']);
+    }
+  }
+  
   // スタイルフィルター（タグベース）- 複数選択対応
   if (filters.styles && filters.styles.length > 0) {
     // 複数スタイルのいずれかを含む商品を取得
-    const styleConditions = filters.styles.map(style => `tags.cs.{${style}}`).join(',');
+    const styleConditions = filters.styles.map(style => `style_tags.cs.{${style}}`).join(',');
     filteredQuery = filteredQuery.or(styleConditions);
   }
   
@@ -963,3 +974,58 @@ export const fetchRandomizedProducts = async (
 
 // normalizeProductをエクスポート
 export { normalizeProduct };
+
+// FilterOptionsをre-export
+export type { FilterOptions } from '@/contexts/FilterContext';
+
+// fetchMixedProducts - ミックスされた商品を取得（男性・女性・ユニセックス）
+export const fetchMixedProducts = async (
+  limit: number = 20,
+  offset: number = 0,
+  filters?: FilterOptions
+): Promise<{ success: boolean; data?: Product[]; error?: string }> => {
+  try {
+    let query = supabase
+      .from('external_products')
+      .select('*')
+      .is('is_active', true);
+
+    // フィルター適用
+    if (filters) {
+      // 価格フィルター
+      if (filters.priceRange) {
+        query = query.gte('price', filters.priceRange[0])
+                     .lte('price', filters.priceRange[1]);
+      }
+
+      // スタイルフィルター
+      if (filters.styles && filters.styles.length > 0) {
+        query = query.overlaps('tags', filters.styles);
+      }
+
+      // 性別フィルター
+      if (filters.gender && filters.gender !== 'all') {
+        query = query.eq('gender', filters.gender);
+      }
+    }
+
+    // ページネーション
+    query = query.range(offset, offset + limit - 1)
+                 .order('created_at', { ascending: false });
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('[ProductService] Error fetching mixed products:', error);
+      return { success: false, error: error.message };
+    }
+
+    const products = data?.map(normalizeProduct) || [];
+    console.log(`[ProductService] Found ${products.length} mixed products`);
+
+    return { success: true, data: products };
+  } catch (error: any) {
+    console.error('[ProductService] Unexpected error fetching mixed products:', error);
+    return { success: false, error: error.message };
+  }
+};

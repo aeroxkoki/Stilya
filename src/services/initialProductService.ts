@@ -3,16 +3,17 @@ import { supabase } from '@/services/supabase';
 import { STYLE_TAG_MAPPING } from '@/constants/constants';
 
 interface InitialProductConfig {
-  gender?: 'male' | 'female' | 'other';
+  gender?: 'male' | 'female' | 'unisex' | 'all';
   selectedStyles: string[];
   ageGroup?: string;
 }
 
-// 性別に基づくタグマッピング
+// 性別に基づくタグマッピング（後方互換性のため残す）
 const GENDER_TAG_MAPPING = {
-  male: ['メンズ', 'メンズファッション', 'mens', 'men', '男性', 'ユニセックス'],
-  female: ['レディース', 'レディースファッション', 'ladies', 'women', '女性', 'ユニセックス'],
-  other: ['ユニセックス', 'unisex', '男女兼用']
+  male: ['メンズ', 'メンズファッション', 'mens', 'men', '男性'],
+  female: ['レディース', 'レディースファッション', 'ladies', 'women', '女性'],
+  unisex: ['ユニセックス', 'unisex', '男女兼用'],
+  all: [] // すべての性別を含む
 };
 
 // 年代に基づく価格帯マッピング
