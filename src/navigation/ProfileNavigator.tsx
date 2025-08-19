@@ -8,6 +8,8 @@ import SwipeHistoryScreen from '@/screens/profile/SwipeHistoryScreen';
 import ProductDetailScreen from '@/screens/detail/ProductDetailScreen';
 // import { DebugSupabaseScreen } from '@/screens/debug/SupabaseDiagnosticScreen';
 import AdminScreen from '@/screens/settings/AdminScreen';
+import PrivacyPolicyScreen from '@/screens/legal/PrivacyPolicyScreen';
+import TermsOfServiceScreen from '@/screens/legal/TermsOfServiceScreen';
 import { useStyle } from '@/contexts/ThemeContext';
 
 const Stack = createStackNavigator<ProfileStackParamList>();

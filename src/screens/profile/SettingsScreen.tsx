@@ -35,7 +35,7 @@ const SettingsScreen: React.FC = () => {
   const [selectedStyle, setSelectedStyle] = useState<StyleType>(styleType);
   
   // パスワード保存処理
-  const handleSavePassword = () => {
+  const handleSavePassword = async () => {
     if (!currentPassword) {
       Alert.alert('エラー', '現在のパスワードを入力してください');
       return;
@@ -51,12 +51,24 @@ const SettingsScreen: React.FC = () => {
       return;
     }
     
-    // TODO: パスワード変更APIを呼び出す
-    Alert.alert('成功', 'パスワードを変更しました');
-    setShowPasswordFields(false);
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
+    try {
+      // AuthServiceを使用してパスワードを更新
+      const { AuthService } = await import('@/services/authService');
+      const result = await AuthService.updatePassword(currentPassword, newPassword);
+      
+      if (result.success) {
+        Alert.alert('成功', 'パスワードを変更しました');
+        setShowPasswordFields(false);
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+      } else {
+        Alert.alert('エラー', result.error || 'パスワードの変更に失敗しました');
+      }
+    } catch (error) {
+      console.error('パスワード変更エラー:', error);
+      Alert.alert('エラー', 'パスワードの変更に失敗しました');
+    }
   };
   
   // スタイル選択の処理
@@ -325,14 +337,20 @@ const SettingsScreen: React.FC = () => {
             <Ionicons name="chevron-forward" size={20} color={isDarkMode ? '#aaa' : '#999'} />
           </TouchableOpacity>
           
-          <TouchableOpacity style={[styles.settingItem, { borderBottomColor: isDarkMode ? '#333' : '#f0f0f0' }]}>
+          <TouchableOpacity 
+            style={[styles.settingItem, { borderBottomColor: isDarkMode ? '#333' : '#f0f0f0' }]}
+            onPress={() => navigation.navigate('PrivacyPolicy' as never)}
+          >
             <View style={styles.settingTextContainer}>
               <Text style={[styles.settingLabel, { color: isDarkMode ? '#fff' : '#333' }]}>プライバシーポリシー</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={isDarkMode ? '#aaa' : '#999'} />
           </TouchableOpacity>
           
-          <TouchableOpacity style={[styles.settingItem, { borderBottomColor: isDarkMode ? '#333' : '#f0f0f0' }]}>
+          <TouchableOpacity 
+            style={[styles.settingItem, { borderBottomColor: isDarkMode ? '#333' : '#f0f0f0' }]}
+            onPress={() => navigation.navigate('TermsOfService' as never)}
+          >
             <View style={styles.settingTextContainer}>
               <Text style={[styles.settingLabel, { color: isDarkMode ? '#fff' : '#333' }]}>利用規約</Text>
             </View>

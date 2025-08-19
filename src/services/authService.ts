@@ -128,6 +128,56 @@ export class AuthService {
     }
   }
 
+  // Update user password
+  static async updatePassword(currentPassword: string, newPassword: string) {
+    try {
+      // まず現在のパスワードで再認証
+      const { data: { user }, error: getUserError } = await supabase.auth.getUser();
+      
+      if (getUserError || !user) {
+        return handleSupabaseError(getUserError || new Error('ユーザー情報を取得できませんでした'));
+      }
+
+      // 現在のパスワードで再ログイン（確認のため）
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email!,
+        password: currentPassword,
+      });
+
+      if (signInError) {
+        return handleSupabaseError(new Error('現在のパスワードが正しくありません'));
+      }
+
+      // パスワードを更新
+      const { data, error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) {
+        return handleSupabaseError(error);
+      }
+
+      return handleSupabaseSuccess(data);
+    } catch (error) {
+      return handleSupabaseError(error as Error | { message: string });
+    }
+  }
+
+  // Reset password (send email)
+  static async resetPassword(email: string) {
+    try {
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email);
+
+      if (error) {
+        return handleSupabaseError(error);
+      }
+
+      return handleSupabaseSuccess(data);
+    } catch (error) {
+      return handleSupabaseError(error as Error | { message: string });
+    }
+  }
+
   // Listen to auth state changes
   static onAuthStateChange(callback: (event: string, session: Session | null) => void) {
     return supabase.auth.onAuthStateChange(callback);

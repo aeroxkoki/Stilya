@@ -49,6 +49,8 @@ export type ProfileStackParamList = {
   Admin: undefined;
   ImageDebug?: undefined;
   ImageDiagnosis?: undefined;
+  PrivacyPolicy: undefined;
+  TermsOfService: undefined;
 };
 
 // Main Tab Navigator

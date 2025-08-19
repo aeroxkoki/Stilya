@@ -582,3 +582,36 @@ export const cleanupDuplicateSwipes = async (userId: string): Promise<boolean> =
     return false;
   }
 };
+
+/**
+ * 全てのスワイプ履歴を削除する
+ * @param userId ユーザーID
+ * @returns 削除に成功したかどうか
+ */
+export const clearAllSwipeHistory = async (userId: string): Promise<boolean> => {
+  try {
+    if (!userId) {
+      console.error('[clearAllSwipeHistory] User ID is required');
+      return false;
+    }
+
+    const { error } = await supabase
+      .from('swipes')
+      .delete()
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('[clearAllSwipeHistory] Error clearing swipe history:', error);
+      return false;
+    }
+
+    // オフラインキャッシュもクリア
+    await AsyncStorage.removeItem(OFFLINE_SWIPE_STORAGE_KEY);
+
+    console.log('[clearAllSwipeHistory] Successfully cleared all swipe history');
+    return true;
+  } catch (error) {
+    console.error('[clearAllSwipeHistory] Unexpected error:', error);
+    return false;
+  }
+};

@@ -289,13 +289,22 @@ const FavoritesScreen: React.FC = () => {
         { 
           text: 'すべて削除', 
           style: 'destructive',
-          onPress: () => {
-            // MVPでは未実装のため、アラートのみ表示
-            Alert.alert(
-              '機能制限',
-              'この機能はMVP版では実装されていません。',
-              [{ text: 'OK', style: 'default' }]
-            );
+          onPress: async () => {
+            try {
+              const { clearAllFavorites } = await import('@/services/favoriteService');
+              const success = await clearAllFavorites(user.id);
+              
+              if (success) {
+                Alert.alert('完了', 'お気に入りをすべて削除しました');
+                // お気に入りをリフレッシュ
+                await refreshFavorites();
+              } else {
+                Alert.alert('エラー', 'お気に入りの削除に失敗しました');
+              }
+            } catch (error) {
+              console.error('Clear all favorites error:', error);
+              Alert.alert('エラー', 'お気に入りの削除に失敗しました');
+            }
           }
         }
       ]

@@ -164,13 +164,27 @@ const SwipeHistoryScreen: React.FC = () => {
         { 
           text: 'クリア', 
           style: 'destructive',
-          onPress: () => {
-            // MVPでは実装しないため、メッセージのみ表示
-            Alert.alert(
-              '機能制限',
-              'この機能はMVP版では実装されていません。',
-              [{ text: 'OK', style: 'default' }]
-            );
+          onPress: async () => {
+            if (!user || !user.id) {
+              Alert.alert('エラー', 'ユーザー情報が取得できません');
+              return;
+            }
+            
+            try {
+              const { clearAllSwipeHistory } = await import('@/services/swipeService');
+              const success = await clearAllSwipeHistory(user.id);
+              
+              if (success) {
+                Alert.alert('完了', 'スワイプ履歴をクリアしました');
+                // 履歴をリフレッシュして画面を更新
+                await refreshHistory();
+              } else {
+                Alert.alert('エラー', '履歴のクリアに失敗しました');
+              }
+            } catch (error) {
+              console.error('Clear history error:', error);
+              Alert.alert('エラー', '履歴のクリアに失敗しました');
+            }
           }
         }
       ]

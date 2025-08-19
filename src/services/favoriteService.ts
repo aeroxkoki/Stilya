@@ -236,3 +236,36 @@ export const clearFavoriteCache = (userId?: string) => {
   }
   console.log('Favorites cache cleared');
 };
+
+/**
+ * 全てのお気に入りを削除する
+ * @param userId ユーザーID
+ * @returns 削除に成功したかどうか
+ */
+export const clearAllFavorites = async (userId: string): Promise<boolean> => {
+  try {
+    if (!userId) {
+      console.error('[clearAllFavorites] User ID is required');
+      return false;
+    }
+
+    const { error } = await supabase
+      .from('favorites')
+      .delete()
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('[clearAllFavorites] Error clearing favorites:', error);
+      return false;
+    }
+
+    // キャッシュもクリア
+    clearFavoriteCache(userId);
+
+    console.log('[clearAllFavorites] Successfully cleared all favorites');
+    return true;
+  } catch (error) {
+    console.error('[clearAllFavorites] Unexpected error:', error);
+    return false;
+  }
+};
