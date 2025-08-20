@@ -1,9 +1,8 @@
-module.exports = function(api) {
+module.exports = function (api) {
   api.cache(true);
   return {
     presets: ['babel-preset-expo'],
     plugins: [
-      // パスエイリアスの設定
       [
         'module-resolver',
         {
@@ -13,8 +12,7 @@ module.exports = function(api) {
           },
         },
       ],
-      // react-native-reanimatedプラグインは最後に配置する必要がある
-      // Hermesエンジンとの互換性のため
+      // react-native-reanimatedプラグインは必ず最後に配置
       'react-native-reanimated/plugin',
     ],
   };

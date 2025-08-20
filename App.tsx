@@ -1,3 +1,6 @@
+// react-native-gesture-handlerとreanimatedは最初にインポートする必要がある
+import 'react-native-gesture-handler';
+import 'react-native-reanimated';
 import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
