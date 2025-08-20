@@ -105,8 +105,6 @@ export default ({ config }) => {
         favicon: "./assets/favicon.png"
       },
       scheme: "stilya",
-      // New Architectureを無効化（これだけで大幅にPodが削減される）
-      newArchEnabled: false,
       extra: {
         eas: {
           projectId: "beb25e0f-344b-4f2f-8b64-20614b9744a3"
