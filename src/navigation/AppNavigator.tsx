@@ -8,6 +8,7 @@ console.log('[AppNavigator.tsx] 2. 基本インポート完了');
 
 // Context
 import { useAuth } from '../hooks/useAuth';
+import { useStyle } from '../contexts/ThemeContext';
 
 // Navigators
 import MainNavigator from './MainNavigator';
@@ -17,7 +18,6 @@ import OnboardingNavigator from './OnboardingNavigator';
 console.log('[AppNavigator.tsx] 3. スクリーンインポート開始');
 import AuthScreen from '../screens/auth/AuthScreen';
 import ProductDetailScreen from '../screens/detail/ProductDetailScreen';
-import { useStyle } from '@/contexts/ThemeContext';
 console.log('[AppNavigator.tsx] 4. スクリーンインポート完了');
 
 // 型定義

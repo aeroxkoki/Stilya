@@ -1,10 +1,15 @@
 const { getDefaultConfig } = require('expo/metro-config');
+const path = require('path');
 
 const config = getDefaultConfig(__dirname);
 
-// Hermesエンジンとの互換性を向上させるための設定
+// パスエイリアスの設定
 config.resolver = {
   ...config.resolver,
+  // パスエイリアスの追加
+  alias: {
+    '@': path.resolve(__dirname, 'src'),
+  },
   // モジュール解決の最適化
   unstable_enablePackageExports: true,
   // シンボリックリンクを有効にする
