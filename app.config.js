@@ -29,6 +29,8 @@ export default ({ config }) => {
       },
       // React Native 0.79.2に必要な設定
       jsEngine: "hermes",
+      // New Architecture設定（Expo Go互換性のため）
+      newArchEnabled: true,
       // 開発サーバーの設定
       packagerOpts: {
         sourceExts: ["js", "jsx", "ts", "tsx", "json", "svg"]
