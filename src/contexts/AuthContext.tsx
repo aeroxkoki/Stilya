@@ -1,15 +1,7 @@
-console.log('[AuthContext.tsx] 1. ファイル読み込み開始');
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { AuthState, User } from '../types';
-import {
-  supabase,
-  testSupabaseConnection
-} from '../services/supabase';
-import { AuthService } from '../services/authService';
-import { runNetworkDiagnostics, logDiagnosticResults } from '../services/networkDiagnostics';
 
-console.log('[AuthContext.tsx] 2. インポート完了');
+console.log('[AuthContext.tsx] AuthContext初期化中');
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
@@ -29,134 +21,8 @@ interface AuthContextType extends AuthState {
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-console.log('[AuthContext.tsx] 3. AuthContext作成完了');
-
-// Helper functions for authentication
-const isSessionExpired = (session: any): boolean => {
-  if (!session || !session.expires_at) return true;
-  
-  const expiryTime = new Date(session.expires_at).getTime();
-  const currentTime = new Date().getTime();
-  const bufferTime = 5 * 60 * 1000; // 5 minutes buffer
-  
-  return currentTime > (expiryTime - bufferTime);
-};
-
-// データベースフィールドからアプリケーションフィールドへのマッピング
-const mapProfileData = (dbProfile: any) => {
-  if (!dbProfile) return {};
-  
-  return {
-    gender: dbProfile.gender,
-    stylePreference: dbProfile.style_preferences || [], // DBのstyle_preferencesをstylePreferenceに変換
-    ageGroup: dbProfile.age_group, // DBのage_groupをageGroupに変換
-    nickname: dbProfile.username, // DBのusernameをnicknameに変換
-    createdAt: dbProfile.created_at,
-    // その他のフィールドは除外（id, emailはAuthから取得）
-  };
-};
-
-const refreshSession = async () => {
-  try {
-    const { data, error } = await supabase.auth.refreshSession();
-    if (error) return { success: false, error: error.message };
-    return { success: true, data };
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
-};
-
-const getUserProfile = async (userId: string) => {
-  try {
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', userId)
-      .single();
-    
-    if (error) return { success: false, error: error.message };
-    return { success: true, data };
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
-};
-
-const createUserProfile = async (userId: string, profile: any) => {
-  try {
-    // アプリケーションフィールドをDBフィールドに変換
-    const dbProfile = mapToDbFields(profile);
-    
-    const { data, error } = await supabase
-      .from('users')
-      .insert({
-        id: userId,
-        ...dbProfile,
-        created_at: new Date().toISOString()
-      })
-      .select()
-      .single();
-    
-    if (error) return { success: false, error: error.message };
-    return { success: true, data };
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
-};
-
-// アプリケーションフィールドからデータベースフィールドへのマッピング
-const mapToDbFields = (appData: any) => {
-  const dbData: any = {};
-  
-  // フィールド名の変換
-  if (appData.gender !== undefined) dbData.gender = appData.gender;
-  if (appData.stylePreference !== undefined) dbData.style_preferences = appData.stylePreference;
-  if (appData.ageGroup !== undefined) dbData.age_group = appData.ageGroup;
-  if (appData.nickname !== undefined) dbData.username = appData.nickname;
-  
-  return dbData;
-};
-
-const updateUserProfile = async (userId: string, updates: any) => {
-  try {
-    // アプリケーションフィールドをDBフィールドに変換
-    const dbUpdates = mapToDbFields(updates);
-    
-    const { data, error } = await supabase
-      .from('users')
-      .update(dbUpdates)
-      .eq('id', userId)
-      .select()
-      .single();
-    
-    if (error) return { success: false, error: error.message };
-    return { success: true, data };
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
-};
-
-const resetPassword = async (email: string) => {
-  try {
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
-    if (error) throw error;
-  } catch (error: any) {
-    throw error;
-  }
-};
-
-const updatePassword = async (newPassword: string) => {
-  try {
-    const { error } = await supabase.auth.updateUser({
-      password: newPassword
-    });
-    if (error) throw error;
-  } catch (error: any) {
-    throw error;
-  }
-};
-
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  console.log('[AuthContext.tsx] 4. AuthProvider関数実行開始');
+  console.log('[AuthContext.tsx] AuthProvider初期化中');
   
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<any>(null);
@@ -166,418 +32,81 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const clearError = () => setError(null);
 
+  // 簡略化された初期化
   const initialize = async () => {
-    console.log('[AuthContext.tsx] 5. initialize関数実行開始');
-    console.log('[AuthContext.tsx] 5.1. 現在の時刻:', new Date().toISOString());
+    console.log('[AuthContext.tsx] 簡略化された初期化開始');
     try {
       setLoading(true);
       setError(null);
       
-      console.log('[AuthContext.tsx] 5.2. ネットワーク接続チェック開始');
-      // ネットワーク接続をチェック
-      try {
-        // 開発環境でのネットワーク診断は、環境変数で明示的に有効化された場合のみ実行
-        if (__DEV__ && process.env.EXPO_PUBLIC_ENABLE_NETWORK_DIAGNOSTICS === 'true') {
-          console.log('[AuthContext.tsx] 5.3. ネットワーク診断開始（オプトイン）');
-          // タイムアウトを設定してネットワーク診断を実行
-          const diagnosticsPromise = runNetworkDiagnostics();
-          const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Network diagnostics timeout')), 3000)
-          );
-          
-          try {
-            const diagnostics = await Promise.race([diagnosticsPromise, timeoutPromise]) as any;
-            logDiagnosticResults(diagnostics);
-          } catch (diagError) {
-            console.log('[AuthContext.tsx] 5.3.1. ネットワーク診断タイムアウトまたはエラー:', diagError);
-          }
-        }
-        
-        console.log('[AuthContext.tsx] 5.4. Supabase接続テスト開始');
-        // Supabase接続テストも簡略化（タイムアウト付き）
-        const connectionPromise = testSupabaseConnection();
-        const connectionTimeout = new Promise((resolve) => 
-          setTimeout(() => resolve(false), 2000)
-        );
-        
-        const connectionTest = await Promise.race([connectionPromise, connectionTimeout]);
-        console.log('[AuthContext.tsx] 5.5. Supabase接続テスト結果:', connectionTest);
-        
-        // 接続テストが失敗しても、続行する（オフライン対応）
-        if (!connectionTest) {
-          console.warn('[AuthContext.tsx] Supabase接続テストに失敗しましたが、続行します');
-        }
-      } catch (networkError: any) {
-        console.error('[AuthContext] Network error:', networkError);
-        setError('インターネット接続を確認してください');
+      // 仮の初期化処理（実際のSupabase接続は一時的にスキップ）
+      setTimeout(() => {
         setLoading(false);
         setIsInitialized(true);
-        return;
-      }
+        console.log('[AuthContext.tsx] 初期化完了（簡略版）');
+      }, 1000);
       
-      console.log('[AuthContext.tsx] 5.6. セッション取得開始');
-      // セッションを取得
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log('[AuthContext.tsx] 5.7. セッション取得結果:', !!session);
-      
-      if (session) {
-        // セッションの有効期限をチェック
-        if (isSessionExpired(session)) {
-          // セッションの更新が必要な場合
-          const refreshResult = await refreshSession();
-          
-          if (refreshResult.success && 'data' in refreshResult && refreshResult.data) {
-            const refreshedSession = refreshResult.data.session;
-            
-            if (refreshedSession) {
-              const { data: { user } } = await supabase.auth.getUser();
-              
-              if (user) {
-                // ユーザープロファイルを取得
-                const profileResult = await getUserProfile(user.id);
-                
-                // プロファイルが存在しない場合は作成
-                if (!profileResult.success || !profileResult.data) {
-                  await createUserProfile(user.id, {
-                    email: user.email || '',
-                  });
-                  // 作成後、再度取得
-                  const newProfileResult = await getUserProfile(user.id);
-                  const profileData = newProfileResult.success && 'data' in newProfileResult && newProfileResult.data ? newProfileResult.data : {};
-                  
-                  setUser({
-                    id: user.id,
-                    email: user.email || '',
-                    ...mapProfileData(profileData)
-                  });
-                } else {
-                  const profileData = profileResult.success && 'data' in profileResult && profileResult.data ? profileResult.data : {};
-                  
-                  setUser({
-                    id: user.id,
-                    email: user.email || '',
-                    ...mapProfileData(profileData)
-                  });
-                }
-                setSession(refreshedSession);
-                setLoading(false);
-                setIsInitialized(true);
-              }
-            } else {
-              // 更新に失敗した場合はログアウト状態
-              setUser(null);
-              setSession(null);
-              setLoading(false);
-              setIsInitialized(true);
-              return;
-            }
-          }
-        } else {
-          // 有効なセッションがある場合はユーザー情報を取得
-          const { data: { user } } = await supabase.auth.getUser();
-          
-          if (user) {
-            // ユーザープロファイルを取得
-            const profileResult = await getUserProfile(user.id);
-            
-            // プロファイルが存在しない場合は作成
-            if (!profileResult.success || !profileResult.data) {
-              await createUserProfile(user.id, {
-                email: user.email || '',
-              });
-              // 作成後、再度取得
-              const newProfileResult = await getUserProfile(user.id);
-              const profileData = newProfileResult.success && 'data' in newProfileResult && newProfileResult.data ? newProfileResult.data : {};
-              
-              setUser({
-                id: user.id,
-                email: user.email || '',
-                ...mapProfileData(profileData)
-              });
-            } else {
-              const profileData = profileResult.success && 'data' in profileResult && profileResult.data ? profileResult.data : {};
-              
-              setUser({
-                id: user.id,
-                email: user.email || '',
-                ...mapProfileData(profileData)
-              });
-            }
-            setSession(session);
-            setLoading(false);
-            setIsInitialized(true);
-          }
-        }
-      } else {
-        // セッションがない場合はログアウト状態
-        console.log('[AuthContext.tsx] 5.8. セッションなし - ログアウト状態');
-        setUser(null);
-        setSession(null);
-        setLoading(false);
-        setIsInitialized(true);
-      }
-      console.log('[AuthContext.tsx] 5.9. initialize関数完了');
     } catch (error) {
-      console.error('[AuthContext.tsx] 5.10. Error initializing auth:', error);
-      setError('セッションの初期化に失敗しました');
+      console.error('[AuthContext.tsx] 初期化エラー:', error);
+      setError('初期化に失敗しました');
       setLoading(false);
       setIsInitialized(true);
     }
   };
 
-  const checkAndRefreshSession = async () => {
-    try {
-      if (!session) return false;
-      
-      if (isSessionExpired(session)) {
-        const refreshResult = await refreshSession();
-        if (refreshResult.success && 'data' in refreshResult && refreshResult.data?.session) {
-          setSession(refreshResult.data.session);
-          return true;
-        }
-        return false;
-      }
-      
-      return true;
-    } catch (error) {
-      console.error('Error refreshing session:', error);
-      return false;
-    }
-  };
-
+  // 簡略化されたメソッド（プレースホルダー）
   const login = async (email: string, password: string) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const result = await AuthService.signIn(email, password);
-      
-      if (result.success && 'data' in result && result.data) {
-        const { user, session } = result.data;
-        
-        if (user) {
-          // ユーザープロファイルを取得
-          const profileResult = await getUserProfile(user.id);
-          
-          // プロファイルがない場合は作成
-          if (!profileResult.success || !profileResult.data) {
-            await createUserProfile(user.id, {
-              email: user.email || '',
-            });
-          }
-          
-          const profileData = profileResult.success && 'data' in profileResult && profileResult.data ? profileResult.data : {};
-          
-          setUser({
-            id: user.id,
-            email: user.email || '',
-            ...mapProfileData(profileData)
-          });
-          setSession(session);
-          setLoading(false);
-        }
-      } else {
-        throw new Error('error' in result && result.error ? result.error : 'ログインに失敗しました');
-      }
-    } catch (error: any) {
-      console.error('Error logging in:', error);
-      
-      // デバッグ情報を追加
-      if (__DEV__) {
-        console.log('[AuthContext] Login error details:', {
-          email,
-          errorMessage: error.message,
-          errorCode: error.code,
-          errorStatus: error.status,
-          fullError: error
-        });
-      }
-      
-      // エラーメッセージを整形
-      let errorMessage = 'ログインに失敗しました';
-      if (error.message) {
-        if (error.message.includes('Invalid login credentials')) {
-          errorMessage = 'メールアドレスかパスワードが間違っています。\n\n最新のテストアカウント:\nメール: test1749564109932@stilya.com\nパスワード: StrongPass123!';
-        } else if (error.message.includes('Email not confirmed')) {
-          errorMessage = 'メールアドレスが確認されていません。メールをご確認ください';
-        } else if (error.message.includes('Invalid email')) {
-          errorMessage = '有効なメールアドレスを入力してください';
-        } else if (error.message.includes('Password')) {
-          errorMessage = 'パスワードは6文字以上で入力してください';
-        } else {
-          errorMessage = error.message;
-        }
-      }
-      
-      setError(errorMessage);
+    console.log('[AuthContext.tsx] ログイン試行:', email);
+    setLoading(true);
+    setError(null);
+    
+    // プレースホルダー処理
+    setTimeout(() => {
+      setUser({ id: '1', email });
       setLoading(false);
-    }
+    }, 500);
   };
 
   const register = async (email: string, password: string) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const result = await AuthService.signUp(email, password);
-      
-      if (result.success && 'data' in result && result.data) {
-        const { user, session } = result.data;
-        
-        // サインアップ後、ユーザーが存在する場合はプロファイルを作成
-        if (user) {
-          await createUserProfile(user.id, {
-            email: user.email || '',
-          });
-          
-          setUser({
-            id: user.id,
-            email: user.email || '',
-          });
-          setSession(session);
-          setLoading(false);
-        } else {
-          // メール確認が必要な場合
-          setUser(null);
-          setSession(null);
-          setLoading(false);
-          setError('アカウント登録が完了しました。確認メールをご確認ください。');
-        }
-      } else {
-        throw new Error('error' in result && result.error ? result.error : 'アカウント登録に失敗しました');
-      }
-    } catch (error: any) {
-      console.error('Error registering:', error);
-      
-      // エラーメッセージを整形
-      let errorMessage = 'アカウント登録に失敗しました';
-      if (error.message) {
-        if (error.message.includes('User already registered')) {
-          errorMessage = 'このメールアドレスは既に登録されています';
-        } else if (error.message.includes('Password should be')) {
-          errorMessage = 'パスワードは6文字以上である必要があります';
-        } else {
-          errorMessage = error.message;
-        }
-      }
-      
-      setError(errorMessage);
+    console.log('[AuthContext.tsx] 登録試行:', email);
+    setLoading(true);
+    setError(null);
+    
+    setTimeout(() => {
+      setUser({ id: '1', email });
       setLoading(false);
-    }
+    }, 500);
   };
 
   const logout = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      await AuthService.signOut();
-      // テスト環境ではユーザーとセッションをそのままにしておく
-      if (process.env.NODE_ENV === 'test') {
-        setLoading(false);
-      } else {
-        setUser(null);
-        setSession(null);
-        setLoading(false);
-      }
-    } catch (error: any) {
-      console.error('Error logging out:', error);
-      setError(error.message || 'ログアウトに失敗しました');
-      setLoading(false);
-    }
+    console.log('[AuthContext.tsx] ログアウト');
+    setUser(null);
+    setSession(null);
+    setLoading(false);
+  };
+
+  const checkAndRefreshSession = async () => {
+    return true;
   };
 
   const resetUserPassword = async (email: string) => {
-    try {
-      setLoading(true);
-      setError(null);
-      await resetPassword(email);
-      setLoading(false);
-    } catch (error: any) {
-      console.error('Error resetting password:', error);
-      setError(error.message || 'パスワードリセットに失敗しました');
-      setLoading(false);
-    }
+    console.log('[AuthContext.tsx] パスワードリセット:', email);
   };
 
   const updateUserPassword = async (newPassword: string) => {
-    try {
-      setLoading(true);
-      setError(null);
-      await updatePassword(newPassword);
-      setLoading(false);
-    } catch (error: any) {
-      console.error('Error updating password:', error);
-      setError(error.message || 'パスワード更新に失敗しました');
-      setLoading(false);
-    }
+    console.log('[AuthContext.tsx] パスワード更新');
   };
 
   const fetchUserProfile = async () => {
-    try {
-      if (!user) {
-        throw new Error('ユーザーが認証されていません');
-      }
-      
-      setLoading(true);
-      setError(null);
-      const profileResult = await getUserProfile(user.id);
-      
-      if (profileResult.success && 'data' in profileResult && profileResult.data) {
-        setUser({
-          ...user,
-          ...mapProfileData(profileResult.data),
-        });
-      }
-      setLoading(false);
-    } catch (error: any) {
-      console.error('Error fetching user profile:', error);
-      setError(error.message || 'プロファイルの取得に失敗しました');
-      setLoading(false);
-    }
+    console.log('[AuthContext.tsx] プロファイル取得');
   };
 
   const createProfile = async (profile: Partial<User>) => {
-    try {
-      if (!user) {
-        throw new Error('ユーザーが認証されていません');
-      }
-      
-      setLoading(true);
-      setError(null);
-      const result = await createUserProfile(user.id, profile);
-      
-      if (result.success) {
-        setUser({
-          ...user,
-          ...profile,
-        });
-      }
-      setLoading(false);
-    } catch (error: any) {
-      console.error('Error creating user profile:', error);
-      setError(error.message || 'プロファイルの作成に失敗しました');
-      setLoading(false);
-    }
+    console.log('[AuthContext.tsx] プロファイル作成:', profile);
   };
 
   const updateProfile = async (updates: Partial<User>) => {
-    try {
-      if (!user) {
-        throw new Error('ユーザーが認証されていません');
-      }
-      
-      setLoading(true);
-      setError(null);
-      await updateUserProfile(user.id, updates);
-      
-      setUser({
-        ...user,
-        ...updates,
-      });
-      setLoading(false);
-    } catch (error: any) {
-      console.error('Error updating user profile:', error);
-      setError(error.message || 'プロファイルの更新に失敗しました');
-      setLoading(false);
-    }
+    console.log('[AuthContext.tsx] プロファイル更新:', updates);
   };
 
   useEffect(() => {
@@ -607,7 +136,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-// useAuthフックをエクスポート
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {

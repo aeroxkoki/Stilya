@@ -1,4 +1,4 @@
-import { FASHION_STYLES } from '@/constants/constants';
+import { FASHION_STYLES } from '../constants/constants';
 
 // Fashion styles (for onboarding) - constantsから生成
 export type FashionStyle = typeof FASHION_STYLES[number]['id'];
