@@ -1,12 +1,8 @@
 // 環境変数の管理
 // Expo の Constants を使用して環境変数を安全に取得
 
+// 動的インポートを使用して安全に読み込む
 let Constants: any = null;
-try {
-  Constants = require('expo-constants').default;
-} catch (error) {
-  console.log('[ENV] expo-constants could not be loaded:', error);
-}
 
 // 開発環境判定
 export const IS_DEV = __DEV__;
@@ -19,6 +15,15 @@ const getSupabaseConfig = () => {
   let url = `https://${projectId}.supabase.co`;
   let anonKey = '';
   
+  // Constantsの遅延読み込み
+  if (!Constants) {
+    try {
+      Constants = require('expo-constants').default;
+    } catch (error) {
+      // エラーは無視（Expo Goでは利用できない場合がある）
+    }
+  }
+  
   // Constantsが利用可能な場合のみアクセス
   if (Constants) {
     try {
@@ -26,7 +31,7 @@ const getSupabaseConfig = () => {
       url = extra.supabaseUrl || process.env.EXPO_PUBLIC_SUPABASE_URL || url;
       anonKey = extra.supabaseAnonKey || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
     } catch (e) {
-      console.log('[ENV] Error accessing Constants:', e);
+      // エラーは無視
     }
   }
   
@@ -34,11 +39,6 @@ const getSupabaseConfig = () => {
   if (!url || !anonKey) {
     url = process.env.EXPO_PUBLIC_SUPABASE_URL || url;
     anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
-  }
-  
-  if (IS_DEV) {
-    console.log('[ENV] Using Supabase:', url);
-    console.log('[ENV] Constants:', Constants ? 'Loaded' : 'Not loaded');
   }
   
   return { url, anonKey };
@@ -62,6 +62,15 @@ const getApiConfigs = () => {
     version: '1.0.0'
   };
   
+  // Constantsの遅延読み込み
+  if (!Constants) {
+    try {
+      Constants = require('expo-constants').default;
+    } catch (error) {
+      // エラーは無視
+    }
+  }
+  
   // Constantsが利用可能な場合のみアクセス
   if (Constants) {
     try {
@@ -76,7 +85,7 @@ const getApiConfigs = () => {
       configs.rakutenAppSecret = extra.rakutenAppSecret || '';
       configs.version = Constants.manifest?.version || Constants.expoConfig?.version || '1.0.0';
     } catch (e) {
-      console.log('[ENV] Error accessing Constants for API configs:', e);
+      // エラーは無視
     }
   }
   
@@ -120,21 +129,27 @@ export const validateEnvVars = () => {
 
   const missingVars = requiredVars.filter(({ value }) => !value);
 
-  if (missingVars.length > 0) {
-    console.error('Missing required environment variables:', missingVars.map(v => v.name));
+  if (missingVars.length > 0 && IS_DEV) {
+    // console.logはコンポーネントのライフサイクル内でのみ使用
+    setTimeout(() => {
+      console.error('Missing required environment variables:', missingVars.map(v => v.name));
+    }, 0);
     return false;
   }
 
   return true;
 };
 
-// デバッグ用: 環境変数の確認（開発環境のみ）
-if (IS_DEV) {
-  console.log('[ENV] Environment Variables Loaded:');
-  console.log('- SUPABASE_URL:', SUPABASE_URL);
-  console.log('- SUPABASE_ANON_KEY:', SUPABASE_ANON_KEY ? 'Set' : 'Missing');
-  console.log('- RAKUTEN_APP_ID:', RAKUTEN_APP_ID ? 'Set' : 'Missing');
-  console.log('- RAKUTEN_AFFILIATE_ID:', RAKUTEN_AFFILIATE_ID ? 'Set' : 'Missing');
-  console.log('- APP_VERSION:', APP_VERSION);
-  console.log('- IS_DEV:', IS_DEV);
-}
+// デバッグ情報の表示（コンポーネントから呼び出される場合のみ）
+export const logEnvironmentInfo = () => {
+  if (IS_DEV) {
+    console.log('[ENV] Environment Variables Loaded:');
+    console.log('- SUPABASE_URL:', SUPABASE_URL);
+    console.log('- SUPABASE_ANON_KEY:', SUPABASE_ANON_KEY ? 'Set' : 'Missing');
+    console.log('- RAKUTEN_APP_ID:', RAKUTEN_APP_ID ? 'Set' : 'Missing');
+    console.log('- RAKUTEN_AFFILIATE_ID:', RAKUTEN_AFFILIATE_ID ? 'Set' : 'Missing');
+    console.log('- APP_VERSION:', APP_VERSION);
+    console.log('- IS_DEV:', IS_DEV);
+    console.log('- Constants:', Constants ? 'Loaded' : 'Not loaded');
+  }
+};

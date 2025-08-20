@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { AuthState, User } from '../types';
 
-console.log('[AuthContext.tsx] AuthContext初期化中');
+// グローバルスコープでのconsole.logを削除（runtime not readyエラーの原因）
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
@@ -22,8 +22,6 @@ interface AuthContextType extends AuthState {
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  console.log('[AuthContext.tsx] AuthProvider初期化中');
-  
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -34,16 +32,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // 簡略化された初期化
   const initialize = async () => {
-    console.log('[AuthContext.tsx] 簡略化された初期化開始');
     try {
       setLoading(true);
       setError(null);
+      
+      // useEffectの中で実行されるため、ランタイムの準備ができている
+      console.log('[AuthContext.tsx] 初期化開始');
       
       // 仮の初期化処理（実際のSupabase接続は一時的にスキップ）
       setTimeout(() => {
         setLoading(false);
         setIsInitialized(true);
-        console.log('[AuthContext.tsx] 初期化完了（簡略版）');
+        console.log('[AuthContext.tsx] 初期化完了');
       }, 1000);
       
     } catch (error) {
@@ -62,7 +62,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     // プレースホルダー処理
     setTimeout(() => {
-      setUser({ id: '1', email });
+      setUser({ id: '1', email } as User);
       setLoading(false);
     }, 500);
   };
@@ -73,7 +73,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setError(null);
     
     setTimeout(() => {
-      setUser({ id: '1', email });
+      setUser({ id: '1', email } as User);
       setLoading(false);
     }, 500);
   };
