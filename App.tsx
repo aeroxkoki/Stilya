@@ -17,6 +17,11 @@ import { StyleProvider } from './src/contexts/ThemeContext';
 import { FilterProvider } from './src/contexts/FilterContext';
 import { DevMenu } from './src/components/dev/DevMenu';
 
+// Services - 静的インポートに変更
+import { initializeSupabaseListeners, cleanupSupabaseListeners } from './src/services/supabase';
+import { cleanupOfflineData } from './src/utils/offlineDataCleanup';
+import { clearImageCacheInDev } from './src/utils/imageCacheUtils';
+
 // LogBoxの警告を無視
 if (__DEV__) {
   LogBox.ignoreLogs([
@@ -37,17 +42,14 @@ const App: React.FC = () => {
     // Supabase初期化を安全に実行
     const initializeApp = async () => {
       try {
-        // 動的インポートで安全に読み込む
-        const { initializeSupabaseListeners } = await import('./src/services/supabase');
+        // 静的インポートされた関数を使用
         initializeSupabaseListeners();
         
         // オフラインデータのクリーンアップ
-        const { cleanupOfflineData } = await import('./src/utils/offlineDataCleanup');
         await cleanupOfflineData();
         
         // 開発環境での画像キャッシュクリア
         if (__DEV__) {
-          const { clearImageCacheInDev } = await import('./src/utils/imageCacheUtils');
           await clearImageCacheInDev();
         }
       } catch (error) {
@@ -60,9 +62,11 @@ const App: React.FC = () => {
     return () => {
       console.log('[App.tsx] アプリケーションが終了します');
       // クリーンアップ
-      import('./src/services/supabase')
-        .then(module => module.cleanupSupabaseListeners())
-        .catch(error => console.error('[App.tsx] クリーンアップエラー:', error));
+      try {
+        cleanupSupabaseListeners();
+      } catch (error) {
+        console.error('[App.tsx] クリーンアップエラー:', error);
+      }
     };
   }, []);
 

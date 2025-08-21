@@ -7,12 +7,12 @@ import {
   TouchableOpacity, 
   Dimensions, 
   ActivityIndicator,
-  Animated
+  Animated as RNAnimated
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { PanGestureHandler, GestureHandlerRootView, State } from 'react-native-gesture-handler';
-import ReanimatedView, {
+import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
@@ -333,20 +333,20 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
             onGestureEvent={onGestureEvent}
             onHandlerStateChange={onHandlerStateChange}
           >
-            <ReanimatedView style={[styles.card, animatedStyle]}>
+            <Animated.View style={[styles.card, animatedStyle]}>
               <SwipeCard
                 product={currentProduct}
                 testID="unified-swipe-card"
               />
               
               {/* Like/Nopeインジケーター */}
-              <ReanimatedView style={[styles.likeIndicator, likeStyle]}>
+              <Animated.View style={[styles.likeIndicator, likeStyle]}>
                 <Text style={styles.likeText}>LIKE</Text>
-              </ReanimatedView>
-              <ReanimatedView style={[styles.nopeIndicator, nopeStyle]}>
+              </Animated.View>
+              <Animated.View style={[styles.nopeIndicator, nopeStyle]}>
                 <Text style={styles.nopeText}>NOPE</Text>
-              </ReanimatedView>
-            </ReanimatedView>
+              </Animated.View>
+            </Animated.View>
           </PanGestureHandler>
         </View>
 
@@ -384,11 +384,11 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
 
         {/* 進捗フィードバック */}
         {showProgressFeedback && (
-          <Animated.View style={styles.feedbackContainer}>
+          <RNAnimated.View style={styles.feedbackContainer}>
             <View style={[styles.feedbackBubble, { backgroundColor: theme.colors.primary }]}>
               <Text style={styles.feedbackText}>{progressMessage}</Text>
             </View>
-          </Animated.View>
+          </RNAnimated.View>
         )}
       </SafeAreaView>
     </GestureHandlerRootView>
