@@ -92,53 +92,160 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
     setIsInitialized(true);
   }, []);
 
-  // 商品選定ロジック（5枚に最適化）
+  // 改善された商品選定ロジック（性別・好み・年齢を考慮）
   const selectedProducts = useMemo(() => {
     if (!products || products.length === 0) return [];
 
+    console.log('[UnifiedSwipe] Starting product selection with:', {
+      gender,
+      stylePreference,
+      ageGroup,
+      totalProducts: products.length
+    });
+
+    // 性別でフィルタリング
+    const genderFilteredProducts = products.filter(product => {
+      if (!gender || gender === 'other') return true;
+      
+      // 商品のタグから性別を判定
+      const tags = product.tags || [];
+      const hasGenderTag = tags.some(tag => {
+        const lowerTag = tag.toLowerCase();
+        if (gender === 'male') {
+          return lowerTag.includes('メンズ') || 
+                 lowerTag.includes('男性') || 
+                 lowerTag.includes('men');
+        } else if (gender === 'female') {
+          return lowerTag.includes('レディース') || 
+                 lowerTag.includes('女性') || 
+                 lowerTag.includes('women');
+        }
+        return false;
+      });
+      
+      // 性別タグがある場合はそれに従う、ない場合は表示
+      if (tags.some(tag => 
+        tag.toLowerCase().includes('メンズ') || 
+        tag.toLowerCase().includes('レディース') ||
+        tag.toLowerCase().includes('男性') ||
+        tag.toLowerCase().includes('女性'))) {
+        return hasGenderTag;
+      }
+      
+      return true; // 性別タグがない商品は両方に表示
+    });
+
+    console.log('[UnifiedSwipe] After gender filter:', genderFilteredProducts.length);
+
     // チュートリアル用の商品（最初の2枚）
     const tutorialProducts: Product[] = [];
-    const casualProducts = products.filter(p => 
-      p.tags?.some(tag => tag.toLowerCase().includes('casual') || tag.toLowerCase().includes('ベーシック'))
+    const casualProducts = genderFilteredProducts.filter(p => 
+      p.tags?.some(tag => 
+        tag.toLowerCase().includes('casual') || 
+        tag.toLowerCase().includes('カジュアル') ||
+        tag.toLowerCase().includes('ベーシック')
+      )
     );
     
     if (casualProducts.length >= 2) {
       tutorialProducts.push(...casualProducts.slice(0, 2));
     } else {
-      tutorialProducts.push(...products.slice(0, 2));
+      // カジュアル商品が足りない場合は任意の商品を使用
+      tutorialProducts.push(...genderFilteredProducts.slice(0, 2));
     }
 
+    console.log('[UnifiedSwipe] Tutorial products selected:', tutorialProducts.length);
+
     // パーソナライズされた商品（残り3枚）
-    let personalizedProducts = products.filter(product => {
+    let personalizedProducts = genderFilteredProducts.filter(product => {
+      // チュートリアル商品を除外
       if (tutorialProducts.some(tp => tp.id === product.id)) return false;
       
-      if (stylePreference.length > 0 && product.tags) {
-        return stylePreference.some(style => 
-          product.tags?.some(tag => tag.toLowerCase().includes(style.toLowerCase()))
-        );
+      // スタイル選択がある場合、それに基づいてフィルタリング
+      if (stylePreference && stylePreference.length > 0 && product.tags) {
+        const hasMatchingStyle = stylePreference.some(style => {
+          const styleLower = style.toLowerCase();
+          return product.tags?.some(tag => {
+            const tagLower = tag.toLowerCase();
+            // スタイルマッピング
+            if (styleLower === 'casual') {
+              return tagLower.includes('カジュアル') || tagLower.includes('casual');
+            } else if (styleLower === 'street') {
+              return tagLower.includes('ストリート') || tagLower.includes('street');
+            } else if (styleLower === 'mode') {
+              return tagLower.includes('モード') || tagLower.includes('mode');
+            } else if (styleLower === 'natural') {
+              return tagLower.includes('ナチュラル') || tagLower.includes('natural');
+            } else if (styleLower === 'feminine') {
+              return tagLower.includes('フェミニン') || tagLower.includes('feminine') || tagLower.includes('ガーリー');
+            } else if (styleLower === 'classic') {
+              return tagLower.includes('クラシック') || tagLower.includes('classic') || tagLower.includes('トラッド');
+            }
+            return tagLower.includes(styleLower);
+          });
+        });
+        return hasMatchingStyle;
       }
-      return true;
+      
+      return true; // スタイル選択がない場合はすべて対象
     });
 
+    // 年齢層も考慮（タグにある場合）
+    if (ageGroup) {
+      const ageFilteredProducts = personalizedProducts.filter(product => {
+        const tags = product.tags || [];
+        // 年齢層タグがない商品は表示、ある場合は一致するもののみ
+        const hasAgeTag = tags.some(tag => 
+          tag.includes('10代') || tag.includes('20代') || 
+          tag.includes('30代') || tag.includes('40代')
+        );
+        
+        if (!hasAgeTag) return true;
+        
+        if (ageGroup === '10-19') {
+          return tags.some(tag => tag.includes('10代'));
+        } else if (ageGroup === '20-29') {
+          return tags.some(tag => tag.includes('20代'));
+        } else if (ageGroup === '30-39') {
+          return tags.some(tag => tag.includes('30代'));
+        } else if (ageGroup === '40+') {
+          return tags.some(tag => tag.includes('40代'));
+        }
+        return true;
+      });
+      
+      if (ageFilteredProducts.length >= 3) {
+        personalizedProducts = ageFilteredProducts;
+      }
+    }
+
+    console.log('[UnifiedSwipe] Personalized products after filtering:', personalizedProducts.length);
+
+    // ランダムに3枚選択
     personalizedProducts = personalizedProducts
       .sort(() => 0.5 - Math.random())
-      .slice(0, 3); // 3枚に削減
+      .slice(0, 3);
 
     // 5枚になるように調整
     const allSelectedProducts = [...tutorialProducts, ...personalizedProducts];
-    while (allSelectedProducts.length < TOTAL_CARDS && products.length > allSelectedProducts.length) {
-      const remainingProducts = products.filter(p => 
+    
+    // 不足分を補充
+    while (allSelectedProducts.length < TOTAL_CARDS && genderFilteredProducts.length > allSelectedProducts.length) {
+      const remainingProducts = genderFilteredProducts.filter(p => 
         !allSelectedProducts.some(sp => sp.id === p.id)
       );
       if (remainingProducts.length > 0) {
-        allSelectedProducts.push(remainingProducts[0]);
+        allSelectedProducts.push(remainingProducts[Math.floor(Math.random() * remainingProducts.length)]);
       } else {
         break;
       }
     }
 
-    return allSelectedProducts.slice(0, TOTAL_CARDS);
-  }, [products, gender, stylePreference]);
+    const finalSelection = allSelectedProducts.slice(0, TOTAL_CARDS);
+    console.log('[UnifiedSwipe] Final product selection:', finalSelection.length);
+    
+    return finalSelection;
+  }, [products, gender, stylePreference, ageGroup]);
 
   // 進捗フィードバックの表示（5枚に最適化）
   const showIntermediateFeedback = useCallback((index: number, results: StyleQuizResult[]) => {
@@ -204,9 +311,12 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
     updateCardStack();
   }, [currentIndex, updateCardStack]);
 
-  // スワイプ完了処理を修正
+  // スワイプ完了処理を改善
   const handleSwipeComplete = useCallback(async (direction: 'left' | 'right') => {
-    if (!selectedProducts[currentIndex]) return;
+    if (!selectedProducts[currentIndex]) {
+      console.error('[UnifiedSwipe] No product at index:', currentIndex);
+      return;
+    }
 
     const currentProduct = selectedProducts[currentIndex];
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -222,6 +332,13 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
 
     const newResults = [...swipeResults, result];
     setSwipeResults(newResults);
+
+    console.log('[UnifiedSwipe] Swipe recorded:', {
+      index: currentIndex,
+      direction,
+      productId: currentProduct.id,
+      totalResults: newResults.length
+    });
 
     // チュートリアルオーバーレイを非表示（2枚目完了時）
     if (currentIndex === 1) {
@@ -240,6 +357,8 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
       }, 100);
     } else {
       // 完了処理（すべてのカードをスワイプした）
+      console.log('[UnifiedSwipe] All cards swiped, completing onboarding');
+      
       try {
         // 完了フィードバックを表示
         setProgressMessage('完了しました！🎉');
@@ -248,20 +367,30 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
         // 振動フィードバック（成功）
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         
-        // データを保存
-        await setStyleQuizResults(newResults);
+        // データを保存（非同期でもエラーハンドリング）
+        try {
+          await setStyleQuizResults(newResults);
+          console.log('[UnifiedSwipe] Style quiz results saved successfully');
+        } catch (saveError) {
+          console.error('[UnifiedSwipe] Failed to save quiz results:', saveError);
+          // 保存エラーがあっても次へ進む
+        }
         
         // 少し待ってから遷移（ユーザーが完了を認識できるように）
         setTimeout(() => {
+          console.log('[UnifiedSwipe] Navigating to StyleReveal');
           nextStep();
           navigation.navigate('StyleReveal');
         }, 1000);
       } catch (error) {
-        console.error('Failed to complete onboarding:', error);
-        // エラー時のフォールバック
-        setProgressMessage('エラーが発生しました。もう一度お試しください。');
+        console.error('[UnifiedSwipe] Failed to complete onboarding:', error);
+        // エラー時のフォールバック - それでも次の画面へ遷移を試みる
+        setProgressMessage('次へ進みます...');
         setShowProgressFeedback(true);
-        setIsProcessing(false);
+        setTimeout(() => {
+          nextStep();
+          navigation.navigate('StyleReveal');
+        }, 1500);
       }
     }
   }, [currentIndex, selectedProducts, swipeResults, showIntermediateFeedback, setStyleQuizResults, nextStep, navigation]);
