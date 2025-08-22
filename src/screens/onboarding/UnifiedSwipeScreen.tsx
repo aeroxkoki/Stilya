@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -16,23 +16,38 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
+  withTiming,
   runOnJS,
   interpolate,
   Extrapolate,
+  withSequence,
+  withDelay,
+  Easing,
 } from 'react-native-reanimated';
 import { useOnboarding, StyleQuizResult } from '@/contexts/OnboardingContext';
 import { useStyle } from '@/contexts/ThemeContext';
 import { OnboardingStackParamList } from '@/navigation/types';
 import { useProducts } from '@/hooks/useProducts';
-import { SwipeCard } from '@/components/swipe';
+import OnboardingSwipeCard from '@/components/onboarding/OnboardingSwipeCard';
 import { Product } from '@/types/product';
 import * as Haptics from 'expo-haptics';
 
 type Props = NativeStackScreenProps<OnboardingStackParamList, 'UnifiedSwipe'>;
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.3;
-const TOTAL_CARDS = 8; // 統合スワイプの枚数
+const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.25;
+const SWIPE_VELOCITY_THRESHOLD = 500;
+const TOTAL_CARDS = 8;
+const CARD_STACK_OFFSET = 12; // カードスタックのオフセット
+const MAX_VISIBLE_CARDS = 3; // 表示する最大カード数
+
+interface CardAnimationState {
+  translateX: Animated.SharedValue<number>;
+  translateY: Animated.SharedValue<number>;
+  rotate: Animated.SharedValue<number>;
+  scale: Animated.SharedValue<number>;
+  opacity: Animated.SharedValue<number>;
+}
 
 const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
   const { theme } = useStyle();
@@ -53,16 +68,29 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
   const [showProgressFeedback, setShowProgressFeedback] = useState(false);
   const [progressMessage, setProgressMessage] = useState('');
 
-  // アニメーション値
-  const translateX = useSharedValue(0);
-  const translateY = useSharedValue(0);
-  const rotate = useSharedValue(0);
+  // カードごとのアニメーション値を管理
+  const [cardAnimations, setCardAnimations] = useState<CardAnimationState[]>([]);
 
-  // 商品選定ロジック（8枚構成）
+  // 初期化
+  useEffect(() => {
+    const animations: CardAnimationState[] = [];
+    for (let i = 0; i < TOTAL_CARDS; i++) {
+      animations.push({
+        translateX: useSharedValue(0),
+        translateY: useSharedValue(0),
+        rotate: useSharedValue(0),
+        scale: useSharedValue(i < MAX_VISIBLE_CARDS ? 1 - (i * 0.05) : 0),
+        opacity: useSharedValue(i < MAX_VISIBLE_CARDS ? 1 : 0),
+      });
+    }
+    setCardAnimations(animations);
+  }, []);
+
+  // 商品選定ロジック
   const selectedProducts = useMemo(() => {
     if (!products || products.length === 0) return [];
 
-    // チュートリアル用の商品（最初の2枚）- 汎用的な商品を選択
+    // チュートリアル用の商品（最初の2枚）
     const tutorialProducts: Product[] = [];
     const casualProducts = products.filter(p => 
       p.tags?.some(tag => tag.toLowerCase().includes('casual') || tag.toLowerCase().includes('ベーシック'))
@@ -76,10 +104,8 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
 
     // パーソナライズされた商品（残り6枚）
     let personalizedProducts = products.filter(product => {
-      // チュートリアル商品を除外
       if (tutorialProducts.some(tp => tp.id === product.id)) return false;
       
-      // スタイル選好に基づくフィルタリング
       if (stylePreference.length > 0 && product.tags) {
         return stylePreference.some(style => 
           product.tags?.some(tag => tag.toLowerCase().includes(style.toLowerCase()))
@@ -88,7 +114,6 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
       return true;
     });
 
-    // ランダムにシャッフルして6枚選択
     personalizedProducts = personalizedProducts
       .sort(() => 0.5 - Math.random())
       .slice(0, 6);
@@ -96,55 +121,11 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
     return [...tutorialProducts, ...personalizedProducts];
   }, [products, gender, stylePreference]);
 
-  // 現在の商品
-  const currentProduct = selectedProducts[currentIndex];
-
-  // アニメーションスタイル
-  const animatedStyle = useAnimatedStyle(() => {
-    const opacity = interpolate(
-      Math.abs(translateX.value),
-      [0, SCREEN_WIDTH * 0.5],
-      [1, 0.5],
-      Extrapolate.CLAMP
-    );
-
-    return {
-      transform: [
-        { translateX: translateX.value },
-        { translateY: translateY.value },
-        { rotate: `${rotate.value}deg` },
-      ],
-      opacity,
-    };
-  });
-
-  // Like/Nopeインジケーター
-  const likeStyle = useAnimatedStyle(() => {
-    const opacity = interpolate(
-      translateX.value,
-      [0, SCREEN_WIDTH * 0.25],
-      [0, 1],
-      Extrapolate.CLAMP
-    );
-    return { opacity };
-  });
-
-  const nopeStyle = useAnimatedStyle(() => {
-    const opacity = interpolate(
-      translateX.value,
-      [-SCREEN_WIDTH * 0.25, 0],
-      [1, 0],
-      Extrapolate.CLAMP
-    );
-    return { opacity };
-  });
-
   // 進捗フィードバックの表示
   const showIntermediateFeedback = useCallback((index: number, results: StyleQuizResult[]) => {
     let message = '';
     
     if (index === 3) {
-      // 4枚目完了時
       const likedCount = results.filter(r => r.liked).length;
       if (likedCount >= 3) {
         message = 'いいね！素敵なセンスです✨';
@@ -154,7 +135,6 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
         message = 'もう少し見てみましょう🔍';
       }
     } else if (index === 5) {
-      // 6枚目完了時
       message = 'あと少しで完了です！🎯';
     }
 
@@ -165,11 +145,49 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, []);
 
-  // スワイプ処理
-  const handleSwipe = useCallback((direction: 'left' | 'right') => {
-    if (!currentProduct || isProcessing) return;
+  // カードスタックの位置を更新
+  const updateCardStack = useCallback(() => {
+    if (!cardAnimations.length) return;
 
-    setIsProcessing(true);
+    cardAnimations.forEach((anim, index) => {
+      const relativeIndex = index - currentIndex;
+      
+      if (relativeIndex < 0) {
+        // すでにスワイプされたカード
+        anim.opacity.value = withTiming(0, { duration: 200 });
+        anim.scale.value = withTiming(0, { duration: 200 });
+      } else if (relativeIndex < MAX_VISIBLE_CARDS) {
+        // 表示されるカード
+        const targetScale = 1 - (relativeIndex * 0.05);
+        const targetY = relativeIndex * CARD_STACK_OFFSET;
+        
+        anim.translateY.value = withSpring(targetY, {
+          damping: 20,
+          stiffness: 100,
+        });
+        anim.scale.value = withSpring(targetScale, {
+          damping: 20,
+          stiffness: 100,
+        });
+        anim.opacity.value = withTiming(1, { duration: 300 });
+      } else {
+        // まだ表示されないカード
+        anim.opacity.value = 0;
+        anim.scale.value = 0;
+      }
+    });
+  }, [cardAnimations, currentIndex]);
+
+  // currentIndex変更時にカードスタックを更新
+  useEffect(() => {
+    updateCardStack();
+  }, [currentIndex, updateCardStack]);
+
+  // スワイプ完了処理
+  const handleSwipeComplete = useCallback(async (direction: 'left' | 'right') => {
+    if (!selectedProducts[currentIndex] || isProcessing) return;
+
+    const currentProduct = selectedProducts[currentIndex];
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     // 結果を記録
@@ -178,13 +196,13 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
       liked: direction === 'right',
       category: currentProduct.category,
       tags: currentProduct.tags,
-      isTutorial: currentIndex < 2, // 最初の2枚はチュートリアル
+      isTutorial: currentIndex < 2,
     };
 
     const newResults = [...swipeResults, result];
     setSwipeResults(newResults);
 
-    // チュートリアルオーバーレイを非表示（3枚目から）
+    // チュートリアルオーバーレイを非表示
     if (currentIndex === 1) {
       setShowTutorialOverlay(false);
     }
@@ -192,77 +210,192 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
     // 中間フィードバック
     showIntermediateFeedback(currentIndex, newResults);
 
-    // 次の商品へ
+    // 次のカードへ
     if (currentIndex < selectedProducts.length - 1) {
-      setCurrentIndex(prev => prev + 1);
-      // アニメーションをリセット
-      translateX.value = withSpring(0);
-      translateY.value = withSpring(0);
-      rotate.value = withSpring(0);
-      setIsProcessing(false);
+      // 少し待ってから次のカードを表示
+      setTimeout(() => {
+        setCurrentIndex(prev => prev + 1);
+        setIsProcessing(false);
+      }, 100);
     } else {
       // 完了処理
-      handleComplete(newResults);
+      await setStyleQuizResults(newResults);
+      nextStep();
+      navigation.navigate('StyleReveal');
     }
-  }, [currentProduct, currentIndex, isProcessing, swipeResults, selectedProducts, showIntermediateFeedback]);
-
-  // 完了処理
-  const handleComplete = async (results: StyleQuizResult[]) => {
-    // 診断結果を保存
-    await setStyleQuizResults(results);
-    nextStep();
-    navigation.navigate('StyleReveal');
-  };
+  }, [currentIndex, isProcessing, selectedProducts, swipeResults, showIntermediateFeedback, setStyleQuizResults, nextStep, navigation]);
 
   // ボタンでのスワイプ
-  const handleButtonSwipe = (direction: 'left' | 'right') => {
-    const targetX = direction === 'right' ? SCREEN_WIDTH : -SCREEN_WIDTH;
-    const targetRotate = direction === 'right' ? 15 : -15;
+  const handleButtonSwipe = useCallback((direction: 'left' | 'right') => {
+    if (!cardAnimations[currentIndex] || isProcessing) return;
 
-    translateX.value = withSpring(targetX, {}, () => {
-      runOnJS(handleSwipe)(direction);
+    setIsProcessing(true);
+    const anim = cardAnimations[currentIndex];
+    const targetX = direction === 'right' ? SCREEN_WIDTH * 1.5 : -SCREEN_WIDTH * 1.5;
+    const targetRotate = direction === 'right' ? 30 : -30;
+
+    // スワイプアニメーション
+    anim.translateX.value = withTiming(targetX, {
+      duration: 400,
+      easing: Easing.out(Easing.cubic),
+    }, () => {
+      runOnJS(handleSwipeComplete)(direction);
     });
-    rotate.value = withSpring(targetRotate);
-  };
+    
+    anim.rotate.value = withTiming(targetRotate, {
+      duration: 400,
+      easing: Easing.out(Easing.cubic),
+    });
 
-  // ジェスチャーハンドラー
-  const onGestureEvent = (event: any) => {
-    translateX.value = event.nativeEvent.translationX;
-    translateY.value = event.nativeEvent.translationY;
-    rotate.value = interpolate(
-      translateX.value,
-      [-SCREEN_WIDTH / 2, SCREEN_WIDTH / 2],
-      [-15, 15],
-      Extrapolate.CLAMP
-    );
-  };
+    anim.opacity.value = withTiming(0, {
+      duration: 400,
+    });
+  }, [cardAnimations, currentIndex, isProcessing, handleSwipeComplete]);
 
-  const onHandlerStateChange = (event: any) => {
-    if (event.nativeEvent.state === State.END) {
-      const { translationX } = event.nativeEvent;
+  // カード描画コンポーネント
+  const renderCard = useCallback((index: number) => {
+    if (!selectedProducts[index] || !cardAnimations[index]) return null;
 
-      if (Math.abs(translationX) > SWIPE_THRESHOLD) {
-        const direction = translationX > 0 ? 'right' : 'left';
-        const targetX = direction === 'right' ? SCREEN_WIDTH : -SCREEN_WIDTH;
+    const product = selectedProducts[index];
+    const anim = cardAnimations[index];
+    const isCurrentCard = index === currentIndex;
 
-        translateX.value = withSpring(targetX, {}, () => {
-          runOnJS(handleSwipe)(direction);
-        });
-      } else {
-        // 元の位置に戻る
-        translateX.value = withSpring(0);
-        translateY.value = withSpring(0);
-        rotate.value = withSpring(0);
+    const animatedStyle = useAnimatedStyle(() => {
+      return {
+        transform: [
+          { translateX: anim.translateX.value },
+          { translateY: anim.translateY.value },
+          { rotate: `${anim.rotate.value}deg` },
+          { scale: anim.scale.value },
+        ],
+        opacity: anim.opacity.value,
+      };
+    });
+
+    // Like/Nopeインジケーター（現在のカードのみ）
+    const likeStyle = useAnimatedStyle(() => {
+      const opacity = isCurrentCard
+        ? interpolate(
+            anim.translateX.value,
+            [0, SCREEN_WIDTH * 0.25],
+            [0, 1],
+            Extrapolate.CLAMP
+          )
+        : 0;
+      return { opacity };
+    });
+
+    const nopeStyle = useAnimatedStyle(() => {
+      const opacity = isCurrentCard
+        ? interpolate(
+            anim.translateX.value,
+            [-SCREEN_WIDTH * 0.25, 0],
+            [1, 0],
+            Extrapolate.CLAMP
+          )
+        : 0;
+      return { opacity };
+    });
+
+    // ジェスチャーハンドラー
+    const onGestureEvent = (event: any) => {
+      if (!isCurrentCard || isProcessing) return;
+
+      anim.translateX.value = event.nativeEvent.translationX;
+      anim.translateY.value = event.nativeEvent.translationY * 0.5; // Y軸の動きを制限
+      anim.rotate.value = interpolate(
+        anim.translateX.value,
+        [-SCREEN_WIDTH / 2, SCREEN_WIDTH / 2],
+        [-20, 20],
+        Extrapolate.CLAMP
+      );
+    };
+
+    const onHandlerStateChange = (event: any) => {
+      if (!isCurrentCard || isProcessing) return;
+
+      if (event.nativeEvent.state === State.END) {
+        const { translationX, velocityX } = event.nativeEvent;
+
+        // 速度または距離でスワイプ判定
+        if (
+          Math.abs(translationX) > SWIPE_THRESHOLD ||
+          Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD
+        ) {
+          setIsProcessing(true);
+          const direction = translationX > 0 ? 'right' : 'left';
+          const targetX = direction === 'right' ? SCREEN_WIDTH * 1.5 : -SCREEN_WIDTH * 1.5;
+          const targetRotate = direction === 'right' ? 30 : -30;
+
+          // カードを画面外へ飛ばす
+          anim.translateX.value = withTiming(targetX, {
+            duration: 300,
+            easing: Easing.out(Easing.cubic),
+          }, () => {
+            runOnJS(handleSwipeComplete)(direction);
+          });
+
+          anim.rotate.value = withTiming(targetRotate, {
+            duration: 300,
+            easing: Easing.out(Easing.cubic),
+          });
+
+          anim.opacity.value = withTiming(0, {
+            duration: 300,
+          });
+        } else {
+          // 元の位置に戻る（スムーズに）
+          anim.translateX.value = withSpring(0, {
+            damping: 20,
+            stiffness: 100,
+          });
+          anim.translateY.value = withSpring(index === currentIndex ? 0 : (index - currentIndex) * CARD_STACK_OFFSET, {
+            damping: 20,
+            stiffness: 100,
+          });
+          anim.rotate.value = withSpring(0, {
+            damping: 20,
+            stiffness: 100,
+          });
+        }
       }
-    }
-  };
+    };
+
+    return (
+      <PanGestureHandler
+        key={`card-${index}`}
+        onGestureEvent={onGestureEvent}
+        onHandlerStateChange={onHandlerStateChange}
+        enabled={isCurrentCard && !isProcessing}
+      >
+        <Animated.View style={[styles.card, animatedStyle]}>
+          <OnboardingSwipeCard
+            product={product}
+            testID={`unified-swipe-card-${index}`}
+          />
+          
+          {/* Like/Nopeインジケーター */}
+          {isCurrentCard && (
+            <>
+              <Animated.View style={[styles.likeIndicator, likeStyle]}>
+                <Text style={styles.likeText}>LIKE</Text>
+              </Animated.View>
+              <Animated.View style={[styles.nopeIndicator, nopeStyle]}>
+                <Text style={styles.nopeText}>NOPE</Text>
+              </Animated.View>
+            </>
+          )}
+        </Animated.View>
+      </PanGestureHandler>
+    );
+  }, [selectedProducts, cardAnimations, currentIndex, isProcessing, handleSwipeComplete]);
 
   const handleBack = () => {
     prevStep();
     navigation.goBack();
   };
 
-  if (productsLoading) {
+  if (productsLoading || cardAnimations.length === 0) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -273,7 +406,7 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
     );
   }
 
-  if (!currentProduct) {
+  if (!selectedProducts.length) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <View style={styles.errorContainer}>
@@ -327,27 +460,15 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
           </Text>
         </View>
 
-        {/* スワイプカード */}
+        {/* カードスタック */}
         <View style={styles.cardContainer}>
-          <PanGestureHandler
-            onGestureEvent={onGestureEvent}
-            onHandlerStateChange={onHandlerStateChange}
-          >
-            <Animated.View style={[styles.card, animatedStyle]}>
-              <SwipeCard
-                product={currentProduct}
-                testID="unified-swipe-card"
-              />
-              
-              {/* Like/Nopeインジケーター */}
-              <Animated.View style={[styles.likeIndicator, likeStyle]}>
-                <Text style={styles.likeText}>LIKE</Text>
-              </Animated.View>
-              <Animated.View style={[styles.nopeIndicator, nopeStyle]}>
-                <Text style={styles.nopeText}>NOPE</Text>
-              </Animated.View>
-            </Animated.View>
-          </PanGestureHandler>
+          {selectedProducts.map((_, index) => {
+            // 現在のインデックスから最大3枚まで表示
+            if (index >= currentIndex && index < currentIndex + MAX_VISIBLE_CARDS) {
+              return renderCard(index);
+            }
+            return null;
+          }).reverse()} {/* 逆順で描画することで、最前面のカードが最初に来る */}
         </View>
 
         {/* アクションボタン */}
@@ -369,7 +490,7 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* チュートリアルオーバーレイ（最初の2枚） */}
+        {/* チュートリアルオーバーレイ */}
         {showTutorialOverlay && currentIndex < 2 && (
           <View style={styles.tutorialOverlay} pointerEvents="none">
             <View style={[styles.tutorialBubble, { backgroundColor: theme.colors.primary }]}>
@@ -467,6 +588,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   card: {
+    position: 'absolute',
     width: SCREEN_WIDTH - 32,
     height: SCREEN_HEIGHT * 0.55,
   },
