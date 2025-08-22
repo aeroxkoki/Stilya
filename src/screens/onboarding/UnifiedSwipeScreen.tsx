@@ -63,6 +63,7 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
   
   const { products, isLoading: productsLoading } = useProducts();
   const [currentIndex, setCurrentIndex] = useState(0);
+  const currentIndexShared = useSharedValue(0); // Shared value for animations
   const [swipeResults, setSwipeResults] = useState<StyleQuizResult[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showTutorialOverlay, setShowTutorialOverlay] = useState(true);
@@ -84,6 +85,11 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
     card0Anim, card1Anim, card2Anim, card3Anim,
     card4Anim, card5Anim, card6Anim, card7Anim
   ];
+
+  // currentIndexが変更されたらshared valueも更新
+  useEffect(() => {
+    currentIndexShared.value = currentIndex;
+  }, [currentIndex, currentIndexShared]);
 
   // 初期化完了を設定
   useEffect(() => {
@@ -271,28 +277,22 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
     });
   }, [cardAnimations, currentIndex, isProcessing, handleSwipeComplete]);
 
-  // カード描画コンポーネント
-  const renderCard = useCallback((index: number) => {
-    if (!selectedProducts[index] || !cardAnimations[index]) return null;
+  // カードのアニメーションスタイルを事前に定義
+  const cardAnimatedStyles = cardAnimations.map(anim => 
+    useAnimatedStyle(() => ({
+      transform: [
+        { translateX: anim.translateX.value },
+        { translateY: anim.translateY.value },
+        { rotate: `${anim.rotate.value}deg` },
+        { scale: anim.scale.value },
+      ],
+      opacity: anim.opacity.value,
+    }))
+  );
 
-    const product = selectedProducts[index];
-    const anim = cardAnimations[index];
-    const isCurrentCard = index === currentIndex;
-
-    const animatedStyle = useAnimatedStyle(() => {
-      return {
-        transform: [
-          { translateX: anim.translateX.value },
-          { translateY: anim.translateY.value },
-          { rotate: `${anim.rotate.value}deg` },
-          { scale: anim.scale.value },
-        ],
-        opacity: anim.opacity.value,
-      };
-    });
-
-    // Like/Nopeインジケーター（現在のカードのみ）
-    const likeStyle = useAnimatedStyle(() => {
+  const likeIndicatorStyles = cardAnimations.map((anim, index) =>
+    useAnimatedStyle(() => {
+      const isCurrentCard = index === currentIndexShared.value;
       const opacity = isCurrentCard
         ? interpolate(
             anim.translateX.value,
@@ -302,9 +302,12 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
           )
         : 0;
       return { opacity };
-    });
+    })
+  );
 
-    const nopeStyle = useAnimatedStyle(() => {
+  const nopeIndicatorStyles = cardAnimations.map((anim, index) =>
+    useAnimatedStyle(() => {
+      const isCurrentCard = index === currentIndexShared.value;
       const opacity = isCurrentCard
         ? interpolate(
             anim.translateX.value,
@@ -314,7 +317,19 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
           )
         : 0;
       return { opacity };
-    });
+    })
+  );
+
+  // カード描画コンポーネント
+  const renderCard = useCallback((index: number) => {
+    if (!selectedProducts[index] || !cardAnimations[index]) return null;
+
+    const product = selectedProducts[index];
+    const anim = cardAnimations[index];
+    const isCurrentCard = index === currentIndex;
+    const animatedStyle = cardAnimatedStyles[index];
+    const likeStyle = likeIndicatorStyles[index];
+    const nopeStyle = nopeIndicatorStyles[index];
 
     // ジェスチャーハンドラー
     const onGestureEvent = (event: any) => {
@@ -407,7 +422,7 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
         </Animated.View>
       </PanGestureHandler>
     );
-  }, [selectedProducts, cardAnimations, currentIndex, isProcessing, handleSwipeComplete]);
+  }, [selectedProducts, cardAnimations, currentIndex, isProcessing, handleSwipeComplete, cardAnimatedStyles, likeIndicatorStyles, nopeIndicatorStyles]);
 
   const handleBack = () => {
     prevStep();
