@@ -35,7 +35,7 @@ type Props = NativeStackScreenProps<OnboardingStackParamList, 'UnifiedSwipe'>;
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.25;
 const SWIPE_VELOCITY_THRESHOLD = 500;
-const TOTAL_CARDS = 8;
+const TOTAL_CARDS = 5; // 8枚から5枚に削減（UX向上のため）
 const CARD_STACK_OFFSET = 12;
 const MAX_VISIBLE_CARDS = 3;
 
@@ -71,19 +71,15 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
   const [progressMessage, setProgressMessage] = useState('');
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // 各カードのアニメーション値を初期化
+  // 各カードのアニメーション値を初期化（5枚分に最適化）
   const card0Anim = useCardAnimation(0, true);
   const card1Anim = useCardAnimation(1, true);
   const card2Anim = useCardAnimation(2, true);
   const card3Anim = useCardAnimation(3, false);
   const card4Anim = useCardAnimation(4, false);
-  const card5Anim = useCardAnimation(5, false);
-  const card6Anim = useCardAnimation(6, false);
-  const card7Anim = useCardAnimation(7, false);
 
   const cardAnimations = [
-    card0Anim, card1Anim, card2Anim, card3Anim,
-    card4Anim, card5Anim, card6Anim, card7Anim
+    card0Anim, card1Anim, card2Anim, card3Anim, card4Anim
   ];
 
   // currentIndexが変更されたらshared valueも更新
@@ -96,7 +92,7 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
     setIsInitialized(true);
   }, []);
 
-  // 商品選定ロジック
+  // 商品選定ロジック（5枚に最適化）
   const selectedProducts = useMemo(() => {
     if (!products || products.length === 0) return [];
 
@@ -112,7 +108,7 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
       tutorialProducts.push(...products.slice(0, 2));
     }
 
-    // パーソナライズされた商品（残り6枚）
+    // パーソナライズされた商品（残り3枚）
     let personalizedProducts = products.filter(product => {
       if (tutorialProducts.some(tp => tp.id === product.id)) return false;
       
@@ -126,9 +122,9 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
 
     personalizedProducts = personalizedProducts
       .sort(() => 0.5 - Math.random())
-      .slice(0, 6);
+      .slice(0, 3); // 3枚に削減
 
-    // 8枚になるように調整
+    // 5枚になるように調整
     const allSelectedProducts = [...tutorialProducts, ...personalizedProducts];
     while (allSelectedProducts.length < TOTAL_CARDS && products.length > allSelectedProducts.length) {
       const remainingProducts = products.filter(p => 
@@ -144,11 +140,12 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
     return allSelectedProducts.slice(0, TOTAL_CARDS);
   }, [products, gender, stylePreference]);
 
-  // 進捗フィードバックの表示
+  // 進捗フィードバックの表示（5枚に最適化）
   const showIntermediateFeedback = useCallback((index: number, results: StyleQuizResult[]) => {
     let message = '';
     
     if (index === 2) {
+      // 3枚目完了時（チュートリアル完了後の最初のカード）
       const likedCount = results.filter(r => r.liked).length;
       if (likedCount >= 2) {
         message = 'いいね！素敵なセンスです✨';
@@ -157,8 +154,9 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
       } else {
         message = 'もう少し見てみましょう🔍';
       }
-    } else if (index === 5) {
-      message = 'あと少しで完了です！🎯';
+    } else if (index === 3) {
+      // 4枚目完了時（残り1枚）
+      message = 'あと1枚で完了です！🎯';
     }
 
     if (message) {
@@ -207,7 +205,7 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
   }, [currentIndex, updateCardStack]);
 
   // スワイプ完了処理を修正
-  const handleSwipeComplete = useCallback((direction: 'left' | 'right') => {
+  const handleSwipeComplete = useCallback(async (direction: 'left' | 'right') => {
     if (!selectedProducts[currentIndex]) return;
 
     const currentProduct = selectedProducts[currentIndex];
@@ -236,17 +234,35 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
     // 次のカードへ、または完了処理
     if (currentIndex < TOTAL_CARDS - 1 && currentIndex < selectedProducts.length - 1) {
       // 次のカードへ進む
-      requestAnimationFrame(() => {
+      setTimeout(() => {
         setCurrentIndex(prev => prev + 1);
         setIsProcessing(false);
-      });
+      }, 100);
     } else {
       // 完了処理（すべてのカードをスワイプした）
-      setTimeout(async () => {
+      try {
+        // 完了フィードバックを表示
+        setProgressMessage('完了しました！🎉');
+        setShowProgressFeedback(true);
+        
+        // 振動フィードバック（成功）
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        
+        // データを保存
         await setStyleQuizResults(newResults);
-        nextStep();
-        navigation.navigate('StyleReveal');
-      }, 300);
+        
+        // 少し待ってから遷移（ユーザーが完了を認識できるように）
+        setTimeout(() => {
+          nextStep();
+          navigation.navigate('StyleReveal');
+        }, 1000);
+      } catch (error) {
+        console.error('Failed to complete onboarding:', error);
+        // エラー時のフォールバック
+        setProgressMessage('エラーが発生しました。もう一度お試しください。');
+        setShowProgressFeedback(true);
+        setIsProcessing(false);
+      }
     }
   }, [currentIndex, selectedProducts, swipeResults, showIntermediateFeedback, setStyleQuizResults, nextStep, navigation]);
 
