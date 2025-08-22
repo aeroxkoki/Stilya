@@ -194,8 +194,8 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
     const result: StyleQuizResult = {
       productId: currentProduct.id,
       liked: direction === 'right',
-      category: currentProduct.category,
-      tags: currentProduct.tags,
+      category: currentProduct.category || undefined,
+      tags: currentProduct.tags || undefined,
       isTutorial: currentIndex < 2,
     };
 
