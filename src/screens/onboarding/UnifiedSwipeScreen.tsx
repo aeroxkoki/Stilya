@@ -56,7 +56,8 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
     gender, 
     stylePreference, 
     ageGroup,
-    setStyleQuizResults, 
+    setStyleQuizResults,
+    saveUserProfile, 
     nextStep,
     prevStep 
   } = useOnboarding();
@@ -367,12 +368,17 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
         // 振動フィードバック（成功）
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         
-        // データを保存（非同期でもエラーハンドリング）
+        // データを保存（根本的な修正：両方の関数を呼ぶ）
         try {
+          // まずstateを更新
           await setStyleQuizResults(newResults);
-          console.log('[UnifiedSwipe] Style quiz results saved successfully');
+          console.log('[UnifiedSwipe] Style quiz results set in state');
+          
+          // 次にDBに保存
+          await saveUserProfile();
+          console.log('[UnifiedSwipe] User profile and quiz results saved to DB');
         } catch (saveError) {
-          console.error('[UnifiedSwipe] Failed to save quiz results:', saveError);
+          console.error('[UnifiedSwipe] Failed to save data:', saveError);
           // 保存エラーがあっても次へ進む
         }
         
@@ -393,7 +399,7 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
         }, 1500);
       }
     }
-  }, [currentIndex, selectedProducts, swipeResults, showIntermediateFeedback, setStyleQuizResults, nextStep, navigation]);
+  }, [currentIndex, selectedProducts, swipeResults, showIntermediateFeedback, setStyleQuizResults, saveUserProfile, nextStep, navigation]);
 
   // ボタンでのスワイプ
   const handleButtonSwipe = useCallback((direction: 'left' | 'right') => {

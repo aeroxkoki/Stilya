@@ -153,12 +153,15 @@ export const useProducts = (): UseProductsReturn => {
       console.log('[useProducts] Exclude product IDs:', Array.from(productsData.allProductIds).slice(0, 10)); // 最初の10個を表示
       console.log('[useProducts] Filters:', effectiveFilters);
       
-      // 初回ユーザーの場合は特別な商品セットを取得
-      if (isFirstTimeUser && currentPage === 0 && reset) {
-        console.log('[useProducts] First time user - loading initial products');
+      // 初回ユーザーまたはオンボーディング情報がある場合は特別な商品セットを取得
+      if ((isFirstTimeUser || (gender && stylePreference && stylePreference.length > 0)) && currentPage === 0 && reset) {
+        console.log('[useProducts] Loading personalized initial products');
+        
+        // genderの'other'を'all'にマッピング
+        const mappedGender = gender === 'other' ? 'all' : gender;
         
         const initialProducts = await getInitialProducts({
-          gender,
+          gender: mappedGender as 'male' | 'female' | 'all',
           selectedStyles: stylePreference,
           ageGroup
         }, pageSize * 2);
