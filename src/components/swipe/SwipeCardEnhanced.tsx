@@ -161,6 +161,8 @@ const SwipeCardEnhanced: React.FC<SwipeCardEnhancedProps> = ({
           highQuality={true}
           showLoadingIndicator={false}
           onError={handleImageError}
+          productTitle={product.title}
+          debugMode={__DEV__}
         />
         
         {/* グラデーションの代わりに暗いオーバーレイを使用 */}

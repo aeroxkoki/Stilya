@@ -306,6 +306,8 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = ({
             contentFit="cover"
             testID="product-image"
             showLoadingIndicator={true}
+            productTitle={product.title}
+            debugMode={__DEV__}
           />
           
           {/* 中古品ラベル */}

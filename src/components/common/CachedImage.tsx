@@ -3,7 +3,6 @@ import { StyleProp, ImageStyle, View, StyleSheet, ActivityIndicator, Text } from
 import { Image } from 'expo-image';
 import { optimizeImageUrl } from '@/utils/imageUtils';
 import { Ionicons } from '@expo/vector-icons';
-import { Alert } from 'react-native';
 
 interface CachedImageProps {
   source: { uri: string } | number;
@@ -12,6 +11,7 @@ interface CachedImageProps {
   resizeMode?: 'cover' | 'contain' | 'stretch' | 'center';
   showLoadingIndicator?: boolean;
   debugMode?: boolean; // デバッグモードを追加
+  productTitle?: string; // 商品名（デバッグ用）
   [key: string]: any;
 }
 
@@ -25,15 +25,14 @@ const CachedImage: React.FC<CachedImageProps> = ({
   contentFit = 'cover',
   resizeMode,
   showLoadingIndicator = false,
-  debugMode = false, // デバッグモードを追加
+  debugMode = false,
+  productTitle,
   ...restProps 
 }) => {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [errorDetails, setErrorDetails] = useState<any>(null);
-  
-  // デバッグ用: 最初の画像エラーのみアラートを表示
-  const [hasShownAlert, setHasShownAlert] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   
   // resizeModeとcontentFitの互換性を保つ
   const finalContentFit = resizeMode ? 
@@ -47,64 +46,110 @@ const CachedImage: React.FC<CachedImageProps> = ({
     }
     
     const optimizedUrl = optimizeImageUrl(source.uri);
-    // デバッグログ
-    console.log('[CachedImage] Image URL optimization:', {
-      original: source.uri,
-      optimized: optimizedUrl,
-      changed: source.uri !== optimizedUrl
-    });
-    return { uri: optimizedUrl };
-  }, [source]);
-  
-  // エラー時のフォールバック画像（Picsum Photos - 最高画質）
-  const fallbackSource = { uri: 'https://picsum.photos/800/800?grayscale' };
-  
-  // デバッグモードでエラー詳細を表示
-  useEffect(() => {
-    if (debugMode && hasError && errorDetails && !hasShownAlert) {
-      setHasShownAlert(true);
-      const url = typeof imageSource === 'object' && 'uri' in imageSource ? imageSource.uri : 'unknown';
-      Alert.alert(
-        '画像読み込みエラー',
-        `URL: ${url}\n\nエラー詳細: ${JSON.stringify(errorDetails, null, 2)}`,
-        [{ text: 'OK' }]
-      );
+    // デバッグログ（開発環境のみ）
+    if (__DEV__) {
+      console.log('[CachedImage] Image URL optimization:', {
+        product: productTitle || 'unknown',
+        original: source.uri?.substring(0, 100),
+        optimized: optimizedUrl?.substring(0, 100),
+        changed: source.uri !== optimizedUrl
+      });
     }
-  }, [hasError, errorDetails, debugMode, hasShownAlert, imageSource]);
+    return { uri: optimizedUrl };
+  }, [source, productTitle]);
+  
+  // エラー時のフォールバック画像（複数のフォールバックを用意）
+  const fallbackSources = [
+    { uri: 'https://picsum.photos/800/800?grayscale' },
+    { uri: 'https://via.placeholder.com/800x800/f0f0f0/666666?text=No+Image' },
+  ];
+  
+  const getFallbackSource = () => {
+    return fallbackSources[retryCount % fallbackSources.length];
+  };
+  
+  // エラー処理とリトライロジック
+  const handleError = (event: any) => {
+    console.warn('[CachedImage] Failed to load image:', {
+      product: productTitle || 'unknown',
+      url: typeof imageSource === 'object' && 'uri' in imageSource ? imageSource.uri : 'unknown',
+      error: event?.error,
+      retryCount,
+    });
+    
+    setIsLoading(false);
+    setHasError(true);
+    setErrorDetails(event?.error);
+    
+    // 3回までリトライ
+    if (retryCount < 3) {
+      setTimeout(() => {
+        console.log(`[CachedImage] Retrying... (attempt ${retryCount + 1})`);
+        setRetryCount(prev => prev + 1);
+        setHasError(false);
+        setIsLoading(true);
+      }, 1000 * (retryCount + 1)); // リトライ間隔を徐々に増やす
+    }
+  };
+  
+  // デバッグモードで詳細情報を表示
+  useEffect(() => {
+    if (debugMode && hasError && errorDetails) {
+      console.log('[CachedImage] Detailed error info:', {
+        product: productTitle,
+        url: typeof imageSource === 'object' && 'uri' in imageSource ? imageSource.uri : 'unknown',
+        errorDetails: JSON.stringify(errorDetails, null, 2),
+        retryCount,
+      });
+    }
+  }, [hasError, errorDetails, debugMode, productTitle, imageSource, retryCount]);
+  
+  // エラー表示コンポーネント
+  const ErrorDisplay = () => (
+    <View style={[StyleSheet.absoluteFillObject, styles.errorContainer]}>
+      <Ionicons name="image-outline" size={48} color="#999" />
+      <Text style={styles.errorText}>画像を読み込めませんでした</Text>
+      {debugMode && (
+        <>
+          <Text style={styles.debugText}>{productTitle || 'Unknown product'}</Text>
+          <Text style={styles.debugText}>Retry: {retryCount}/3</Text>
+        </>
+      )}
+    </View>
+  );
   
   return (
     <View style={[styles.container, style]}>
       {isLoading && showLoadingIndicator && (
-        <ActivityIndicator size="small" color="#999" style={styles.loader} />
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="small" color="#999" />
+        </View>
       )}
       
-      {hasError ? (
-        <View style={[StyleSheet.absoluteFillObject, styles.errorContainer]}>
-          <Ionicons name="image-outline" size={48} color="#999" />
-          <Text style={styles.errorText}>画像を読み込めませんでした</Text>
-        </View>
+      {hasError && retryCount >= 3 ? (
+        <ErrorDisplay />
       ) : (
         <Image
-          source={hasError ? fallbackSource : imageSource}
+          source={hasError ? getFallbackSource() : imageSource}
           style={StyleSheet.absoluteFillObject}
           contentFit={finalContentFit}
           cachePolicy="memory-disk"
-          priority="normal"
+          priority="high" // 高優先度に変更
+          transition={200} // スムーズなトランジション
           onLoadStart={() => {
             setIsLoading(true);
-            setHasError(false);
+            if (retryCount === 0) {
+              setHasError(false);
+            }
           }}
-          onLoad={() => setIsLoading(false)}
-          onError={(event) => {
+          onLoad={() => {
             setIsLoading(false);
-            setHasError(true);
-            setErrorDetails(event.error);
-            console.warn('[CachedImage] Failed to load image:', {
-              url: typeof imageSource === 'object' && 'uri' in imageSource ? imageSource.uri : 'unknown',
-              error: event.error,
-              fullEvent: event
-            });
+            setHasError(false);
+            if (__DEV__ && retryCount > 0) {
+              console.log(`[CachedImage] Successfully loaded after ${retryCount} retries:`, productTitle);
+            }
           }}
+          onError={handleError}
           {...restProps}
         />
       )}
@@ -116,13 +161,13 @@ const styles = StyleSheet.create({
   container: {
     position: 'relative',
     overflow: 'hidden',
+    backgroundColor: '#f8f8f8',
   },
-  loader: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    marginTop: -10,
-    marginLeft: -10,
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     zIndex: 1,
   },
   errorContainer: {
@@ -134,6 +179,11 @@ const styles = StyleSheet.create({
     marginTop: 8,
     color: '#999',
     fontSize: 14,
+  },
+  debugText: {
+    marginTop: 4,
+    color: '#ccc',
+    fontSize: 12,
   },
 });
 
