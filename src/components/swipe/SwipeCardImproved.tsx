@@ -28,13 +28,16 @@ interface SwipeCardImprovedProps {
   isSaved?: boolean;
   testID?: string;
   isTopCard?: boolean; // 最前面のカードかどうか
+  cardIndex?: number; // カードのインデックス（スタック表示用）
+  totalCards?: number; // 合計カード数
 }
 
 const { width, height } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.92;
 const CARD_HEIGHT = height * 0.58;
 const SWIPE_THRESHOLD = width * 0.25; // スワイプ判定のしきい値
-const SWIPE_OUT_DURATION = 200;
+const SWIPE_OUT_DURATION = 250; // スワイプアウトの速度を少し遅めに
+const ROTATION_ANGLE = 30; // 回転角度
 
 const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = ({ 
   product, 
@@ -45,7 +48,9 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = ({
   onSave,
   isSaved = false,
   testID,
-  isTopCard = false
+  isTopCard = false,
+  cardIndex = 0,
+  totalCards = 1
 }) => {
   const { theme } = useStyle();
   
@@ -56,31 +61,83 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = ({
   const cardScale = useRef(new Animated.Value(0.95)).current;
   const likeOpacity = useRef(new Animated.Value(0)).current;
   const nopeOpacity = useRef(new Animated.Value(0)).current;
+  const cardOpacity = useRef(new Animated.Value(1)).current;
   
   // 状態管理
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
+  const [isSwiping, setIsSwiping] = useState(false);
   
   // 画像URL取得
   const imageUrl = getProductImageUrl(product);
   
-  // カード登場アニメーション
+  // カード登場アニメーション（スタック表示用）
   useEffect(() => {
     if (isTopCard) {
+      // 最前面のカードは通常サイズ
       Animated.spring(cardScale, {
         toValue: 1,
         friction: 8,
         tension: 40,
         useNativeDriver: true
       }).start();
+      Animated.timing(cardOpacity, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true
+      }).start();
+    } else {
+      // 背後のカードは少し小さくして薄く表示
+      const scale = 1 - (cardIndex * 0.03); // カードごとに少しずつ小さく
+      const opacity = 1 - (cardIndex * 0.3); // カードごとに薄く
+      
+      Animated.timing(cardScale, {
+        toValue: Math.max(scale, 0.85),
+        duration: 200,
+        useNativeDriver: true
+      }).start();
+      
+      Animated.timing(cardOpacity, {
+        toValue: Math.max(opacity, 0.3),
+        duration: 200,
+        useNativeDriver: true
+      }).start();
     }
-  }, [isTopCard]);
+  }, [isTopCard, cardIndex]);
+  
+  // スワイプ完了時のアニメーション
+  const completeSwipe = (direction: 'left' | 'right') => {
+    const x = direction === 'left' ? -width * 1.5 : width * 1.5;
+    const rotation = direction === 'left' ? -ROTATION_ANGLE : ROTATION_ANGLE;
+    
+    // カードを画面外に飛ばす（戻ってこないようにする）
+    Animated.parallel([
+      Animated.timing(position, {
+        toValue: { x, y: 100 },
+        duration: SWIPE_OUT_DURATION,
+        useNativeDriver: true
+      }),
+      Animated.timing(cardOpacity, {
+        toValue: 0,
+        duration: SWIPE_OUT_DURATION,
+        useNativeDriver: true
+      })
+    ]).start(() => {
+      // アニメーション完了後、コールバックを呼ぶ
+      if (direction === 'left' && onSwipeLeft) {
+        onSwipeLeft();
+      } else if (direction === 'right' && onSwipeRight) {
+        onSwipeRight();
+      }
+    });
+  };
   
   // スワイプジェスチャー
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => isTopCard,
-      onMoveShouldSetPanResponder: () => isTopCard,
+      onStartShouldSetPanResponder: () => isTopCard && !isSwiping,
+      onMoveShouldSetPanResponder: () => isTopCard && !isSwiping,
       onPanResponderGrant: () => {
+        setIsSwiping(true);
         position.setOffset({
           x: position.x._value,
           y: position.y._value
@@ -114,6 +171,7 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = ({
       },
       onPanResponderRelease: (_, gesture) => {
         position.flattenOffset();
+        setIsSwiping(false);
         
         // スワイプ完了判定
         if (gesture.dx > SWIPE_THRESHOLD && onSwipeRight) {
@@ -133,14 +191,7 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = ({
           } catch (error) {
             console.error('[SwipeCard] バイブレーションエラー:', error);
           }
-          Animated.timing(position, {
-            toValue: { x: width, y: gesture.dy },
-            duration: SWIPE_OUT_DURATION,
-            useNativeDriver: true
-          }).start(() => {
-            onSwipeRight();
-            resetPosition();
-          });
+          completeSwipe('right');
         } else if (gesture.dx < -SWIPE_THRESHOLD && onSwipeLeft) {
           // 左スワイプ（スキップ）- 軽めのフィードバック
           console.log('[SwipeCard] 左スワイプ検出 - バイブレーション開始');
@@ -157,32 +208,21 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = ({
           } catch (error) {
             console.error('[SwipeCard] バイブレーションエラー:', error);
           }
-          Animated.timing(position, {
-            toValue: { x: -width, y: gesture.dy },
-            duration: SWIPE_OUT_DURATION,
-            useNativeDriver: true
-          }).start(() => {
-            onSwipeLeft();
-            resetPosition();
-          });
+          completeSwipe('left');
         } else {
-          // 元の位置に戻す
-          resetPosition();
+          // 元の位置に戻す（スワイプが不完全な場合のみ）
+          Animated.spring(position, {
+            toValue: { x: 0, y: 0 },
+            useNativeDriver: true,
+            friction: 5
+          }).start();
+          setSwipeDirection(null);
+          likeOpacity.setValue(0);
+          nopeOpacity.setValue(0);
         }
       }
     })
   ).current;
-  
-  // ポジションをリセット
-  const resetPosition = () => {
-    Animated.spring(position, {
-      toValue: { x: 0, y: 0 },
-      useNativeDriver: true
-    }).start();
-    setSwipeDirection(null);
-    likeOpacity.setValue(0);
-    nopeOpacity.setValue(0);
-  };
   
   // ボタンアニメーション
   const animateButton = (callback?: () => void, isLikeAction?: boolean) => {
@@ -198,186 +238,181 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = ({
           Vibration.vibrate(40); // 中間の長さ
         }
       } catch (error) {
-        console.error('[SwipeCard] 保存ボタンのバイブレーションエラー:', error);
+        console.error('[SwipeCard] 保存ボタンバイブレーションエラー:', error);
       }
+      
+      Animated.sequence([
+        Animated.timing(buttonScale, {
+          toValue: 1.2,
+          duration: 100,
+          useNativeDriver: true
+        }),
+        Animated.timing(buttonScale, {
+          toValue: 1,
+          duration: 100,
+          useNativeDriver: true
+        })
+      ]).start(() => {
+        if (callback) callback();
+      });
+      
+      return;
     }
     
-    Animated.sequence([
-      Animated.timing(buttonScale, {
-        toValue: 0.9,
-        duration: 100,
-        useNativeDriver: true
-      }),
-      Animated.timing(buttonScale, {
-        toValue: 1,
-        duration: 100,
-        useNativeDriver: true
-      })
-    ]).start(() => {
-      if (callback) callback();
-    });
-  };
-  
-  // プログラム的なスワイプ
-  const handleProgrammaticSwipe = (direction: 'left' | 'right') => {
-    const toValue = direction === 'right' ? width : -width;
-    const callback = direction === 'right' ? onSwipeRight : onSwipeLeft;
-    
-    // バイブレーションフィードバック
-    console.log(`[SwipeCard] プログラム的${direction === 'right' ? '右' : '左'}スワイプ - バイブレーション開始`);
-    try {
-      if (direction === 'right') {
-        // いいね！ボタン - ポジティブなフィードバック
+    // スワイプボタンはカードごと飛ばす
+    if (isLikeAction !== undefined) {
+      completeSwipe(isLikeAction ? 'right' : 'left');
+      
+      // バイブレーション
+      try {
         if (Platform.OS === 'ios') {
-          console.log('[SwipeCard] iOS - Haptic Engine (Heavy)');
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+          Haptics.impactAsync(isLikeAction ? Haptics.ImpactFeedbackStyle.Heavy : Haptics.ImpactFeedbackStyle.Light);
         } else {
-          console.log('[SwipeCard] Android - ダブルタップパターン');
-          Vibration.vibrate([0, 50, 30, 50]); // ダブルタップパターン
+          Vibration.vibrate(isLikeAction ? [0, 50, 30, 50] : 30);
         }
-      } else {
-        // スキップボタン - 軽めのフィードバック
-        if (Platform.OS === 'ios') {
-          console.log('[SwipeCard] iOS - Haptic Engine (Light)');
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        } else {
-          console.log('[SwipeCard] Android - 短い振動 (30ms)');
-          Vibration.vibrate(30);
-        }
+      } catch (error) {
+        console.error('[SwipeCard] ボタンバイブレーションエラー:', error);
       }
-    } catch (error) {
-      console.error('[SwipeCard] プログラム的スワイプのバイブレーションエラー:', error);
+    } else if (callback) {
+      // その他のボタン（詳細ボタンなど）
+      Animated.sequence([
+        Animated.timing(buttonScale, {
+          toValue: 0.95,
+          duration: 100,
+          useNativeDriver: true
+        }),
+        Animated.timing(buttonScale, {
+          toValue: 1,
+          duration: 100,
+          useNativeDriver: true
+        })
+      ]).start(() => {
+        callback();
+      });
     }
-    
-    // インジケーター表示
-    const opacity = direction === 'right' ? likeOpacity : nopeOpacity;
-    Animated.timing(opacity, {
-      toValue: 1,
-      duration: 200,
-      useNativeDriver: true
-    }).start();
-    
-    // カードをスワイプアウト
-    Animated.timing(position, {
-      toValue: { x: toValue, y: 0 },
-      duration: SWIPE_OUT_DURATION,
-      useNativeDriver: true
-    }).start(() => {
-      if (callback) callback();
-      resetPosition();
-    });
   };
   
-  // カードの回転角度
+  // カードの回転角度を計算
   const rotate = position.x.interpolate({
     inputRange: [-width / 2, 0, width / 2],
-    outputRange: ['-10deg', '0deg', '10deg'],
+    outputRange: ['-15deg', '0deg', '15deg'],
     extrapolate: 'clamp'
   });
   
+  // カードのY軸の動きを制限
+  const translateY = position.y.interpolate({
+    inputRange: [-100, 0, 100],
+    outputRange: [-30, 0, 30],
+    extrapolate: 'clamp'
+  });
+
+  // カードのアニメーションスタイル
   const animatedCardStyle = {
     transform: [
       { translateX: position.x },
-      { translateY: position.y },
-      { rotate },
+      { translateY: translateY },
+      { rotate: rotate },
       { scale: cardScale }
-    ]
+    ],
+    opacity: cardOpacity
   };
 
+  // スタック表示用のオフセット
+  const stackOffset = cardIndex * 10; // 各カードを10pxずつずらす
+  
   return (
     <Animated.View 
-      style={[styles.container, animatedCardStyle]}
+      style={[
+        styles.container, 
+        animatedCardStyle,
+        { 
+          backgroundColor: theme.colors.surface,
+          zIndex: totalCards - cardIndex, // 前面のカードほど高いz-index
+          elevation: totalCards - cardIndex, // Android用
+          position: 'absolute',
+          top: -stackOffset, // 背後のカードを少し下にずらす
+        }
+      ]} 
       {...(isTopCard ? panResponder.panHandlers : {})}
-      testID={testID || 'swipe-card-improved'}
+      testID={testID}
     >
+      {/* カード影 */}
+      <View style={[
+        styles.shadowOverlay, 
+        { 
+          backgroundColor: theme.colors.primary,
+          opacity: 0.05,
+          transform: [{ translateY: 4 }]
+        }
+      ]} />
+      
+      {/* カード本体 */}
       <TouchableOpacity
-        style={styles.cardContent}
-        onPress={() => {
-          if (!isTopCard) {
-            console.log('[SwipeCardImproved] Card is not top card, ignoring tap');
-            return;
-          }
-          console.log('[SwipeCardImproved] Card tapped, product:', product.title, 'ID:', product.id);
-          if (onPress && product.id) {
-            console.log('[SwipeCardImproved] Calling onPress callback with valid product ID');
-            // タップイベントのハプティックフィードバック（軽め）
-            try {
-              if (Platform.OS === 'ios') {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              } else {
-                Vibration.vibrate(20);
-              }
-            } catch (error) {
-              console.error('[SwipeCardImproved] Haptic error:', error);
-            }
-            onPress();
-          } else {
-            console.error('[SwipeCardImproved] Missing onPress callback or product ID');
-          }
-        }}
-        onLongPress={() => {
-          if (isTopCard && onLongPress) {
-            onLongPress();
-          }
-        }}
-        delayLongPress={400}
         activeOpacity={0.95}
+        onPress={() => onPress && onPress()}
+        onLongPress={() => onLongPress && onLongPress()}
+        disabled={!isTopCard || isSwiping}
+        style={styles.touchableArea}
       >
         {/* 商品画像 */}
         <View style={styles.imageContainer}>
           <CachedImage
             source={{ uri: imageUrl }}
             style={styles.image}
-            contentFit="cover"
-            testID="product-image"
-            showLoadingIndicator={true}
-            productTitle={product.title}
-            debugMode={__DEV__}
+            cachePolicy="memory-disk"
+            placeholderType="shimmer"
+            placeholderColor={theme.colors.border}
           />
           
-          {/* 中古品ラベル */}
-          {product.isUsed && (
-            <View style={styles.usedLabel}>
-              <Text style={styles.usedLabelText}>USED</Text>
-            </View>
-          )}
-          
-          {/* Like/Nopeインジケーター */}
-          <Animated.View 
-            style={[
-              styles.likeIndicator,
-              { opacity: likeOpacity }
-            ]}
-          >
-            <Text style={styles.likeText}>LIKE</Text>
-          </Animated.View>
-          
-          <Animated.View 
-            style={[
-              styles.nopeIndicator,
-              { opacity: nopeOpacity }
-            ]}
-          >
-            <Text style={styles.nopeText}>NOPE</Text>
-          </Animated.View>
+          {/* グラデーションオーバーレイ */}
+          <View style={[styles.gradientOverlay, { 
+            backgroundColor: `${theme.colors.background}00`,
+            backgroundImage: `linear-gradient(to bottom, transparent, ${theme.colors.background}CC)`
+          }]} />
         </View>
         
+        {/* スワイプインジケーター */}
+        <Animated.View 
+          style={[
+            styles.likeIndicator,
+            { opacity: likeOpacity }
+          ]}
+          pointerEvents="none"
+        >
+          <View style={[styles.indicatorBadge, { backgroundColor: theme.colors.success }]}>
+            <Text style={styles.indicatorText}>LIKE</Text>
+          </View>
+        </Animated.View>
+        
+        <Animated.View 
+          style={[
+            styles.nopeIndicator,
+            { opacity: nopeOpacity }
+          ]}
+          pointerEvents="none"
+        >
+          <View style={[styles.indicatorBadge, { backgroundColor: theme.colors.error }]}>
+            <Text style={styles.indicatorText}>NOPE</Text>
+          </View>
+        </Animated.View>
+        
         {/* 商品情報 */}
-        <View style={styles.productInfo}>
-          <View style={styles.productHeader}>
-            <View style={styles.productDetails}>
-              <Text style={styles.productTitle} numberOfLines={2}>
-                {product.title}
+        <View style={[styles.infoContainer, { backgroundColor: theme.colors.surface }]}>
+          <View style={styles.infoHeader}>
+            <View style={styles.infoMain}>
+              <Text 
+                style={[styles.title, { color: theme.colors.text.primary }]} 
+                numberOfLines={2}
+              >
+                {product.title || '商品名なし'}
               </Text>
-              {product.brand && (
-                <Text style={styles.productBrand} numberOfLines={1}>
-                  {product.brand}
-                </Text>
-              )}
+              <Text style={[styles.brand, { color: theme.colors.text.secondary }]} numberOfLines={1}>
+                {product.brand || 'ブランド名なし'}
+              </Text>
             </View>
             <View style={styles.priceContainer}>
-              <Text style={styles.productPrice}>
-                {formatPrice(product.price)}
+              <Text style={[styles.price, { color: theme.colors.primary }]}>
+                {formatPrice(product.price || 0)}
               </Text>
             </View>
           </View>
@@ -386,8 +421,13 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = ({
           {product.tags && product.tags.length > 0 && (
             <View style={styles.tagsContainer}>
               {product.tags.slice(0, 3).map((tag, index) => (
-                <View key={index} style={styles.tag}>
-                  <Text style={styles.tagText}>{tag}</Text>
+                <View 
+                  key={index} 
+                  style={[styles.tag, { backgroundColor: `${theme.colors.primary}10` }]}
+                >
+                  <Text style={[styles.tagText, { color: theme.colors.primary }]}>
+                    {tag}
+                  </Text>
                 </View>
               ))}
             </View>
@@ -395,59 +435,46 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = ({
         </View>
       </TouchableOpacity>
       
-      {/* アクションボタン（カードの外側） */}
+      {/* アクションボタン（最前面のカードのみ表示） */}
       {isTopCard && (
-        <View style={styles.actionButtons}>
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.noButton]}
-            onPress={() => {
-              animateButton(() => handleProgrammaticSwipe('left'));
-            }}
-            testID="swipe-left-button"
+        <View style={[styles.actionButtons, { backgroundColor: theme.colors.surface }]}>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.noButton, { backgroundColor: `${theme.colors.error}10` }]}
+            onPress={() => animateButton(undefined, false)}
+            activeOpacity={0.8}
           >
-            <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
-              <Ionicons name="close" size={36} color="#EF4444" />
-            </Animated.View>
-            <Text style={styles.buttonText}>スキップ</Text>
+            <Ionicons name="close" size={32} color={theme.colors.error} />
           </TouchableOpacity>
           
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.saveButton]}
-            onPress={() => {
-              animateButton(onSave);
-            }}
-            testID="save-button"
-          >
-            <Ionicons 
-              name={isSaved ? "bookmark" : "bookmark-outline"} 
-              size={32} 
-              color={isSaved ? "#10B981" : "#6B7280"} 
-            />
-            <Text style={[styles.buttonText, { color: isSaved ? "#10B981" : "#6B7280" }]}>
-              保存
-            </Text>
-          </TouchableOpacity>
+          <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
+            <TouchableOpacity
+              style={[
+                styles.actionButton, 
+                styles.saveButton, 
+                { 
+                  backgroundColor: isSaved ? theme.colors.warning : `${theme.colors.warning}10`,
+                  borderColor: theme.colors.warning,
+                  borderWidth: isSaved ? 0 : 1
+                }
+              ]}
+              onPress={() => animateButton(onSave)}
+              activeOpacity={0.8}
+            >
+              <Ionicons 
+                name={isSaved ? "star" : "star-outline"} 
+                size={28} 
+                color={isSaved ? '#FFFFFF' : theme.colors.warning} 
+              />
+            </TouchableOpacity>
+          </Animated.View>
           
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.yesButton]}
-            onPress={() => {
-              animateButton(() => handleProgrammaticSwipe('right'));
-            }}
-            testID="swipe-right-button"
+          <TouchableOpacity
+            style={[styles.actionButton, styles.yesButton, { backgroundColor: `${theme.colors.success}10` }]}
+            onPress={() => animateButton(undefined, true)}
+            activeOpacity={0.8}
           >
-            <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
-              <Ionicons name="heart" size={36} color="#3B82F6" />
-            </Animated.View>
-            <Text style={styles.buttonText}>いいね！</Text>
+            <Ionicons name="heart" size={32} color={theme.colors.success} />
           </TouchableOpacity>
-        </View>
-      )}
-      
-      {/* スワイプヒント（初回のみ） */}
-      {isTopCard && (
-        <View style={styles.swipeHint}>
-          <Ionicons name="swap-horizontal" size={20} color="#9CA3AF" />
-          <Text style={styles.swipeHintText}>左右にスワイプもできます</Text>
         </View>
       )}
     </Animated.View>
@@ -457,173 +484,134 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = ({
 const styles = StyleSheet.create({
   container: {
     width: CARD_WIDTH,
-    height: CARD_HEIGHT + 100, // ボタン分の高さを追加
-    position: 'absolute',
+    height: CARD_HEIGHT,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
-  cardContent: {
+  shadowOverlay: {
+    position: 'absolute',
     width: CARD_WIDTH,
     height: CARD_HEIGHT,
-    backgroundColor: 'white',
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 5,
-    overflow: 'hidden',
+    borderRadius: 20,
+  },
+  touchableArea: {
+    flex: 1,
   },
   imageContainer: {
     flex: 1,
-    position: 'relative',
+    borderRadius: 20,
+    overflow: 'hidden',
   },
   image: {
     width: '100%',
     height: '100%',
   },
-  usedLabel: {
+  gradientOverlay: {
     position: 'absolute',
-    top: 16,
-    left: 16,
-    backgroundColor: '#F59E0B',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 200,
   },
-  usedLabelText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  likeIndicator: {
+  infoContainer: {
     position: 'absolute',
-    top: 50,
-    left: 20,
-    padding: 10,
-    borderWidth: 4,
-    borderColor: '#10B981',
-    borderRadius: 8,
-    transform: [{ rotate: '-30deg' }],
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 20,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
   },
-  likeText: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#10B981',
-  },
-  nopeIndicator: {
-    position: 'absolute',
-    top: 50,
-    right: 20,
-    padding: 10,
-    borderWidth: 4,
-    borderColor: '#EF4444',
-    borderRadius: 8,
-    transform: [{ rotate: '30deg' }],
-  },
-  nopeText: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#EF4444',
-  },
-  productInfo: {
-    backgroundColor: 'white',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-  },
-  productHeader: {
+  infoHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
   },
-  productDetails: {
+  infoMain: {
     flex: 1,
-    marginRight: 16,
+    marginRight: 10,
   },
-  productTitle: {
+  title: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1F2937',
     marginBottom: 4,
   },
-  productBrand: {
+  brand: {
     fontSize: 14,
-    color: '#6B7280',
+    marginBottom: 8,
   },
   priceContainer: {
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    alignItems: 'flex-end',
   },
-  productPrice: {
-    fontSize: 18,
+  price: {
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#1F2937',
   },
   tagsContainer: {
     flexDirection: 'row',
-    marginTop: 12,
     flexWrap: 'wrap',
+    marginTop: 8,
   },
   tag: {
-    backgroundColor: '#E5E7EB',
-    borderRadius: 12,
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 4,
+    borderRadius: 12,
     marginRight: 6,
     marginBottom: 4,
   },
   tagText: {
-    color: '#4B5563',
     fontSize: 12,
+  },
+  likeIndicator: {
+    position: 'absolute',
+    top: 40,
+    right: 20,
+    transform: [{ rotate: '20deg' }],
+  },
+  nopeIndicator: {
+    position: 'absolute',
+    top: 40,
+    left: 20,
+    transform: [{ rotate: '-20deg' }],
+  },
+  indicatorBadge: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  indicatorText: {
+    color: '#FFFFFF',
+    fontSize: 24,
+    fontWeight: 'bold',
   },
   actionButtons: {
+    position: 'absolute',
+    bottom: -70,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
+    alignItems: 'center',
     paddingHorizontal: 40,
-    marginTop: 16,
   },
   actionButton: {
-    alignItems: 'center',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     justifyContent: 'center',
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'white',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  noButton: {
-    backgroundColor: '#FEE2E2',
-  },
-  yesButton: {
-    backgroundColor: '#DBEAFE',
-  },
-  saveButton: {
-    backgroundColor: '#F3F4F6',
-  },
-  buttonText: {
-    marginTop: 4,
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#374151',
-  },
-  swipeHint: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 8,
-    opacity: 0.6,
+    marginHorizontal: 16,
   },
-  swipeHintText: {
-    marginLeft: 6,
-    fontSize: 12,
-    color: '#9CA3AF',
-  },
+  noButton: {},
+  saveButton: {},
+  yesButton: {},
 });
 
 export default SwipeCardImproved;

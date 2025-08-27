@@ -397,9 +397,36 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
           </View>
         )}
         
-        {/* 前面カード（現在のカード） */}
-        {currentProduct && (
-          useEnhancedCard ? (
+        {/* カードスタック表示 - 背後のカードから順に表示 */}
+        {useEnhancedCard ? (
+          <>
+            {/* 最大3枚のカードをスタック表示 */}
+            {products.slice(currentIndex, Math.min(currentIndex + 3, products.length))
+              .reverse() // 背後のカードを先にレンダリング
+              .map((product, reverseIndex) => {
+                const actualIndex = 2 - reverseIndex; // 実際のインデックスに変換
+                const isTop = actualIndex === 0;
+                
+                return (
+                  <SwipeCardImproved
+                    key={`${product.id}-${currentIndex + actualIndex}`}
+                    product={product}
+                    onPress={isTop ? handleCardPress : undefined}
+                    onLongPress={isTop ? handleCardLongPress : undefined}
+                    onSwipeLeft={isTop && isConnected !== false ? () => handleSwipeLeft(product) : undefined}
+                    onSwipeRight={isTop && isConnected !== false ? () => handleSwipeRight(product) : undefined}
+                    onSave={isTop ? handleSaveButtonPress : undefined}
+                    isSaved={savedItems.includes(product.id)}
+                    testID={isTop ? "current-swipe-card" : `stacked-card-${actualIndex}`}
+                    isTopCard={isTop}
+                    cardIndex={actualIndex}
+                    totalCards={3}
+                  />
+                );
+              })}
+          </>
+        ) : (
+          currentProduct && (
             <SwipeCardImproved
               product={currentProduct}
               onPress={handleCardPress}
@@ -411,55 +438,6 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
               testID="current-swipe-card"
               isTopCard={true}
             />
-          ) : (
-            <Animated.View
-              style={[styles.cardContainer, animatedCardStyle]}
-              {...panResponder.panHandlers}
-            >
-              <StyledSwipeCard
-                product={currentProduct}
-                onPress={handleCardPress}
-                onLongPress={handleCardLongPress}
-                onSwipeLeft={isConnected === false ? undefined : handleNoButtonPress}
-                onSwipeRight={isConnected === false ? undefined : handleYesButtonPress}
-                testID="current-swipe-card"
-              />
-              
-              {/* スワイプインジケーター (従来のカードのみ表示) */}
-              <Animated.View
-                style={[
-                  styles.swipeIndicator,
-                  styles.yesIndicator,
-                  { 
-                    opacity: position.x.interpolate({
-                      inputRange: [0, SWIPE_THRESHOLD],
-                      outputRange: [0, 1],
-                      extrapolate: 'clamp',
-                    }),
-                    backgroundColor: theme.colors.success
-                  }
-                ]}
-              >
-                <Text style={styles.indicatorText}>YES</Text>
-              </Animated.View>
-              
-              <Animated.View
-                style={[
-                  styles.swipeIndicator,
-                  styles.noIndicator,
-                  { 
-                    opacity: position.x.interpolate({
-                      inputRange: [-SWIPE_THRESHOLD, 0],
-                      outputRange: [1, 0],
-                      extrapolate: 'clamp',
-                    }),
-                    backgroundColor: theme.colors.error
-                  }
-                ]}
-              >
-                <Text style={styles.indicatorText}>NO</Text>
-              </Animated.View>
-            </Animated.View>
           )
         )}
       </View>
