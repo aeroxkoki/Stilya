@@ -1,7 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, SafeAreaView, ActivityIndicator, Alert, StyleSheet } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  View, 
+  Text, 
+  SafeAreaView, 
+  ActivityIndicator, 
+  Alert, 
+  StyleSheet, 
+  Animated,
+  Modal,
+  Dimensions,
+  Platform
+} from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { Button } from '@/components/common';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { OnboardingStackParamList, fashionStyleToTheme, FashionStyle, StyleType } from '@/types';
@@ -10,10 +22,22 @@ import { STYLE_ID_TO_JP_TAG } from '@/constants/constants';
 
 type Props = NativeStackScreenProps<OnboardingStackParamList, 'Complete'>;
 
+const { width, height } = Dimensions.get('window');
+
 const CompleteScreen: React.FC<Props> = ({ navigation }) => {
   const { theme, setStyleType } = useStyle();
   const { gender, stylePreference, ageGroup, styleQuizResults, getSelectionInsights, saveUserProfile, completeOnboarding, isLoading, error } = useOnboarding();
   const [isSaving, setIsSaving] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [countdown, setCountdown] = useState(3);
+  const [isAutoNavigating, setIsAutoNavigating] = useState(false);
+  
+  // アニメーション用の値
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0)).current;
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const checkmarkAnim = useRef(new Animated.Value(0)).current;
+  const countdownRef = useRef<NodeJS.Timeout>();
 
   // スタイル選択に基づいてテーマを決定
   useEffect(() => {
@@ -48,6 +72,23 @@ const CompleteScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, [stylePreference, setStyleType]);
 
+  // 初回表示時のアニメーション
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
   // 年代のマッピング（DBスキーマに合わせて修正）
   const ageGroupMap: Record<string, string> = {
     teens: '10代',
@@ -64,13 +105,82 @@ const CompleteScreen: React.FC<Props> = ({ navigation }) => {
     other: 'その他',
   };
 
+  // 成功モーダルのアニメーション
+  const showSuccessAnimation = () => {
+    setShowSuccessModal(true);
+    
+    // 振動フィードバック
+    if (Platform.OS !== 'web') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+
+    // チェックマークアニメーション
+    Animated.sequence([
+      Animated.timing(checkmarkAnim, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.spring(checkmarkAnim, {
+        toValue: 1.2,
+        tension: 100,
+        friction: 5,
+        useNativeDriver: true,
+      }),
+      Animated.spring(checkmarkAnim, {
+        toValue: 1,
+        tension: 100,
+        friction: 5,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // プログレスバーアニメーション
+    Animated.timing(progressAnim, {
+      toValue: 1,
+      duration: 3000,
+      useNativeDriver: false,
+    }).start();
+
+    // カウントダウン開始
+    setIsAutoNavigating(true);
+    setCountdown(3);
+    
+    countdownRef.current = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          return prev;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    // 3秒後に自動遷移
+    setTimeout(() => {
+      if (countdownRef.current) {
+        clearInterval(countdownRef.current);
+      }
+      handleAutoNavigate();
+    }, 3000);
+  };
+
+  const handleAutoNavigate = async () => {
+    try {
+      await completeOnboarding();
+      // AppNavigatorが自動的にMain画面に遷移する
+    } catch (error) {
+      console.error('Auto navigation error:', error);
+      setShowSuccessModal(false);
+      setIsAutoNavigating(false);
+    }
+  };
+
   const handleComplete = async () => {
     setIsSaving(true);
     try {
       await saveUserProfile();
-      // 初回ユーザーフラグを更新
-      await completeOnboarding();
-      // 成功時は自動的にMainスタックに遷移（AppNavigatorで処理）
+      // 成功アニメーションを表示
+      showSuccessAnimation();
     } catch (error) {
       Alert.alert(
         'エラー',
@@ -82,6 +192,14 @@ const CompleteScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
+  const handleSkipWait = async () => {
+    if (countdownRef.current) {
+      clearInterval(countdownRef.current);
+    }
+    setShowSuccessModal(false);
+    await handleAutoNavigate();
+  };
+
   // 選択したスタイルの名前を取得
   const getStyleNames = () => {
     return stylePreference.map((style: any) => STYLE_ID_TO_JP_TAG[style] || style).join('、');
@@ -89,12 +207,20 @@ const CompleteScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={styles.content}>
+      <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
         {/* タイトル */}
         <View style={styles.titleContainer}>
-          <View style={[styles.iconContainer, { backgroundColor: theme.colors.surface }]}>
+          <Animated.View 
+            style={[
+              styles.iconContainer, 
+              { 
+                backgroundColor: theme.colors.surface,
+                transform: [{ scale: scaleAnim }]
+              }
+            ]}
+          >
             <Ionicons name="checkmark" size={48} color={theme.colors.success} />
-          </View>
+          </Animated.View>
           <Text style={[styles.title, { color: theme.colors.text.primary }]}>
             プロフィール設定完了！
           </Text>
@@ -184,7 +310,7 @@ const CompleteScreen: React.FC<Props> = ({ navigation }) => {
         )}
 
         {/* 完了ボタン */}
-        <View style={[styles.buttonContainer, { backgroundColor: theme.colors.background, borderTopColor: theme.colors.border }]}>
+        <View style={[styles.buttonContainer, { backgroundColor: theme.colors.background }]}>
           <Button
             isFullWidth
             onPress={handleComplete}
@@ -193,7 +319,70 @@ const CompleteScreen: React.FC<Props> = ({ navigation }) => {
             始める
           </Button>
         </View>
-      </View>
+      </Animated.View>
+
+      {/* 成功モーダル */}
+      <Modal
+        visible={showSuccessModal}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: theme.colors.surface }]}>
+            <Animated.View
+              style={[
+                styles.successIconContainer,
+                {
+                  transform: [{ scale: checkmarkAnim }],
+                  opacity: checkmarkAnim,
+                }
+              ]}
+            >
+              <View style={[styles.successCircle, { backgroundColor: theme.colors.success }]}>
+                <Ionicons name="checkmark" size={60} color="white" />
+              </View>
+            </Animated.View>
+
+            <Text style={[styles.successTitle, { color: theme.colors.text.primary }]}>
+              準備完了！
+            </Text>
+            
+            <Text style={[styles.successMessage, { color: theme.colors.text.secondary }]}>
+              プロフィール設定が完了しました
+            </Text>
+
+            <View style={styles.countdownContainer}>
+              <Text style={[styles.countdownText, { color: theme.colors.text.primary }]}>
+                {countdown}秒後に自動的に開始します
+              </Text>
+              
+              <View style={[styles.countdownProgressBar, { backgroundColor: theme.colors.border }]}>
+                <Animated.View
+                  style={[
+                    styles.countdownProgressFill,
+                    {
+                      backgroundColor: theme.colors.primary,
+                      width: progressAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0%', '100%'],
+                      }),
+                    }
+                  ]}
+                />
+              </View>
+            </View>
+
+            <Button
+              onPress={handleSkipWait}
+              isFullWidth
+              style={{ marginTop: 20 }}
+            >
+              今すぐ始める
+            </Button>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -265,7 +454,6 @@ const styles = StyleSheet.create({
     bottom: 30,
     left: 20,
     right: 20,
-    borderTopWidth: 1,
   },
   insightsCard: {
     padding: 20,
@@ -304,6 +492,59 @@ const styles = StyleSheet.create({
   },
   consistencyText: {
     fontSize: 14,
+  },
+  
+  // モーダル関連のスタイル
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 350,
+    padding: 30,
+    borderRadius: 20,
+    alignItems: 'center',
+  },
+  successIconContainer: {
+    marginBottom: 20,
+  },
+  successCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  successTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  successMessage: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 30,
+  },
+  countdownContainer: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  countdownText: {
+    fontSize: 14,
+    marginBottom: 12,
+  },
+  countdownProgressBar: {
+    width: '100%',
+    height: 6,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  countdownProgressFill: {
+    height: '100%',
   },
 });
 
