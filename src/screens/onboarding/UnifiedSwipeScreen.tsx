@@ -93,7 +93,7 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
     setIsInitialized(true);
   }, []);
 
-  // 改善された商品選定ロジック（性別・好み・年齢を考慮）
+  // 改善された商品選定ロジック（スタイル選択重視）
   const selectedProducts = useMemo(() => {
     if (!products || products.length === 0) return [];
 
@@ -104,39 +104,11 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
       totalProducts: products.length
     });
 
-    // 性別でフィルタリング
-    const genderFilteredProducts = products.filter(product => {
-      if (!gender || gender === 'other') return true;
-      
-      // 商品のタグから性別を判定
-      const tags = product.tags || [];
-      const hasGenderTag = tags.some(tag => {
-        const lowerTag = tag.toLowerCase();
-        if (gender === 'male') {
-          return lowerTag.includes('メンズ') || 
-                 lowerTag.includes('男性') || 
-                 lowerTag.includes('men');
-        } else if (gender === 'female') {
-          return lowerTag.includes('レディース') || 
-                 lowerTag.includes('女性') || 
-                 lowerTag.includes('women');
-        }
-        return false;
-      });
-      
-      // 性別タグがある場合はそれに従う、ない場合は表示
-      if (tags.some(tag => 
-        tag.toLowerCase().includes('メンズ') || 
-        tag.toLowerCase().includes('レディース') ||
-        tag.toLowerCase().includes('男性') ||
-        tag.toLowerCase().includes('女性'))) {
-        return hasGenderTag;
-      }
-      
-      return true; // 性別タグがない商品は両方に表示
-    });
+    // 現在は女性用商品のみなので、性別フィルタリングは簡素化
+    // 将来男性用商品が追加されたら、ここのロジックを有効化する
+    const genderFilteredProducts = products; // 今は全商品を対象にする
 
-    console.log('[UnifiedSwipe] After gender filter:', genderFilteredProducts.length);
+    console.log('[UnifiedSwipe] Available products:', genderFilteredProducts.length);
 
     // チュートリアル用の商品（最初の2枚）
     const tutorialProducts: Product[] = [];
@@ -158,38 +130,79 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
     console.log('[UnifiedSwipe] Tutorial products selected:', tutorialProducts.length);
 
     // パーソナライズされた商品（残り3枚）
-    let personalizedProducts = genderFilteredProducts.filter(product => {
-      // チュートリアル商品を除外
-      if (tutorialProducts.some(tp => tp.id === product.id)) return false;
-      
-      // スタイル選択がある場合、それに基づいてフィルタリング
-      if (stylePreference && stylePreference.length > 0 && product.tags) {
-        const hasMatchingStyle = stylePreference.some(style => {
+    let personalizedProducts: Product[] = [];
+    
+    if (stylePreference && stylePreference.length > 0) {
+      // スタイル選択がある場合、優先的にそのスタイルの商品を選ぶ
+      personalizedProducts = genderFilteredProducts.filter(product => {
+        // チュートリアル商品を除外
+        if (tutorialProducts.some(tp => tp.id === product.id)) return false;
+        
+        // 商品のタグをチェック
+        if (!product.tags) return false;
+        
+        // スタイルが一致するか確認
+        return stylePreference.some(style => {
           const styleLower = style.toLowerCase();
           return product.tags?.some(tag => {
             const tagLower = tag.toLowerCase();
-            // スタイルマッピング
+            // より柔軟なマッチング
             if (styleLower === 'casual') {
-              return tagLower.includes('カジュアル') || tagLower.includes('casual');
+              return tagLower.includes('カジュアル') || 
+                     tagLower.includes('casual') ||
+                     tagLower.includes('リラックス') ||
+                     tagLower.includes('ベーシック');
             } else if (styleLower === 'street') {
-              return tagLower.includes('ストリート') || tagLower.includes('street');
+              return tagLower.includes('ストリート') || 
+                     tagLower.includes('street') ||
+                     tagLower.includes('スポーティ') ||
+                     tagLower.includes('アーバン');
             } else if (styleLower === 'mode') {
-              return tagLower.includes('モード') || tagLower.includes('mode');
+              return tagLower.includes('モード') || 
+                     tagLower.includes('mode') ||
+                     tagLower.includes('モノトーン') ||
+                     tagLower.includes('ミニマル');
             } else if (styleLower === 'natural') {
-              return tagLower.includes('ナチュラル') || tagLower.includes('natural');
+              return tagLower.includes('ナチュラル') || 
+                     tagLower.includes('natural') ||
+                     tagLower.includes('リネン') ||
+                     tagLower.includes('オーガニック');
             } else if (styleLower === 'feminine') {
-              return tagLower.includes('フェミニン') || tagLower.includes('feminine') || tagLower.includes('ガーリー');
+              return tagLower.includes('フェミニン') || 
+                     tagLower.includes('feminine') || 
+                     tagLower.includes('ガーリー') ||
+                     tagLower.includes('レース') ||
+                     tagLower.includes('フリル');
             } else if (styleLower === 'classic') {
-              return tagLower.includes('クラシック') || tagLower.includes('classic') || tagLower.includes('トラッド');
+              return tagLower.includes('クラシック') || 
+                     tagLower.includes('classic') || 
+                     tagLower.includes('トラッド') ||
+                     tagLower.includes('エレガント');
             }
+            // 直接一致
             return tagLower.includes(styleLower);
           });
         });
-        return hasMatchingStyle;
-      }
+      });
       
-      return true; // スタイル選択がない場合はすべて対象
-    });
+      console.log('[UnifiedSwipe] Products matching style preference:', personalizedProducts.length);
+    }
+    
+    // スタイルに一致する商品が少ない場合は、すべての商品から選ぶ
+    if (personalizedProducts.length < 3) {
+      const additionalProducts = genderFilteredProducts.filter(product => {
+        // チュートリアル商品と既に選ばれた商品を除外
+        return !tutorialProducts.some(tp => tp.id === product.id) &&
+               !personalizedProducts.some(pp => pp.id === product.id);
+      });
+      
+      // 不足分を追加
+      const needed = 3 - personalizedProducts.length;
+      personalizedProducts = [
+        ...personalizedProducts,
+        ...additionalProducts.slice(0, needed)
+      ];
+    }
 
     // 年齢層も考慮（タグにある場合）
     if (ageGroup) {

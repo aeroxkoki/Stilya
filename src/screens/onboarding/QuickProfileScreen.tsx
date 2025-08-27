@@ -56,7 +56,8 @@ const QuickProfileScreen: React.FC<Props> = ({ navigation }) => {
     nextStep 
   } = useOnboarding();
   
-  const [selectedGender, setSelectedGender] = useState<'male' | 'female' | 'other' | null>(null);
+  // 性別選択は一時的に無効化（後で復活できるようにコメントアウト）
+  // const [selectedGender, setSelectedGender] = useState<'male' | 'female' | 'other' | null>(null);
   const [selectedAge, setSelectedAge] = useState<string | null>(null);
   const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
 
@@ -75,12 +76,14 @@ const QuickProfileScreen: React.FC<Props> = ({ navigation }) => {
     });
   };
 
-  const canProceed = selectedGender && selectedAge && selectedStyles.length >= 1;
+  // 性別選択を必須から除外
+  const canProceed = selectedAge && selectedStyles.length >= 1;
 
   const handleNext = () => {
     if (!canProceed) return;
     
-    setGender(selectedGender!);
+    // デフォルトで女性を設定（現在は女性用商品のみのため）
+    setGender('female');
     setAgeGroup(selectedAge!);
     setStylePreference(selectedStyles);
     nextStep();
@@ -114,8 +117,8 @@ const QuickProfileScreen: React.FC<Props> = ({ navigation }) => {
           </Text>
         </View>
 
-        {/* 性別選択 */}
-        <View style={styles.section}>
+        {/* 性別選択 - 一時的に非表示（後で復活できるようにコメントアウト） */}
+        {/* <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>
             性別
           </Text>
@@ -157,7 +160,7 @@ const QuickProfileScreen: React.FC<Props> = ({ navigation }) => {
               </TouchableOpacity>
             ))}
           </View>
-        </View>
+        </View> */}
 
         {/* 年齢層選択 */}
         <View style={styles.section}>
