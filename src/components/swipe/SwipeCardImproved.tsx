@@ -293,16 +293,35 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = ({
       <TouchableOpacity
         style={styles.cardContent}
         onPress={() => {
+          if (!isTopCard) {
+            console.log('[SwipeCardImproved] Card is not top card, ignoring tap');
+            return;
+          }
           console.log('[SwipeCardImproved] Card tapped, product:', product.title, 'ID:', product.id);
-          if (onPress) {
-            console.log('[SwipeCardImproved] Calling onPress callback');
+          if (onPress && product.id) {
+            console.log('[SwipeCardImproved] Calling onPress callback with valid product ID');
+            // タップイベントのハプティックフィードバック（軽め）
+            try {
+              if (Platform.OS === 'ios') {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              } else {
+                Vibration.vibrate(20);
+              }
+            } catch (error) {
+              console.error('[SwipeCardImproved] Haptic error:', error);
+            }
             onPress();
+          } else {
+            console.error('[SwipeCardImproved] Missing onPress callback or product ID');
           }
         }}
-        onLongPress={onLongPress}
+        onLongPress={() => {
+          if (isTopCard && onLongPress) {
+            onLongPress();
+          }
+        }}
         delayLongPress={400}
         activeOpacity={0.95}
-        disabled={!isTopCard}
       >
         {/* 商品画像 */}
         <View style={styles.imageContainer}>

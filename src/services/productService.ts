@@ -978,6 +978,46 @@ export { normalizeProduct };
 // FilterOptionsをre-export
 export type { FilterOptions } from '@/contexts/FilterContext';
 
+/**
+ * 商品IDで単一の商品を取得
+ * @param productId 商品ID
+ * @returns 商品データ
+ */
+export const fetchProductById = async (productId: string): Promise<{ success: boolean; data?: Product; error?: string }> => {
+  try {
+    if (!productId) {
+      console.error('[ProductService] No productId provided');
+      return { success: false, error: 'Product ID is required' };
+    }
+
+    console.log('[ProductService] Fetching product by ID:', productId);
+
+    const { data, error } = await supabase
+      .from('external_products')
+      .select('*')
+      .eq('id', productId)
+      .single();
+
+    if (error) {
+      console.error('[ProductService] Error fetching product by ID:', error);
+      return { success: false, error: error.message };
+    }
+
+    if (!data) {
+      console.log('[ProductService] Product not found for ID:', productId);
+      return { success: false, error: 'Product not found' };
+    }
+
+    const product = normalizeProduct(data);
+    console.log('[ProductService] Successfully fetched product:', product.title);
+
+    return { success: true, data: product };
+  } catch (error: any) {
+    console.error('[ProductService] Unexpected error fetching product by ID:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 // fetchMixedProducts - ミックスされた商品を取得（男性・女性・ユニセックス）
 export const fetchMixedProducts = async (
   limit: number = 20,

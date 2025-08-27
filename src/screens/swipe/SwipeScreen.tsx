@@ -298,12 +298,29 @@ const SwipeScreen: React.FC = () => {
             currentIndex={currentIndex}
             onCardPress={(product) => {
               console.log('[SwipeScreen] onCardPress called with product:', product.title, 'ID:', product.id);
-              if (product.id) {
-                console.log('[SwipeScreen] Navigating to ProductDetail with productId:', product.id);
-                navigation.navigate('ProductDetail', { productId: product.id, from: 'swipe' });
-              } else {
+              if (!product.id) {
                 console.error('[SwipeScreen] Product ID is missing!');
+                Toast.show({
+                  type: 'error',
+                  text1: 'エラー',
+                  text2: '商品情報の取得に失敗しました',
+                  visibilityTime: 3000,
+                });
+                return;
               }
+              console.log('[SwipeScreen] Navigating to ProductDetail with productId:', product.id);
+              // ナビゲーション前に詳細画面へ遷移することを通知
+              Toast.show({
+                type: 'info',
+                text1: '商品詳細を表示',
+                text2: product.title,
+                visibilityTime: 1500,
+                position: 'bottom'
+              });
+              // タイムアウトを設定して確実にナビゲーションを実行
+              setTimeout(() => {
+                navigation.navigate('ProductDetail', { productId: product.id, from: 'swipe' });
+              }, 100);
             }}
             onLoadMore={loadMore}
             hasMoreProducts={hasMore}
