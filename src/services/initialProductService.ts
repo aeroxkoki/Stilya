@@ -17,7 +17,7 @@ const GENDER_TAG_MAPPING = {
 };
 
 // 年代に基づく価格帯マッピング
-const AGE_PRICE_MAPPING = {
+const AGE_PRICE_MAPPING: Record<string, { min: number; max: number }> = {
   teens: { min: 1000, max: 5000 },      // 10代：低価格帯
   twenties: { min: 2000, max: 10000 },  // 20代：中価格帯
   thirties: { min: 3000, max: 20000 },  // 30代：中〜高価格帯
@@ -36,8 +36,17 @@ export const getInitialProducts = async (
     // 性別に基づくタグを取得
     const genderTags = config.gender ? GENDER_TAG_MAPPING[config.gender] : [];
     
-    // 年代に基づく価格帯を取得
-    const priceRange = config.ageGroup ? AGE_PRICE_MAPPING[config.ageGroup as keyof typeof AGE_PRICE_MAPPING] : { min: 0, max: 50000 };
+    // 年代に基づく価格帯を取得（防御的にデフォルト値を設定）
+    const defaultPriceRange = { min: 0, max: 50000 };
+    let priceRange = defaultPriceRange;
+    
+    if (config.ageGroup && AGE_PRICE_MAPPING[config.ageGroup]) {
+      priceRange = AGE_PRICE_MAPPING[config.ageGroup];
+    } else if (config.ageGroup) {
+      console.warn(`[InitialProductService] Unknown age group: ${config.ageGroup}, using default price range`);
+    }
+    
+    console.log('[InitialProductService] Using price range:', priceRange);
     
     // スタイルに基づくタグを展開
     const styleTags: string[] = [];

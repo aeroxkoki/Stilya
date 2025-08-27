@@ -166,13 +166,13 @@ export const convertToProductFilters = (filters: FilterOptions): ProductFilterOp
 export const applyFiltersToQuery = (query: any, filters: FilterOptions) => {
   let filteredQuery = query;
   
-  // 価格範囲フィルター
-  if (filters.priceRange) {
+  // 価格範囲フィルター（防御的チェックを追加）
+  if (filters.priceRange && Array.isArray(filters.priceRange) && filters.priceRange.length >= 2) {
     const [minPrice, maxPrice] = filters.priceRange;
-    if (minPrice > 0) {
+    if (typeof minPrice === 'number' && minPrice > 0) {
       filteredQuery = filteredQuery.gte('price', minPrice);
     }
-    if (maxPrice < 50000) {
+    if (typeof maxPrice === 'number' && maxPrice < 50000) {
       filteredQuery = filteredQuery.lte('price', maxPrice);
     }
   }
@@ -311,13 +311,13 @@ export const fetchProducts = async (limit: number = 20, offset: number = 0, filt
         }
       }
       
-      // 価格範囲フィルター
-      if (filters.priceRange) {
+      // 価格範囲フィルター（防御的チェックを追加）
+      if (filters.priceRange && Array.isArray(filters.priceRange) && filters.priceRange.length >= 2) {
         const [minPrice, maxPrice] = filters.priceRange;
-        if (minPrice > 0) {
+        if (typeof minPrice === 'number' && minPrice > 0) {
           query = query.gte('price', minPrice);
         }
-        if (maxPrice < Infinity) {
+        if (typeof maxPrice === 'number' && maxPrice < Infinity) {
           query = query.lte('price', maxPrice);
         }
       }
@@ -1032,10 +1032,15 @@ export const fetchMixedProducts = async (
 
     // フィルター適用
     if (filters) {
-      // 価格フィルター
-      if (filters.priceRange) {
-        query = query.gte('price', filters.priceRange[0])
-                     .lte('price', filters.priceRange[1]);
+      // 価格フィルター（防御的チェックを追加）
+      if (filters.priceRange && Array.isArray(filters.priceRange) && filters.priceRange.length >= 2) {
+        const [minPrice, maxPrice] = filters.priceRange;
+        if (typeof minPrice === 'number') {
+          query = query.gte('price', minPrice);
+        }
+        if (typeof maxPrice === 'number') {
+          query = query.lte('price', maxPrice);
+        }
       }
 
       // スタイルフィルター
