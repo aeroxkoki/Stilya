@@ -217,8 +217,13 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
 
   // 商品カードのタップイベント
   const handleCardPress = useCallback(() => {
+    console.log('[StyledSwipeContainer] handleCardPress called');
+    console.log('[StyledSwipeContainer] Current product:', currentProduct?.title, 'ID:', currentProduct?.id);
     if (currentProduct && onCardPress) {
+      console.log('[StyledSwipeContainer] Calling onCardPress with product');
       onCardPress(currentProduct);
+    } else {
+      console.log('[StyledSwipeContainer] Missing product or onCardPress callback');
     }
   }, [currentProduct, onCardPress]);
 

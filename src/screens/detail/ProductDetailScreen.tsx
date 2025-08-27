@@ -49,8 +49,15 @@ const ProductDetailScreen: React.FC = () => {
   const { 
     products, 
     loading, 
-    error
+    error,
+    fetchProductById,
+    loadProducts
   } = useProductStore();
+  
+  // デバッグ：ルートパラメータ全体をログ出力
+  console.log('[ProductDetailScreen] Route params:', route.params);
+  console.log('[ProductDetailScreen] Received productId:', productId);
+  console.log('[ProductDetailScreen] ProductId type:', typeof productId);
   
   // 商品IDが存在しない場合の早期リターン
   if (!productId) {
@@ -107,8 +114,8 @@ const ProductDetailScreen: React.FC = () => {
         }
         
         // 商品データがない場合は、fetchProductByIdを使用
-        const productStore = useProductStore.getState();
-        const productData = await productStore.fetchProductById(productId);
+        console.log('[ProductDetailScreen] Fetching product from API with ID:', productId);
+        const productData = await fetchProductById(productId);
         
         if (productData) {
           console.log('[ProductDetailScreen] Fetched product from API:', productData);
@@ -116,12 +123,11 @@ const ProductDetailScreen: React.FC = () => {
           
           // productsが空の場合は商品データをロード
           if (products.length === 0) {
-            await productStore.loadProducts();
+            await loadProducts();
           }
           
           // 類似商品を取得
-          const allProducts = useProductStore.getState().products;
-          const similar = getSimilarProducts(productData, allProducts, 5);
+          const similar = getSimilarProducts(productData, products, 5);
           setSimilarProducts(similar);
           
           // 閲覧履歴に記録（ログインしている場合のみ）

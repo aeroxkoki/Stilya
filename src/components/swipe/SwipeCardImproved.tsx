@@ -292,7 +292,13 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = ({
     >
       <TouchableOpacity
         style={styles.cardContent}
-        onPress={onPress}
+        onPress={() => {
+          console.log('[SwipeCardImproved] Card tapped, product:', product.title, 'ID:', product.id);
+          if (onPress) {
+            console.log('[SwipeCardImproved] Calling onPress callback');
+            onPress();
+          }
+        }}
         onLongPress={onLongPress}
         delayLongPress={400}
         activeOpacity={0.95}

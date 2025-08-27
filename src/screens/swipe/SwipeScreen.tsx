@@ -296,7 +296,15 @@ const SwipeScreen: React.FC = () => {
             isLoading={isLoading}
             onSwipe={handleSwipe}
             currentIndex={currentIndex}
-            onCardPress={(product) => navigation.navigate('ProductDetail', { productId: product.id, from: 'swipe' })}
+            onCardPress={(product) => {
+              console.log('[SwipeScreen] onCardPress called with product:', product.title, 'ID:', product.id);
+              if (product.id) {
+                console.log('[SwipeScreen] Navigating to ProductDetail with productId:', product.id);
+                navigation.navigate('ProductDetail', { productId: product.id, from: 'swipe' });
+              } else {
+                console.error('[SwipeScreen] Product ID is missing!');
+              }
+            }}
             onLoadMore={loadMore}
             hasMoreProducts={hasMore}
             useEnhancedCard={true}
