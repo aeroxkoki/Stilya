@@ -12,6 +12,7 @@ import {
   Platform
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { CommonActions } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Button } from '@/components/common';
@@ -19,6 +20,7 @@ import { useOnboarding } from '@/contexts/OnboardingContext';
 import { OnboardingStackParamList, fashionStyleToTheme, FashionStyle, StyleType } from '@/types';
 import { useStyle } from '@/contexts/ThemeContext';
 import { STYLE_ID_TO_JP_TAG } from '@/constants/constants';
+import { useAuth } from '@/hooks/useAuth';
 
 type Props = NativeStackScreenProps<OnboardingStackParamList, 'Complete'>;
 
@@ -26,6 +28,7 @@ const { width, height } = Dimensions.get('window');
 
 const CompleteScreen: React.FC<Props> = ({ navigation }) => {
   const { theme, setStyleType } = useStyle();
+  const { user, setUser } = useAuth();
   const { gender, stylePreference, ageGroup, styleQuizResults, getSelectionInsights, saveUserProfile, completeOnboarding, isLoading, error } = useOnboarding();
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -166,12 +169,49 @@ const CompleteScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleAutoNavigate = async () => {
     try {
+      console.log('[CompleteScreen] 自動ナビゲーション開始');
+      
+      // オンボーディング完了処理
       await completeOnboarding();
-      // AppNavigatorが自動的にMain画面に遷移する
+      
+      // ユーザー情報を更新
+      if (user) {
+        await setUser({
+          ...user,
+          gender,
+          stylePreference,
+          ageGroup,
+        });
+      }
+      
+      console.log('[CompleteScreen] オンボーディング完了処理成功');
+      
+      // 少し待ってからナビゲーションをリセット（ユーザー情報の更新を確実にするため）
+      setTimeout(() => {
+        console.log('[CompleteScreen] Navigation reset to Main');
+        
+        // React Navigationのリセットアクションを使用
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [{ name: 'Main' as any }],
+          })
+        );
+      }, 100);
     } catch (error) {
-      console.error('Auto navigation error:', error);
+      console.error('[CompleteScreen] Auto navigation error:', error);
       setShowSuccessModal(false);
       setIsAutoNavigating(false);
+      
+      // エラーが発生した場合でも、強制的にMain画面に遷移を試みる
+      setTimeout(() => {
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [{ name: 'Main' as any }],
+          })
+        );
+      }, 500);
     }
   };
 
