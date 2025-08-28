@@ -93,7 +93,7 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
     setIsInitialized(true);
   }, []);
 
-  // 改善された商品選定ロジック（スタイル選択重視）
+  // 改善された商品選定ロジック（ランダム性と多様性を重視）
   const selectedProducts = useMemo(() => {
     if (!products || products.length === 0) return [];
 
@@ -110,38 +110,28 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
 
     console.log('[UnifiedSwipe] Available products:', genderFilteredProducts.length);
 
-    // チュートリアル用の商品（最初の2枚）
+    // シャッフル関数
+    const shuffleArray = <T,>(array: T[]): T[] => {
+      const shuffled = [...array];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      return shuffled;
+    };
+
+    // チュートリアル用の商品（最初の2枚） - ランダムに選択するように改善
     const tutorialProducts: Product[] = [];
-    const casualProducts = genderFilteredProducts.filter(p => 
-      p.tags?.some(tag => 
-        tag.toLowerCase().includes('casual') || 
-        tag.toLowerCase().includes('カジュアル') ||
-        tag.toLowerCase().includes('ベーシック')
-      )
-    );
-    
-    if (casualProducts.length >= 2) {
-      tutorialProducts.push(...casualProducts.slice(0, 2));
-    } else {
-      // カジュアル商品が足りない場合は任意の商品を使用
-      tutorialProducts.push(...genderFilteredProducts.slice(0, 2));
-    }
+    const selectedIds = new Set<string>();
 
-    console.log('[UnifiedSwipe] Tutorial products selected:', tutorialProducts.length);
-
-    // パーソナライズされた商品（残り3枚）
-    let personalizedProducts: Product[] = [];
+    // スタイル選択があれば優先的に使用、なければ全商品から
+    let candidateProducts = [...genderFilteredProducts];
     
     if (stylePreference && stylePreference.length > 0) {
-      // スタイル選択がある場合、優先的にそのスタイルの商品を選ぶ
-      personalizedProducts = genderFilteredProducts.filter(product => {
-        // チュートリアル商品を除外
-        if (tutorialProducts.some(tp => tp.id === product.id)) return false;
-        
-        // 商品のタグをチェック
+      // スタイル選択がある場合、そのスタイルの商品を優先
+      const styleMatchedProducts = genderFilteredProducts.filter(product => {
         if (!product.tags) return false;
         
-        // スタイルが一致するか確認
         return stylePreference.some(style => {
           const styleLower = style.toLowerCase();
           return product.tags?.some(tag => {
@@ -184,29 +174,65 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
           });
         });
       });
-      
-      console.log('[UnifiedSwipe] Products matching style preference:', personalizedProducts.length);
-    }
-    
-    // スタイルに一致する商品が少ない場合は、すべての商品から選ぶ
-    if (personalizedProducts.length < 3) {
-      const additionalProducts = genderFilteredProducts.filter(product => {
-        // チュートリアル商品と既に選ばれた商品を除外
-        return !tutorialProducts.some(tp => tp.id === product.id) &&
-               !personalizedProducts.some(pp => pp.id === product.id);
-      });
-      
-      // 不足分を追加
-      const needed = 3 - personalizedProducts.length;
-      personalizedProducts = [
-        ...personalizedProducts,
-        ...additionalProducts.slice(0, needed)
-      ];
+
+      if (styleMatchedProducts.length > 0) {
+        // スタイルに一致する商品とそれ以外の商品を組み合わせ
+        // 多様性を確保するため、50%はスタイル一致、50%はその他から選ぶ
+        const otherProducts = genderFilteredProducts.filter(p => 
+          !styleMatchedProducts.some(sp => sp.id === p.id)
+        );
+        
+        candidateProducts = [
+          ...shuffleArray(styleMatchedProducts),
+          ...shuffleArray(otherProducts)
+        ];
+      }
     }
 
-    // 年齢層も考慮（タグにある場合）
+    // チュートリアル用2枚 - 多様性を持たせるためランダムに選択
+    const shuffledCandidates = shuffleArray(candidateProducts);
+    
+    // 異なるカテゴリやスタイルから選ぶよう試みる
+    const usedCategories = new Set<string>();
+    const usedBrands = new Set<string>();
+    
+    for (const product of shuffledCandidates) {
+      if (tutorialProducts.length >= 2) break;
+      
+      // カテゴリやブランドの重複を避ける
+      const category = product.category || 'unknown';
+      const brand = product.brand || 'unknown';
+      
+      if (tutorialProducts.length === 0 || 
+          (!usedCategories.has(category) || !usedBrands.has(brand))) {
+        tutorialProducts.push(product);
+        selectedIds.add(product.id);
+        usedCategories.add(category);
+        usedBrands.add(brand);
+      }
+    }
+
+    // 不足分を補充
+    if (tutorialProducts.length < 2) {
+      for (const product of shuffledCandidates) {
+        if (tutorialProducts.length >= 2) break;
+        if (!selectedIds.has(product.id)) {
+          tutorialProducts.push(product);
+          selectedIds.add(product.id);
+        }
+      }
+    }
+
+    console.log('[UnifiedSwipe] Tutorial products selected:', tutorialProducts.length);
+
+    // 残りの商品（3〜5枚目）
+    let remainingProducts: Product[] = [];
+    
+    // 年齢層を考慮
     if (ageGroup) {
-      const ageFilteredProducts = personalizedProducts.filter(product => {
+      const ageFilteredProducts = candidateProducts.filter(product => {
+        if (selectedIds.has(product.id)) return false;
+        
         const tags = product.tags || [];
         // 年齢層タグがない商品は表示、ある場合は一致するもののみ
         const hasAgeTag = tags.some(tag => 
@@ -228,28 +254,32 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
         return true;
       });
       
-      if (ageFilteredProducts.length >= 3) {
-        personalizedProducts = ageFilteredProducts;
+      if (ageFilteredProducts.length > 0) {
+        remainingProducts = ageFilteredProducts;
+      } else {
+        remainingProducts = candidateProducts.filter(p => !selectedIds.has(p.id));
       }
+    } else {
+      remainingProducts = candidateProducts.filter(p => !selectedIds.has(p.id));
     }
 
-    console.log('[UnifiedSwipe] Personalized products after filtering:', personalizedProducts.length);
+    console.log('[UnifiedSwipe] Remaining products after filtering:', remainingProducts.length);
 
-    // ランダムに3枚選択
-    personalizedProducts = personalizedProducts
-      .sort(() => 0.5 - Math.random())
-      .slice(0, 3);
+    // 残りの商品をランダムに選択（多様性を考慮）
+    const shuffledRemaining = shuffleArray(remainingProducts);
+    const finalRemainingProducts = shuffledRemaining.slice(0, 3);
 
     // 5枚になるように調整
-    const allSelectedProducts = [...tutorialProducts, ...personalizedProducts];
+    const allSelectedProducts = [...tutorialProducts, ...finalRemainingProducts];
     
     // 不足分を補充
     while (allSelectedProducts.length < TOTAL_CARDS && genderFilteredProducts.length > allSelectedProducts.length) {
-      const remainingProducts = genderFilteredProducts.filter(p => 
+      const remainingCandidates = genderFilteredProducts.filter(p => 
         !allSelectedProducts.some(sp => sp.id === p.id)
       );
-      if (remainingProducts.length > 0) {
-        allSelectedProducts.push(remainingProducts[Math.floor(Math.random() * remainingProducts.length)]);
+      if (remainingCandidates.length > 0) {
+        const randomProduct = remainingCandidates[Math.floor(Math.random() * remainingCandidates.length)];
+        allSelectedProducts.push(randomProduct);
       } else {
         break;
       }
@@ -257,6 +287,20 @@ const UnifiedSwipeScreen: React.FC<Props> = ({ navigation }) => {
 
     const finalSelection = allSelectedProducts.slice(0, TOTAL_CARDS);
     console.log('[UnifiedSwipe] Final product selection:', finalSelection.length);
+    
+    // 最終的な選択の多様性をログに記録
+    const categoryCounts = new Map<string, number>();
+    const brandCounts = new Map<string, number>();
+    
+    finalSelection.forEach(p => {
+      const category = p.category || 'unknown';
+      const brand = p.brand || 'unknown';
+      categoryCounts.set(category, (categoryCounts.get(category) || 0) + 1);
+      brandCounts.set(brand, (brandCounts.get(brand) || 0) + 1);
+    });
+    
+    console.log('[UnifiedSwipe] Category diversity:', Array.from(categoryCounts.entries()));
+    console.log('[UnifiedSwipe] Brand diversity:', Array.from(brandCounts.entries()));
     
     return finalSelection;
   }, [products, gender, stylePreference, ageGroup]);

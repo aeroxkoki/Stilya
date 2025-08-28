@@ -159,8 +159,27 @@ export const getInitialProducts = async (
   }
 };
 
-// 構造化されたシャッフル（最初の3枚は高人気商品）
+// 構造化されたシャッフル（多様性を重視）
 function shuffleWithStructure(products: Product[], limit: number): Product[] {
+  // カテゴリとブランドの多様性を確保
+  const categorizedProducts = new Map<string, Product[]>();
+  const brandProducts = new Map<string, Product[]>();
+  
+  products.forEach(product => {
+    const category = product.category || 'unknown';
+    const brand = product.brand || 'unknown';
+    
+    if (!categorizedProducts.has(category)) {
+      categorizedProducts.set(category, []);
+    }
+    categorizedProducts.get(category)!.push(product);
+    
+    if (!brandProducts.has(brand)) {
+      brandProducts.set(brand, []);
+    }
+    brandProducts.get(brand)!.push(product);
+  });
+  
   // 人気度でソート（popularity_score、またはreview_countを使用）
   const sorted = [...products].sort((a, b) => {
     // popularity_scoreがある場合はそれを優先
@@ -171,12 +190,56 @@ function shuffleWithStructure(products: Product[], limit: number): Product[] {
     return (b.review_count || 0) - (a.review_count || 0);
   });
   
-  const structured = [
-    ...sorted.slice(0, 3), // 最初の3枚は人気商品
-    ...shuffleArray(sorted.slice(3))
-  ];
+  // 最初の商品群を多様性を考慮して選択
+  const result: Product[] = [];
+  const usedCategories = new Set<string>();
+  const usedBrands = new Set<string>();
   
-  return structured.slice(0, limit);
+  // まず人気商品から1-2個選択（固定ではなく、多様性を考慮）
+  const popularProducts = sorted.slice(0, Math.min(10, sorted.length));
+  const randomPopular = shuffleArray(popularProducts).slice(0, 2);
+  
+  randomPopular.forEach(product => {
+    result.push(product);
+    usedCategories.add(product.category || 'unknown');
+    usedBrands.add(product.brand || 'unknown');
+  });
+  
+  // 残りは多様性を確保しながら選択
+  const remainingProducts = products.filter(p => !result.some(r => r.id === p.id));
+  const shuffledRemaining = shuffleArray(remainingProducts);
+  
+  // カテゴリとブランドができるだけ重複しないように選択
+  for (const product of shuffledRemaining) {
+    if (result.length >= limit) break;
+    
+    const category = product.category || 'unknown';
+    const brand = product.brand || 'unknown';
+    
+    // 初期段階では重複を避ける
+    if (result.length < 5) {
+      if (!usedCategories.has(category) || !usedBrands.has(brand)) {
+        result.push(product);
+        usedCategories.add(category);
+        usedBrands.add(brand);
+      }
+    } else {
+      // 5個以降は通常のランダム選択
+      result.push(product);
+    }
+  }
+  
+  // 不足分を補充
+  if (result.length < limit) {
+    const finalRemaining = remainingProducts.filter(p => !result.some(r => r.id === p.id));
+    result.push(...shuffleArray(finalRemaining).slice(0, limit - result.length));
+  }
+  
+  // 最終的なシャッフル（最初の5個は軽くシャッフル、残りは完全シャッフル）
+  const firstFive = shuffleArray(result.slice(0, 5));
+  const rest = shuffleArray(result.slice(5));
+  
+  return [...firstFive, ...rest].slice(0, limit);
 }
 
 function shuffleArray<T>(array: T[]): T[] {
