@@ -175,7 +175,7 @@ export const useProducts = (): UseProductsReturn => {
           });
           
           // 画像をプリフェッチ
-          const imagesToPrefetch = initialProducts.slice(0, 5).map(p => p.image_url);
+          const imagesToPrefetch = initialProducts.slice(0, 5).map(p => p.imageUrl).filter(url => url !== null) as string[];
           await prefetchImages(imagesToPrefetch);
           
           setIsLoading(false);
@@ -252,7 +252,7 @@ export const useProducts = (): UseProductsReturn => {
             }));
             
             // 画像プリフェッチ
-            const nextImages = recycledProducts.slice(0, 5).map(p => p.image_url);
+            const nextImages = recycledProducts.slice(0, 5).map(p => p.imageUrl).filter(url => url !== null) as string[];
             prefetchImages(nextImages).catch(console.error);
             
             retryCountRef.current = 0;
@@ -281,7 +281,7 @@ export const useProducts = (): UseProductsReturn => {
         
         // 次の商品の画像をプリフェッチ（非同期）
         InteractionManager.runAfterInteractions(() => {
-          const nextImages = newProducts.slice(0, 5).map(p => p.image_url);
+          const nextImages = newProducts.slice(0, 5).map(p => p.imageUrl).filter(url => url !== null) as string[];
           prefetchImages(nextImages).catch(console.error);
         });
         

@@ -147,8 +147,8 @@ const StyleQuizScreen: React.FC<Props> = ({ navigation }) => {
     const result: StyleQuizResult = {
       productId: currentProduct.id,
       liked: direction === 'right',
-      category: currentProduct.category,
-      tags: currentProduct.tags,
+      category: currentProduct.category || undefined,
+      tags: currentProduct.tags || undefined,
     };
 
     setQuizResults(prev => [...prev, result]);
@@ -174,8 +174,8 @@ const StyleQuizScreen: React.FC<Props> = ({ navigation }) => {
       finalResults.push({
         productId: currentProduct.id,
         liked: translateX.value > 0,
-        category: currentProduct.category,
-        tags: currentProduct.tags,
+        category: currentProduct.category || undefined,
+        tags: currentProduct.tags || undefined,
       });
     }
 
@@ -341,7 +341,7 @@ const StyleQuizScreen: React.FC<Props> = ({ navigation }) => {
           >
             <Animated.View style={[styles.card, animatedStyle]}>
               <Image
-                source={{ uri: currentProduct.imageUrl }}
+                source={{ uri: currentProduct.imageUrl || '' }}
                 style={styles.productImage}
                 resizeMode="cover"
               />

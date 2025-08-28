@@ -48,7 +48,7 @@ const AppIntroScreen: React.FC<Props> = ({ navigation }) => {
       {/* 完了メッセージ */}
       {tutorialCompleted && (
         <View style={styles.completedOverlay}>
-          <View style={[styles.completedCard, { backgroundColor: theme.colors.card }]}>
+          <View style={[styles.completedCard, { backgroundColor: theme.colors.background }]}>
             <Ionicons name="checkmark-circle" size={60} color={theme.colors.primary} />
             <Text style={[styles.completedTitle, { color: theme.colors.text.primary }]}>
               準備完了！

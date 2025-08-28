@@ -19,7 +19,7 @@ const FilterDebugScreen = () => {
     setCurrentTest(testName);
     
     try {
-      const result = await fetchMixedProducts(null, 10, 0, filters);
+      const result = await fetchMixedProducts(10, 0, filters);
       
       if (result.success && result.data) {
         const testResult = {
@@ -63,44 +63,46 @@ const FilterDebugScreen = () => {
     setResults([]);
     
     // Test 1: No filter
-    await runFilterTest('フィルターなし', {});
+    await runFilterTest('フィルターなし', {
+      priceRange: [0, 50000],
+      styles: [],
+      moods: []
+    });
     
-    // Test 2: Category filter
-    await runFilterTest('カテゴリー: tops', {
-      categories: ['tops'],
-      priceRange: [0, Infinity],
-      selectedTags: [],
-      includeUsed: false
+    // Test 2: Style filter
+    await runFilterTest('スタイル: カジュアル', {
+      priceRange: [0, 50000],
+      styles: ['カジュアル'],
+      moods: []
     });
     
     // Test 3: Price filter
     await runFilterTest('価格: 0-5000円', {
-      categories: [],
       priceRange: [0, 5000],
-      selectedTags: [],
-      includeUsed: false
+      styles: [],
+      moods: []
     });
     
     // Test 4: Used filter
     await runFilterTest('新品のみ', {
-      categories: [],
-      priceRange: [0, Infinity],
-      selectedTags: [],
+      priceRange: [0, 50000],
+      styles: [],
+      moods: [],
       includeUsed: false
     });
     
     await runFilterTest('すべて（中古含む）', {
-      categories: [],
-      priceRange: [0, Infinity],
-      selectedTags: [],
+      priceRange: [0, 50000],
+      styles: [],
+      moods: [],
       includeUsed: true
     });
     
     // Test 5: Complex filter
     await runFilterTest('複合フィルター', {
-      categories: ['tops', 'bottoms'],
       priceRange: [3000, 10000],
-      selectedTags: [],
+      styles: ['カジュアル', 'きれいめ'],
+      moods: ['リラックス'],
       includeUsed: false
     });
   };

@@ -700,6 +700,38 @@ export class ImprovedRecommendationService {
 }
 
 // 定期的にセッションをクリーンアップ（5分ごと）
-setInterval(() => {
-  ImprovedRecommendationService.cleanupSessions();
-}, 5 * 60 * 1000);
+if (typeof setInterval !== 'undefined') {
+  setInterval(() => {
+    ImprovedRecommendationService.cleanupSessions();
+  }, 5 * 60 * 1000);
+}
+
+// 既存のenhancedRecommendationServiceとの互換性のためのエクスポート
+export const updateSessionLearning = (
+  userId: string, 
+  data: { productId: string; result: 'yes' | 'no'; responseTime?: number }
+) => {
+  // ダミーのProductオブジェクトを作成（完全な商品情報がない場合）
+  const dummyProduct = {
+    id: data.productId,
+    title: '',
+    price: 0,
+    image_url: '',
+    tags: [],
+    category: '',
+    brand: '',
+    description: '',
+    affiliate_url: '',
+    is_active: true,
+    source: 'unknown',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+  
+  ImprovedRecommendationService.recordSwipeToSession(
+    userId,
+    data.productId,
+    data.result,
+    dummyProduct
+  );
+};

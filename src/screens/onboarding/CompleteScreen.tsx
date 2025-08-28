@@ -40,7 +40,7 @@ const CompleteScreen: React.FC<Props> = ({ navigation }) => {
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
   const checkmarkAnim = useRef(new Animated.Value(0)).current;
-  const countdownRef = useRef<NodeJS.Timeout>();
+  const countdownRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   // スタイル選択に基づいてテーマを決定
   useEffect(() => {

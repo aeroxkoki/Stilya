@@ -14,7 +14,7 @@ import { useFavorites } from '@/hooks/useFavorites';
 import { SwipeContainer } from '@/components/swipe';
 import ActionButtons from '@/components/swipe/ActionButtons';
 import { useFilters } from '@/contexts/FilterContext';
-import { updateSessionLearning } from '@/services/enhancedRecommendationService';
+import { updateSessionLearning } from '@/services/improvedRecommendationService';
 
 // ナビゲーションの型定義
 type SwipeScreenNavigationProp = StackNavigationProp<SwipeStackParamList, 'SwipeHome'>;

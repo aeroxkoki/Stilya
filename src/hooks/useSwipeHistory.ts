@@ -67,8 +67,8 @@ export const useSwipeHistory = (): UseSwipeHistoryReturn => {
             const productResults = await Promise.all(productPromises);
             
             productResults.forEach(result => {
-              if (result.success && 'data' in result && result.data) {
-                const product = (result as any).data;
+              if (result && result.success && result.data) {
+                const product = result.data;
                 // IDが正しい形式で、重複していないことを確認
                 if (product.id && !seenIds.has(product.id)) {
                   seenIds.add(product.id);
