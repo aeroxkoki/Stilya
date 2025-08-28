@@ -73,6 +73,19 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = ({
   // 画像URL取得
   const imageUrl = getProductImageUrl(product);
   
+  // デバッグ用ログ
+  useEffect(() => {
+    if (__DEV__) {
+      console.log('[SwipeCardImproved] Product data:', {
+        id: product?.id,
+        title: product?.title,
+        imageUrl: imageUrl,
+        hasImageUrl: !!imageUrl,
+        productData: product
+      });
+    }
+  }, [product]);
+  
   // カード登場アニメーション（スタック表示用）
   useEffect(() => {
     if (isTopCard) {
@@ -382,10 +395,12 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = ({
         {/* 商品画像 */}
         <View style={styles.imageContainer}>
           <CachedImage
-            uri={imageUrl}
+            source={{ uri: imageUrl }}
             style={styles.productImage}
             contentFit="cover"
-            placeholder="blur"
+            showLoadingIndicator={true}
+            debugMode={__DEV__}
+            productTitle={product.title}
             testID="product-image"
           />
           
