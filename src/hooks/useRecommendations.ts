@@ -10,6 +10,7 @@ import {
   getEnhancedRecommendations,
   analyzeEnhancedPreferences
 } from '@/services/enhancedRecommendationService';
+import { ImprovedRecommendationService } from '@/services/improvedRecommendationService';
 import { fetchProducts } from '@/services/productService';
 
 interface ApiResponse<T> {
@@ -25,6 +26,8 @@ interface UseRecommendationsReturn {
   error: string | null;
   refreshRecommendations: () => Promise<void>;
   isEnhancedMode: boolean;
+  isImprovedMode: boolean; // 改善版モードフラグ
+  shouldSuggestBreak?: boolean; // 休憩提案フラグ
 }
 
 export const useRecommendations = (): UseRecommendationsReturn => {
@@ -34,25 +37,18 @@ export const useRecommendations = (): UseRecommendationsReturn => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isEnhancedMode, setIsEnhancedMode] = useState(false);
+  const [isImprovedMode, setIsImprovedMode] = useState(true); // デフォルトで改善版を使用
+  const [shouldSuggestBreak, setShouldSuggestBreak] = useState(false);
   const abTestChecked = useRef(false);
 
-  // A/Bテストの割り当てを確認
+  // A/Bテストの割り当てを確認（将来的に使用）
   const checkABTestVariant = useCallback(async () => {
     if (!user?.id || abTestChecked.current) return;
     
     try {
-      // EnhancedRecommendationServiceのA/Bテスト機能を使用
-      const { data: assignment } = await supabase
-        .from('ab_test_assignments')
-        .select('variant')
-        .eq('user_id', user.id)
-        .eq('test_name', 'recommendation_algorithm_v2')
-        .single();
-
-      if (assignment && assignment.variant === 'enhanced') {
-        setIsEnhancedMode(true);
-        console.log('[useRecommendations] User assigned to enhanced algorithm');
-      }
+      // 現在は全ユーザーに改善版を適用
+      setIsImprovedMode(true);
+      console.log('[useRecommendations] Using improved recommendation algorithm');
       
       abTestChecked.current = true;
     } catch (error) {
@@ -111,10 +107,18 @@ export const useRecommendations = (): UseRecommendationsReturn => {
         }
       }
 
-      // 推薦商品取得（enhanced版またはオリジナル版）
-      let recommendResult: ApiResponse<Product[]>;
+      // 推薦商品取得（改善版、enhanced版、オリジナル版）
+      let recommendResult: ApiResponse<Product[]> & { suggestBreak?: boolean };
       
-      if (isEnhancedMode) {
+      if (isImprovedMode) {
+        console.log('[useRecommendations] Using improved recommendation algorithm');
+        recommendResult = await ImprovedRecommendationService.getImprovedRecommendations(user.id, 20) as ApiResponse<Product[]> & { suggestBreak?: boolean };
+        
+        // 休憩提案フラグをチェック
+        if (recommendResult.suggestBreak) {
+          setShouldSuggestBreak(true);
+        }
+      } else if (isEnhancedMode) {
         console.log('[useRecommendations] Using enhanced recommendation algorithm');
         recommendResult = await getEnhancedRecommendations(user.id, 20) as ApiResponse<Product[]>;
       } else {
@@ -146,7 +150,7 @@ export const useRecommendations = (): UseRecommendationsReturn => {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, isEnhancedMode, checkABTestVariant]);
+  }, [user?.id, isEnhancedMode, isImprovedMode, checkABTestVariant]);
 
   useEffect(() => {
     refreshRecommendations();
@@ -159,5 +163,7 @@ export const useRecommendations = (): UseRecommendationsReturn => {
     error,
     refreshRecommendations,
     isEnhancedMode,
+    isImprovedMode,
+    shouldSuggestBreak,
   };
 };
