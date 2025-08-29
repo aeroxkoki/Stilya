@@ -211,10 +211,8 @@ const SimpleFilterModal: React.FC<SimpleFilterModalProps> = ({ visible, onClose 
                       case 'パンツ': return '👖';
                       case 'スカート': return '👗';
                       case 'ワンピース': return '👗';
-                      case 'アウター': return '🧥';
-                      case 'シューズ': return '👟';
-                      case 'バッグ': return '👜';
-                      case 'アクセサリー': return '💍';
+                      case 'ジャケット': return '🧥';
+                      case 'コート': return '🧥';
                       default: return '';
                     }
                   };

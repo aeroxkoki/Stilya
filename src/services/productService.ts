@@ -140,12 +140,17 @@ export const convertToProductFilters = (filters: FilterOptions): ProductFilterOp
     includeUsed: filters.includeUsed ?? true  // デフォルトはtrue
   };
   
-  // スタイルをタグに変換（複数選択対応）
-  if (filters.styles && filters.styles.length > 0) {
-    productFilters.selectedTags = [...filters.styles];
+  // カテゴリー（服の種類）をタグに変換
+  if (filters.categories && filters.categories.length > 0) {
+    productFilters.selectedTags = [...filters.categories];
   }
   
-  // 気分タグを追加
+  // スタイルをタグに変換（複数選択対応）- 後方互換性のため残す
+  if (filters.styles && filters.styles.length > 0) {
+    productFilters.selectedTags = [...(productFilters.selectedTags || []), ...filters.styles];
+  }
+  
+  // 気分タグを追加 - 後方互換性のため残す
   if (filters.moods && filters.moods.length > 0) {
     // 新着フィルターは時間ベースなので、ここでは除外
     const nonTemporalMoods = filters.moods.filter(mood => mood !== '新着');

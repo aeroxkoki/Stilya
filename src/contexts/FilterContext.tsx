@@ -50,6 +50,7 @@ export const STYLE_OPTIONS = FILTER_STYLE_OPTIONS.filter(style => style !== 'す
 export const MOOD_OPTIONS = ['新着', '人気', 'セール'];
 
 // カテゴリーオプション（データベースのタグに基づく）
+// データベースに存在する実際のカテゴリーのみを含む
 export const CATEGORY_OPTIONS = [
   'トップス',
   'シャツ',
@@ -58,10 +59,12 @@ export const CATEGORY_OPTIONS = [
   'パンツ',
   'スカート',
   'ワンピース',
-  'アウター',
-  'シューズ',
-  'バッグ',
-  'アクセサリー'
+  'ジャケット',
+  'コート'
+  // 'アウター', // データベースには1件のみ
+  // 'シューズ', // データベースに存在しない
+  // 'バッグ', // データベースに存在しない
+  // 'アクセサリー' // データベースに存在しない
 ];
 
 const FilterContext = createContext<FilterContextType | undefined>(undefined);
