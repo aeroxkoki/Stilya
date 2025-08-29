@@ -388,32 +388,41 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
           <>
             {/* 最大3枚のカードをスタック表示 */}
             {products.slice(currentIndex, Math.min(currentIndex + 3, products.length))
-              .reverse() // 背後のカードを先にレンダリング
-              .map((product, reverseIndex) => {
-                const actualIndex = 2 - reverseIndex; // 実際のインデックスに変換
-                const isTop = actualIndex === 0;
+              .map((product, index) => {
+                const isTop = index === 0;
+                // 背後のカードを先にレンダリングするために、z-indexを逆にする
+                const zIndex = products.length - currentIndex - index;
                 
                 return (
-                  <SwipeCardImproved
-                    key={`${product.id}-${currentIndex + actualIndex}`}
-                    product={product}
-                    onPress={isTop ? handleCardPress : undefined}
-                    onLongPress={isTop ? handleCardLongPress : undefined}
-                    onSwipeLeft={isTop && isConnected !== false ? () => handleSwipeLeft(product) : undefined}
-                    onSwipeRight={isTop && isConnected !== false ? () => handleSwipeRight(product) : undefined}
-                    onSave={isTop ? handleSaveButtonPress : undefined}
-                    isSaved={savedItems.includes(product.id)}
-                    testID={isTop ? "current-swipe-card" : `stacked-card-${actualIndex}`}
-                    isTopCard={isTop}
-                    cardIndex={actualIndex}
-                    totalCards={3}
-                  />
+                  <View 
+                    key={product.id} // 商品IDのみをkeyとして使用（インデックスを含めない）
+                    style={{ 
+                      position: 'absolute',
+                      zIndex: isTop ? 1000 : 1000 - index, // 最前面のカードを最も高いz-indexに
+                      elevation: isTop ? 10 : 10 - index, // Android用
+                    }}
+                  >
+                    <SwipeCardImproved
+                      product={product}
+                      onPress={isTop ? handleCardPress : undefined}
+                      onLongPress={isTop ? handleCardLongPress : undefined}
+                      onSwipeLeft={isTop && isConnected !== false ? () => handleSwipeLeft(product) : undefined}
+                      onSwipeRight={isTop && isConnected !== false ? () => handleSwipeRight(product) : undefined}
+                      onSave={isTop ? handleSaveButtonPress : undefined}
+                      isSaved={savedItems.includes(product.id)}
+                      testID={isTop ? "current-swipe-card" : `stacked-card-${index}`}
+                      isTopCard={isTop}
+                      cardIndex={index}
+                      totalCards={3}
+                    />
+                  </View>
                 );
               })}
           </>
         ) : (
           currentProduct && (
             <SwipeCardImproved
+              key={currentProduct.id} // 商品IDのみをkeyとして使用
               product={currentProduct}
               onPress={handleCardPress}
               onLongPress={handleCardLongPress}

@@ -151,19 +151,8 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = ({
         useNativeDriver: true
       })
     ]).start(() => {
-      // アニメーション完了後、状態をリセットしてからコールバックを呼ぶ
-      setIsSwiping(false);
-      setIsAnimating(false);
-      setSwipeDirection(null);
-      
-      // 位置を即座にリセット（次のカード用）
-      animValues.position.setValue({ x: 0, y: 0 });
-      animValues.position.setOffset({ x: 0, y: 0 });
-      animValues.likeOpacity.setValue(0);
-      animValues.nopeOpacity.setValue(0);
-      animValues.cardOpacity.setValue(1);
-      
-      // コールバックを呼ぶ
+      // アニメーション完了後、即座にコールバックを呼ぶ
+      // （状態のリセットはコールバック後にコンポーネントが再レンダリングされるため不要）
       if (direction === 'left' && onSwipeLeft) {
         onSwipeLeft();
       } else if (direction === 'right' && onSwipeRight) {
