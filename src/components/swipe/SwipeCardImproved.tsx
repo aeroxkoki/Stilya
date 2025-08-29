@@ -356,8 +356,8 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = ({
           backgroundColor: theme.colors.surface,
           zIndex: totalCards - cardIndex, // 前面のカードほど高いz-index
           elevation: totalCards - cardIndex, // Android用
-          position: 'absolute',
-          top: -stackOffset, // 背後のカードを少し下にずらす
+          // positionはSwipeCardImprovedでは設定しない（親のViewで制御）
+          marginTop: -stackOffset, // 背後のカードを少し下にずらす
         }
       ]} 
       {...(isTopCard && !isAnimating ? panResponder.panHandlers : {})}

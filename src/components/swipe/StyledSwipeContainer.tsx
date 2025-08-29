@@ -398,6 +398,10 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
                     key={product.id} // 商品IDのみをkeyとして使用（インデックスを含めない）
                     style={{ 
                       position: 'absolute',
+                      width: '100%',
+                      height: '100%',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                       zIndex: isTop ? 1000 : 1000 - index, // 最前面のカードを最も高いz-indexに
                       elevation: isTop ? 10 : 10 - index, // Android用
                     }}
@@ -421,18 +425,27 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
           </>
         ) : (
           currentProduct && (
-            <SwipeCardImproved
-              key={currentProduct.id} // 商品IDのみをkeyとして使用
-              product={currentProduct}
-              onPress={handleCardPress}
-              onLongPress={handleCardLongPress}
-              onSwipeLeft={isConnected === false ? undefined : () => handleSwipeLeft(currentProduct)}
-              onSwipeRight={isConnected === false ? undefined : () => handleSwipeRight(currentProduct)}
-              onSave={handleSaveButtonPress}
-              isSaved={savedItems.includes(currentProduct.id)}
-              testID="current-swipe-card"
-              isTopCard={true}
-            />
+            <View
+              style={{
+                width: '100%',
+                height: '100%',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <SwipeCardImproved
+                key={currentProduct.id} // 商品IDのみをkeyとして使用
+                product={currentProduct}
+                onPress={handleCardPress}
+                onLongPress={handleCardLongPress}
+                onSwipeLeft={isConnected === false ? undefined : () => handleSwipeLeft(currentProduct)}
+                onSwipeRight={isConnected === false ? undefined : () => handleSwipeRight(currentProduct)}
+                onSave={handleSaveButtonPress}
+                isSaved={savedItems.includes(currentProduct.id)}
+                testID="current-swipe-card"
+                isTopCard={true}
+              />
+            </View>
           )
         )}
       </View>
