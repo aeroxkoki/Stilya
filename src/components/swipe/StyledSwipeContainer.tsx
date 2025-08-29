@@ -16,6 +16,7 @@ import { Product } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useNetwork } from '@/contexts/NetworkContext';
 import { useStyle } from '@/contexts/ThemeContext';
+import { imagePreloadService } from '@/services/imagePreloadService';
 import StyledSwipeCard from './StyledSwipeCard';
 import SwipeCardEnhanced from './SwipeCardEnhanced';
 import SwipeCardImproved from './SwipeCardImproved';
@@ -76,6 +77,22 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
     removeFromFavorites,
     isFavorite
   } = useFavorites();
+
+  // 画像のプリロード処理
+  useEffect(() => {
+    // 次の5枚の画像を事前読み込み
+    if (products.length > 0 && currentIndex < products.length) {
+      imagePreloadService.preloadProductImages(
+        products,
+        currentIndex + 1, // 次のインデックスから
+        5 // 5枚先読み
+      ).catch(error => {
+        if (__DEV__) {
+          console.warn('[StyledSwipeContainer] Failed to preload images:', error);
+        }
+      });
+    }
+  }, [currentIndex, products]);
 
   // 商品が少なくなってきたら追加読み込み
   useEffect(() => {
