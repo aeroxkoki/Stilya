@@ -233,7 +233,6 @@ const EnhancedRecommendScreen: React.FC = () => {
       imageUrl: imageUrl,
       hasImageUrl: !!imageUrl,
       imageUrlLength: imageUrl?.length,
-      isPlaceholder: imageUrl?.includes('placehold.co'),
       brand: heroProduct.brand,
       price: heroProduct.price
     });
@@ -252,13 +251,14 @@ const EnhancedRecommendScreen: React.FC = () => {
           activeOpacity={0.95}
           onPress={() => handleProductPress(heroProduct)}
         >
-          {imageUrl && imageUrl.trim() !== '' && !imageUrl.includes('placehold.co') ? (
+          {imageUrl && imageUrl.trim() !== '' ? (
             <CachedImage
               source={{ uri: imageUrl }}
               style={styles.heroImage}
               contentFit="cover"
-              debugMode={true} // デバッグモードを有効化
+              debugMode={__DEV__} // 開発モードでのみデバッグを有効化
               productTitle={heroProduct.title} // 商品タイトルを追加
+              silentFallback={true} // サイレントフォールバック
             />
           ) : (
             <View style={[styles.heroImage, styles.placeholderContainer]}>
@@ -364,6 +364,7 @@ const EnhancedRecommendScreen: React.FC = () => {
                     style={styles.trendingImage}
                     contentFit="cover"
                     productTitle={product.title}
+                    silentFallback={true}
                   />
                   <View style={styles.trendingInfo}>
                     <Text style={styles.trendingPrice}>
@@ -438,11 +439,12 @@ const EnhancedRecommendScreen: React.FC = () => {
           { backgroundColor: theme.colors.surface },
           isSpecialItem && styles.specialImageContainer
         ]}>
-          {imageUrl && imageUrl.trim() !== '' && !imageUrl.includes('placehold.co') ? (
+          {imageUrl && imageUrl.trim() !== '' ? (
             <CachedImage
               source={{ uri: imageUrl }}
               style={styles.productImage}
               contentFit="cover"
+              silentFallback={true}
             />
           ) : (
             <View style={styles.productPlaceholder}>
