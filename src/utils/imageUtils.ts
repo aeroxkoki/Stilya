@@ -166,8 +166,9 @@ export const useImagePrefetch = () => {
    * 画像URLの配列をプリフェッチする
    * @param urls プリフェッチするURL配列
    * @param isHighPriority 高優先度でプリフェッチするかどうか
+   * @param parallel 並列実行数（デフォルト: 3）
    */
-  const prefetchImages = useCallback(async (urls: string[], isHighPriority: boolean = false) => {
+  const prefetchImages = useCallback(async (urls: string[], isHighPriority: boolean = false, parallel: number = 3) => {
     // 重複を避けるため、まだプリフェッチされていないURLのみをフィルタリング
     const urlsToPreload = urls.filter(url => {
       const optimizedUrl = optimizeImageUrl(url);
@@ -183,47 +184,66 @@ export const useImagePrefetch = () => {
     console.log(`[ImagePrefetch] Prefetching ${urlsToPreload.length} images (high priority: ${isHighPriority})`);
     
     try {
-      // 各URLを最適化してプリフェッチ
-      const promises = urlsToPreload.map(url => {
-        const optimizedUrl = optimizeImageUrl(url);
-        
-        // URLを記録
-        prefetchedUrls.current.add(optimizedUrl);
-        
-        // React Nativeの画像プリフェッチAPI を使用
-        return Image.prefetch(optimizedUrl)
-          .then(() => {
-            console.log('[ImagePrefetch] Successfully prefetched:', optimizedUrl.substring(0, 100));
-            return true;
-          })
-          .catch(error => {
-            console.warn('[ImagePrefetch] Failed to prefetch:', {
-              url: optimizedUrl.substring(0, 100),
-              error: error?.message || 'Unknown error'
+      // 並列実行で効率的にプリフェッチ
+      const prefetchBatch = async (batchUrls: string[]) => {
+        const promises = batchUrls.map(url => {
+          const optimizedUrl = optimizeImageUrl(url);
+          
+          // URLを記録
+          prefetchedUrls.current.add(optimizedUrl);
+          
+          // React Nativeの画像プリフェッチAPI を使用
+          return Image.prefetch(optimizedUrl)
+            .then(() => {
+              console.log('[ImagePrefetch] Successfully prefetched:', optimizedUrl.substring(0, 100));
+              return true;
+            })
+            .catch(error => {
+              console.warn('[ImagePrefetch] Failed to prefetch:', {
+                url: optimizedUrl.substring(0, 100),
+                error: error?.message || 'Unknown error'
+              });
+              // 失敗したURLは記録から削除して失敗リストに追加
+              prefetchedUrls.current.delete(optimizedUrl);
+              failedUrls.current.add(optimizedUrl);
+              return false;
             });
-            // 失敗したURLは記録から削除して失敗リストに追加
-            prefetchedUrls.current.delete(optimizedUrl);
-            failedUrls.current.add(optimizedUrl);
-            return false;
-          });
-      });
+        });
+        return Promise.all(promises);
+      };
+      
+      // バッチに分割して実行
+      const batches = [];
+      for (let i = 0; i < urlsToPreload.length; i += parallel) {
+        batches.push(urlsToPreload.slice(i, i + parallel));
+      }
+      
+      const allPromises = [];
       
       if (isHighPriority) {
-        // 高優先度の場合は全て完了を待つ
-        const results = await Promise.all(promises);
-        const successCount = results.filter(r => r).length;
-        console.log(`[ImagePrefetch] High priority prefetch complete: ${successCount}/${promises.length} succeeded`);
+        // 高優先度の場合はバッチを順次実行
+        for (const batch of batches) {
+          const results = await prefetchBatch(batch);
+          allPromises.push(...results);
+        }
+        const successCount = allPromises.filter(r => r).length;
+        console.log(`[ImagePrefetch] High priority prefetch complete: ${successCount}/${urlsToPreload.length} succeeded`);
       } else {
-        // 低優先度の場合はキューに追加
-        prefetchQueue.current.push(...promises);
+        // 低優先度の場合は非同期で並列実行
+        batches.forEach(batch => {
+          const batchPromise = prefetchBatch(batch).then((results) => {
+            const successCount = results.filter(r => r).length;
+            console.log(`[ImagePrefetch] Background batch complete: ${successCount}/${batch.length} succeeded`);
+            return results;
+          });
+          prefetchQueue.current.push(batchPromise);
+          allPromises.push(batchPromise);
+        });
         
         // バックグラウンドで実行
-        Promise.all(promises).then((results) => {
-          const successCount = results.filter(r => r).length;
-          console.log(`[ImagePrefetch] Background prefetch complete: ${successCount}/${promises.length} succeeded`);
-          
+        Promise.all(allPromises).then(() => {
           // 完了したプロミスをキューから削除
-          promises.forEach(p => {
+          allPromises.forEach(p => {
             const index = prefetchQueue.current.indexOf(p);
             if (index > -1) {
               prefetchQueue.current.splice(index, 1);

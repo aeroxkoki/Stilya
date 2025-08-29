@@ -58,7 +58,7 @@ export const useProducts = (): UseProductsReturn => {
     gender: 'all'
   });
   
-  const pageSize = 20;
+  const pageSize = 30; // より多くの商品をプリロード
   const maxRetries = 5; // 最大リトライ回数
   
   // 画像プリフェッチ用
@@ -174,9 +174,10 @@ export const useProducts = (): UseProductsReturn => {
             allProductIds: new Set(initialProducts.map(p => p.id))
           });
           
-          // 画像をプリフェッチ
-          const imagesToPrefetch = initialProducts.slice(0, 5).map(p => p.imageUrl).filter(url => url !== null) as string[];
-          await prefetchImages(imagesToPrefetch);
+          // 画像をプリフェッチ（より多くプリロード）
+          const imagesToPrefetch = initialProducts.slice(0, 10).map(p => p.imageUrl).filter(url => url !== null) as string[];
+          // 非同期でプリフェッチ
+          prefetchImages(imagesToPrefetch).catch(console.error);
           
           setIsLoading(false);
           loadingRef.current = false;
@@ -279,9 +280,9 @@ export const useProducts = (): UseProductsReturn => {
           allProductIds: updatedAllProductIds
         }));
         
-        // 次の商品の画像をプリフェッチ（非同期）
+        // 次の商品の画像をプリフェッチ（非同期、より多くプリロード）
         InteractionManager.runAfterInteractions(() => {
-          const nextImages = newProducts.slice(0, 5).map(p => p.imageUrl).filter(url => url !== null) as string[];
+          const nextImages = newProducts.slice(0, 10).map(p => p.imageUrl).filter(url => url !== null) as string[];
           prefetchImages(nextImages).catch(console.error);
         });
         
@@ -355,17 +356,20 @@ export const useProducts = (): UseProductsReturn => {
       // エラーが発生してもアプリは継続
     });
     
-    // 次の商品へ
-    setCurrentIndex(prev => {
-      const nextIndex = prev + 1;
-      
-      // 残り5枚になったら追加ロード
-      if (nextIndex >= productsData.products.length - 5 && productsData.hasMore && !loadingRef.current) {
-        console.log('[useProducts] Loading more products (5 cards remaining)');
-        loadMore(false);
-      }
-      
-      return nextIndex;
+    // 次の商品へ（非同期で状態を更新）
+    requestAnimationFrame(() => {
+      setCurrentIndex(prev => {
+        const nextIndex = prev + 1;
+        
+        // 残り10枚になったら追加ロード
+        if (nextIndex >= productsData.products.length - 10 && productsData.hasMore && !loadingRef.current) {
+          console.log('[useProducts] Loading more products (10 cards remaining)');
+          // 非同期でロードを開始
+          setTimeout(() => loadMore(false), 0);
+        }
+        
+        return nextIndex;
+      });
     });
   }, [user, productsData.products.length, productsData.hasMore]);
 

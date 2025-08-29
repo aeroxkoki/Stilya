@@ -56,7 +56,7 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
   const [loadingMore, setLoadingMore] = useState(false);
   const [showQuickView, setShowQuickView] = useState(false);
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
-  const loadMoreThreshold = useRef(5); // あと5枚になったら追加読み込み
+  const loadMoreThreshold = useRef(10); // あと10枚になったら追加読み込み
   
   // 外部のインデックスが提供されていればそれを使う、なければ内部の状態を使う
   const currentIndex = externalIndex !== undefined ? externalIndex : internalIndex;
@@ -386,16 +386,17 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
         {/* カードスタック表示 - 背後のカードから順に表示 */}
         {useEnhancedCard ? (
           <>
-            {/* 最大3枚のカードをスタック表示 */}
-            {products.slice(currentIndex, Math.min(currentIndex + 3, products.length))
+            {/* 最大5枚のカードをスタック表示して先読み */}
+            {products.slice(currentIndex, Math.min(currentIndex + 5, products.length))
               .map((product, index) => {
                 const isTop = index === 0;
+                const isVisible = index < 3; // 最初の3枚のみ表示
                 // 背後のカードを先にレンダリングするために、z-indexを逆にする
                 const zIndex = products.length - currentIndex - index;
                 
                 return (
                   <View 
-                    key={product.id} // 商品IDのみをkeyとして使用（インデックスを含めない）
+                    key={`card-${currentIndex}-${index}`} // インデックスベースのkeyで再レンダリングを最小化
                     style={{ 
                       position: 'absolute',
                       width: '100%',
@@ -404,6 +405,8 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
                       justifyContent: 'center',
                       zIndex: isTop ? 1000 : 1000 - index, // 最前面のカードを最も高いz-indexに
                       elevation: isTop ? 10 : 10 - index, // Android用
+                      opacity: isVisible ? 1 : 0, // 見えないカードは透明に
+                      pointerEvents: isTop ? 'auto' : 'none', // 最前面のカードのみタッチ可能
                     }}
                   >
                     <SwipeCardImproved
@@ -416,7 +419,7 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
                       isSaved={savedItems.includes(product.id)}
                       testID={isTop ? "current-swipe-card" : `stacked-card-${index}`}
                       isTopCard={isTop}
-                      cardIndex={index}
+                      cardIndex={isVisible ? index : -1} // 非表示カードは-1
                       totalCards={3}
                     />
                   </View>

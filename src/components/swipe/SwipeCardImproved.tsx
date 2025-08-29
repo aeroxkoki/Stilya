@@ -36,7 +36,7 @@ const { width, height } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.92;
 const CARD_HEIGHT = height * 0.58;
 const SWIPE_THRESHOLD = width * 0.25; // スワイプ判定のしきい値
-const SWIPE_OUT_DURATION = 250; // スワイプアウトの速度を少し遅めに
+const SWIPE_OUT_DURATION = 150; // スワイプアウトの速度を高速化
 const ROTATION_ANGLE = 30; // 回転角度
 
 const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = ({ 
@@ -89,34 +89,37 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = ({
   // カード登場アニメーション（スタック表示用）
   useEffect(() => {
     if (isTopCard) {
-      // 最前面のカードは通常サイズ
-      Animated.spring(animValues.cardScale, {
-        toValue: 1,
-        friction: 8,
-        tension: 40,
-        useNativeDriver: true
-      }).start();
-      Animated.timing(animValues.cardOpacity, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true
-      }).start();
+      // 最前面のカードは通常サイズ（高速化）
+      Animated.parallel([
+        Animated.spring(animValues.cardScale, {
+          toValue: 1,
+          friction: 10, // より高速に
+          tension: 50,  // より高速に
+          useNativeDriver: true
+        }),
+        Animated.timing(animValues.cardOpacity, {
+          toValue: 1,
+          duration: 120, // 200ms → 120msに短縮
+          useNativeDriver: true
+        })
+      ]).start();
     } else {
-      // 背後のカードは少し小さくして薄く表示
+      // 背後のカードは少し小さくして薄く表示（高速化）
       const scale = 1 - (cardIndex * 0.03); // カードごとに少しずつ小さく
       const opacity = 1 - (cardIndex * 0.3); // カードごとに薄く
       
-      Animated.timing(animValues.cardScale, {
-        toValue: Math.max(scale, 0.85),
-        duration: 200,
-        useNativeDriver: true
-      }).start();
-      
-      Animated.timing(animValues.cardOpacity, {
-        toValue: Math.max(opacity, 0.3),
-        duration: 200,
-        useNativeDriver: true
-      }).start();
+      Animated.parallel([
+        Animated.timing(animValues.cardScale, {
+          toValue: Math.max(scale, 0.85),
+          duration: 100, // 200ms → 100msに短縮
+          useNativeDriver: true
+        }),
+        Animated.timing(animValues.cardOpacity, {
+          toValue: Math.max(opacity, 0.3),
+          duration: 100, // 200ms → 100msに短縮
+          useNativeDriver: true
+        })
+      ]).start();
     }
   }, [isTopCard, cardIndex]);
   
@@ -138,7 +141,17 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = ({
     const x = direction === 'left' ? -width * 1.5 : width * 1.5;
     const rotation = direction === 'left' ? -ROTATION_ANGLE : ROTATION_ANGLE;
     
-    // カードを画面外に飛ばす
+    // コールバックを即座に呼んで次のカードの準備を開始
+    // アニメーションと並行して処理することで遅延を最小化
+    setTimeout(() => {
+      if (direction === 'left' && onSwipeLeft) {
+        onSwipeLeft();
+      } else if (direction === 'right' && onSwipeRight) {
+        onSwipeRight();
+      }
+    }, 30); // 30ms後に次のカードを準備開始（視覚的に自然）
+    
+    // カードを画面外に飛ばす（アニメーションは継続）
     Animated.parallel([
       Animated.timing(animValues.position, {
         toValue: { x, y: 100 },
@@ -147,18 +160,10 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = ({
       }),
       Animated.timing(animValues.cardOpacity, {
         toValue: 0,
-        duration: SWIPE_OUT_DURATION,
+        duration: SWIPE_OUT_DURATION * 0.8, // 不透明度は早めに0にする
         useNativeDriver: true
       })
-    ]).start(() => {
-      // アニメーション完了後、即座にコールバックを呼ぶ
-      // （状態のリセットはコールバック後にコンポーネントが再レンダリングされるため不要）
-      if (direction === 'left' && onSwipeLeft) {
-        onSwipeLeft();
-      } else if (direction === 'right' && onSwipeRight) {
-        onSwipeRight();
-      }
-    });
+    ]).start();
   };
   
   // スワイプジェスチャー
