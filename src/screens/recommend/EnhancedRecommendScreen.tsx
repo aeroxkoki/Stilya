@@ -364,238 +364,208 @@ const EnhancedRecommendScreen: React.FC = () => {
     );
   };
   
-  // スタイルプロファイルの表示（改善版）
+  // スタイルプロファイルの表示（女性向けUX改善版）
   const renderStyleProfile = () => {
     if (!userStyleProfile || !userStyleProfile.preferredStyles) return null;
     
-    // スワイプ数に基づくレベル計算
+    // スワイプ数
     const swipeCount = userStyleProfile.totalSwipes || 0;
-    const level = Math.min(Math.floor(swipeCount / 10) + 1, 10);
-    const levelProgress = (swipeCount % 10) * 10;
-    const nextLevelSwipes = level < 10 ? 10 - (swipeCount % 10) : 0;
     
-    // 全スタイルデータを準備（パーセンテージ降順）
-    const allStyles = Object.entries(userStyleProfile.preferredStyles)
-      .sort(([, a], [, b]) => (b as number) - (a as number));
+    // トップ3スタイルのみを取得
+    const topStyles = Object.entries(userStyleProfile.preferredStyles)
+      .sort(([, a], [, b]) => (b as number) - (a as number))
+      .slice(0, 3);
     
-    // 最大値を取得（グラフのスケール用）
-    const maxPercentage = allStyles.length > 0 ? Math.max(...allStyles.map(([, p]) => p as number)) : 100;
+    if (topStyles.length === 0) return null;
+
+    // 女性向けのソフトなカラーパレット
+    const femininePalette: Record<string, string> = {
+      'カジュアル': '#87CEEB',      // スカイブルー
+      'モード': '#9B72B0',          // 紫
+      'ストリート': '#FF8C94',      // サーモンピンク
+      'キレイめ': '#98D982',         // ミントグリーン
+      'ナチュラル': '#B4C8A8',      // セージグリーン
+      'フェミニン': '#FFB6C1',      // ライトピンク
+      'クラシック': '#DEB887'       // ベージュ
+    };
     
     return (
       <View style={[styles.styleProfileContainer, { 
-        backgroundColor: theme.colors.surface || '#ffffff',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 12,
-        elevation: 5,
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        borderWidth: 1,
+        borderColor: '#FFE0EC',
       }]}>
-        {/* ヘッダー部分 */}
-        <LinearGradient
-          colors={[theme.colors.primary + '15', 'transparent']}
-          style={styles.styleProfileGradientHeader}
-        >
-          <View style={styles.styleProfileHeader}>
-            <View style={styles.styleProfileTitleSection}>
-              <Text style={[styles.styleProfileTitle, { color: theme.colors.text.primary }]}>
-                スタイル分析
-              </Text>
-              <View style={styles.levelBadge}>
-                <Ionicons name="trophy" size={14} color="#FFD700" />
-                <Text style={styles.levelText}>Lv.{level}</Text>
-              </View>
+        {/* タイトル部分をよりエレガントに */}
+        <View style={styles.styleProfileHeader}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={[styles.styleProfileTitle, { 
+              color: '#333',
+              fontSize: 14,
+              fontWeight: '500',
+              letterSpacing: 0.5
+            }]}>
+              Your Style Profile
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 2 }}>
+              <Ionicons name="sparkles" size={12} color="#FFB6C1" />
             </View>
-            <TouchableOpacity
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                loadUserStyleProfile();
-              }}
-              style={styles.refreshButton}
-            >
-              <Ionicons name="refresh-outline" size={20} color={theme.colors.text.secondary} />
-            </TouchableOpacity>
           </View>
-          
-          {/* レベル進捗バー */}
-          <View style={styles.levelProgressContainer}>
-            <View style={styles.levelProgressBar}>
-              <Animated.View 
-                style={[
-                  styles.levelProgressFill,
-                  { 
-                    width: `${levelProgress}%`,
-                    backgroundColor: '#FFD700'
-                  }
-                ]}
-              />
-            </View>
-            {nextLevelSwipes > 0 && (
-              <Text style={[styles.levelProgressText, { color: theme.colors.text.secondary }]}>
-                次のレベルまであと{nextLevelSwipes}回
-              </Text>
-            )}
-          </View>
-        </LinearGradient>
+        </View>
         
-        {/* 縦型棒グラフ */}
-        <View style={styles.verticalChartContainer}>
-          <Text style={[styles.chartTitle, { color: theme.colors.text.primary }]}>
-            あなたの好みの傾向
-          </Text>
-          
-          {/* グラフエリア */}
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            style={styles.chartScrollView}
-            contentContainerStyle={styles.chartContent}
-          >
-            <View style={styles.chartWrapper}>
-              {/* Y軸ラベル */}
-              <View style={styles.yAxisLabels}>
-                <Text style={styles.axisLabel}>100%</Text>
-                <Text style={styles.axisLabel}>75%</Text>
-                <Text style={styles.axisLabel}>50%</Text>
-                <Text style={styles.axisLabel}>25%</Text>
-                <Text style={styles.axisLabel}>0%</Text>
+        {/* シンプルな円形プログレス表示 */}
+        <View style={styles.mainStyleSection}>
+          {topStyles[0] && (
+            <View style={styles.primaryStyle}>
+              {/* メインスタイルを円形で表示 */}
+              <View style={{
+                width: 100,
+                height: 100,
+                borderRadius: 50,
+                backgroundColor: femininePalette[topStyles[0][0]] + '20',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginBottom: 12,
+              }}>
+                <View style={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: 40,
+                  backgroundColor: femininePalette[topStyles[0][0]] + '30',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}>
+                  <Text style={{
+                    fontSize: 24,
+                    fontWeight: '600',
+                    color: femininePalette[topStyles[0][0]],
+                  }}>
+                    {Math.round(topStyles[0][1] as number)}%
+                  </Text>
+                </View>
               </View>
               
-              {/* グラフ本体 */}
-              <View style={styles.barsContainer}>
-                {allStyles.map(([style, percentage], index) => {
-                  const styleInfo = styleDescriptions[style] || {
-                    description: '',
-                    icon: 'help-outline',
-                    color: '#666'
-                  };
-                  const barHeight = ((percentage as number) / 100) * 180; // グラフの高さを180pxに設定
-                  const isTopStyle = index === 0;
-                  
-                  return (
-                    <TouchableOpacity
-                      key={style}
-                      style={styles.barWrapper}
-                      onPress={() => {
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                        setSelectedStyle(style);
-                        setShowStyleDetail(true);
-                      }}
-                      activeOpacity={0.8}
-                    >
-                      {/* パーセンテージ表示 */}
-                      <Text style={[
-                        styles.barPercentage,
-                        { color: isTopStyle ? theme.colors.primary : theme.colors.text.secondary }
-                      ]}>
-                        {percentage}%
-                      </Text>
-                      
-                      {/* バーコンテナ */}
-                      <View style={styles.barContainer}>
-                        <Animated.View 
-                          style={[
-                            styles.bar,
-                            { 
-                              height: animatedValues[style] ? 
-                                animatedValues[style].interpolate({
-                                  inputRange: [0, 100],
-                                  outputRange: [0, 180]
-                                }) : barHeight,
-                              backgroundColor: styleInfo.color,
-                            },
-                            isTopStyle && styles.topBar
-                          ]}
-                        >
-                          {/* トップスタイルには王冠アイコン */}
-                          {isTopStyle && (
-                            <View style={styles.crownIcon}>
-                              <Ionicons name="star" size={16} color="#fff" />
-                            </View>
-                          )}
-                        </Animated.View>
-                      </View>
-                      
-                      {/* スタイル名とアイコン */}
-                      <View style={styles.barLabelContainer}>
-                        <View style={[styles.barIcon, { backgroundColor: styleInfo.color + '20' }]}>
-                          <Ionicons 
-                            name={styleInfo.icon as any} 
-                            size={16} 
-                            color={styleInfo.color} 
-                          />
-                        </View>
-                        <Text 
-                          style={[
-                            styles.barLabel,
-                            { color: theme.colors.text.primary },
-                            isTopStyle && styles.topBarLabel
-                          ]}
-                          numberOfLines={2}
-                        >
-                          {style}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-          </ScrollView>
-          
-          {/* インサイトカード */}
-          <View style={[styles.insightCard, { backgroundColor: theme.colors.primary + '10' }]}>
-            <View style={styles.insightIcon}>
-              <Ionicons name="bulb" size={20} color={theme.colors.primary} />
-            </View>
-            <View style={styles.insightContent}>
-              <Text style={[styles.insightTitle, { color: theme.colors.text.primary }]}>
-                あなたの傾向
-              </Text>
-              <Text style={[styles.insightText, { color: theme.colors.text.secondary }]}>
-                {allStyles[0] && allStyles[1] ? 
-                  `「${allStyles[0][0]}」と「${allStyles[1][0]}」を組み合わせたスタイルがお好みです` :
-                  'もう少しスワイプすると、より詳しい分析ができます'
-                }
+              <Text style={[styles.primaryStyleName, { 
+                color: femininePalette[topStyles[0][0]],
+                fontSize: 16,
+                fontWeight: '500'
+              }]}>
+                {topStyles[0][0]}
               </Text>
             </View>
-          </View>
+          )}
         </View>
         
-        {/* アクションボタン */}
-        <View style={styles.styleActions}>
-          <TouchableOpacity
-            style={[styles.primaryActionButton, { backgroundColor: theme.colors.primary }]}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              if (allStyles[0]) {
-                // トップスタイルでフィルタリング
-                console.log('Filter by top style:', allStyles[0][0]);
-                // TODO: フィルター適用のロジック
-              }
-            }}
-          >
-            <MaterialIcons name="filter-list" size={20} color="#fff" />
-            <Text style={styles.primaryActionText}>
-              {allStyles[0] ? `「${allStyles[0][0]}」の商品を見る` : 'スタイルで絞り込む'}
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={[styles.secondaryActionButton, { 
-              borderColor: theme.colors.primary,
-            }]}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              // スタイル診断画面へ遷移
-              navigation.navigate('StyleQuiz' as never);
-            }}
-          >
-            <Ionicons name="analytics" size={20} color={theme.colors.primary} />
-            <Text style={[styles.secondaryActionText, { color: theme.colors.primary }]}>
-              詳細な分析を見る
-            </Text>
-          </TouchableOpacity>
+        {/* サブスタイルをミニマルなドット表示 */}
+        {topStyles.length > 1 && (
+          <View style={styles.subStylesSection}>
+            <View style={{
+              flexDirection: 'row',
+              justifyContent: 'center',
+              gap: 20,
+              marginTop: 8,
+            }}>
+              {topStyles.slice(1, 3).map(([style, percentage]) => (
+                <TouchableOpacity
+                  key={style}
+                  style={{
+                    alignItems: 'center',
+                  }}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setSelectedStyle(style);
+                    setShowStyleDetail(true);
+                  }}
+                >
+                  <View style={{
+                    width: 50,
+                    height: 50,
+                    borderRadius: 25,
+                    backgroundColor: femininePalette[style] + '25',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    marginBottom: 6,
+                  }}>
+                    <Text style={{
+                      fontSize: 14,
+                      fontWeight: '500',
+                      color: femininePalette[style],
+                    }}>
+                      {Math.round(percentage as number)}%
+                    </Text>
+                  </View>
+                  <Text style={{
+                    fontSize: 11,
+                    color: femininePalette[style],
+                    fontWeight: '400',
+                  }}>
+                    {style}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+        
+        {/* エレガントなプログレスメッセージ */}
+        <View style={{
+          marginTop: 20,
+          marginBottom: 16,
+          paddingHorizontal: 20,
+        }}>
+          <View style={{
+            height: 3,
+            backgroundColor: '#F5F5F5',
+            borderRadius: 1.5,
+            overflow: 'hidden',
+          }}>
+            <View style={{
+              height: '100%',
+              width: `${Math.min(swipeCount * 10, 100)}%`,
+              backgroundColor: '#FFB6C1',
+              borderRadius: 1.5,
+            }} />
+          </View>
+          <Text style={{
+            fontSize: 11,
+            color: '#999',
+            textAlign: 'center',
+            marginTop: 8,
+          }}>
+            {swipeCount < 10 
+              ? `あと${10 - swipeCount}回のスワイプで、より正確な分析ができます`
+              : 'スタイル分析完了 ✓'
+            }
+          </Text>
         </View>
+        
+        {/* シンプルなCTAボタン */}
+        <TouchableOpacity
+          style={{
+            backgroundColor: femininePalette[topStyles[0][0]] || '#FFB6C1',
+            paddingVertical: 12,
+            borderRadius: 25,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+          }}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            if (topStyles[0]) {
+              console.log('Filter by style:', topStyles[0][0]);
+              // TODO: フィルター適用
+            }
+          }}
+        >
+          <Text style={{
+            color: '#fff',
+            fontSize: 13,
+            fontWeight: '500',
+          }}>
+            {topStyles[0][0]}の商品を見る
+          </Text>
+          <Ionicons name="chevron-forward" size={14} color="#fff" />
+        </TouchableOpacity>
       </View>
     );
   };
@@ -1067,188 +1037,84 @@ const styles = StyleSheet.create({
   },
   styleProfileContainer: {
     marginHorizontal: 16,
-    marginTop: 24,
+    marginTop: 20,
     marginBottom: 16,
     backgroundColor: '#ffffff',
-    borderRadius: 20,
-    overflow: 'hidden',
-  },
-  styleProfileGradientHeader: {
-    paddingTop: 16,
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+    borderRadius: 16,
+    padding: 20,
   },
   styleProfileHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
-  },
-  styleProfileTitleSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+    marginBottom: 20,
   },
   styleProfileTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '600',
   },
-  levelBadge: {
+  mainStyleSection: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  primaryStyle: {
+    alignItems: 'center',
+  },
+  primaryStyleIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  primaryStyleName: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  primaryStyleDesc: {
+    fontSize: 12,
+  },
+  subStylesSection: {
+    marginBottom: 20,
+  },
+  subStylesLabel: {
+    fontSize: 12,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  subStylesRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  subStyleChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 215, 0, 0.15)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-    gap: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    gap: 6,
   },
-  levelText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#B8860B',
+  subStyleText: {
+    fontSize: 13,
+    fontWeight: '500',
   },
-  refreshButton: {
-    padding: 8,
-  },
-  levelProgressContainer: {
-    marginTop: 4,
-  },
-  levelProgressBar: {
-    height: 4,
-    backgroundColor: 'rgba(0,0,0,0.08)',
-    borderRadius: 2,
-    overflow: 'hidden',
-    marginBottom: 6,
-  },
-  levelProgressFill: {
-    height: '100%',
-    borderRadius: 2,
-  },
-  levelProgressText: {
-    fontSize: 11,
-  },
-  verticalChartContainer: {
+  styleMessage: {
+    paddingVertical: 12,
     paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 12,
-  },
-  chartTitle: {
-    fontSize: 14,
-    fontWeight: '600',
+    backgroundColor: '#F8F8F8',
+    borderRadius: 12,
     marginBottom: 16,
   },
-  chartScrollView: {
-    height: 280,
-  },
-  chartContent: {
-    paddingRight: 16,
-  },
-  chartWrapper: {
-    flexDirection: 'row',
-  },
-  yAxisLabels: {
-    width: 40,
-    height: 180,
-    justifyContent: 'space-between',
-    marginRight: 8,
-  },
-  axisLabel: {
-    fontSize: 10,
-    color: '#999',
-    textAlign: 'right',
-  },
-  barsContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    height: 180,
-    gap: 12,
-  },
-  barWrapper: {
-    alignItems: 'center',
-    width: 64,
-  },
-  barPercentage: {
-    fontSize: 12,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  barContainer: {
-    width: 48,
-    height: 180,
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.03)',
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  bar: {
-    width: '100%',
-    borderRadius: 8,
-    position: 'relative',
-  },
-  topBar: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  crownIcon: {
-    position: 'absolute',
-    top: 8,
-    alignSelf: 'center',
-  },
-  barLabelContainer: {
-    alignItems: 'center',
-    marginTop: 8,
-    width: '100%',
-  },
-  barIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  barLabel: {
-    fontSize: 11,
-    textAlign: 'center',
-    width: '100%',
-  },
-  topBarLabel: {
-    fontWeight: '600',
-  },
-  insightCard: {
-    flexDirection: 'row',
-    padding: 12,
-    borderRadius: 12,
-    marginTop: 16,
-    alignItems: 'flex-start',
-  },
-  insightIcon: {
-    marginRight: 12,
-  },
-  insightContent: {
-    flex: 1,
-  },
-  insightTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  insightText: {
+  styleMessageText: {
     fontSize: 12,
     lineHeight: 18,
+    textAlign: 'center',
   },
-  styleActions: {
-    flexDirection: 'row',
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-  },
-  primaryActionButton: {
-    flex: 1,
+  simpleActionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1256,22 +1122,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     gap: 8,
   },
-  primaryActionText: {
+  simpleActionText: {
     color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  secondaryActionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    gap: 8,
-  },
-  secondaryActionText: {
     fontSize: 14,
     fontWeight: '600',
   },
