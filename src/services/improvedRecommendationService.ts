@@ -83,9 +83,9 @@ export class ImprovedRecommendationService {
       productId,
       result,
       timestamp: new Date(),
-      tags: product.tags || [],
+      tags: Array.isArray(product.tags) ? product.tags : [],
       category: product.category || '',
-      brand: product.brand,
+      brand: product.brand || undefined,
       price: product.price,
     });
     
@@ -712,20 +712,19 @@ export const updateSessionLearning = (
   data: { productId: string; result: 'yes' | 'no'; responseTime?: number }
 ) => {
   // ダミーのProductオブジェクトを作成（完全な商品情報がない場合）
-  const dummyProduct = {
+  const dummyProduct: Product = {
     id: data.productId,
     title: '',
     price: 0,
-    image_url: '',
-    tags: [],
-    category: '',
-    brand: '',
-    description: '',
-    affiliate_url: '',
-    is_active: true,
-    source: 'unknown',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
+    imageUrl: null,
+    tags: null,
+    category: null,
+    brand: null,
+    description: null,
+    affiliateUrl: null,
+    source: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   };
   
   ImprovedRecommendationService.recordSwipeToSession(

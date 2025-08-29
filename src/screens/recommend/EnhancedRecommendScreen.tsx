@@ -223,17 +223,20 @@ const EnhancedRecommendScreen: React.FC = () => {
   const renderHeroSection = () => {
     if (!heroProduct) return null;
     
-    // デバッグ情報
-    console.log('[EnhancedRecommendScreen] Hero product:', {
+    // 画像URLを正しく取得（imageUrlフィールドが正しいマッピング）
+    const imageUrl = heroProduct.imageUrl || '';
+    
+    // デバッグ情報を詳細に出力
+    console.log('[EnhancedRecommendScreen] Hero product debug:', {
       id: heroProduct.id,
       title: heroProduct.title,
-      imageUrl: heroProduct.imageUrl,
+      imageUrl: imageUrl,
+      hasImageUrl: !!imageUrl,
+      imageUrlLength: imageUrl?.length,
+      isPlaceholder: imageUrl?.includes('placehold.co'),
       brand: heroProduct.brand,
       price: heroProduct.price
     });
-    
-    // imageUrlを使用
-    const imageUrl = heroProduct.imageUrl;
     
     return (
       <Animated.View 
@@ -255,6 +258,7 @@ const EnhancedRecommendScreen: React.FC = () => {
               style={styles.heroImage}
               contentFit="cover"
               debugMode={true} // デバッグモードを有効化
+              productTitle={heroProduct.title} // 商品タイトルを追加
             />
           ) : (
             <View style={[styles.heroImage, styles.placeholderContainer]}>
@@ -346,8 +350,8 @@ const EnhancedRecommendScreen: React.FC = () => {
             contentContainerStyle={styles.horizontalScrollContent}
           >
             {section.data.map((product) => {
-              // imageUrlとimage_urlの両方をチェック
-              const imageUrl = product.imageUrl || product.image_url;
+              // imageUrlフィールドを正しく使用
+              const imageUrl = product.imageUrl || '';
               
               return (
                 <TouchableOpacity
@@ -359,6 +363,7 @@ const EnhancedRecommendScreen: React.FC = () => {
                     source={{ uri: imageUrl }}
                     style={styles.trendingImage}
                     contentFit="cover"
+                    productTitle={product.title}
                   />
                   <View style={styles.trendingInfo}>
                     <Text style={styles.trendingPrice}>
@@ -411,8 +416,8 @@ const EnhancedRecommendScreen: React.FC = () => {
     const normalizedHash = (hash % 100) / 100;
     const itemHeight = baseHeight + normalizedHash * (isSpecialItem ? 40 : 80);
     
-    // imageUrlとimage_urlの両方をチェック
-    const imageUrl = item.imageUrl || item.image_url;
+    // imageUrlフィールドを正しく使用
+    const imageUrl = item.imageUrl || '';
     
     return (
       <TouchableOpacity
