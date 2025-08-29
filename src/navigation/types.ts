@@ -3,13 +3,6 @@ import { StackScreenProps } from '@react-navigation/stack';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { CompositeScreenProps } from '@react-navigation/native';
 
-// Auth Stack
-export type AuthStackParamList = {
-  Login: undefined;
-  Register: undefined;
-  ForgotPassword: undefined;
-};
-
 // Onboarding Stack (新しいフロー)
 export type OnboardingStackParamList = {
   Welcome: undefined;
@@ -45,10 +38,7 @@ export type ProfileStackParamList = {
   Favorites: undefined;
   SwipeHistory: undefined;
   ProductDetail: { productId: string };
-  SupabaseDiagnostic: undefined;
   Admin: undefined;
-  ImageDebug?: undefined;
-  ImageDiagnosis?: undefined;
   PrivacyPolicy: undefined;
   TermsOfService: undefined;
 };
@@ -62,14 +52,13 @@ export type MainTabParamList = {
 
 // Root Stack
 export type RootStackParamList = {
-  Auth: NavigatorScreenParams<AuthStackParamList>;
+  Auth: undefined; // AuthScreenを直接使用
   Main: NavigatorScreenParams<MainTabParamList>;
   Onboarding: NavigatorScreenParams<OnboardingStackParamList>;
+  ProductDetail: { productId: string }; // AppNavigatorから直接アクセス
 };
 
 // Screen Props Types
-export type AuthScreenProps<T extends keyof AuthStackParamList> = 
-  StackScreenProps<AuthStackParamList, T>;
 
 export type OnboardingScreenProps<T extends keyof OnboardingStackParamList> = 
   StackScreenProps<OnboardingStackParamList, T>;

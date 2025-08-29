@@ -7,7 +7,6 @@ import { Button, Card } from '@/components/common';
 import { useAuth } from '@/hooks/useAuth';
 import { ProfileStackParamList } from '@/types';
 import { useStyle } from '@/contexts/ThemeContext';
-// import DebugProductCount from '@/components/debug/DebugProductCount';
 import { DevMenu } from '@/components/dev/DevMenu';
 import { STYLE_ID_TO_JP_TAG, AGE_GROUPS } from '@/constants/constants';
 
@@ -307,7 +306,6 @@ const ProfileScreen: React.FC = () => {
                 <Text style={[styles.debugSectionTitle, { color: theme.colors.text.primary }]}>
                   商品統計情報
                 </Text>
-                {/* <DebugProductCount /> */}
                 <Text style={{ color: theme.colors.text.secondary, fontSize: 14 }}>
                   デバッグ機能は一時的に無効化されています
                 </Text>
@@ -318,18 +316,6 @@ const ProfileScreen: React.FC = () => {
                 <Text style={[styles.debugSectionTitle, { color: theme.colors.text.primary }]}>
                   診断ツール
                 </Text>
-                
-                {/* データベース診断機能は一時的に無効化 */}
-                {/* <TouchableOpacity
-                  style={[styles.debugButton, { backgroundColor: theme.colors.primary }]}
-                  onPress={() => {
-                    setShowDebugModal(false);
-                    navigation.navigate('SupabaseDiagnostic');
-                  }}
-                >
-                  <Ionicons name="server-outline" size={20} color="white" />
-                  <Text style={styles.debugButtonText}>データベース診断</Text>
-                </TouchableOpacity> */}
                 
                 <TouchableOpacity
                   style={[styles.debugButton, { backgroundColor: theme.colors.primary }]}
