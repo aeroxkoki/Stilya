@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useStyle } from '@/contexts/ThemeContext';
-import { useFilters, STYLE_OPTIONS, MOOD_OPTIONS } from '@/contexts/FilterContext';
+import { useFilters, CATEGORY_OPTIONS } from '@/contexts/FilterContext';
 
 interface SimpleFilterModalProps {
   visible: boolean;
@@ -23,7 +23,7 @@ const { width } = Dimensions.get('window');
 
 const SimpleFilterModal: React.FC<SimpleFilterModalProps> = ({ visible, onClose }) => {
   const { theme } = useStyle();
-  const { globalFilters, setPriceRange, toggleStyle, toggleMood, resetFilters, setIncludeUsed, clearStyles } = useFilters();
+  const { globalFilters, setPriceRange, toggleCategory, resetFilters, setIncludeUsed, clearCategories } = useFilters();
   
   // アニメーション値
   const fadeAnim = new Animated.Value(0);
@@ -69,8 +69,7 @@ const SimpleFilterModal: React.FC<SimpleFilterModalProps> = ({ visible, onClose 
     return (
       globalFilters.priceRange[0] > 0 ||
       globalFilters.priceRange[1] < 50000 ||
-      globalFilters.styles.length > 0 ||
-      globalFilters.moods.length > 0 ||
+      globalFilters.categories.length > 0 ||
       globalFilters.includeUsed === false
     );
   };
@@ -182,14 +181,14 @@ const SimpleFilterModal: React.FC<SimpleFilterModalProps> = ({ visible, onClose 
               </View>
             </View>
             
-            {/* スタイル選択（複数選択可能） */}
+            {/* カテゴリー選択（服の種類） */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>
-                  スタイル
+                  服の種類
                 </Text>
-                {globalFilters.styles.length > 0 && (
-                  <TouchableOpacity onPress={clearStyles}>
+                {globalFilters.categories.length > 0 && (
+                  <TouchableOpacity onPress={clearCategories}>
                     <Text style={[styles.clearText, { color: theme.colors.primary }]}>
                       クリア
                     </Text>
@@ -199,15 +198,32 @@ const SimpleFilterModal: React.FC<SimpleFilterModalProps> = ({ visible, onClose 
               <Text style={[styles.sectionSubtitle, { color: theme.colors.text.secondary }]}>
                 複数選択可能
               </Text>
-              <View style={styles.styleOptionsContainer}>
-                {STYLE_OPTIONS.map((style) => {
-                  const isSelected = globalFilters.styles.includes(style);
+              <View style={styles.categoryOptionsContainer}>
+                {CATEGORY_OPTIONS.map((category) => {
+                  const isSelected = globalFilters.categories.includes(category);
+                  // カテゴリーに応じたアイコンを設定
+                  const getIcon = () => {
+                    switch(category) {
+                      case 'トップス': return '👔';
+                      case 'シャツ': return '👔';
+                      case 'ニット': return '🧶';
+                      case 'ブラウス': return '👚';
+                      case 'パンツ': return '👖';
+                      case 'スカート': return '👗';
+                      case 'ワンピース': return '👗';
+                      case 'アウター': return '🧥';
+                      case 'シューズ': return '👟';
+                      case 'バッグ': return '👜';
+                      case 'アクセサリー': return '💍';
+                      default: return '';
+                    }
+                  };
                   
                   return (
                     <TouchableOpacity
-                      key={style}
+                      key={category}
                       style={[
-                        styles.styleOption,
+                        styles.categoryOption,
                         {
                           backgroundColor: isSelected 
                             ? theme.colors.primary + '15'
@@ -218,11 +234,11 @@ const SimpleFilterModal: React.FC<SimpleFilterModalProps> = ({ visible, onClose 
                           borderWidth: isSelected ? 2 : 1,
                         }
                       ]}
-                      onPress={() => toggleStyle(style)}
+                      onPress={() => toggleCategory(category)}
                     >
                       <Text 
                         style={[
-                          styles.styleOptionText,
+                          styles.categoryOptionText,
                           { 
                             color: isSelected 
                               ? theme.colors.primary 
@@ -230,7 +246,7 @@ const SimpleFilterModal: React.FC<SimpleFilterModalProps> = ({ visible, onClose 
                           }
                         ]}
                       >
-                        {style}
+                        {getIcon()} {category}
                       </Text>
                       {isSelected && (
                         <Ionicons 
@@ -240,52 +256,6 @@ const SimpleFilterModal: React.FC<SimpleFilterModalProps> = ({ visible, onClose 
                           style={styles.checkIcon}
                         />
                       )}
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-            
-            {/* 気分タグ */}
-            <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>
-                気分
-              </Text>
-              <View style={styles.moodOptionsContainer}>
-                {MOOD_OPTIONS.map((mood) => {
-                  const isSelected = globalFilters.moods.includes(mood);
-                  
-                  return (
-                    <TouchableOpacity
-                      key={mood}
-                      style={[
-                        styles.moodOption,
-                        {
-                          backgroundColor: isSelected 
-                            ? theme.colors.secondary + '15'
-                            : theme.colors.surface,
-                          borderColor: isSelected 
-                            ? theme.colors.secondary 
-                            : theme.colors.border,
-                        }
-                      ]}
-                      onPress={() => toggleMood(mood)}
-                    >
-                      <Text 
-                        style={[
-                          styles.moodOptionText,
-                          { 
-                            color: isSelected 
-                              ? theme.colors.secondary 
-                              : theme.colors.text.primary
-                          }
-                        ]}
-                      >
-                        {mood === '新着' && '🆕 '}
-                        {mood === '人気' && '🔥 '}
-                        {mood === 'セール' && '💰 '}
-                        {mood}
-                      </Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -422,12 +392,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
-  styleOptionsContainer: {
+  categoryOptionsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
   },
-  styleOption: {
+  categoryOption: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
@@ -435,28 +405,12 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     gap: 4,
   },
-  styleOptionText: {
+  categoryOptionText: {
     fontSize: 14,
     fontWeight: '500',
   },
   checkIcon: {
     marginLeft: 4,
-  },
-  moodOptionsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 12,
-  },
-  moodOption: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
-  moodOptionText: {
-    fontSize: 14,
-    fontWeight: '500',
   },
   usedOptionContainer: {
     flexDirection: 'row',

@@ -81,8 +81,8 @@ const EnhancedRecommendScreen: React.FC = () => {
     return (
       globalFilters.priceRange[0] > 0 ||
       globalFilters.priceRange[1] < 50000 ||
-      (globalFilters.style && globalFilters.style !== 'すべて') ||
-      globalFilters.moods.length > 0
+      globalFilters.categories.length > 0 ||
+      globalFilters.includeUsed === false
     );
   };
   

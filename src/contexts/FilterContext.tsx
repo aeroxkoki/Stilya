@@ -8,6 +8,7 @@ export interface FilterOptions {
   priceRange: [number, number];  // 予算範囲
   styles: string[];              // スタイル（複数選択可能）に変更
   moods: string[];              // 気分タグ（複数選択）
+  categories: string[];         // 服のカテゴリー（複数選択可能）
   includeUsed?: boolean;        // 中古品を含むかどうか（デフォルト: true）
   gender?: 'male' | 'female' | 'unisex' | 'all';  // 性別フィルター追加
   ageGroup?: string;            // 年齢層フィルター追加
@@ -23,10 +24,12 @@ interface FilterContextType {
   setPriceRange: (range: [number, number]) => void;
   toggleStyle: (style: string) => void;  // setStyleから変更
   toggleMood: (mood: string) => void;
+  toggleCategory: (category: string) => void;  // カテゴリートグル追加
   setIncludeUsed: (include: boolean) => void;
   setGender: (gender: 'male' | 'female' | 'unisex' | 'all') => void;
   setAgeGroup: (ageGroup: string | undefined) => void;
   clearStyles: () => void;  // スタイルをクリアする関数追加
+  clearCategories: () => void;  // カテゴリーをクリアする関数追加
 }
 
 // デフォルトフィルター
@@ -34,6 +37,7 @@ const defaultFilters: FilterOptions = {
   priceRange: [0, 50000],
   styles: [],  // 空配列に変更
   moods: [],
+  categories: [],  // カテゴリーフィルター追加
   includeUsed: true,  // デフォルトで中古品も含む
   gender: 'all',
   ageGroup: undefined
@@ -44,6 +48,21 @@ export const STYLE_OPTIONS = FILTER_STYLE_OPTIONS.filter(style => style !== 'す
 
 // 気分タグオプション
 export const MOOD_OPTIONS = ['新着', '人気', 'セール'];
+
+// カテゴリーオプション（データベースのタグに基づく）
+export const CATEGORY_OPTIONS = [
+  'トップス',
+  'シャツ',
+  'ニット',
+  'ブラウス',
+  'パンツ',
+  'スカート',
+  'ワンピース',
+  'アウター',
+  'シューズ',
+  'バッグ',
+  'アクセサリー'
+];
 
 const FilterContext = createContext<FilterContextType | undefined>(undefined);
 
@@ -168,6 +187,31 @@ export const FilterProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }));
   };
 
+  // カテゴリーのトグル（複数選択対応）
+  const toggleCategory = (category: string) => {
+    setGlobalFilters(prev => {
+      const categories = prev.categories || [];
+      if (categories.includes(category)) {
+        return {
+          ...prev,
+          categories: categories.filter(c => c !== category)
+        };
+      } else {
+        return {
+          ...prev,
+          categories: [...categories, category]
+        };
+      }
+    });
+  };
+
+  const clearCategories = () => {
+    setGlobalFilters(prev => ({
+      ...prev,
+      categories: []
+    }));
+  };
+
   return (
     <FilterContext.Provider value={{
       globalFilters,
@@ -177,10 +221,12 @@ export const FilterProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       setPriceRange,
       toggleStyle,
       toggleMood,
+      toggleCategory,
       setIncludeUsed,
       setGender,
       setAgeGroup,
-      clearStyles
+      clearStyles,
+      clearCategories
     }}>
       {children}
     </FilterContext.Provider>
