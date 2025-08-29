@@ -3,14 +3,14 @@ import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-nat
 import { Input, Button, Card } from '@/components/common';
 import { useAuth } from '@/hooks/useAuth';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList, AuthStackParamList } from '@/navigation/types';
+import { RootStackParamList } from '@/navigation/types';
 import { StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useStyle } from '@/contexts/ThemeContext';
 import { Feather } from '@expo/vector-icons';
 
 // ナビゲーションプロパティの型定義
-type AuthScreenNavigationProp = StackNavigationProp<AuthStackParamList>;
+type AuthScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Auth'>;
 
 interface AuthScreenProps {
   navigation: AuthScreenNavigationProp;
@@ -45,7 +45,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ navigation }) => {
   };
 
   const handleForgotPassword = () => {
-    navigation.navigate('ForgotPassword');
+    // TODO: パスワードリセット機能の実装
+    alert('パスワードリセット機能は現在準備中です。\nsupport@stilya.jp までご連絡ください。');
   };
 
   return (
