@@ -4,9 +4,6 @@ import {
   StyleSheet, 
   ActivityIndicator, 
   Text, 
-  TouchableOpacity,
-  Animated,
-  PanResponder,
   Dimensions
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -65,10 +62,6 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
 
   // スワイプ方向を保持する状態
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
-
-  // アニメーション値
-  const position = useRef(new Animated.ValueXY()).current;
-  const swipeIndicatorOpacity = useRef(new Animated.Value(0)).current;
   
   // お気に入り機能のフックを使用
   const {
@@ -139,98 +132,9 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
       if (externalIndex === undefined) {
         setInternalIndex(prevIndex => prevIndex + 1);
       }
-      // ポジションをリセット
-      position.setValue({ x: 0, y: 0 });
-      swipeIndicatorOpacity.setValue(0);
       setSwipeDirection(null);
     },
   });
-
-  // PanResponderの設定
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
-        position.extractOffset();
-      },
-      onPanResponderMove: (_, gestureState) => {
-        position.setValue({ x: gestureState.dx, y: gestureState.dy });
-        
-        // スワイプインジケーターのopacityを更新
-        const opacity = Math.min(Math.abs(gestureState.dx) / SWIPE_THRESHOLD, 1);
-        swipeIndicatorOpacity.setValue(opacity);
-        
-        // スワイプ方向の判定
-        if (gestureState.dx > SWIPE_THRESHOLD) {
-          setSwipeDirection('right');
-        } else if (gestureState.dx < -SWIPE_THRESHOLD) {
-          setSwipeDirection('left');
-        } else {
-          setSwipeDirection(null);
-        }
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        position.flattenOffset();
-
-        if (gestureState.dx > SWIPE_THRESHOLD && currentProduct) {
-          // 右スワイプ（Yes）
-          Animated.timing(position, {
-            toValue: { x: width + 100, y: gestureState.dy },
-            duration: 250,
-            useNativeDriver: false,
-          }).start(() => {
-            handleSwipeRight(currentProduct);
-          });
-        } else if (gestureState.dx < -SWIPE_THRESHOLD && currentProduct) {
-          // 左スワイプ（No）
-          Animated.timing(position, {
-            toValue: { x: -width - 100, y: gestureState.dy },
-            duration: 250,
-            useNativeDriver: false,
-          }).start(() => {
-            handleSwipeLeft(currentProduct);
-          });
-        } else {
-          // 元の位置に戻す
-          Animated.spring(position, {
-            toValue: { x: 0, y: 0 },
-            useNativeDriver: false,
-          }).start();
-          Animated.timing(swipeIndicatorOpacity, {
-            toValue: 0,
-            duration: 200,
-            useNativeDriver: false,
-          }).start();
-        }
-      },
-    })
-  ).current;
-
-  // ボタンによるスワイプ操作ハンドラー
-  const handleNoButtonPress = useCallback(() => {
-    if (currentProduct) {
-      Animated.timing(position, {
-        toValue: { x: -width - 100, y: 0 },
-        duration: 250,
-        useNativeDriver: false,
-      }).start(() => {
-        handleSwipeLeft(currentProduct);
-      });
-    }
-  }, [currentProduct, handleSwipeLeft, position]);
-
-  const handleYesButtonPress = useCallback(() => {
-    if (currentProduct) {
-      Animated.timing(position, {
-        toValue: { x: width + 100, y: 0 },
-        duration: 250,
-        useNativeDriver: false,
-      }).start(() => {
-        handleSwipeRight(currentProduct);
-      });
-    }
-  }, [currentProduct, handleSwipeRight, position]);
 
   // 商品カードのタップイベント
   const handleCardPress = useCallback(() => {
@@ -360,22 +264,6 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
     );
   }
 
-  // カードの回転角度を計算
-  const rotate = position.x.interpolate({
-    inputRange: [-width / 2, 0, width / 2],
-    outputRange: ['-10deg', '0deg', '10deg'],
-    extrapolate: 'clamp',
-  });
-
-  // カードのアニメーションスタイル
-  const animatedCardStyle = {
-    transform: [
-      { translateX: position.x },
-      { translateY: position.y },
-      { rotate: rotate },
-    ],
-  };
-
   return (
     <View 
       style={[
@@ -413,7 +301,7 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
               if (!isVisible) return null;
               
               return (
-                <Animated.View 
+                <View 
                   key={`stack-${stackIndex}`} // 位置ベースのkeyを使用してコンポーネントの再利用を促進
                   style={{ 
                     position: 'absolute',
@@ -444,7 +332,7 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
                     cardIndex={stackIndex}
                     totalCards={3}
                   />
-                </Animated.View>
+                </View>
               );
             })}
           </>

@@ -142,17 +142,7 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = memo(({
     const x = direction === 'left' ? -width * 1.5 : width * 1.5;
     const rotation = direction === 'left' ? -ROTATION_ANGLE : ROTATION_ANGLE;
     
-    // コールバックを即座に呼んで次のカードの準備を開始
-    // アニメーションと並行して処理することで遅延を最小化
-    setTimeout(() => {
-      if (direction === 'left' && onSwipeLeft) {
-        onSwipeLeft();
-      } else if (direction === 'right' && onSwipeRight) {
-        onSwipeRight();
-      }
-    }, 30); // 30ms後に次のカードを準備開始（視覚的に自然）
-    
-    // カードを画面外に飛ばす（アニメーションは継続）
+    // カードを画面外に飛ばす
     Animated.parallel([
       Animated.timing(animValues.position, {
         toValue: { x, y: 100 },
@@ -164,7 +154,18 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = memo(({
         duration: SWIPE_OUT_DURATION * 0.8, // 不透明度は早めに0にする
         useNativeDriver: true
       })
-    ]).start();
+    ]).start(() => {
+      // アニメーション完了後にコールバックを実行
+      if (direction === 'left' && onSwipeLeft) {
+        onSwipeLeft();
+      } else if (direction === 'right' && onSwipeRight) {
+        onSwipeRight();
+      }
+      // 状態をリセット
+      setIsAnimating(false);
+      setIsSwiping(false);
+      setSwipeDirection(null);
+    });
   };
   
   // スワイプジェスチャー
