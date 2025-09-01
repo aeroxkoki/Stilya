@@ -55,6 +55,7 @@ export const useProducts = (): UseProductsReturn => {
     priceRange: [0, 50000],
     styles: [],
     moods: [],
+    categories: [],
     gender: 'all'
   });
   

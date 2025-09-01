@@ -37,7 +37,7 @@ const CachedImage: React.FC<CachedImageProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [useFallback, setUseFallback] = useState(false);
-  const retryTimeoutRef = useRef<NodeJS.Timeout>();
+  const retryTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   
   // resizeModeとcontentFitの互換性を保つ
   const finalContentFit = resizeMode ? 

@@ -14,7 +14,7 @@ import { Button } from '@/components/common';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { OnboardingStackParamList } from '@/types';
 import { useStyle } from '@/contexts/ThemeContext';
-import { StyleQuizAnalyzer } from '@/services/recommendationService';
+// import { StyleQuizAnalyzer } from '@/services/recommendationService'; // TODO: 実装が必要
 import { ProductCard } from '@/components/common';
 import { useProducts } from '@/hooks/useProducts';
 import { Product } from '@/types/product';
@@ -86,8 +86,20 @@ const StyleRevealScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
-    // 診断結果を分析
-    const quizAnalysis = StyleQuizAnalyzer.analyzeQuizResults(styleQuizResults);
+    // 診断結果を分析（簡易版）
+    // TODO: StyleQuizAnalyzerの実装後に置き換える
+    const quizAnalysis = {
+      likedTags: styleQuizResults
+        .filter(r => r.result === 'yes')
+        .flatMap(r => r.tags || []),
+      dislikedTags: styleQuizResults
+        .filter(r => r.result === 'no')
+        .flatMap(r => r.tags || []),
+      preferredCategories: [],
+      likePercentage: Math.round(
+        (styleQuizResults.filter(r => r.result === 'yes').length / styleQuizResults.length) * 100
+      )
+    };
     const insights = getSelectionInsights();
     
     // 主要なスタイルタイプを判定
@@ -247,7 +259,7 @@ const StyleRevealScreen: React.FC<Props> = ({ navigation }) => {
                     <ProductCard 
                       product={product}
                       onPress={() => {}}
-                      isCompact
+                      compact
                     />
                   </View>
                 ))}

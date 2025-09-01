@@ -44,9 +44,27 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ navigation }) => {
     clearError();
   };
 
-  const handleForgotPassword = () => {
-    // TODO: パスワードリセット機能の実装
-    alert('パスワードリセット機能は現在準備中です。\nsupport@stilya.jp までご連絡ください。');
+  const handleForgotPassword = async () => {
+    if (!email) {
+      alert('メールアドレスを入力してください。');
+      return;
+    }
+    
+    try {
+      const { supabase } = await import('@/services/supabase');
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: 'stilya://reset-password',
+      });
+      
+      if (error) {
+        alert('パスワードリセットメールの送信に失敗しました。\n' + error.message);
+      } else {
+        alert('パスワードリセットメールを送信しました。\nメールをご確認ください。');
+      }
+    } catch (error) {
+      console.error('Password reset error:', error);
+      alert('パスワードリセット機能でエラーが発生しました。\nsupport@stilya.jp までご連絡ください。');
+    }
   };
 
   return (
