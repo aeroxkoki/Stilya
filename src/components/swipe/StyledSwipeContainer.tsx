@@ -125,12 +125,20 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
   } = useSwipe({
     userId: user?.id,
     onSwipeComplete: (direction, product) => {
+      console.log(`[StyledSwipeContainer] Swipe completed: ${direction} for product ${product.id}`);
       if (onSwipe) {
         onSwipe(product, direction);
       }
       // 外部インデックスが提供されていない場合のみ、内部インデックスを更新
+      // 外部インデックスが提供されている場合は、外部（useProducts）でインデックス管理される
       if (externalIndex === undefined) {
-        setInternalIndex(prevIndex => prevIndex + 1);
+        setInternalIndex(prevIndex => {
+          const nextIndex = prevIndex + 1;
+          console.log(`[StyledSwipeContainer] Internal index updated to ${nextIndex}`);
+          return nextIndex;
+        });
+      } else {
+        console.log('[StyledSwipeContainer] External index provided, not updating internal index');
       }
       setSwipeDirection(null);
     },
@@ -302,7 +310,7 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
               
               return (
                 <View 
-                  key={`stack-${stackIndex}`} // 位置ベースのkeyを使用してコンポーネントの再利用を促進
+                  key={`product-${product.id}-stack-${stackIndex}`} // 商品IDと位置の組み合わせをkeyとして使用
                   style={{ 
                     position: 'absolute',
                     width: '100%',

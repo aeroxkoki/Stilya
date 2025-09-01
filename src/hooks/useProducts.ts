@@ -354,7 +354,7 @@ export const useProducts = (): UseProductsReturn => {
   }, [filters]); // loadProductsを依存配列から除外
 
   // スワイプ処理
-  const handleSwipe = useCallback((product: Product, direction: 'left' | 'right', metadata?: { swipeTime?: number }) => {
+  const handleSwipe = useCallback(async (product: Product, direction: 'left' | 'right', metadata?: { swipeTime?: number }) => {
     if (!user || !user.id) {
       console.error('[useProducts] Cannot record swipe: No user');
       return;
@@ -363,7 +363,7 @@ export const useProducts = (): UseProductsReturn => {
     // スワイプをローカルで記録
     swipedProductsRef.current.add(product.id);
     
-    console.log(`[useProducts] Recording swipe: ${direction} for product ${product.id}`);
+    console.log(`[useProducts] Recording swipe: ${direction} for product ${product.id} at index ${currentIndex}`);
     
     // Supabaseに記録（非同期）- エラーハンドリングを改善
     recordSwipe({
@@ -376,22 +376,27 @@ export const useProducts = (): UseProductsReturn => {
       // エラーが発生してもアプリは継続
     });
     
-    // 次の商品へ（非同期で状態を更新）
-    requestAnimationFrame(() => {
-      setCurrentIndex(prev => {
-        const nextIndex = prev + 1;
-        
-        // 残り10枚になったら追加ロード
-        if (nextIndex >= productsData.products.length - 10 && productsData.hasMore && !loadingRef.current) {
-          console.log('[useProducts] Loading more products (10 cards remaining)');
-          // 非同期でロードを開始
-          setTimeout(() => loadMore(false), 0);
-        }
-        
-        return nextIndex;
+    // インデックスを更新する前に、次の商品が存在することを確認
+    const nextIndex = currentIndex + 1;
+    
+    // 残り10枚になったら追加ロード（非同期）
+    if (nextIndex >= productsData.products.length - 10 && productsData.hasMore && !loadingRef.current) {
+      console.log('[useProducts] Loading more products (10 cards remaining)');
+      // 非同期でロードを開始
+      setTimeout(() => loadMore(false), 0);
+    }
+    
+    // 次の商品が存在する場合のみインデックスを更新
+    if (nextIndex < productsData.products.length || productsData.hasMore) {
+      // 次のフレームで状態を更新（スムーズなアニメーションのため）
+      requestAnimationFrame(() => {
+        setCurrentIndex(nextIndex);
+        console.log(`[useProducts] Updated currentIndex to ${nextIndex}`);
       });
-    });
-  }, [user, productsData.products.length, productsData.hasMore]);
+    } else {
+      console.log('[useProducts] No more products to show');
+    }
+  }, [user, currentIndex, productsData.products.length, productsData.hasMore, loadMore]);
 
   // もっと読み込む
   const loadMore = useCallback(async (reset = false) => {
