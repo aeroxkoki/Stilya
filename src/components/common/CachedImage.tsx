@@ -65,8 +65,8 @@ const CachedImage: React.FC<CachedImageProps> = ({
   
   // フォールバック画像（よりシンプルで高速な画像）
   const fallbackSource = React.useMemo(() => {
-    // シンプルなグレーの背景画像
-    return { uri: 'https://dummyimage.com/400x400/e0e0e0/999999.png&text=No+Image' };
+    // エレガントなグレーの背景画像（ファッションアプリに適したデザイン）
+    return { uri: 'https://via.placeholder.com/800x800/f5f5f5/cccccc?text=No+Image' };
   }, []);
   
   // クリーンアップ
@@ -80,7 +80,8 @@ const CachedImage: React.FC<CachedImageProps> = ({
   
   // エラー処理（サイレントモード対応）
   const handleError = (event: any) => {
-    if (debugMode) {
+    // デバッグモード時のみログ出力（開発環境での確認用）
+    if (__DEV__ && debugMode) {
       console.warn('[CachedImage] Failed to load image:', {
         product: productTitle || 'unknown',
         url: typeof imageSource === 'object' && 'uri' in imageSource ? imageSource.uri : 'unknown',
@@ -91,15 +92,9 @@ const CachedImage: React.FC<CachedImageProps> = ({
     setIsLoading(false);
     setHasError(true);
     
-    if (silentFallback) {
-      // サイレントモード：即座にフォールバック画像に切り替え
-      setUseFallback(true);
-    } else {
-      // 通常モード：短いリトライ後にフォールバック
-      retryTimeoutRef.current = setTimeout(() => {
-        setUseFallback(true);
-      }, 500); // 0.5秒後にフォールバック
-    }
+    // 常にサイレントモードで即座にフォールバック画像に切り替え
+    // エラー表示を出さずにスムーズに切り替える
+    setUseFallback(true);
   };
   
   

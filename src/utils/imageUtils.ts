@@ -9,8 +9,8 @@ import { Image } from 'react-native';
 
 // デフォルトのプレースホルダー画像URLリスト
 const PLACEHOLDER_IMAGES = [
+  'https://via.placeholder.com/800x800/f5f5f5/cccccc?text=No+Image',
   'https://picsum.photos/800/800?grayscale',
-  'https://via.placeholder.com/800x800/f0f0f0/666666?text=No+Image',
   'https://placehold.co/800x800/e5e7eb/9ca3af?text=Loading'
 ];
 

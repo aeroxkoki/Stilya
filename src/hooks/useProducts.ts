@@ -201,6 +201,25 @@ export const useProducts = (): UseProductsReturn => {
         throw new Error(result.error || 'Failed to fetch products');
       }
       
+      // 画像URLが有効な商品のみをフィルタリング
+      const productsWithValidImages = result.data.filter(product => {
+        const hasImageUrl = product.imageUrl && product.imageUrl.trim() !== '';
+        if (!hasImageUrl && __DEV__) {
+          console.warn('[useProducts] Filtering out product without valid image:', {
+            id: product.id,
+            title: product.title,
+            imageUrl: product.imageUrl
+          });
+        }
+        return hasImageUrl;
+      });
+      
+      console.log('[useProducts] Image filter results:', {
+        original: result.data.length,
+        afterFilter: productsWithValidImages.length,
+        removed: result.data.length - productsWithValidImages.length
+      });
+      
       // 既に見た商品（スワイプ済み＋現在のセッション）を除外
       const excludeIds = new Set([
         ...Array.from(swipedProductsRef.current),
@@ -210,7 +229,7 @@ export const useProducts = (): UseProductsReturn => {
       console.log('[useProducts] Excluding IDs:', excludeIds.size);
       
       // 重複を除去して新しい商品のみを追加
-      const newProducts = result.data.filter(product => !excludeIds.has(product.id));
+      const newProducts = productsWithValidImages.filter(product => !excludeIds.has(product.id));
       
       console.log('[useProducts] New products after filtering:', newProducts.length);
       
