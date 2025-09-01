@@ -18,7 +18,10 @@
     "clear-cache": "npx expo start --clear",
     "check-env": "node -e \"console.log('SUPABASE_URL:', process.env.EXPO_PUBLIC_SUPABASE_URL ? 'Set' : 'Not set')\"",
     "start:expo-go": "expo start",
-    "types:check": "tsc --noEmit"
+    "types:check": "tsc --noEmit",
+    "sync-products": "node scripts/sync/sync-mvp-brands.js",
+    "sync-rakuten": "node scripts/sync/sync-rakuten-products.js",
+    "check-db": "node scripts/database/update-database-schema.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.0",
