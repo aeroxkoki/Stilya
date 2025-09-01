@@ -33,6 +33,7 @@ import { useRecommendations } from '@/hooks/useRecommendations';
 import { SimpleFilterModal } from '@/components/common';
 import { useFilters } from '@/contexts/FilterContext';
 import { getUserStyleProfile } from '@/services/userPreferenceService';
+import { optimizeImageUrl } from '@/utils/imageUtils';
 import * as Haptics from 'expo-haptics';
 
 const { width, height } = Dimensions.get('window');
@@ -286,23 +287,24 @@ const EnhancedRecommendScreen: React.FC = () => {
     extrapolate: 'clamp',
   });
   
-  // ヒーローセクションのレンダリング
+  // ヒーローセクションのレンダリング（改善版）
   const renderHeroSection = () => {
     if (!heroProduct) return null;
     
-    // 画像URLを正しく取得（imageUrlフィールドが正しいマッピング）
-    const imageUrl = heroProduct.imageUrl || '';
+    // 画像URLを正しく取得して最適化
+    const rawImageUrl = heroProduct.imageUrl || heroProduct.image_url || '';
+    const imageUrl = optimizeImageUrl(rawImageUrl);
     
-    // デバッグ情報を詳細に出力
-    console.log('[EnhancedRecommendScreen] Hero product debug:', {
-      id: heroProduct.id,
-      title: heroProduct.title,
-      imageUrl: imageUrl,
-      hasImageUrl: !!imageUrl,
-      imageUrlLength: imageUrl?.length,
-      brand: heroProduct.brand,
-      price: heroProduct.price
-    });
+    // 開発モードでのみデバッグ情報を出力
+    if (__DEV__) {
+      console.log('[EnhancedRecommendScreen] Hero product:', {
+        id: heroProduct.id,
+        title: heroProduct.title?.substring(0, 50),
+        hasImageUrl: !!imageUrl,
+        brand: heroProduct.brand,
+        price: heroProduct.price
+      });
+    }
     
     return (
       <Animated.View 
@@ -316,47 +318,71 @@ const EnhancedRecommendScreen: React.FC = () => {
       >
         <TouchableOpacity 
           activeOpacity={0.95}
-          onPress={() => handleProductPress(heroProduct)}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            handleProductPress(heroProduct);
+          }}
         >
-          {imageUrl && imageUrl.trim() !== '' ? (
-            <CachedImage
-              source={{ uri: imageUrl }}
-              style={styles.heroImage}
-              contentFit="cover"
-              debugMode={__DEV__} // 開発モードでのみデバッグを有効化
-              productTitle={heroProduct.title} // 商品タイトルを追加
-              silentFallback={true} // サイレントフォールバック
-            />
-          ) : (
-            <View style={[styles.heroImage, styles.placeholderContainer]}>
-              <Ionicons name="image-outline" size={60} color="#666" />
-              <Text style={styles.placeholderText}>No Image</Text>
-            </View>
-          )}
+          <View style={styles.heroImageWrapper}>
+            {imageUrl && imageUrl.trim() !== '' ? (
+              <CachedImage
+                source={{ uri: imageUrl }}
+                style={styles.heroImage}
+                contentFit="cover"
+                showLoadingIndicator={true}
+                productTitle={heroProduct.title}
+                silentFallback={false} // エラー時でも表示を試みる
+              />
+            ) : (
+              <View style={[styles.heroImage, styles.placeholderContainer]}>
+                <Ionicons name="image-outline" size={60} color="#999" />
+                <Text style={styles.placeholderText}>画像を読み込み中...</Text>
+              </View>
+            )}
+          </View>
+          
           <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.7)']}
+            colors={['transparent', 'rgba(0,0,0,0.8)']}
             style={styles.heroGradient}
           >
             <View style={styles.heroContent}>
-              <Text style={styles.heroLabel}>Today's Pick for You</Text>
+              {/* ブランド名を追加 */}
+              {heroProduct.brand && (
+                <Text style={styles.heroBrand}>{heroProduct.brand}</Text>
+              )}
+              
+              {/* タイトルを追加 */}
+              <Text style={styles.heroTitle} numberOfLines={2}>
+                {heroProduct.title || '商品名なし'}
+              </Text>
+              
               <View style={styles.heroInfo}>
-                <View style={styles.matchBadge}>
-                  <Ionicons name="heart" size={14} color="#fff" />
-                  <Text style={styles.matchText}>95% Match</Text>
-                </View>
                 <Text style={styles.heroPrice}>
                   ¥{heroProduct.price.toLocaleString()}
                 </Text>
+                
+                {/* マッチ度をユーザーの実際のデータから計算（仮） */}
+                <View style={styles.matchBadge}>
+                  <Ionicons name="heart" size={14} color="#fff" />
+                  <Text style={styles.matchText}>おすすめ</Text>
+                </View>
               </View>
+              
+              {/* タグを最適化 */}
               {heroProduct.tags && heroProduct.tags.length > 0 && (
                 <View style={styles.heroTags}>
-                  {heroProduct.tags.slice(0, 3).map((tag, index) => (
-                    <View key={index} style={styles.heroTag}>
+                  {heroProduct.tags.slice(0, 4).map((tag, index) => (
+                    <View key={`${tag}-${index}`} style={styles.heroTag}>
                       <Text style={styles.heroTagText}>{tag}</Text>
                     </View>
                   ))}
                 </View>
               )}
+              
+              {/* CTAボタンを追加 */}
+              <View style={styles.heroCTA}>
+                <Text style={styles.heroCTAText}>詳細を見る →</Text>
+              </View>
             </View>
           </LinearGradient>
         </TouchableOpacity>
@@ -364,208 +390,95 @@ const EnhancedRecommendScreen: React.FC = () => {
     );
   };
   
-  // スタイルプロファイルの表示（女性向けUX改善版）
+  // スタイルプロファイルの表示（シンプル版）
   const renderStyleProfile = () => {
     if (!userStyleProfile || !userStyleProfile.preferredStyles) return null;
     
-    // スワイプ数
     const swipeCount = userStyleProfile.totalSwipes || 0;
+    
+    // スワイプ数が少ない場合は表示しない
+    if (swipeCount < 5) return null;
     
     // トップ3スタイルのみを取得
     const topStyles = Object.entries(userStyleProfile.preferredStyles)
+      .filter(([, percentage]) => (percentage as number) > 10) // 10%以上のみ表示
       .sort(([, a], [, b]) => (b as number) - (a as number))
       .slice(0, 3);
     
     if (topStyles.length === 0) return null;
 
-    // 女性向けのソフトなカラーパレット
-    const femininePalette: Record<string, string> = {
-      'カジュアル': '#87CEEB',      // スカイブルー
-      'モード': '#9B72B0',          // 紫
-      'ストリート': '#FF8C94',      // サーモンピンク
-      'キレイめ': '#98D982',         // ミントグリーン
-      'ナチュラル': '#B4C8A8',      // セージグリーン
-      'フェミニン': '#FFB6C1',      // ライトピンク
-      'クラシック': '#DEB887'       // ベージュ
+    // ユニセックスなカラーパレット
+    const colorPalette: Record<string, string> = {
+      'カジュアル': '#3B82F6',      // ブルー
+      'モード': '#8B5CF6',          // パープル
+      'ストリート': '#EF4444',      // レッド
+      'キレイめ': '#10B981',         // グリーン
+      'ナチュラル': '#22C55E',      // ライトグリーン
+      'フェミニン': '#EC4899',      // ピンク
+      'クラシック': '#F59E0B'       // オレンジ
     };
     
     return (
       <View style={[styles.styleProfileContainer, { 
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        borderWidth: 1,
-        borderColor: '#FFE0EC',
+        backgroundColor: theme.colors.surface || '#ffffff',
       }]}>
-        {/* タイトル部分をよりエレガントに */}
+        {/* シンプルなタイトル */}
         <View style={styles.styleProfileHeader}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Text style={[styles.styleProfileTitle, { 
-              color: '#333',
-              fontSize: 14,
-              fontWeight: '500',
-              letterSpacing: 0.5
-            }]}>
-              Your Style Profile
-            </Text>
-            <View style={{ flexDirection: 'row', gap: 2 }}>
-              <Ionicons name="sparkles" size={12} color="#FFB6C1" />
-            </View>
-          </View>
+          <Text style={[styles.styleProfileTitle, { 
+            color: theme.colors.text.primary,
+            fontSize: 14,
+            fontWeight: '600'
+          }]}>
+            あなたのスタイル傾向
+          </Text>
+          <TouchableOpacity
+            onPress={() => {
+              setShowStyleDetail(true);
+              setSelectedStyle(topStyles[0][0]);
+            }}
+          >
+            <Ionicons name="information-circle-outline" size={20} color={theme.colors.text.secondary} />
+          </TouchableOpacity>
         </View>
         
-        {/* シンプルな円形プログレス表示 */}
-        <View style={styles.mainStyleSection}>
-          {topStyles[0] && (
-            <View style={styles.primaryStyle}>
-              {/* メインスタイルを円形で表示 */}
-              <View style={{
-                width: 100,
-                height: 100,
-                borderRadius: 50,
-                backgroundColor: femininePalette[topStyles[0][0]] + '20',
-                justifyContent: 'center',
-                alignItems: 'center',
-                marginBottom: 12,
-              }}>
-                <View style={{
-                  width: 80,
-                  height: 80,
-                  borderRadius: 40,
-                  backgroundColor: femininePalette[topStyles[0][0]] + '30',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                }}>
-                  <Text style={{
-                    fontSize: 24,
-                    fontWeight: '600',
-                    color: femininePalette[topStyles[0][0]],
-                  }}>
-                    {Math.round(topStyles[0][1] as number)}%
-                  </Text>
-                </View>
-              </View>
-              
-              <Text style={[styles.primaryStyleName, { 
-                color: femininePalette[topStyles[0][0]],
-                fontSize: 16,
-                fontWeight: '500'
-              }]}>
-                {topStyles[0][0]}
+        {/* コンパクトなスタイル表示 */}
+        <View style={styles.styleChipsContainer}>
+          {topStyles.map(([style, percentage], index) => (
+            <TouchableOpacity
+              key={style}
+              style={[
+                styles.styleChip,
+                {
+                  backgroundColor: colorPalette[style] + '15',
+                  borderColor: colorPalette[style] + '40',
+                  borderWidth: index === 0 ? 2 : 1,
+                }
+              ]}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setSelectedStyle(style);
+                setShowStyleDetail(true);
+              }}
+            >
+              <Text style={[
+                styles.styleChipText,
+                { 
+                  color: colorPalette[style],
+                  fontWeight: index === 0 ? '600' : '500'
+                }
+              ]}>
+                {style}
               </Text>
-            </View>
-          )}
+              <Text style={[
+                styles.styleChipPercentage,
+                { color: colorPalette[style] }
+              ]}>
+                {Math.round(percentage as number)}%
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
         
-        {/* サブスタイルをミニマルなドット表示 */}
-        {topStyles.length > 1 && (
-          <View style={styles.subStylesSection}>
-            <View style={{
-              flexDirection: 'row',
-              justifyContent: 'center',
-              gap: 20,
-              marginTop: 8,
-            }}>
-              {topStyles.slice(1, 3).map(([style, percentage]) => (
-                <TouchableOpacity
-                  key={style}
-                  style={{
-                    alignItems: 'center',
-                  }}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setSelectedStyle(style);
-                    setShowStyleDetail(true);
-                  }}
-                >
-                  <View style={{
-                    width: 50,
-                    height: 50,
-                    borderRadius: 25,
-                    backgroundColor: femininePalette[style] + '25',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    marginBottom: 6,
-                  }}>
-                    <Text style={{
-                      fontSize: 14,
-                      fontWeight: '500',
-                      color: femininePalette[style],
-                    }}>
-                      {Math.round(percentage as number)}%
-                    </Text>
-                  </View>
-                  <Text style={{
-                    fontSize: 11,
-                    color: femininePalette[style],
-                    fontWeight: '400',
-                  }}>
-                    {style}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        )}
-        
-        {/* エレガントなプログレスメッセージ */}
-        <View style={{
-          marginTop: 20,
-          marginBottom: 16,
-          paddingHorizontal: 20,
-        }}>
-          <View style={{
-            height: 3,
-            backgroundColor: '#F5F5F5',
-            borderRadius: 1.5,
-            overflow: 'hidden',
-          }}>
-            <View style={{
-              height: '100%',
-              width: `${Math.min(swipeCount * 10, 100)}%`,
-              backgroundColor: '#FFB6C1',
-              borderRadius: 1.5,
-            }} />
-          </View>
-          <Text style={{
-            fontSize: 11,
-            color: '#999',
-            textAlign: 'center',
-            marginTop: 8,
-          }}>
-            {swipeCount < 10 
-              ? `あと${10 - swipeCount}回のスワイプで、より正確な分析ができます`
-              : 'スタイル分析完了 ✓'
-            }
-          </Text>
-        </View>
-        
-        {/* シンプルなCTAボタン */}
-        <TouchableOpacity
-          style={{
-            backgroundColor: femininePalette[topStyles[0][0]] || '#FFB6C1',
-            paddingVertical: 12,
-            borderRadius: 25,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 6,
-          }}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            if (topStyles[0]) {
-              console.log('Filter by style:', topStyles[0][0]);
-              // TODO: フィルター適用
-            }
-          }}
-        >
-          <Text style={{
-            color: '#fff',
-            fontSize: 13,
-            fontWeight: '500',
-          }}>
-            {topStyles[0][0]}の商品を見る
-          </Text>
-          <Ionicons name="chevron-forward" size={14} color="#fff" />
-        </TouchableOpacity>
       </View>
     );
   };
@@ -584,8 +497,9 @@ const EnhancedRecommendScreen: React.FC = () => {
             contentContainerStyle={styles.horizontalScrollContent}
           >
             {section.data.map((product) => {
-              // imageUrlフィールドを正しく使用
-              const imageUrl = product.imageUrl || '';
+              // 画像URLを最適化
+              const rawImageUrl = product.imageUrl || '';
+              const imageUrl = optimizeImageUrl(rawImageUrl);
               
               return (
                 <TouchableOpacity
@@ -968,11 +882,40 @@ const styles = StyleSheet.create({
   heroSection: {
     width: width,
     height: height * 0.65,
+    overflow: 'hidden',
+  },
+  heroImageWrapper: {
+    width: '100%',
+    height: '100%',
+    position: 'relative',
   },
   heroImage: {
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
+  },
+  heroBrand: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '500',
+    opacity: 0.9,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  heroTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '600',
+    lineHeight: 26,
+  },
+  heroCTA: {
+    marginTop: 8,
+  },
+  heroCTAText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+    opacity: 0.9,
   },
   heroGradient: {
     position: 'absolute',
@@ -1037,11 +980,35 @@ const styles = StyleSheet.create({
   },
   styleProfileContainer: {
     marginHorizontal: 16,
-    marginTop: 20,
-    marginBottom: 16,
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 20,
+    marginTop: 16,
+    marginBottom: 8,
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  styleChipsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  styleChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+  },
+  styleChipText: {
+    fontSize: 13,
+  },
+  styleChipPercentage: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   styleProfileHeader: {
     flexDirection: 'row',
