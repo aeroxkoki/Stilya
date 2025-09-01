@@ -17,6 +17,7 @@ import OnboardingNavigator from './OnboardingNavigator';
 // Screens
 console.log('[AppNavigator.tsx] 3. スクリーンインポート開始');
 import AuthScreen from '../screens/auth/AuthScreen';
+import ResetPasswordScreen from '../screens/auth/ResetPasswordScreen';
 import ProductDetailScreen from '../screens/detail/ProductDetailScreen';
 console.log('[AppNavigator.tsx] 4. スクリーンインポート完了');
 
@@ -24,6 +25,7 @@ console.log('[AppNavigator.tsx] 4. スクリーンインポート完了');
 type RootStackParamList = {
   Main: undefined;
   Auth: undefined;
+  ResetPassword: { token?: string };
   Onboarding: undefined;
   ProductDetail: { productId: string };
 };

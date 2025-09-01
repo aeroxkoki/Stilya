@@ -28,6 +28,8 @@ import { useDeepLinks } from '@/utils/deepLinking';
 import { trackShare, trackProductView, EventType, trackEvent } from '@/services/analyticsService';
 import { recordProductView, recordProductClick } from '@/services/viewHistoryService';
 import { Product, RecommendStackParamList, ProfileStackParamList, SwipeStackParamList } from '@/types';
+import { useFavorites } from '@/hooks/useFavorites';
+import Toast from 'react-native-toast-message';
 
 // ProductDetailは複数のナビゲーターから呼ばれるため、ユニオン型で定義
 type ProductDetailParams = 
@@ -74,6 +76,14 @@ const ProductDetailScreen: React.FC = () => {
       </SafeAreaView>
     );
   }
+  
+  // お気に入り機能
+  const {
+    favorites: favoriteIds,
+    addToFavorites,
+    removeFromFavorites,
+    isFavorite
+  } = useFavorites();
   
   // レコメンデーション関連の情報取得
   const { userPreference } = useRecommendations();
@@ -214,9 +224,38 @@ const ProductDetailScreen: React.FC = () => {
   };
   
   // お気に入りに追加
-  const handleFavoritePress = () => {
-    // TODO: お気に入り機能の実装
-    console.log('お気に入りに追加');
+  const handleFavoritePress = async () => {
+    if (!product || !user) return;
+    
+    try {
+      if (isFavorite(product.id)) {
+        await removeFromFavorites(product.id);
+        Toast.show({
+          type: 'info',
+          text1: 'お気に入りから削除しました',
+          text2: product.title,
+          visibilityTime: 2000,
+        });
+        console.log(`[ProductDetailScreen] お気に入りから削除: ${product.title}`);
+      } else {
+        await addToFavorites(product.id);
+        Toast.show({
+          type: 'success',
+          text1: 'お気に入りに追加しました',
+          text2: product.title,
+          visibilityTime: 2000,
+        });
+        console.log(`[ProductDetailScreen] お気に入りに追加: ${product.title}`);
+      }
+    } catch (error) {
+      console.error('[ProductDetailScreen] お気に入り処理エラー:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'エラーが発生しました',
+        text2: 'もう一度お試しください',
+        visibilityTime: 2000,
+      });
+    }
   };
   
   // 類似商品を選択
@@ -275,7 +314,11 @@ const ProductDetailScreen: React.FC = () => {
             style={styles.headerButton}
             onPress={handleFavoritePress}
           >
-            <Ionicons name="heart-outline" size={24} color={theme.colors.text.primary} />
+            <Ionicons 
+              name={product && isFavorite(product.id) ? "heart" : "heart-outline"} 
+              size={24} 
+              color={product && isFavorite(product.id) ? theme.colors.accent : theme.colors.text.primary} 
+            />
           </TouchableOpacity>
         </View>
       </View>

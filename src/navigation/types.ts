@@ -53,6 +53,7 @@ export type MainTabParamList = {
 // Root Stack
 export type RootStackParamList = {
   Auth: undefined; // AuthScreenを直接使用
+  ResetPassword: { token?: string }; // パスワードリセット画面
   Main: NavigatorScreenParams<MainTabParamList>;
   Onboarding: NavigatorScreenParams<OnboardingStackParamList>;
   ProductDetail: { productId: string }; // AppNavigatorから直接アクセス
