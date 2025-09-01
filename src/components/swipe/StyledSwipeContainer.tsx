@@ -80,12 +80,12 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
 
   // 画像のプリロード処理
   useEffect(() => {
-    // 次の5枚の画像を事前読み込み
+    // 次の3枚の画像を事前読み込み（表示される分だけ）
     if (products.length > 0 && currentIndex < products.length) {
       imagePreloadService.preloadProductImages(
         products,
         currentIndex + 1, // 次のインデックスから
-        5 // 5枚先読み
+        3 // 3枚先読み（表示される分だけ）
       ).catch(error => {
         if (__DEV__) {
           console.warn('[StyledSwipeContainer] Failed to preload images:', error);
@@ -403,45 +403,50 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
         {/* カードスタック表示 - 背後のカードから順に表示 */}
         {useEnhancedCard ? (
           <>
-            {/* 最大5枚のカードをスタック表示して先読み */}
-            {products.slice(currentIndex, Math.min(currentIndex + 5, products.length))
-              .map((product, index) => {
-                const isTop = index === 0;
-                const isVisible = index < 3; // 最初の3枚のみ表示
-                // 背後のカードを先にレンダリングするために、z-indexを逆にする
-                const zIndex = products.length - currentIndex - index;
-                
-                return (
-                  <View 
-                    key={`card-${currentIndex}-${index}`} // インデックスベースのkeyで再レンダリングを最小化
-                    style={{ 
-                      position: 'absolute',
-                      width: '100%',
-                      height: '100%',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      zIndex: isTop ? 1000 : 1000 - index, // 最前面のカードを最も高いz-indexに
-                      elevation: isTop ? 10 : 10 - index, // Android用
-                      opacity: isVisible ? 1 : 0, // 見えないカードは透明に
-                      pointerEvents: isTop ? 'auto' : 'none', // 最前面のカードのみタッチ可能
-                    }}
-                  >
-                    <SwipeCardImproved
-                      product={product}
-                      onPress={isTop ? handleCardPress : undefined}
-                      onLongPress={isTop ? handleCardLongPress : undefined}
-                      onSwipeLeft={isTop && isConnected !== false ? () => handleSwipeLeft(product) : undefined}
-                      onSwipeRight={isTop && isConnected !== false ? () => handleSwipeRight(product) : undefined}
-                      onSave={isTop ? handleSaveButtonPress : undefined}
-                      isSaved={savedItems.includes(product.id)}
-                      testID={isTop ? "current-swipe-card" : `stacked-card-${index}`}
-                      isTopCard={isTop}
-                      cardIndex={isVisible ? index : -1} // 非表示カードは-1
-                      totalCards={3}
-                    />
-                  </View>
-                );
-              })}
+            {/* 最大3枚のカードをスタック表示 */}
+            {[0, 1, 2].map((stackIndex) => {
+              const productIndex = currentIndex + stackIndex;
+              const product = products[productIndex];
+              const isTop = stackIndex === 0;
+              const isVisible = product && productIndex < products.length;
+              
+              if (!isVisible) return null;
+              
+              return (
+                <Animated.View 
+                  key={`stack-${stackIndex}`} // 位置ベースのkeyを使用してコンポーネントの再利用を促進
+                  style={{ 
+                    position: 'absolute',
+                    width: '100%',
+                    height: '100%',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: isTop ? 1000 : 1000 - stackIndex,
+                    elevation: isTop ? 10 : 10 - stackIndex,
+                    opacity: isTop ? 1 : 0.7 - (stackIndex * 0.2), // 背後のカードは少し透明に
+                    pointerEvents: isTop ? 'auto' : 'none',
+                    transform: isTop ? [] : [
+                      { scale: 1 - (stackIndex * 0.03) }, // 背後のカードを少し小さく
+                      { translateY: stackIndex * 8 }, // 少しずらして立体感を出す
+                    ],
+                  }}
+                >
+                  <SwipeCardImproved
+                    product={product}
+                    onPress={isTop ? handleCardPress : undefined}
+                    onLongPress={isTop ? handleCardLongPress : undefined}
+                    onSwipeLeft={isTop && isConnected !== false ? () => handleSwipeLeft(product) : undefined}
+                    onSwipeRight={isTop && isConnected !== false ? () => handleSwipeRight(product) : undefined}
+                    onSave={isTop ? handleSaveButtonPress : undefined}
+                    isSaved={savedItems.includes(product.id)}
+                    testID={isTop ? "current-swipe-card" : `stacked-card-${stackIndex}`}
+                    isTopCard={isTop}
+                    cardIndex={stackIndex}
+                    totalCards={3}
+                  />
+                </Animated.View>
+              );
+            })}
           </>
         ) : (
           currentProduct && (

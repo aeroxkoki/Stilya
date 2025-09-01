@@ -119,8 +119,8 @@ const CachedImage: React.FC<CachedImageProps> = ({
         contentFit={finalContentFit}
         cachePolicy="memory-disk"
         priority={preload ? "low" : "high"} // プリロードは低優先度
-        transition={silentFallback ? 100 : 200} // サイレントモードは高速トランジション
-        placeholder={silentFallback ? fallbackSource : undefined}
+        transition={50} // トランジション時間を短縮して切り替えを高速化
+        placeholder={fallbackSource}
         onLoadStart={() => {
           setIsLoading(true);
           setHasError(false);

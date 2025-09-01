@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useMemo } from 'react';
+import React, { useRef, useState, useEffect, useMemo, memo } from 'react';
 import { 
   View, 
   Text, 
@@ -39,7 +39,8 @@ const SWIPE_THRESHOLD = width * 0.25; // スワイプ判定のしきい値
 const SWIPE_OUT_DURATION = 150; // スワイプアウトの速度を高速化
 const ROTATION_ANGLE = 30; // 回転角度
 
-const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = ({ 
+// React.memoでコンポーネントをラップし、不要な再レンダリングを防ぐ
+const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = memo(({ 
   product, 
   onSwipeLeft,
   onSwipeRight,
@@ -676,6 +677,16 @@ const styles = StyleSheet.create({
   yesButton: {
     borderColor: '#4ECDC420',
   },
+});
+
+// メモ化のカスタム比較関数で、商品IDが変わった時のみ再レンダリング
+}, (prevProps, nextProps) => {
+  return (
+    prevProps.product.id === nextProps.product.id &&
+    prevProps.isSaved === nextProps.isSaved &&
+    prevProps.isTopCard === nextProps.isTopCard &&
+    prevProps.cardIndex === nextProps.cardIndex
+  );
 });
 
 export default SwipeCardImproved;

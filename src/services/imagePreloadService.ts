@@ -86,7 +86,7 @@ class ImagePreloadService {
       }
       
       // 次のプリロードまで少し待機（ネットワーク負荷軽減）
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 30));
     }
 
     this.isPreloading = false;
