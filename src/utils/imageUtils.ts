@@ -41,17 +41,12 @@ export const optimizeImageUrl = (url: string | undefined | null): string => {
       // 楽天のCDN URLパターンの処理
       // thumbnail.image.rakuten.co.jp の場合
       if (optimizedUrl.includes('thumbnail.image.rakuten.co.jp')) {
-        // URLパラメータの処理
-        const url = new URL(optimizedUrl);
+        // パラメータ付きURLを処理する新しいアプローチ
+        const urlParts = optimizedUrl.split('?');
+        const baseUrl = urlParts[0];
         
-        // 既存のサイズパラメータを削除して新しいサイズを設定
-        if (url.searchParams.has('_ex')) {
-          url.searchParams.delete('_ex');
-        }
         // 高画質サイズを設定（800x800）
-        url.searchParams.set('_ex', '800x800');
-        
-        optimizedUrl = url.toString();
+        optimizedUrl = `${baseUrl}?_ex=800x800`;
         console.log('[ImageUtils] Set Rakuten image size to 800x800');
       }
       // shop.r10s.jpやimage.rakuten.co.jp の場合

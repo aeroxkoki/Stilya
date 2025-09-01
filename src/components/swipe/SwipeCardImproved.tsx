@@ -537,7 +537,7 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = memo(({
       )}
     </Animated.View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
