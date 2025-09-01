@@ -15,8 +15,9 @@ dotenv.config({ path: path.join(__dirname, '../../.env') });
 // Supabaseクライアントの作成（EXPO_PUBLIC_プレフィックス付きの環境変数を使用）
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-const rakutenAppId = process.env.RAKUTEN_APP_ID;
-const rakutenAffiliateId = process.env.RAKUTEN_AFFILIATE_ID;
+// 楽天API設定 - EXPO_PUBLIC_プレフィックス付きの環境変数を使用
+const rakutenAppId = process.env.EXPO_PUBLIC_RAKUTEN_APP_ID || process.env.RAKUTEN_APP_ID;
+const rakutenAffiliateId = process.env.EXPO_PUBLIC_RAKUTEN_AFFILIATE_ID || process.env.RAKUTEN_AFFILIATE_ID;
 
 if (!supabaseUrl || !supabaseKey) {
   console.error('❌ Supabase環境変数が設定されていません');
