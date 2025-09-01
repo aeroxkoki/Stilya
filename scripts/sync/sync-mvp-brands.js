@@ -132,14 +132,14 @@ async function saveProducts(products, brand) {
       is_active: true,
       priority: brand.priority, // MVPブランドの優先度
       last_synced: new Date().toISOString(),
-      // Phase 2用の追加フィールド（存在しないカラムは一時的にコメントアウト）
+      // Phase 2用の追加フィールド
       shop_name: product.shopName || brand.name,
       review_count: product.reviewCount || 0,
       review_average: product.reviewAverage || 0,
-      // item_update_timestamp: product.itemUpdateTimestamp || new Date().toISOString(),
-      // is_seasonal: combinedTags.some(tag => 
-      //   ['春', '夏', '秋', '冬', '春夏', '秋冬'].includes(tag)
-      // )
+      item_update_timestamp: product.itemUpdateTimestamp || new Date().toISOString(),
+      is_seasonal: combinedTags.some(tag => 
+        ['春', '夏', '秋', '冬', '春夏', '秋冬'].includes(tag)
+      )
     };
   });
 
@@ -181,12 +181,12 @@ async function saveProducts(products, brand) {
             priority: product.priority,
             is_active: true,
             last_synced: product.last_synced,
-            // Phase 2用の追加フィールド（存在しないカラムは一時的にコメントアウト）
+            // Phase 2用の追加フィールド
             shop_name: product.shop_name,
             review_count: product.review_count,
             review_average: product.review_average,
-            // item_update_timestamp: product.item_update_timestamp,
-            // is_seasonal: product.is_seasonal
+            item_update_timestamp: product.item_update_timestamp,
+            is_seasonal: product.is_seasonal
           })
           .eq('id', product.id)
       );
