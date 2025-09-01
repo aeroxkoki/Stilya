@@ -537,7 +537,14 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = memo(({
       )}
     </Animated.View>
   );
-}
+}, (prevProps, nextProps) => {
+  return (
+    prevProps.product.id === nextProps.product.id &&
+    prevProps.isSaved === nextProps.isSaved &&
+    prevProps.isTopCard === nextProps.isTopCard &&
+    prevProps.cardIndex === nextProps.cardIndex
+  );
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -677,16 +684,6 @@ const styles = StyleSheet.create({
   yesButton: {
     borderColor: '#4ECDC420',
   },
-});
-
-// メモ化のカスタム比較関数で、商品IDが変わった時のみ再レンダリング
-}, (prevProps, nextProps) => {
-  return (
-    prevProps.product.id === nextProps.product.id &&
-    prevProps.isSaved === nextProps.isSaved &&
-    prevProps.isTopCard === nextProps.isTopCard &&
-    prevProps.cardIndex === nextProps.cardIndex
-  );
 });
 
 export default SwipeCardImproved;
