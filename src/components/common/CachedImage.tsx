@@ -125,6 +125,10 @@ const CachedImage: React.FC<CachedImageProps> = ({
         priority={preload ? "low" : "high"} // プリロードは低優先度
         transition={50} // トランジション時間を短縮して切り替えを高速化
         placeholder={fallbackSource}
+        placeholderContentFit="cover"
+        recyclingKey={productTitle} // キャッシュキーを追加
+        allowDownscaling={true} // ダウンスケーリングを許可
+        autoplay={false} // アニメーションGIFの自動再生を無効化
         onLoadStart={() => {
           setIsLoading(true);
           setHasError(false);
@@ -133,8 +137,10 @@ const CachedImage: React.FC<CachedImageProps> = ({
         onLoad={() => {
           setIsLoading(false);
           setHasError(false);
-          if (__DEV__ && debugMode && useFallback) {
-            console.log(`[CachedImage] Loaded fallback for:`, productTitle);
+          if (__DEV__ && useFallback) {
+            console.log(`[CachedImage] ✅ Loaded fallback for:`, productTitle);
+          } else if (__DEV__) {
+            console.log(`[CachedImage] ✅ Successfully loaded image for:`, productTitle);
           }
         }}
         onError={handleError}
