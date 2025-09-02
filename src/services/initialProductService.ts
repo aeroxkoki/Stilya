@@ -1,6 +1,7 @@
 import { Product } from '@/types';
 import { supabase } from '@/services/supabase';
 import { STYLE_TAG_MAPPING } from '@/constants/constants';
+import { getPersonalizedProducts } from '@/services/personalizedProductService';
 
 interface InitialProductConfig {
   gender?: 'male' | 'female' | 'unisex' | 'all';
@@ -26,6 +27,16 @@ const AGE_PRICE_MAPPING: Record<string, { min: number; max: number }> = {
 };
 
 export const getInitialProducts = async (
+  config: InitialProductConfig,
+  limit: number = 30
+): Promise<Product[]> => {
+  // 改善版のパーソナライズドサービスを使用
+  console.log('[InitialProductService] Using enhanced personalized service with config:', config);
+  return getPersonalizedProducts(config, limit);
+}
+
+// 旧実装（後方互換性のため保持）
+export const getInitialProductsLegacy = async (
   config: InitialProductConfig,
   limit: number = 30
 ): Promise<Product[]> => {
