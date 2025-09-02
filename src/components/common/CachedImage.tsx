@@ -51,13 +51,16 @@ const CachedImage: React.FC<CachedImageProps> = ({
     }
     
     const optimizedUrl = optimizeImageUrl(source.uri);
-    // デバッグログ（開発環境のみ）
-    if (__DEV__ && debugMode) {
-      console.log('[CachedImage] Image URL optimization:', {
+    // 常にデバッグログを出力（開発環境）
+    if (__DEV__) {
+      console.log('[CachedImage] 📸 Image URL optimization:', {
         product: productTitle || 'unknown',
         original: source.uri?.substring(0, 100),
         optimized: optimizedUrl?.substring(0, 100),
-        changed: source.uri !== optimizedUrl
+        changed: source.uri !== optimizedUrl,
+        hasHttps: optimizedUrl?.startsWith('https://'),
+        isRakuten: optimizedUrl?.includes('rakuten'),
+        hasSize: optimizedUrl?.includes('_ex='),
       });
     }
     return { uri: optimizedUrl };
@@ -80,12 +83,13 @@ const CachedImage: React.FC<CachedImageProps> = ({
   
   // エラー処理（サイレントモード対応）
   const handleError = (event: any) => {
-    // デバッグモード時のみログ出力（開発環境での確認用）
-    if (__DEV__ && debugMode) {
-      console.warn('[CachedImage] Failed to load image:', {
+    // 常にエラーログを出力（開発環境）
+    if (__DEV__) {
+      console.warn('[CachedImage] ❌ Failed to load image:', {
         product: productTitle || 'unknown',
         url: typeof imageSource === 'object' && 'uri' in imageSource ? imageSource.uri : 'unknown',
-        error: event?.error,
+        error: event?.error || event?.nativeEvent?.error || 'Unknown error',
+        errorMessage: event?.nativeEvent?.message || event?.message,
       });
     }
     

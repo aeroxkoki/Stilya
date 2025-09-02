@@ -41,13 +41,19 @@ export const optimizeImageUrl = (url: string | undefined | null): string => {
       // 楽天のCDN URLパターンの処理
       // thumbnail.image.rakuten.co.jp の場合
       if (optimizedUrl.includes('thumbnail.image.rakuten.co.jp')) {
-        // パラメータ付きURLを処理する新しいアプローチ
-        const urlParts = optimizedUrl.split('?');
-        const baseUrl = urlParts[0];
-        
-        // 高画質サイズを設定（800x800）
-        optimizedUrl = `${baseUrl}?_ex=800x800`;
-        console.log('[ImageUtils] Set Rakuten image size to 800x800');
+        // 既存のパラメータをチェック
+        if (optimizedUrl.includes('?_ex=')) {
+          // すでに_exパラメータがある場合はそのまま使用
+          console.log('[ImageUtils] Using existing _ex parameter');
+        } else if (optimizedUrl.includes('?')) {
+          // 他のパラメータがある場合は_exを追加
+          optimizedUrl = optimizedUrl + '&_ex=800x800';
+          console.log('[ImageUtils] Added _ex parameter to existing query');
+        } else {
+          // パラメータがない場合は新規追加
+          optimizedUrl = optimizedUrl + '?_ex=800x800';
+          console.log('[ImageUtils] Added new _ex parameter');
+        }
       }
       // shop.r10s.jpやimage.rakuten.co.jp の場合
       else if (optimizedUrl.includes('shop.r10s.jp') || optimizedUrl.includes('image.rakuten.co.jp')) {
@@ -73,8 +79,10 @@ export const optimizeImageUrl = (url: string | undefined | null): string => {
       console.log('[ImageUtils] Forced HTTPS protocol');
     }
     
-    // 特殊文字のエンコード
-    optimizedUrl = encodeURI(decodeURI(optimizedUrl));
+    // 特殊文字のエンコード（楽天URLの場合はスキップ）
+    if (!optimizedUrl.includes('rakuten.co.jp')) {
+      optimizedUrl = encodeURI(decodeURI(optimizedUrl));
+    }
     
     console.log('[ImageUtils] Optimized URL:', {
       original: url.substring(0, 100),

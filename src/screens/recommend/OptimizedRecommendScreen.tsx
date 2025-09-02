@@ -65,6 +65,8 @@ const OptimizedRecommendScreen: React.FC = () => {
       return;
     }
     
+    console.log('[OptimizedRecommendScreen] Loading data...', { isRefresh, pageNum });
+    
     // 追加読み込み時はloadingMoreフラグを使用
     if (pageNum > 1 && !isRefresh) {
       if (isLoadingMore || !hasMore) return;
@@ -97,6 +99,25 @@ const OptimizedRecommendScreen: React.FC = () => {
       );
       
       const result = await Promise.race([dataPromise, timeoutPromise]) as any;
+      
+      console.log('[OptimizedRecommendScreen] Data loaded:', {
+        recommended: result.recommended?.length || 0,
+        trending: result.trending?.length || 0,
+        forYou: result.forYou?.length || 0,
+      });
+      
+      // 画像URLのデバッグ（最初の3商品）
+      if (__DEV__ && result.recommended?.length > 0) {
+        console.log('[OptimizedRecommendScreen] First 3 product images:');
+        result.recommended.slice(0, 3).forEach((product: Product, index: number) => {
+          console.log(`  ${index + 1}. ${product.title?.substring(0, 50)}...`);
+          console.log(`     ID: ${product.id}`);
+          console.log(`     Image URL: ${product.imageUrl ? 'Present' : 'Missing'}`);
+          if (product.imageUrl) {
+            console.log(`     URL: ${product.imageUrl.substring(0, 100)}...`);
+          }
+        });
+      }
       
       // データ設定
       if (pageNum === 1) {
@@ -139,7 +160,7 @@ const OptimizedRecommendScreen: React.FC = () => {
       setPage(pageNum);
       
     } catch (err: any) {
-      console.error('Failed to load recommendations:', err);
+      console.error('[OptimizedRecommendScreen] Failed to load recommendations:', err);
       if (pageNum === 1) {
         setError('商品の読み込みに失敗しました');
       }
