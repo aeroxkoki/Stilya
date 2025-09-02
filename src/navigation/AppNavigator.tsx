@@ -1,8 +1,9 @@
 console.log('[AppNavigator.tsx] 1. ファイル読み込み開始');
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ActivityIndicator, View, Text } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 console.log('[AppNavigator.tsx] 2. 基本インポート完了');
 
@@ -42,10 +43,28 @@ const AppNavigator = () => {
   console.log('[AppNavigator.tsx] 5. AppNavigator関数実行');
   
   const { user, loading } = useAuth();
+  const [isFirstTimeUser, setIsFirstTimeUser] = useState<boolean | null>(null);
+  
+  // 初回ユーザーかどうかをチェック
+  useEffect(() => {
+    const checkFirstTimeUser = async () => {
+      try {
+        const stored = await AsyncStorage.getItem('isFirstTimeUser');
+        // 値が存在しない場合は初回ユーザーとみなす
+        setIsFirstTimeUser(stored === null || stored === 'true');
+        console.log('[AppNavigator.tsx] 初回ユーザーチェック:', stored === null || stored === 'true');
+      } catch (error) {
+        console.error('[AppNavigator.tsx] 初回ユーザーチェックエラー:', error);
+        setIsFirstTimeUser(true); // エラー時は初回ユーザーとみなす
+      }
+    };
+    checkFirstTimeUser();
+  }, []);
   
   console.log('[AppNavigator.tsx] 6. Auth状態:', {
     user: !!user,
-    loading: loading
+    loading: loading,
+    isFirstTimeUser: isFirstTimeUser
   });
 
   // オンボーディング完了チェック
@@ -55,24 +74,31 @@ const AppNavigator = () => {
     
     if (!user) return false;
     
+    // 初回ユーザーチェックが完了していない場合は待機
+    if (isFirstTimeUser === null) return false;
+    
+    // 初回ユーザーの場合は未完了扱い
+    if (isFirstTimeUser) return false;
+    
     // gender、stylePreference、ageGroupが設定されているかチェック
     const hasGender = user.gender !== undefined && user.gender !== null;
     const hasStylePreference = user.stylePreference && user.stylePreference.length > 0;
     const hasAgeGroup = user.ageGroup !== undefined && user.ageGroup !== null;
     
     return hasGender && hasStylePreference && hasAgeGroup;
-  }, [user]);
+  }, [user, isFirstTimeUser]);
 
   console.log('[AppNavigator.tsx] 7. オンボーディング状態:', {
     isOnboardingComplete,
     userGender: user?.gender,
     userStylePreference: user?.stylePreference,
     userAgeGroup: user?.ageGroup,
+    isFirstTimeUser: isFirstTimeUser,
     FORCE_SHOW_ONBOARDING
   });
 
-  // ローディング中はローディング画面を表示
-  if (loading) {
+  // ローディング中または初回ユーザーチェック中はローディング画面を表示
+  if (loading || isFirstTimeUser === null) {
     console.log('[AppNavigator.tsx] 8. ローディング画面表示');
     return (
       <View style={{ 
