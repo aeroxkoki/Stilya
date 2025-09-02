@@ -8,10 +8,17 @@
 require('dotenv').config();
 const { createClient } = require('@supabase/supabase-js');
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
-);
+// 環境変数の読み込み - EXPO_PUBLIC_接頭辞もフォールバックとして使用
+const supabaseUrl = process.env.SUPABASE_URL || process.env.EXPO_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+  console.error('❌ 環境変数が設定されていません');
+  console.error('必要な変数: SUPABASE_URL, SUPABASE_ANON_KEY');
+  process.exit(1);
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 // ログ出力用ヘルパー
 function log(level, message, data = {}) {
@@ -204,12 +211,17 @@ async function cleanupExpiredData() {
     
     log('INFO', `✅ ${deletedSwipes || 0}件の古いスワイプを削除しました`);
     
-    // 重複商品の確認
-    const { data: duplicates } = await supabase
-      .rpc('find_duplicate_products');
-    
-    if (duplicates && duplicates.length > 0) {
-      log('WARN', `⚠️ ${duplicates.length}件の重複商品が見つかりました`);
+    // 重複商品の確認（RPC関数が存在しない場合はスキップ）
+    try {
+      const { data: duplicates } = await supabase
+        .rpc('find_duplicate_products');
+      
+      if (duplicates && duplicates.length > 0) {
+        log('WARN', `⚠️ ${duplicates.length}件の重複商品が見つかりました`);
+      }
+    } catch (rpcError) {
+      // RPC関数が存在しない場合は無視
+      log('INFO', 'ℹ️ 重複チェックRPCは未実装です');
     }
     
     return deletedSwipes || 0;
@@ -225,19 +237,23 @@ async function optimizeIndexes() {
   log('INFO', '🔧 インデックス最適化を開始...');
   
   try {
-    // VACUUMとANALYZEは通常のクエリでは実行できないため、
-    // 代わりにインデックスの使用状況を確認
-    const { data: slowQueries } = await supabase
-      .rpc('get_slow_queries')
-      .limit(5);
-    
-    if (slowQueries && slowQueries.length > 0) {
-      log('WARN', `⚠️ ${slowQueries.length}件の遅いクエリが検出されました`);
-      slowQueries.forEach((query, index) => {
-        log('WARN', `  ${index + 1}. ${query.query_text?.substring(0, 100)}...`);
-      });
-    } else {
-      log('INFO', '✅ パフォーマンスは良好です');
+    // インデックスの使用状況を確認（RPC関数が存在しない場合はスキップ）
+    try {
+      const { data: slowQueries } = await supabase
+        .rpc('get_slow_queries')
+        .limit(5);
+      
+      if (slowQueries && slowQueries.length > 0) {
+        log('WARN', `⚠️ ${slowQueries.length}件の遅いクエリが検出されました`);
+        slowQueries.forEach((query, index) => {
+          log('WARN', `  ${index + 1}. ${query.query_text?.substring(0, 100)}...`);
+        });
+      } else {
+        log('INFO', '✅ パフォーマンスは良好です');
+      }
+    } catch (rpcError) {
+      // RPC関数が存在しない場合は無視
+      log('INFO', 'ℹ️ パフォーマンス監視RPCは未実装です');
     }
     
     return true;
@@ -347,30 +363,38 @@ async function runDailyPatch() {
     console.log(`✅ 更新された品質スコア: ${results.qualityScores}件`);
     console.log(`✅ クリーンアップされたデータ: ${results.cleanedData}件`);
     
-    // パッチ実行ログを記録
-    await supabase
-      .from('maintenance_logs')
-      .insert({
-        task_name: 'daily_patch',
-        status: 'success',
-        details: results,
-        executed_at: new Date().toISOString()
-      });
+    // パッチ実行ログを記録（テーブルが存在しない場合はスキップ）
+    try {
+      await supabase
+        .from('maintenance_logs')
+        .insert({
+          task_name: 'daily_patch',
+          status: 'success',
+          details: results,
+          executed_at: new Date().toISOString()
+        });
+    } catch (logError) {
+      log('INFO', 'ℹ️ メンテナンスログテーブルは未実装です');
+    }
     
     log('INFO', '✅ 日次パッチが正常に完了しました！');
     
   } catch (error) {
     log('ERROR', '❌ 日次パッチ実行中にエラーが発生しました:', error);
     
-    // エラーログを記録
-    await supabase
-      .from('maintenance_logs')
-      .insert({
-        task_name: 'daily_patch',
-        status: 'error',
-        details: { error: error.message },
-        executed_at: new Date().toISOString()
-      });
+    // エラーログを記録（テーブルが存在しない場合はスキップ）
+    try {
+      await supabase
+        .from('maintenance_logs')
+        .insert({
+          task_name: 'daily_patch',
+          status: 'error',
+          details: { error: error.message },
+          executed_at: new Date().toISOString()
+        });
+    } catch (logError) {
+      log('INFO', 'ℹ️ メンテナンスログテーブルは未実装です');
+    }
     
     process.exit(1);
   }

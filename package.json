@@ -21,7 +21,10 @@
     "types:check": "tsc --noEmit",
     "sync-products": "node scripts/sync/sync-mvp-brands.js",
     "sync-rakuten": "node scripts/sync/sync-rakuten-products.js",
-    "check-db": "node scripts/database/update-database-schema.js"
+    "check-db": "node scripts/database/update-database-schema.js",
+    "monitor:capacity": "node scripts/monitoring/check-capacity.js",
+    "cleanup:dry-run": "node scripts/maintenance/smart-cleanup.js --dry-run",
+    "daily-patch": "node scripts/maintenance/simple-daily-patch.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.0",
