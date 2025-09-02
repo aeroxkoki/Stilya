@@ -45,28 +45,39 @@ const OptimizedRecommendScreen: React.FC = () => {
   // 状態管理（シンプル化）
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [heroProduct, setHeroProduct] = useState<Product | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [trendingProducts, setTrendingProducts] = useState<Product[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [showFilterModal, setShowFilterModal] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   
   // アニメーション値（最小限）
   const fadeAnim = useRef(new Animated.Value(0)).current;
   
   // データ読み込み（最適化版）
-  const loadData = useCallback(async (isRefresh = false) => {
+  const loadData = useCallback(async (isRefresh = false, pageNum = 1) => {
     if (!user) {
       setError('ログインが必要です');
       setIsLoading(false);
       return;
     }
     
+    // 追加読み込み時はloadingMoreフラグを使用
+    if (pageNum > 1 && !isRefresh) {
+      if (isLoadingMore || !hasMore) return;
+      setIsLoadingMore(true);
+    } else if (isRefresh) {
+      setIsRefreshing(true);
+      setPage(1);
+      setHasMore(true);
+    } else {
+      setIsLoading(true);
+    }
+    
     try {
-      if (isRefresh) {
-        setIsRefreshing(true);
-      }
-      
       setError(null);
       
       // タイムアウト設定で高速化
@@ -74,40 +85,77 @@ const OptimizedRecommendScreen: React.FC = () => {
         setTimeout(() => reject(new Error('読み込みタイムアウト')), 5000)
       );
       
+      // ページごとに20件ずつ取得
+      const ITEMS_PER_PAGE = 20;
+      const excludeIds = pageNum > 1 ? products.map(p => p.id) : [];
+      
       const dataPromise = getEnhancedRecommendations(
         user.id, 
-        50, // 必要最小限の数に削減
-        [], 
+        ITEMS_PER_PAGE * pageNum, // ページ数に応じて取得数を増やす
+        excludeIds, 
         globalFilters
       );
       
       const result = await Promise.race([dataPromise, timeoutPromise]) as any;
       
-      // データ設定（シンプル化）
-      if (result.recommended?.length > 0) {
-        setHeroProduct(result.recommended[0]);
-        setProducts(result.recommended.slice(1, 21)); // 最大20件に制限
+      // データ設定
+      if (pageNum === 1) {
+        // 初回または更新時
+        if (result.recommended?.length > 0) {
+          setHeroProduct(result.recommended[0]);
+          setProducts(result.recommended.slice(1, ITEMS_PER_PAGE + 1));
+        } else {
+          setProducts([]);
+        }
+        
+        if (result.trending?.length > 0) {
+          setTrendingProducts(result.trending.slice(0, 6));
+        }
+        
+        // 次のページがあるかチェック
+        setHasMore(result.recommended?.length > ITEMS_PER_PAGE);
+        
+        // フェードイン
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }).start();
+      } else {
+        // 追加読み込み時
+        const newProducts = result.recommended?.slice(
+          (pageNum - 1) * ITEMS_PER_PAGE + 1,
+          pageNum * ITEMS_PER_PAGE + 1
+        ) || [];
+        
+        if (newProducts.length > 0) {
+          setProducts(prev => [...prev, ...newProducts]);
+          setHasMore(newProducts.length === ITEMS_PER_PAGE);
+        } else {
+          setHasMore(false);
+        }
       }
       
-      if (result.trending?.length > 0) {
-        setTrendingProducts(result.trending.slice(0, 6)); // トレンド6件のみ
-      }
-      
-      // シンプルなフェードイン
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }).start();
+      setPage(pageNum);
       
     } catch (err: any) {
       console.error('Failed to load recommendations:', err);
-      setError('商品の読み込みに失敗しました');
+      if (pageNum === 1) {
+        setError('商品の読み込みに失敗しました');
+      }
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
+      setIsLoadingMore(false);
     }
-  }, [user, globalFilters, fadeAnim]);
+  }, [user, globalFilters, fadeAnim, products, hasMore, isLoadingMore]);
+  
+  // 追加データ読み込み
+  const loadMoreData = useCallback(() => {
+    if (!isLoadingMore && hasMore && !isRefreshing) {
+      loadData(false, page + 1);
+    }
+  }, [isLoadingMore, hasMore, isRefreshing, page, loadData]);
   
   // 初回読み込み
   useEffect(() => {
@@ -117,7 +165,9 @@ const OptimizedRecommendScreen: React.FC = () => {
   // フィルター変更時の再読み込み
   useEffect(() => {
     if (!isLoading) {
-      loadData(false);
+      setPage(1);
+      setHasMore(true);
+      loadData(true);
     }
   }, [globalFilters]);
   
@@ -304,6 +354,20 @@ const OptimizedRecommendScreen: React.FC = () => {
     );
   }
   
+  // フッターローディング表示
+  const renderFooter = () => {
+    if (!isLoadingMore) return null;
+    
+    return (
+      <View style={styles.footerLoading}>
+        <ActivityIndicator size="small" color={theme.colors.primary} />
+        <Text style={[styles.footerLoadingText, { color: theme.colors.text.secondary }]}>
+          読み込み中...
+        </Text>
+      </View>
+    );
+  };
+  
   // エラー表示（改善版）
   if (error && products.length === 0) {
     return (
@@ -366,6 +430,8 @@ const OptimizedRecommendScreen: React.FC = () => {
         initialNumToRender={6}
         contentContainerStyle={styles.listContent}
         onEndReachedThreshold={0.5}
+        onEndReached={loadMoreData}
+        ListFooterComponent={renderFooter}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={[styles.emptyText, { color: theme.colors.text.secondary }]}>
@@ -618,6 +684,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyText: {
+    fontSize: 14,
+  },
+  footerLoading: {
+    paddingVertical: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  footerLoadingText: {
     fontSize: 14,
   },
 });
