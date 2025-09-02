@@ -18,6 +18,7 @@ import {
   UserPreferenceProfile 
 } from '@/services/personalizedScoringService';
 import { recordSwipeToSession } from '@/services/improvedRecommendationService';
+import { getEnhancedPersonalizedProducts } from '@/services/enhancedPersonalizationService';
 
 interface ProductsState {
   products: Product[];
@@ -191,11 +192,29 @@ export const useProducts = (): UseProductsReturn => {
         // genderの'other'を'all'にマッピング
         const mappedGender = gender === 'other' ? 'all' : gender;
         
-        const initialProducts = await getInitialProducts({
-          gender: mappedGender as 'male' | 'female' | 'all',
-          selectedStyles: stylePreference,
-          ageGroup
-        }, pageSize * 3); // データベースには2万件以上あるので多めに取得（1500件）
+        // ユーザーがログインしている場合は強化版パーソナライゼーションを使用
+        let initialProducts: Product[] = [];
+        
+        if (user && user.id) {
+          // 強化版パーソナライゼーション（スワイプ履歴を考慮）
+          const excludeIds = Array.from(swipedProductsRef.current);
+          initialProducts = await getEnhancedPersonalizedProducts(
+            user.id,
+            pageSize * 3, // 1500件取得
+            excludeIds
+          );
+          console.log('[useProducts] Enhanced personalized products loaded:', initialProducts.length);
+        }
+        
+        // 強化版で商品が取得できなかった場合は従来の方法を使用
+        if (initialProducts.length === 0) {
+          initialProducts = await getInitialProducts({
+            gender: mappedGender as 'male' | 'female' | 'all',
+            selectedStyles: stylePreference,
+            ageGroup
+          }, pageSize * 3);
+          console.log('[useProducts] Fallback to initial products:', initialProducts.length);
+        }
         
         if (initialProducts.length > 0) {
           setProductsData({
@@ -263,7 +282,24 @@ export const useProducts = (): UseProductsReturn => {
       
       console.log('[useProducts] New products after filtering:', newProducts.length);
       
-      if (newProducts.length === 0 && result.data.length > 0) {
+      // スタイルタグを強化
+      const enrichedProducts = enrichProductsWithStyles(newProducts);
+      
+      // パーソナライズソート（ユーザープロファイルがある場合）
+      let sortedProducts = enrichedProducts;
+      if (userProfile && swipeHistory.length >= 5) {
+        // 連続No対応：探索モードチェック
+        if (userProfile.recentSwipePattern.consecutiveNos >= 3) {
+          console.log('[useProducts] Exploration mode activated due to consecutive Nos');
+          sortedProducts = getExplorationProducts(enrichedProducts, userProfile);
+        } else {
+          sortedProducts = sortProductsByPersonalization(enrichedProducts, userProfile, {
+            diversityFactor: 0.4 // 多様性を重視
+          });
+        }
+      }
+      
+      if (sortedProducts.length === 0 && result.data.length > 0) {
         // 新しい商品がない場合、リトライまたはリサイクル
         if (retryCountRef.current < maxRetries) {
           retryCountRef.current++;
@@ -314,19 +350,19 @@ export const useProducts = (): UseProductsReturn => {
         // 新しい商品がある場合
         const updatedAllProductIds = new Set([
           ...productsData.allProductIds,
-          ...newProducts.map(p => p.id)
+          ...sortedProducts.map(p => p.id)
         ]);
         
         setProductsData(prev => ({
-          products: reset ? newProducts : [...prev.products, ...newProducts],
-          hasMore: newProducts.length >= pageSize * 0.5, // 半分以上取得できれば継続
-          totalFetched: prev.totalFetched + newProducts.length,
+          products: reset ? sortedProducts : [...prev.products, ...sortedProducts],
+          hasMore: sortedProducts.length >= pageSize * 0.5, // 半分以上取得できれば継続
+          totalFetched: prev.totalFetched + sortedProducts.length,
           allProductIds: updatedAllProductIds
         }));
         
         // 次の商品の画像をプリフェッチ（非同期、より多くプリロード）
         InteractionManager.runAfterInteractions(() => {
-          const nextImages = newProducts.slice(0, 10).map(p => p.imageUrl).filter(url => url !== null) as string[];
+          const nextImages = sortedProducts.slice(0, 10).map(p => p.imageUrl).filter(url => url !== null) as string[];
           prefetchImages(nextImages).catch(console.error);
         });
         
@@ -384,6 +420,20 @@ export const useProducts = (): UseProductsReturn => {
       return;
     }
     
+    const result = direction === 'right' ? 'yes' : 'no';
+    
+    // セッションに記録
+    recordSwipeToSession(user.id, product.id, result, product);
+    
+    // ローカルのスワイプ履歴に追加
+    const swipeItem: SwipeHistoryItem = {
+      result,
+      product,
+      timestamp: new Date(),
+      swipeTimeMs: metadata?.swipeTime
+    };
+    setSwipeHistory(prev => [...prev, swipeItem]);
+    
     // スワイプをローカルで記録
     swipedProductsRef.current.add(product.id);
     
@@ -393,7 +443,7 @@ export const useProducts = (): UseProductsReturn => {
     recordSwipe({
       userId: user.id,
       productId: product.id,
-      result: direction === 'right' ? 'yes' : 'no',
+      result,
       swipeTime: metadata?.swipeTime
     }).catch(error => {
       console.error('[useProducts] Failed to record swipe:', error);
