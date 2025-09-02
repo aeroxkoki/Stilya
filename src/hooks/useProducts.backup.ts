@@ -10,27 +10,12 @@ import { getInitialProducts } from '@/services/initialProductService';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { FilterOptions } from '@/contexts/FilterContext';
 import { STYLE_ID_TO_JP_TAG } from '@/constants/constants';
-import { enrichProductsWithStyles } from '@/services/tagMappingService';
-import { 
-  buildUserPreferenceProfile, 
-  sortProductsByPersonalization,
-  getExplorationProducts,
-  UserPreferenceProfile 
-} from '@/services/personalizedScoringService';
-import { recordSwipeToSession } from '@/services/improvedRecommendationService';
 
 interface ProductsState {
   products: Product[];
   hasMore: boolean;
   totalFetched: number;
   allProductIds: Set<string>; // 全商品IDを追跡
-}
-
-interface SwipeHistoryItem {
-  result: 'yes' | 'no';
-  product: Product;
-  timestamp: Date;
-  swipeTimeMs?: number;
 }
 
 interface UseProductsReturn {
@@ -46,12 +31,11 @@ interface UseProductsReturn {
   hasMore: boolean;
   totalFetched: number;
   setFilters: (filters: FilterOptions) => void;
-  userProfile?: UserPreferenceProfile;
 }
 
 /**
- * 商品データとスワイプ管理のためのカスタムフック（改良版）
- * パーソナライゼーション機能強化
+ * 商品データとスワイプ管理のためのカスタムフック
+ * パフォーマンス最適化済み
  */
 export const useProducts = (): UseProductsReturn => {
   const { user, isInitialized } = useAuth();
@@ -74,11 +58,6 @@ export const useProducts = (): UseProductsReturn => {
     categories: [],
     gender: 'all'
   });
-  
-  // パーソナライゼーション用の状態
-  const [swipeHistory, setSwipeHistory] = useState<SwipeHistoryItem[]>([]);
-  const [userProfile, setUserProfile] = useState<UserPreferenceProfile | undefined>();
-  const [sessionStartTime] = useState<Date>(new Date());
   
   const pageSize = 500; // データベースには2万件以上あるので、より多くの商品をプリロード
   const maxRetries = 10; // 最大リトライ回数を増やす
@@ -111,15 +90,6 @@ export const useProducts = (): UseProductsReturn => {
     
     fetchSwipeHistory();
   }, [user]);
-
-  // ユーザープロファイルを更新
-  useEffect(() => {
-    if (swipeHistory.length > 0) {
-      const profile = buildUserPreferenceProfile(swipeHistory, sessionStartTime);
-      setUserProfile(profile);
-      console.log('[useProducts] User profile updated:', profile);
-    }
-  }, [swipeHistory, sessionStartTime]);
 
   // オンボーディングのスタイル選択を考慮したフィルター取得
   const getEffectiveFilters = useCallback((): FilterOptions => {

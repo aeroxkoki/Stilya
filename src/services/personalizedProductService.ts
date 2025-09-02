@@ -137,7 +137,7 @@ export const getPersonalizedProducts = async (
     console.log('[PersonalizedProductService] Fetching with enhanced config:', config);
     
     // 1. 候補商品を広めに取得（スコアリングのため多めに取得）
-    const candidateLimit = limit * 5;
+    const candidateLimit = limit * 10; // 2万件のデータベースから適切な商品を選ぶため多めに取得
     let query = supabase
       .from('external_products')
       .select('*')
