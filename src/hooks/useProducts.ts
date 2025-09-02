@@ -59,8 +59,8 @@ export const useProducts = (): UseProductsReturn => {
     gender: 'all'
   });
   
-  const pageSize = 30; // より多くの商品をプリロード
-  const maxRetries = 5; // 最大リトライ回数
+  const pageSize = 500; // データベースには2万件以上あるので、より多くの商品をプリロード
+  const maxRetries = 10; // 最大リトライ回数を増やす
   
   // 画像プリフェッチ用
   const { prefetchImages } = useImagePrefetch();
@@ -165,7 +165,7 @@ export const useProducts = (): UseProductsReturn => {
           gender: mappedGender as 'male' | 'female' | 'all',
           selectedStyles: stylePreference,
           ageGroup
-        }, pageSize * 2);
+        }, pageSize * 3); // データベースには2万件以上あるので多めに取得（1500件）
         
         if (initialProducts.length > 0) {
           setProductsData({
@@ -176,7 +176,7 @@ export const useProducts = (): UseProductsReturn => {
           });
           
           // 画像をプリフェッチ（より多くプリロード）
-          const imagesToPrefetch = initialProducts.slice(0, 10).map(p => p.imageUrl).filter(url => url !== null) as string[];
+          const imagesToPrefetch = initialProducts.slice(0, 20).map(p => p.imageUrl).filter(url => url !== null) as string[];
           // 非同期でプリフェッチ
           prefetchImages(imagesToPrefetch).catch(console.error);
           
@@ -242,18 +242,12 @@ export const useProducts = (): UseProductsReturn => {
           loadingRef.current = false;
           await loadProducts(false);
           return;
-        } else if (recycleCountRef.current < 2) {
-          // 商品を一巡した場合、スワイプ済み商品を再利用（最大2回まで）
+        } else if (recycleCountRef.current < 5) {
+          // 商品を一巡した場合、スワイプ済み商品を再利用（最大5回まで）
           recycleCountRef.current++;
           console.log('[useProducts] Recycling swiped products (cycle', recycleCountRef.current, ')');
           
-          // すべての商品IDをクリアして再スタート
-          setProductsData(prev => ({
-            ...prev,
-            allProductIds: new Set()
-          }));
-          
-          // ただし現在のセッションでスワイプした商品は引き続き除外
+          // 現在のセッションでスワイプした商品のみを除外（過去のスワイプ履歴は再利用）
           const sessionSwipedIds = Array.from(productsData.allProductIds);
           const recycledProducts = result.data.filter(product => 
             !sessionSwipedIds.includes(product.id)
