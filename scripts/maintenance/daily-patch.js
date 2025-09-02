@@ -9,6 +9,8 @@
 
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
+const path = require('path');
+const { determineProductStyleAdvanced } = require('../utils/tag-mapping-utils');
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY;
@@ -36,11 +38,15 @@ async function runDailyPatch() {
     console.log('\n🔍 重複商品をチェック中...');
     await checkDuplicateProducts();
 
-    // 4. パフォーマンスキャッシュの更新
+    // 4. スタイルタグの整合性チェック
+    console.log('\n🏷️ スタイルタグの整合性をチェック中...');
+    await maintainStyleTags();
+
+    // 5. パフォーマンスキャッシュの更新
     console.log('\n⚡ パフォーマンスキャッシュを更新中...');
     await updatePerformanceCache();
 
-    // 5. 不要なログのクリーンアップ
+    // 6. 不要なログのクリーンアップ
     console.log('\n🧹 古いログをクリーンアップ中...');
     await cleanupOldLogs();
 
@@ -155,6 +161,75 @@ async function checkDuplicateProducts() {
     console.log(`  ⚠️ ${duplicates.length}件の重複商品が見つかりました`);
   } else {
     console.log('  ✅ 重複商品は見つかりませんでした');
+  }
+}
+
+// スタイルタグの整合性メンテナンス
+async function maintainStyleTags() {
+  // 1. style_tagsがnullまたは不適切な値の商品を検出
+  const { data: invalidStyleProducts, error: fetchError } = await supabase
+    .from('external_products')
+    .select('id, tags, category, style_tags')
+    .or('style_tags.is.null,style_tags.cs.{basic,everyday,versatile,formal,elegant,outdoor}')
+    .eq('is_active', true)
+    .limit(500);
+  
+  if (fetchError) {
+    console.error('  ⚠️ スタイルタグ取得エラー:', fetchError.message);
+    return;
+  }
+  
+  if (!invalidStyleProducts || invalidStyleProducts.length === 0) {
+    console.log('  ✅ すべてのスタイルタグは正常です');
+    return;
+  }
+  
+  console.log(`  📝 ${invalidStyleProducts.length}件の商品のスタイルタグを修正中...`);
+  
+  let updatedCount = 0;
+  const batchSize = 50;
+  
+  // バッチ処理で更新
+  for (let i = 0; i < invalidStyleProducts.length; i += batchSize) {
+    const batch = invalidStyleProducts.slice(i, i + batchSize);
+    
+    for (const product of batch) {
+      const newStyle = determineProductStyleAdvanced(product.tags || [], product.category);
+      
+      const { error: updateError } = await supabase
+        .from('external_products')
+        .update({ style_tags: [newStyle] })
+        .eq('id', product.id);
+      
+      if (!updateError) {
+        updatedCount++;
+      } else {
+        console.error(`    ⚠️ 商品 ${product.id} の更新エラー:`, updateError.message);
+      }
+    }
+  }
+  
+  console.log(`  ✅ ${updatedCount}件のスタイルタグを修正しました`);
+  
+  // 統計情報を表示
+  const { data: styleStats, error: statsError } = await supabase
+    .from('external_products')
+    .select('style_tags')
+    .eq('is_active', true);
+  
+  if (!statsError && styleStats) {
+    const styleCounts = {};
+    styleStats.forEach(product => {
+      const style = product.style_tags?.[0] || 'unknown';
+      styleCounts[style] = (styleCounts[style] || 0) + 1;
+    });
+    
+    console.log('  📊 スタイル分布:');
+    Object.entries(styleCounts)
+      .sort(([, a], [, b]) => b - a)
+      .forEach(([style, count]) => {
+        console.log(`     ${style}: ${count}件`);
+      });
   }
 }
 

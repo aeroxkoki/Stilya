@@ -119,14 +119,23 @@ async function saveProducts(products) {
       return null;
     }
     
+    // タグを抽出
+    const tags = extractTags(product);
+    // カテゴリを決定（genreIdベース）
+    const category = product.genreId === '551177' ? 'メンズファッション' : '女性ファッション';
+    
+    // スタイルタグを判定
+    const styleTag = determineProductStyleAdvanced(tags, category);
+    
     return {
       id: product.itemCode,
       title: product.itemName,
       image_url: imageUrl,
       brand: product.shopName,
       price: product.itemPrice,
-      tags: extractTags(product),
-      category: '100371', // 女性ファッション
+      tags: tags,
+      style_tags: [styleTag], // 適切なスタイルタグを設定
+      category: category,
       affiliate_url: product.affiliateUrl || product.itemUrl,
       source: 'rakuten',
       is_active: true,
@@ -161,7 +170,7 @@ async function saveProducts(products) {
       }
     }
 
-    // 既存商品を更新（画像URLも更新）
+    // 既存商品を更新（画像URLとstyle_tagsも更新）
     if (updateProducts.length > 0) {
       for (const product of updateProducts) {
         const { error: updateError } = await supabase
@@ -170,6 +179,7 @@ async function saveProducts(products) {
             title: product.title,
             price: product.price,
             image_url: product.image_url, // 画像URLも更新
+            style_tags: product.style_tags, // スタイルタグも更新
             is_active: true,
             last_synced: product.last_synced
           })
@@ -189,6 +199,8 @@ async function saveProducts(products) {
 
 // 高精度タグ抽出モジュールをインポート
 const { extractEnhancedTags } = require('./enhanced-tag-extractor');
+// タグマッピングユーティリティをインポート
+const { determineProductStyleAdvanced } = require('../utils/tag-mapping-utils');
 
 /**
  * 商品からタグを抽出（高精度版）

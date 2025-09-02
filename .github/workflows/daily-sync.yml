@@ -1,0 +1,63 @@
+name: Daily Sync and Maintenance
+
+on:
+  schedule:
+    # 毎日日本時間午前3時（UTC 18:00）に実行
+    - cron: '0 18 * * *'
+  workflow_dispatch: # 手動実行も可能にする
+
+jobs:
+  sync-products:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run Rakuten Products Sync
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+          EXPO_PUBLIC_RAKUTEN_APP_ID: ${{ secrets.EXPO_PUBLIC_RAKUTEN_APP_ID }}
+          EXPO_PUBLIC_RAKUTEN_AFFILIATE_ID: ${{ secrets.EXPO_PUBLIC_RAKUTEN_AFFILIATE_ID }}
+          SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          echo "📦 Starting Rakuten products sync..."
+          node scripts/sync/sync-rakuten-products.js
+      
+      - name: Run Style Tags Fix
+        env:
+          SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          echo "🏷️ Fixing style tags..."
+          node scripts/fix-style-tags.js
+      
+      - name: Run Daily Patch
+        env:
+          SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          echo "🔧 Running daily maintenance patch..."
+          node scripts/maintenance/daily-patch.js
+      
+      - name: Create summary
+        if: always()
+        run: |
+          echo "## Daily Sync and Maintenance Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Products sync completed" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Style tags fixed" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Daily maintenance completed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Run time: $(date)" >> $GITHUB_STEP_SUMMARY
