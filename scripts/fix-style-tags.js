@@ -190,15 +190,11 @@ async function fixStyleTags() {
         const currentStyleTag = product.style_tags?.[0];
         const newStyleTag = determineProductStyle(product.tags || [], product.category);
         
-        // basicまたは不適切なタグの場合は更新
-        if (currentStyleTag === 'basic' || 
-            currentStyleTag === 'everyday' || 
-            currentStyleTag === 'versatile' ||
-            currentStyleTag === 'formal' ||
-            currentStyleTag === 'elegant' ||
-            currentStyleTag === 'outdoor' ||
-            !['casual', 'street', 'mode', 'natural', 'classic', 'feminine'].includes(currentStyleTag)) {
-          
+        // 有効なスタイルタグの定義
+        const validStyles = ['casual', 'street', 'mode', 'natural', 'classic', 'feminine'];
+        
+        // 無効なスタイルタグまたは未設定の場合は更新
+        if (!currentStyleTag || !validStyles.includes(currentStyleTag)) {
           updates.push({
             id: product.id,
             style_tags: [newStyleTag]
