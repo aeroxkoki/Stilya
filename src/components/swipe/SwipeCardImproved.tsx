@@ -350,9 +350,6 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = memo(({
     ],
     opacity: animValues.cardOpacity
   };
-
-  // スタック表示用のオフセット
-  const stackOffset = cardIndex * 10; // 各カードを10pxずつずらす
   
   return (
     <Animated.View 
@@ -361,10 +358,9 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = memo(({
         animatedCardStyle,
         { 
           backgroundColor: theme.colors.surface,
-          zIndex: totalCards - cardIndex, // 前面のカードほど高いz-index
-          elevation: totalCards - cardIndex, // Android用
+          // z-indexとelevationはStyledSwipeContainerで制御するため削除
           // positionはSwipeCardImprovedでは設定しない（親のViewで制御）
-          marginTop: -stackOffset, // 背後のカードを少し下にずらす
+          // marginTopも親コンポーネントで制御するため削除
         }
       ]} 
       {...(isTopCard && !isAnimating ? panResponder.panHandlers : {})}
