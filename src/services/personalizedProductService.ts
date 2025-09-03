@@ -123,7 +123,7 @@ function scoreProduct(product: any, config: NormalizedProductConfig): number {
       const distance = Math.abs(intPrice - priceRange.preferred);
       const maxDistance = Math.max(priceRange.preferred - priceRange.min, priceRange.max - priceRange.preferred);
       const priceScore = 10 * (1 - distance / maxDistance);
-      score += Math.round(priceScore * 100) / 100; // スコアを小数点2桁に丸める
+      score += Math.floor(priceScore); // スコアも整数に丸める
     }
   }
 
@@ -169,9 +169,17 @@ export const getPersonalizedProducts = async (
     // 価格帯フィルタリング（必ず整数値で比較）
     if (normalizedAgeGroup && ENHANCED_AGE_PRICE_MAPPING[normalizedAgeGroup]) {
       const priceRange = ENHANCED_AGE_PRICE_MAPPING[normalizedAgeGroup];
-      // 価格は整数型なので、計算結果を整数に丸める
+      // 価格は整数型なので、確実に整数値になるよう計算
       const minPrice = Math.floor(priceRange.min * 0.8);
-      const maxPrice = Math.ceil(priceRange.max * 1.2);
+      const maxPrice = Math.floor(priceRange.max * 1.2); // ceilではなくfloorで統一
+      
+      // デバッグ用：計算結果を確認
+      console.log('[PersonalizedProductService] Price filter:', { 
+        original: priceRange, 
+        filtered: { min: minPrice, max: maxPrice },
+        isIntegerMin: Number.isInteger(minPrice),
+        isIntegerMax: Number.isInteger(maxPrice)
+      });
       
       query = query.gte('price', minPrice) // 少し広めに取得
                    .lte('price', maxPrice);
