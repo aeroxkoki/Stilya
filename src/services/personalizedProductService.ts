@@ -1,33 +1,12 @@
 import { Product } from '@/types';
+import { convertToInternalAgeGroup, AgeGroupInternal } from '@/types/ageGroup';
 import { supabase } from '@/services/supabase';
 import { STYLE_TAG_MAPPING } from '@/constants/constants';
 
 interface PersonalizedProductConfig {
   gender?: 'male' | 'female' | 'unisex' | 'all';
   selectedStyles: string[];
-  ageGroup?: string;
-}
-
-// 年代フォーマット変換用のヘルパー関数
-function convertAgeGroupFormat(ageGroup?: string): string | undefined {
-  if (!ageGroup) return undefined;
-  
-  // "20-29" 形式を "twenties" 形式に変換
-  const ageMapping: Record<string, string> = {
-    '10-19': 'teens',
-    '20-29': 'twenties',
-    '30-39': 'thirties',
-    '40-49': 'forties',
-    '40+': 'forties',
-    '50+': 'fifties_plus',
-    'teens': 'teens',
-    'twenties': 'twenties',
-    'thirties': 'thirties',
-    'forties': 'forties',
-    'fifties_plus': 'fifties_plus'
-  };
-  
-  return ageMapping[ageGroup] || ageGroup;
+  ageGroup?: string; // 入力は文字列として受け取る
 }
 
 // 性別に基づくタグマッピング（強化版）
@@ -61,7 +40,7 @@ const STYLE_PRIORITY_MAPPING: Record<string, string[]> = {
 };
 
 // 年代に基づく価格帯マッピング（改善版）
-const ENHANCED_AGE_PRICE_MAPPING: Record<string, { min: number; max: number; preferred: number }> = {
+const ENHANCED_AGE_PRICE_MAPPING: Record<AgeGroupInternal, { min: number; max: number; preferred: number }> = {
   teens: { min: 1000, max: 8000, preferred: 3000 },
   twenties: { min: 2000, max: 15000, preferred: 6000 },
   thirties: { min: 3000, max: 25000, preferred: 10000 },
@@ -70,7 +49,13 @@ const ENHANCED_AGE_PRICE_MAPPING: Record<string, { min: number; max: number; pre
 };
 
 // 商品スコアリング関数
-function scoreProduct(product: any, config: PersonalizedProductConfig): number {
+interface NormalizedProductConfig {
+  gender?: 'male' | 'female' | 'unisex' | 'all';
+  selectedStyles: string[];
+  ageGroup?: AgeGroupInternal;
+}
+
+function scoreProduct(product: any, config: NormalizedProductConfig): number {
   let score = 0;
   const tags = product.tags || [];
   const tagsStr = tags.join(' ').toLowerCase();
@@ -159,9 +144,10 @@ export const getPersonalizedProducts = async (
 ): Promise<Product[]> => {
   try {
     // 年代フォーマットを変換
-    const normalizedConfig = {
+    const normalizedAgeGroup = convertToInternalAgeGroup(config.ageGroup);
+    const normalizedConfig: NormalizedProductConfig = {
       ...config,
-      ageGroup: convertAgeGroupFormat(config.ageGroup)
+      ageGroup: normalizedAgeGroup
     };
     
     console.log('[PersonalizedProductService] Fetching with enhanced config:', normalizedConfig);
@@ -181,8 +167,8 @@ export const getPersonalizedProducts = async (
     }
 
     // 価格帯フィルタリング（必ず整数値で比較）
-    if (normalizedConfig.ageGroup && ENHANCED_AGE_PRICE_MAPPING[normalizedConfig.ageGroup]) {
-      const priceRange = ENHANCED_AGE_PRICE_MAPPING[normalizedConfig.ageGroup];
+    if (normalizedAgeGroup && ENHANCED_AGE_PRICE_MAPPING[normalizedAgeGroup]) {
+      const priceRange = ENHANCED_AGE_PRICE_MAPPING[normalizedAgeGroup];
       // 価格は整数型なので、計算結果を整数に丸める
       const minPrice = Math.floor(priceRange.min * 0.8);
       const maxPrice = Math.ceil(priceRange.max * 1.2);

@@ -1,4 +1,5 @@
 import { FASHION_STYLES } from '../constants/constants';
+import { AgeGroupDisplay, AgeGroupInternal } from './ageGroup';
 
 // Fashion styles (for onboarding) - constantsから生成
 export type FashionStyle = typeof FASHION_STYLES[number]['id'];
@@ -23,7 +24,7 @@ export interface User {
   createdAt?: string;
   gender?: 'male' | 'female' | 'other';
   stylePreference?: string[];
-  ageGroup?: string;
+  ageGroup?: AgeGroupDisplay | AgeGroupInternal | string; // 移行期間中は両方の形式を許容
   nickname?: string; // SettingsScreenのエラー修正用に追加
   onboardingCompleted?: boolean; // オンボーディング完了フラグ
   uiStyle?: StyleType; // UIスタイル設定
@@ -31,6 +32,7 @@ export interface User {
 
 // 商品情報 - product.tsを参照
 export * from './product';
+export * from './ageGroup'; // 年代関連の型をエクスポート
 
 // スワイプ情報
 export interface Swipe {

@@ -15,6 +15,7 @@ import { useOnboarding } from '@/contexts/OnboardingContext';
 import { OnboardingStackParamList } from '@/types';
 import { useStyle } from '@/contexts/ThemeContext';
 import { StylePlaceholder } from '@/components/common/ImagePlaceholder';
+import { AgeGroupDisplay, AGE_GROUP_LABELS } from '@/types/ageGroup';
 
 type Props = NativeStackScreenProps<OnboardingStackParamList, 'QuickProfile'>;
 
@@ -28,13 +29,13 @@ const genderOptions = [
   { id: 'other', label: 'その他', icon: 'person' },
 ] as const;
 
-// 年齢層の選択肢
-const ageGroups = [
-  { id: '10-19', label: '10代' },
-  { id: '20-29', label: '20代' },
-  { id: '30-39', label: '30代' },
-  { id: '40-49', label: '40代' },
-  { id: '50+', label: '50代以上' },
+// 年齢層の選択肢（型安全に定義）
+const ageGroups: Array<{ id: AgeGroupDisplay; label: string }> = [
+  { id: '10-19', label: AGE_GROUP_LABELS['10-19'] },
+  { id: '20-29', label: AGE_GROUP_LABELS['20-29'] },
+  { id: '30-39', label: AGE_GROUP_LABELS['30-39'] },
+  { id: '40-49', label: AGE_GROUP_LABELS['40-49'] },
+  { id: '50+', label: AGE_GROUP_LABELS['50+'] },
 ];
 
 // スタイルの選択肢（2つまで選択）
