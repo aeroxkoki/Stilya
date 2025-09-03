@@ -300,9 +300,13 @@ export async function getEnhancedPersonalizedProducts(
     
     // 価格帯でフィルタリング（少し広めに）
     if (profile.priceRange) {
+      // 価格は整数型なので、確実に整数値になるよう計算
+      const minPrice = Math.floor(profile.priceRange.min * 0.7);
+      const maxPrice = Math.floor(profile.priceRange.max * 1.3);
+      
       query = query
-        .gte('price', profile.priceRange.min * 0.7)
-        .lte('price', profile.priceRange.max * 1.3);
+        .gte('price', minPrice)
+        .lte('price', maxPrice);
     }
     
     // 多めに取得してスコアリング
