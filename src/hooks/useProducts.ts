@@ -462,11 +462,9 @@ export const useProducts = (): UseProductsReturn => {
     
     // 次の商品が存在する場合のみインデックスを更新
     if (nextIndex < productsData.products.length || productsData.hasMore) {
-      // 次のフレームで状態を更新（スムーズなアニメーションのため）
-      requestAnimationFrame(() => {
-        setCurrentIndex(nextIndex);
-        console.log(`[useProducts] Updated currentIndex to ${nextIndex}`);
-      });
+      // 即座に状態を更新（同期的に）
+      setCurrentIndex(nextIndex);
+      console.log(`[useProducts] Updated currentIndex to ${nextIndex}`);
     } else {
       console.log('[useProducts] No more products to show');
     }

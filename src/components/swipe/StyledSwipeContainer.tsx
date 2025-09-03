@@ -299,33 +299,35 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
         {/* カードスタック表示 - 背後のカードから順に表示 */}
         {useEnhancedCard ? (
           <>
-            {/* 最大3枚のカードをスタック表示 */}
-            {[0, 1, 2].map((stackIndex) => {
+            {/* 最大3枚のカードをスタック表示 - 後ろから前に向かって描画 */}
+            {[2, 1, 0].map((stackIndex) => {
               const productIndex = currentIndex + stackIndex;
-              const product = products[productIndex];
-              const isTop = stackIndex === 0;
-              const isVisible = product && productIndex < products.length;
               
-              if (!isVisible) return null;
+              // 商品が存在しない場合はスキップ
+              if (productIndex >= products.length) return null;
+              
+              const product = products[productIndex];
+              if (!product) return null;
+              
+              const isTop = stackIndex === 0;
+              const stackPosition = stackIndex;
               
               return (
                 <View 
-                  key={`product-${product.id}-stack-${stackIndex}`} // 商品IDと位置の組み合わせをkeyとして使用
-                  style={{ 
-                    position: 'absolute',
-                    width: '100%',
-                    height: '100%',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: isTop ? 1000 : 1000 - stackIndex,
-                    elevation: isTop ? 10 : 10 - stackIndex,
-                    opacity: isTop ? 1 : 0.7 - (stackIndex * 0.2), // 背後のカードは少し透明に
-                    pointerEvents: isTop ? 'auto' : 'none',
-                    transform: isTop ? [] : [
-                      { scale: 1 - (stackIndex * 0.03) }, // 背後のカードを少し小さく
-                      { translateY: stackIndex * 8 }, // 少しずらして立体感を出す
-                    ],
-                  }}
+                  key={`${productIndex}-${product.id}`} // インデックスと商品IDの組み合わせ（より安定したkey）
+                  style={[
+                    styles.cardStack,
+                    { 
+                      zIndex: 1000 - stackPosition,
+                      elevation: 10 - stackPosition,
+                      opacity: isTop ? 1 : 0.7 - (stackPosition * 0.2),
+                      pointerEvents: isTop ? 'auto' : 'none',
+                      transform: [
+                        { scale: 1 - (stackPosition * 0.03) },
+                        { translateY: stackPosition * 8 },
+                      ],
+                    }
+                  ]}
                 >
                   <SwipeCardImproved
                     product={product}
@@ -335,27 +337,22 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
                     onSwipeRight={isTop && isConnected !== false ? () => handleSwipeRight(product) : undefined}
                     onSave={isTop ? handleSaveButtonPress : undefined}
                     isSaved={savedItems.includes(product.id)}
-                    testID={isTop ? "current-swipe-card" : `stacked-card-${stackIndex}`}
+                    testID={isTop ? "current-swipe-card" : `stacked-card-${stackPosition}`}
                     isTopCard={isTop}
-                    cardIndex={stackIndex}
+                    cardIndex={stackPosition}
                     totalCards={3}
                   />
                 </View>
               );
-            })}
+            }).filter(Boolean)}
           </>
         ) : (
           currentProduct && (
             <View
-              style={{
-                width: '100%',
-                height: '100%',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
+              style={styles.cardStack}
             >
               <SwipeCardImproved
-                key={currentProduct.id} // 商品IDのみをkeyとして使用
+                key={`${currentIndex}-${currentProduct.id}`} // インデックスと商品IDの組み合わせ
                 product={currentProduct}
                 onPress={handleCardPress}
                 onLongPress={handleCardLongPress}
@@ -472,6 +469,13 @@ const styles = StyleSheet.create({
   backgroundCard: {
     position: 'absolute',
     opacity: 0.5,
+  },
+  cardStack: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 
