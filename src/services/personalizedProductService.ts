@@ -8,6 +8,28 @@ interface PersonalizedProductConfig {
   ageGroup?: string;
 }
 
+// 年代フォーマット変換用のヘルパー関数
+function convertAgeGroupFormat(ageGroup?: string): string | undefined {
+  if (!ageGroup) return undefined;
+  
+  // "20-29" 形式を "twenties" 形式に変換
+  const ageMapping: Record<string, string> = {
+    '10-19': 'teens',
+    '20-29': 'twenties',
+    '30-39': 'thirties',
+    '40-49': 'forties',
+    '40+': 'forties',
+    '50+': 'fifties_plus',
+    'teens': 'teens',
+    'twenties': 'twenties',
+    'thirties': 'thirties',
+    'forties': 'forties',
+    'fifties_plus': 'fifties_plus'
+  };
+  
+  return ageMapping[ageGroup] || ageGroup;
+}
+
 // 性別に基づくタグマッピング（強化版）
 const ENHANCED_GENDER_MAPPING = {
   male: {
@@ -108,13 +130,15 @@ function scoreProduct(product: any, config: PersonalizedProductConfig): number {
   // 3. 価格帯マッチング（10点）
   if (config.ageGroup && ENHANCED_AGE_PRICE_MAPPING[config.ageGroup]) {
     const priceRange = ENHANCED_AGE_PRICE_MAPPING[config.ageGroup];
+    // 価格は整数型なので、Math.floorで整数として処理
+    const intPrice = Math.floor(price);
     
-    if (price >= priceRange.min && price <= priceRange.max) {
+    if (intPrice >= priceRange.min && intPrice <= priceRange.max) {
       // 推奨価格に近いほど高スコア
-      const distance = Math.abs(price - priceRange.preferred);
+      const distance = Math.abs(intPrice - priceRange.preferred);
       const maxDistance = Math.max(priceRange.preferred - priceRange.min, priceRange.max - priceRange.preferred);
       const priceScore = 10 * (1 - distance / maxDistance);
-      score += priceScore;
+      score += Math.round(priceScore * 100) / 100; // スコアを小数点2桁に丸める
     }
   }
 
@@ -134,7 +158,13 @@ export const getPersonalizedProducts = async (
   limit: number = 30
 ): Promise<Product[]> => {
   try {
-    console.log('[PersonalizedProductService] Fetching with enhanced config:', config);
+    // 年代フォーマットを変換
+    const normalizedConfig = {
+      ...config,
+      ageGroup: convertAgeGroupFormat(config.ageGroup)
+    };
+    
+    console.log('[PersonalizedProductService] Fetching with enhanced config:', normalizedConfig);
     
     // 1. 候補商品を広めに取得（スコアリングのため多めに取得）
     const candidateLimit = limit * 10; // 2万件のデータベースから適切な商品を選ぶため多めに取得
@@ -150,11 +180,15 @@ export const getPersonalizedProducts = async (
       query = query.or(`gender.eq.${config.gender},gender.eq.unisex`);
     }
 
-    // 価格帯フィルタリング
-    if (config.ageGroup && ENHANCED_AGE_PRICE_MAPPING[config.ageGroup]) {
-      const priceRange = ENHANCED_AGE_PRICE_MAPPING[config.ageGroup];
-      query = query.gte('price', priceRange.min * 0.8) // 少し広めに取得
-                   .lte('price', priceRange.max * 1.2);
+    // 価格帯フィルタリング（必ず整数値で比較）
+    if (normalizedConfig.ageGroup && ENHANCED_AGE_PRICE_MAPPING[normalizedConfig.ageGroup]) {
+      const priceRange = ENHANCED_AGE_PRICE_MAPPING[normalizedConfig.ageGroup];
+      // 価格は整数型なので、計算結果を整数に丸める
+      const minPrice = Math.floor(priceRange.min * 0.8);
+      const maxPrice = Math.ceil(priceRange.max * 1.2);
+      
+      query = query.gte('price', minPrice) // 少し広めに取得
+                   .lte('price', maxPrice);
     }
 
     const { data: candidates, error } = await query.limit(candidateLimit);
@@ -180,7 +214,7 @@ export const getPersonalizedProducts = async (
     // 2. スコアリングと並び替え
     const scoredProducts = candidates.map(product => ({
       ...product,
-      personalizedScore: scoreProduct(product, config)
+      personalizedScore: scoreProduct(product, normalizedConfig)
     }));
 
     // スコアの高い順に並び替え
