@@ -54,7 +54,10 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
   
   // 外部から提供されたインデックスを使用
   const currentIndex = externalIndex;
-  const currentProduct = products[currentIndex];
+  // 商品配列が空または初期化中の場合はundefinedを返す
+  const currentProduct = products.length > 0 && currentIndex < products.length 
+    ? products[currentIndex] 
+    : undefined;
 
   // お気に入り機能のフックを使用
   const {
@@ -179,8 +182,8 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
     }
   }, [quickViewProduct, handleSwipeRight]);
 
-  // ローディング中の表示
-  if (isLoading && products.length === 0) {
+  // ローディング中の表示（初期状態も含む）
+  if ((isLoading && products.length === 0) || !currentProduct) {
     return (
       <View 
         style={[
@@ -276,8 +279,8 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
       
       {/* カードスタック - シンプルな実装に変更 */}
       <View style={styles.cardStackContainer}>
-        {/* 現在のカードと次の2枚を表示 */}
-        {products.slice(currentIndex, Math.min(currentIndex + 3, products.length)).map((product, index) => {
+        {/* 現在のカードと次の2枚を表示（currentProductが存在する場合のみ） */}
+        {currentProduct && products.slice(currentIndex, Math.min(currentIndex + 3, products.length)).map((product, index) => {
           const isTopCard = index === 0;
           const zIndex = 1000 - index;
           const scale = 1 - (index * 0.03);

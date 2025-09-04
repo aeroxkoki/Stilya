@@ -25,6 +25,7 @@ interface ProductsState {
   hasMore: boolean;
   totalFetched: number;
   allProductIds: Set<string>; // 全商品IDを追跡
+  isInitialLoad: boolean; // 初回ロード中かどうかを追跡
 }
 
 interface SwipeHistoryItem {
@@ -61,7 +62,8 @@ export const useProducts = (): UseProductsReturn => {
     products: [],
     hasMore: true,
     totalFetched: 0,
-    allProductIds: new Set()
+    allProductIds: new Set(),
+    isInitialLoad: true // 初回ロードフラグを追加
   });
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -92,8 +94,8 @@ export const useProducts = (): UseProductsReturn => {
   const retryCountRef = useRef(0);
   const recycleCountRef = useRef(0); // リサイクル回数をトラック
   
-  // 現在表示中の商品
-  const currentProduct = productsData.products[currentIndex];
+  // 現在表示中の商品（初回ロード中はundefinedを返す）
+  const currentProduct = productsData.isInitialLoad ? undefined : productsData.products[currentIndex];
 
   // スワイプ履歴を取得（初回のみ）
   useEffect(() => {
@@ -156,11 +158,13 @@ export const useProducts = (): UseProductsReturn => {
         setPage(0);
         retryCountRef.current = 0;
         recycleCountRef.current = 0;
+        // リセット時は初回ロードフラグを立てる
         setProductsData({
           products: [],
           hasMore: true,
           totalFetched: 0,
-          allProductIds: new Set()
+          allProductIds: new Set(),
+          isInitialLoad: true
         });
         setError(null);
         // リセット時はスワイプ履歴を再取得
@@ -221,7 +225,8 @@ export const useProducts = (): UseProductsReturn => {
             products: initialProducts,
             hasMore: true,
             totalFetched: initialProducts.length,
-            allProductIds: new Set(initialProducts.map(p => p.id))
+            allProductIds: new Set(initialProducts.map(p => p.id)),
+            isInitialLoad: false // 商品ロード完了後はフラグを下ろす
           });
           
           // 画像をプリフェッチ（より多くプリロード）
@@ -329,7 +334,8 @@ export const useProducts = (): UseProductsReturn => {
               products: reset ? recycledProducts : [...prev.products, ...recycledProducts],
               hasMore: true,
               totalFetched: prev.totalFetched + recycledProducts.length,
-              allProductIds: updatedAllProductIds
+              allProductIds: updatedAllProductIds,
+              isInitialLoad: false
             }));
             
             // 画像プリフェッチ
@@ -343,7 +349,8 @@ export const useProducts = (): UseProductsReturn => {
           console.log('[useProducts] All products exhausted after retries and recycling');
           setProductsData(prev => ({
             ...prev,
-            hasMore: false
+            hasMore: false,
+            isInitialLoad: false
           }));
         }
       } else {
@@ -357,7 +364,8 @@ export const useProducts = (): UseProductsReturn => {
           products: reset ? sortedProducts : [...prev.products, ...sortedProducts],
           hasMore: sortedProducts.length >= pageSize * 0.5, // 半分以上取得できれば継続
           totalFetched: prev.totalFetched + sortedProducts.length,
-          allProductIds: updatedAllProductIds
+          allProductIds: updatedAllProductIds,
+          isInitialLoad: false // 商品ロード完了後はフラグを下ろす
         }));
         
         // 次の商品の画像をプリフェッチ（非同期、より多くプリロード）
@@ -376,7 +384,8 @@ export const useProducts = (): UseProductsReturn => {
       setError(error.message || 'Failed to load products');
       setProductsData(prev => ({
         ...prev,
-        hasMore: false
+        hasMore: false,
+        isInitialLoad: false
       }));
     } finally {
       setIsLoading(false);

@@ -250,13 +250,25 @@ const SwipeScreen: React.FC = () => {
     );
   }
   
-  // 現在の商品がない場合（商品リストが空でない場合のみローディング表示）
-  if (!currentProduct && products.length > 0) {
+  // 現在の商品がない場合（初期ロード中または商品リストが空でない場合）
+  if (!currentProduct) {
+    // 商品があるのに表示されない場合はローディングを表示
+    if (products.length > 0 && currentIndex < products.length) {
+      return (
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={theme.colors.primary} />
+            <Text style={[styles.loadingText, { color: theme.colors.text.secondary }]}>商品を準備中...</Text>
+          </View>
+        </SafeAreaView>
+      );
+    }
+    // それ以外の場合（初期ロード時など）も通常のローディング表示に統一
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={[styles.loadingText, { color: theme.colors.text.secondary }]}>商品を準備中...</Text>
+          <Text style={[styles.loadingText, { color: theme.colors.text.secondary }]}>商品を読み込み中...</Text>
         </View>
       </SafeAreaView>
     );
