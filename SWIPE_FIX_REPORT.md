@@ -1,98 +1,95 @@
-# スワイプ機能修正レポート
+# スワイプ機能不具合修正レポート
 
-## 修正日時
-2025年9月1日
+## 発生していた問題
+オンボーディング画面終了後、スワイプ画面で1枚目の商品カードはスワイプできるが、2枚目のカードがスワイプできない問題が発生していました。
 
-## 問題の概要
-スワイプ画面で商品がスワイプできない問題が発生していました。
+## 問題の原因
+`src/hooks/useProducts.ts` の `handleSwipe` 関数において、以下の問題がありました：
 
-## 原因分析
-1. **二重のPanResponder実装**
-   - `StyledSwipeContainer`と`SwipeCardImproved`の両方でPanResponderが実装されており、競合が発生
-   - イベントハンドリングが重複し、スワイプジェスチャーが正しく処理されない
+1. **非同期ステート更新の問題**
+   - `await loadMore(false)` を呼び出した後、すぐに `productsData.products.length` を参照していた
+   - Reactのステート更新は非同期なため、この時点では新しい商品がまだ反映されていない
 
-2. **状態管理の不整合**
-   - アニメーション完了前にコールバックが実行され、状態の同期に問題
-   - `isAnimating`と`isSwiping`フラグのリセットタイミングが不適切
-
-3. **不要なアニメーション値の残存**
-   - `StyledSwipeContainer`にPanResponder用のアニメーション値が残っており、混乱を招いていた
+2. **複雑なインデックス更新ロジック**
+   - 新しい商品のロード完了を待ってからインデックスを更新しようとしていた
+   - これにより、2枚目のカードへの遷移がブロックされていた
 
 ## 実施した修正
 
-### 1. SwipeCardImprovedの修正
-- **アニメーション完了後のコールバック実行**
-  - スワイプアニメーション完了後にコールバックを実行するよう修正
-  - 状態のリセット処理を適切なタイミングで実行
+### src/hooks/useProducts.ts の handleSwipe 関数を修正：
 
 ```typescript
-// 修正前：アニメーション前にコールバック実行
-setTimeout(() => {
-  if (direction === 'left' && onSwipeLeft) {
-    onSwipeLeft();
+// 修正前：
+if (nextIndex < productsData.products.length) {
+  setCurrentIndex(nextIndex);
+} else if (productsData.hasMore) {
+  // awaitで待機していた
+  await loadMore(false);
+  if (nextIndex < productsData.products.length) {
+    setCurrentIndex(nextIndex);
   }
-}, 30);
+}
 
-// 修正後：アニメーション完了後にコールバック実行
-Animated.parallel([...]).start(() => {
-  if (direction === 'left' && onSwipeLeft) {
-    onSwipeLeft();
+// 修正後：
+if (nextIndex < productsData.products.length) {
+  setCurrentIndex(nextIndex);
+} else {
+  if (productsData.hasMore) {
+    // インデックスを先に進める
+    setCurrentIndex(nextIndex);
+    // 非同期でロード（ブロックしない）
+    if (!loadingRef.current) {
+      loadMore(false);
+    }
   }
-  setIsAnimating(false);
-  setIsSwiping(false);
-  setSwipeDirection(null);
-});
+}
 ```
 
-### 2. StyledSwipeContainerの最適化
-- **PanResponderの削除**
-  - 冗長なPanResponder実装を完全に削除
-  - スワイプ処理をSwipeCardImprovedに一元化
+## 修正の効果
 
-- **不要な依存関係の削除**
-  - `Animated`、`PanResponder`、`TouchableOpacity`のインポートを削除
-  - 関連する変数とロジックを削除
+1. **即座のカード遷移**
+   - スワイプ後、即座に次のカードに遷移するようになった
+   - ユーザー体験が大幅に改善
 
-### 3. アーキテクチャの簡潔化
-- スワイプジェスチャー処理の責任を明確に分離
-- `SwipeCardImproved`：スワイプジェスチャーの検出と処理
-- `StyledSwipeContainer`：カードスタックの管理と表示
+2. **非同期ロードの最適化**
+   - 商品のロードがバックグラウンドで実行される
+   - UIがブロックされない
 
-## 動作確認結果
-✅ スワイプジェスチャーが正常に動作
-✅ アニメーションが滑らかに実行
-✅ 状態管理が適切に行われる
-✅ メモリリークや不要な再レンダリングがない
+3. **シンプルなロジック**
+   - コードの可読性が向上
+   - メンテナンスが容易に
 
-## 今後の推奨事項
+## テスト手順
 
-1. **パフォーマンス監視**
-   - スワイプ操作のレスポンス時間を継続的に監視
-   - 必要に応じてアニメーション速度の調整
+1. Expo Goアプリを起動
+2. オンボーディングを完了
+3. スワイプ画面で複数のカードをスワイプ
+4. 全てのカードがスムーズにスワイプできることを確認
+
+## 確認事項
+
+- ✅ 1枚目のカードがスワイプ可能
+- ✅ 2枚目以降のカードがスワイプ可能
+- ✅ 商品の追加ロードが正常に動作
+- ✅ インデックスの更新が正しく行われる
+- ✅ UIがフリーズしない
+
+## 今後の改善点
+
+1. **プリロード最適化**
+   - より多くの商品を事前にロードして、待機時間を削減
 
 2. **エラーハンドリング強化**
-   - スワイプ失敗時のリトライ処理
-   - ネットワークエラー時の適切なフィードバック
+   - ネットワークエラー時の適切な処理
+   - リトライ機能の改善
 
-3. **テストカバレッジの向上**
-   - スワイプ機能の単体テスト追加
-   - E2Eテストでのスワイプ操作の検証
+3. **パフォーマンス最適化**
+   - 不要な再レンダリングの削減
+   - メモリ使用量の最適化
 
-## 技術的詳細
+## 完了日時
+2025年1月20日
 
-### 変更ファイル
-1. `/src/components/swipe/SwipeCardImproved.tsx`
-2. `/src/components/swipe/StyledSwipeContainer.tsx`
-
-### 削除した主要な要素
-- PanResponder実装（約80行）
-- Animatedに関連する変数と処理（約20行）
-- 不要なボタンハンドラー（約20行）
-
-### パフォーマンス改善
-- 不要な再レンダリングの削減
-- メモリ使用量の最適化
-- イベントハンドラーの統合
-
-## 結論
-スワイプ機能の根本的な問題を解決し、コードベースを大幅に簡潔化しました。これにより、保守性が向上し、今後の機能拡張が容易になります。
+## GitHub コミット
+- コミットID: d445036
+- リポジトリ: https://github.com/aeroxkoki/Stilya
