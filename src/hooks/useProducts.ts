@@ -457,27 +457,46 @@ export const useProducts = (): UseProductsReturn => {
     // 残り10枚になったら追加ロード（非同期）
     if (nextIndex >= productsData.products.length - 10 && productsData.hasMore && !loadingRef.current) {
       console.log('[useProducts] Loading more products (10 cards remaining)');
-      // 非同期でロードを開始
-      setTimeout(() => loadMore(false), 0);
+      // 即座にロード開始（setTimeoutを使わない）
+      loadMore(false);
     }
     
-    // 重要な修正：次の商品が実際に配列に存在する場合のみインデックスを更新
-    // hasMoreがtrueでも、実際に商品が配列にない場合はインデックスを更新しない
+    // 【修正】インデックス更新のロジックを改善
     if (nextIndex < productsData.products.length) {
-      // 次の商品が実際に存在する
+      // 次の商品が実際に存在する場合はインデックスを更新
       setCurrentIndex(nextIndex);
-      console.log(`[useProducts] Updated currentIndex to ${nextIndex} (product exists)`);
-    } else if (productsData.hasMore && loadingRef.current) {
-      // 新しい商品を読み込み中の場合は、現在のインデックスを維持
-      console.log('[useProducts] Waiting for new products to load, keeping current index');
-    } else if (!productsData.hasMore) {
-      // もう商品がない場合
-      console.log('[useProducts] No more products available');
-      // インデックスは更新しない（最後の商品を表示し続ける）
+      console.log(`[useProducts] ✅ Updated currentIndex to ${nextIndex} (product exists)`);
+      console.log(`[useProducts] Next product: ${productsData.products[nextIndex]?.title || 'undefined'}`);
+    } else if (productsData.hasMore) {
+      // まだ商品があるが配列にない場合
+      // インデックスは更新せず、ローディングを開始
+      console.log('[useProducts] ⏳ No next product in array but hasMore=true, starting load');
+      if (!loadingRef.current) {
+        // 再度ロード試行
+        await loadMore(false);
+        // ロード後に次の商品が追加されたか確認
+        if (nextIndex < productsData.products.length) {
+          setCurrentIndex(nextIndex);
+          console.log(`[useProducts] ✅ After loading, updated currentIndex to ${nextIndex}`);
+        } else {
+          console.log('[useProducts] ⚠️ After loading, still no next product');
+        }
+      }
     } else {
-      // その他の場合（通常は発生しないが、念のため）
-      console.log('[useProducts] Edge case: keeping current index');
+      // もう商品がない場合
+      console.log('[useProducts] ❌ No more products available (hasMore=false)');
+      // インデックスは更新しない（最後の商品を表示し続ける）
     }
+    
+    // デバッグ用の詳細情報出力
+    console.log('[useProducts] Debug Info:', {
+      currentIndex,
+      nextIndex,
+      productsLength: productsData.products.length,
+      hasMore: productsData.hasMore,
+      loadingRef: loadingRef.current,
+      nextProductTitle: productsData.products[nextIndex]?.title || 'N/A'
+    });
   }, [user, currentIndex, productsData.products.length, productsData.hasMore, loadMore]);
 
   // もっと読み込む
