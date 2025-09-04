@@ -438,6 +438,7 @@ export const useProducts = (): UseProductsReturn => {
     swipedProductsRef.current.add(product.id);
     
     console.log(`[useProducts] Recording swipe: ${direction} for product ${product.id} at index ${currentIndex}`);
+    console.log(`[useProducts] Current products length: ${productsData.products.length}`);
     
     // Supabaseに記録（非同期）- エラーハンドリングを改善
     recordSwipe({
@@ -460,13 +461,22 @@ export const useProducts = (): UseProductsReturn => {
       setTimeout(() => loadMore(false), 0);
     }
     
-    // 次の商品が存在する場合のみインデックスを更新
-    if (nextIndex < productsData.products.length || productsData.hasMore) {
-      // 即座に状態を更新（同期的に）
+    // 重要な修正：次の商品が実際に配列に存在する場合のみインデックスを更新
+    // hasMoreがtrueでも、実際に商品が配列にない場合はインデックスを更新しない
+    if (nextIndex < productsData.products.length) {
+      // 次の商品が実際に存在する
       setCurrentIndex(nextIndex);
-      console.log(`[useProducts] Updated currentIndex to ${nextIndex}`);
+      console.log(`[useProducts] Updated currentIndex to ${nextIndex} (product exists)`);
+    } else if (productsData.hasMore && loadingRef.current) {
+      // 新しい商品を読み込み中の場合は、現在のインデックスを維持
+      console.log('[useProducts] Waiting for new products to load, keeping current index');
+    } else if (!productsData.hasMore) {
+      // もう商品がない場合
+      console.log('[useProducts] No more products available');
+      // インデックスは更新しない（最後の商品を表示し続ける）
     } else {
-      console.log('[useProducts] No more products to show');
+      // その他の場合（通常は発生しないが、念のため）
+      console.log('[useProducts] Edge case: keeping current index');
     }
   }, [user, currentIndex, productsData.products.length, productsData.hasMore, loadMore]);
 

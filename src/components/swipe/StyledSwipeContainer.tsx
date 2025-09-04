@@ -14,13 +14,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNetwork } from '@/contexts/NetworkContext';
 import { useStyle } from '@/contexts/ThemeContext';
 import { imagePreloadService } from '@/services/imagePreloadService';
-import StyledSwipeCard from './StyledSwipeCard';
-import SwipeCardEnhanced from './SwipeCardEnhanced';
 import SwipeCardImproved from './SwipeCardImproved';
 import QuickViewModal from './QuickViewModal';
 
 const { width } = Dimensions.get('window');
-const SWIPE_THRESHOLD = 120;
 
 interface StyledSwipeContainerProps {
   products: Product[];
@@ -44,25 +41,21 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
   onLoadMore,
   hasMoreProducts = false,
   testID,
-  currentIndex: externalIndex,
-  useEnhancedCard = true, // デフォルトで強化版カードを使用
+  currentIndex: externalIndex = 0,
+  useEnhancedCard = true,
 }) => {
   const { user } = useAuth();
   const { isConnected } = useNetwork();
-  const { theme, styleType } = useStyle();
-  const [internalIndex, setInternalIndex] = useState(0);
+  const { theme } = useStyle();
   const [loadingMore, setLoadingMore] = useState(false);
   const [showQuickView, setShowQuickView] = useState(false);
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
-  const loadMoreThreshold = useRef(10); // あと10枚になったら追加読み込み
+  const loadMoreThreshold = useRef(10);
   
-  // 外部のインデックスが提供されていればそれを使う、なければ内部の状態を使う
-  const currentIndex = externalIndex !== undefined ? externalIndex : internalIndex;
+  // 外部から提供されたインデックスを使用
+  const currentIndex = externalIndex;
   const currentProduct = products[currentIndex];
 
-  // スワイプ方向を保持する状態
-  const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
-  
   // お気に入り機能のフックを使用
   const {
     favorites: savedItems,
@@ -73,12 +66,12 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
 
   // 画像のプリロード処理
   useEffect(() => {
-    // 次の3枚の画像を事前読み込み（表示される分だけ）
+    // 次の3枚の画像を事前読み込み
     if (products.length > 0 && currentIndex < products.length) {
       imagePreloadService.preloadProductImages(
         products,
-        currentIndex + 1, // 次のインデックスから
-        3 // 3枚先読み（表示される分だけ）
+        currentIndex + 1,
+        3
       ).catch(error => {
         if (__DEV__) {
           console.warn('[StyledSwipeContainer] Failed to preload images:', error);
@@ -129,18 +122,7 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
       if (onSwipe) {
         onSwipe(product, direction);
       }
-      // 外部インデックスが提供されていない場合のみ、内部インデックスを更新
-      // 外部インデックスが提供されている場合は、外部（useProducts）でインデックス管理される
-      if (externalIndex === undefined) {
-        setInternalIndex(prevIndex => {
-          const nextIndex = prevIndex + 1;
-          console.log(`[StyledSwipeContainer] Internal index updated to ${nextIndex}`);
-          return nextIndex;
-        });
-      } else {
-        console.log('[StyledSwipeContainer] External index provided, not updating internal index');
-      }
-      setSwipeDirection(null);
+      // インデックスの更新は外部(useProducts)で管理されるため、ここでは何もしない
     },
   });
 
@@ -151,8 +133,6 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
     if (currentProduct && onCardPress) {
       console.log('[StyledSwipeContainer] Calling onCardPress with product');
       onCardPress(currentProduct);
-    } else {
-      console.log('[StyledSwipeContainer] Missing product or onCardPress callback');
     }
   }, [currentProduct, onCardPress]);
 
@@ -294,78 +274,49 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
         </View>
       )}
       
-      {/* カードスタック */}
+      {/* カードスタック - シンプルな実装に変更 */}
       <View style={styles.cardStackContainer}>
-        {/* カードスタック表示 - 背後のカードから順に表示 */}
-        {useEnhancedCard ? (
-          <>
-            {/* 最大3枚のカードをスタック表示 - 後ろから前に向かって描画 */}
-            {[2, 1, 0].map((stackIndex) => {
-              const productIndex = currentIndex + stackIndex;
-              
-              // 商品が存在しない場合はスキップ
-              if (productIndex >= products.length) return null;
-              
-              const product = products[productIndex];
-              if (!product) return null;
-              
-              const isTop = stackIndex === 0;
-              const stackPosition = stackIndex;
-              
-              return (
-                <View 
-                  key={`${productIndex}-${product.id}`} // インデックスと商品IDの組み合わせ（より安定したkey）
-                  style={[
-                    styles.cardStack,
-                    { 
-                      zIndex: 1000 - stackPosition,
-                      elevation: 10 - stackPosition,
-                      opacity: isTop ? 1 : 0.7 - (stackPosition * 0.2),
-                      pointerEvents: isTop ? 'auto' : 'none',
-                      transform: [
-                        { scale: 1 - (stackPosition * 0.03) },
-                        { translateY: stackPosition * 8 },
-                      ],
-                    }
-                  ]}
-                >
-                  <SwipeCardImproved
-                    product={product}
-                    onPress={isTop ? handleCardPress : undefined}
-                    onLongPress={isTop ? handleCardLongPress : undefined}
-                    onSwipeLeft={isTop && isConnected !== false ? () => handleSwipeLeft(product) : undefined}
-                    onSwipeRight={isTop && isConnected !== false ? () => handleSwipeRight(product) : undefined}
-                    onSave={isTop ? handleSaveButtonPress : undefined}
-                    isSaved={savedItems.includes(product.id)}
-                    testID={isTop ? "current-swipe-card" : `stacked-card-${stackPosition}`}
-                    isTopCard={isTop}
-                    cardIndex={stackPosition}
-                    totalCards={3}
-                  />
-                </View>
-              );
-            }).filter(Boolean)}
-          </>
-        ) : (
-          currentProduct && (
-            <View
-              style={styles.cardStack}
+        {/* 現在のカードと次の2枚を表示 */}
+        {products.slice(currentIndex, Math.min(currentIndex + 3, products.length)).map((product, index) => {
+          const isTopCard = index === 0;
+          const zIndex = 1000 - index;
+          const scale = 1 - (index * 0.03);
+          const translateY = index * 8;
+          const opacity = isTopCard ? 1 : 0.7 - (index * 0.2);
+          
+          return (
+            <View 
+              key={`card-${currentIndex}-${index}-${product.id}`}
+              style={[
+                styles.cardStack,
+                { 
+                  zIndex,
+                  elevation: zIndex,
+                  opacity,
+                  transform: [
+                    { scale },
+                    { translateY },
+                  ],
+                  pointerEvents: isTopCard ? 'auto' : 'none',
+                }
+              ]}
             >
               <SwipeCardImproved
-                key={`${currentIndex}-${currentProduct.id}`} // インデックスと商品IDの組み合わせ
-                product={currentProduct}
-                onPress={handleCardPress}
-                onLongPress={handleCardLongPress}
-                onSwipeLeft={isConnected === false ? undefined : () => handleSwipeLeft(currentProduct)}
-                onSwipeRight={isConnected === false ? undefined : () => handleSwipeRight(currentProduct)}
-                onSave={handleSaveButtonPress}
-                isSaved={savedItems.includes(currentProduct.id)}
-                testID="current-swipe-card"
-                isTopCard={true}
+                product={product}
+                onPress={isTopCard ? handleCardPress : undefined}
+                onLongPress={isTopCard ? handleCardLongPress : undefined}
+                onSwipeLeft={isTopCard && isConnected !== false ? () => handleSwipeLeft(product) : undefined}
+                onSwipeRight={isTopCard && isConnected !== false ? () => handleSwipeRight(product) : undefined}
+                onSave={isTopCard ? handleSaveButtonPress : undefined}
+                isSaved={savedItems.includes(product.id)}
+                testID={isTopCard ? "current-swipe-card" : `stacked-card-${index}`}
+                isTopCard={isTopCard}
+                cardIndex={index}
+                totalCards={3}
               />
             </View>
-          )
-        )}
+          );
+        })}
       </View>
       
       {/* クイックビューモーダル */}
@@ -442,33 +393,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 4,
   },
-  swipeIndicator: {
-    position: 'absolute',
-    padding: 10,
-    borderRadius: 4,
-  },
-  yesIndicator: {
-    top: 20,
-    right: 20,
-  },
-  noIndicator: {
-    top: 20,
-    left: 20,
-  },
-  indicatorText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-    fontSize: 24,
-  },
   cardStackContainer: {
     width: '100%',
     height: '80%',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  backgroundCard: {
-    position: 'absolute',
-    opacity: 0.5,
   },
   cardStack: {
     position: 'absolute',
