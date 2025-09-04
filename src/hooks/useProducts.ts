@@ -457,35 +457,33 @@ export const useProducts = (): UseProductsReturn => {
     // 残り10枚になったら追加ロード（非同期）
     if (nextIndex >= productsData.products.length - 10 && productsData.hasMore && !loadingRef.current) {
       console.log('[useProducts] Loading more products (10 cards remaining)');
-      // 即座にロード開始（setTimeoutを使わない）
+      // 非同期でロード開始（ブロックしない）
       loadMore(false);
     }
     
-    // 【修正】インデックス更新のロジックを改善
+    // 【修正】インデックス更新のロジックを大幅に簡素化
+    // 商品が存在する場合は常にインデックスを進める
     if (nextIndex < productsData.products.length) {
-      // 次の商品が実際に存在する場合はインデックスを更新
       setCurrentIndex(nextIndex);
-      console.log(`[useProducts] ✅ Updated currentIndex to ${nextIndex} (product exists)`);
+      console.log(`[useProducts] ✅ Updated currentIndex to ${nextIndex}`);
       console.log(`[useProducts] Next product: ${productsData.products[nextIndex]?.title || 'undefined'}`);
-    } else if (productsData.hasMore) {
-      // まだ商品があるが配列にない場合
-      // インデックスは更新せず、ローディングを開始
-      console.log('[useProducts] ⏳ No next product in array but hasMore=true, starting load');
-      if (!loadingRef.current) {
-        // 再度ロード試行
-        await loadMore(false);
-        // ロード後に次の商品が追加されたか確認
-        if (nextIndex < productsData.products.length) {
-          setCurrentIndex(nextIndex);
-          console.log(`[useProducts] ✅ After loading, updated currentIndex to ${nextIndex}`);
-        } else {
-          console.log('[useProducts] ⚠️ After loading, still no next product');
-        }
-      }
     } else {
-      // もう商品がない場合
-      console.log('[useProducts] ❌ No more products available (hasMore=false)');
-      // インデックスは更新しない（最後の商品を表示し続ける）
+      // 商品がない場合でも hasMore が true ならインデックスを仮設定
+      // これにより、新しい商品が追加された際に自動的に表示される
+      if (productsData.hasMore) {
+        console.log('[useProducts] ⏳ Setting provisional index, waiting for products to load');
+        setCurrentIndex(nextIndex); // インデックスを進める
+        // 商品のロードを強制的に開始
+        if (!loadingRef.current) {
+          console.log('[useProducts] Starting immediate product load');
+          // 直ちにロード開始
+          loadMore(false);
+        }
+      } else {
+        // もう商品がない場合
+        console.log('[useProducts] ❌ No more products available (hasMore=false)');
+        // インデックスは更新しない（最後の商品を表示し続ける）
+      }
     }
     
     // デバッグ用の詳細情報出力
