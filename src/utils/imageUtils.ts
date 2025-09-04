@@ -41,10 +41,11 @@ export const optimizeImageUrl = (url: string | undefined | null): string => {
       // 楽天のCDN URLパターンの処理
       // thumbnail.image.rakuten.co.jp の場合
       if (optimizedUrl.includes('thumbnail.image.rakuten.co.jp')) {
-        // 既存のパラメータをチェック
+        // 既存の_exパラメータがある場合は800x800に強制変更
         if (optimizedUrl.includes('?_ex=')) {
-          // すでに_exパラメータがある場合はそのまま使用
-          console.log('[ImageUtils] Using existing _ex parameter');
+          // 既存の_exパラメータを800x800に置き換え
+          optimizedUrl = optimizedUrl.replace(/_ex=\d+x\d+/, '_ex=800x800');
+          console.log('[ImageUtils] Replaced _ex parameter with 800x800');
         } else if (optimizedUrl.includes('?')) {
           // 他のパラメータがある場合は_exを追加
           optimizedUrl = optimizedUrl + '&_ex=800x800';
