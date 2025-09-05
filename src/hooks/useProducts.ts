@@ -148,6 +148,10 @@ export const useProducts = (): UseProductsReturn => {
     if (loadingRef.current && !reset) return;
     loadingRef.current = true;
     
+    // 現在のインデックスを記憶（新商品追加後のインデックス調整用）
+    const prevIndex = currentIndex;
+    const wasWaitingForProducts = currentIndex >= productsData.products.length;
+    
     try {
       let currentPage = page;
       
@@ -368,6 +372,17 @@ export const useProducts = (): UseProductsReturn => {
           isInitialLoad: false // 商品ロード完了後はフラグを下ろす
         }));
         
+        // 【新規追加】商品追加後、待機中だった場合はインデックスを自動的に進める
+        if (wasWaitingForProducts && !reset && sortedProducts.length > 0) {
+          // 前のインデックスが商品配列の長さ以上だった場合、次の商品へ進む
+          const newProductsStartIndex = productsData.products.length;
+          if (prevIndex >= productsData.products.length - 1 && prevIndex < newProductsStartIndex + sortedProducts.length) {
+            console.log('[useProducts] 🔄 Auto-advancing index after products loaded');
+            // 新しい商品の最初のインデックスへ移動
+            setCurrentIndex(newProductsStartIndex);
+          }
+        }
+        
         // 次の商品の画像をプリフェッチ（非同期、より多くプリロード）
         InteractionManager.runAfterInteractions(() => {
           const nextImages = sortedProducts.slice(0, 10).map(p => p.imageUrl).filter(url => url !== null) as string[];
@@ -393,8 +408,10 @@ export const useProducts = (): UseProductsReturn => {
     }
   }, [
     page,
+    currentIndex,
     productsData.hasMore,
     productsData.allProductIds,
+    productsData.products.length,
     user,
     pageSize,
     filters,
@@ -403,7 +420,9 @@ export const useProducts = (): UseProductsReturn => {
     stylePreference,
     ageGroup,
     prefetchImages,
-    getEffectiveFilters
+    getEffectiveFilters,
+    userProfile,
+    swipeHistory.length
   ]);
 
   // 初回ロード
@@ -470,24 +489,32 @@ export const useProducts = (): UseProductsReturn => {
       loadMore(false);
     }
     
-    // 【修正】インデックス更新のロジックを大幅に簡素化
-    // 商品が存在する場合は常にインデックスを進める
+    // 【修正】インデックス更新のロジックを改善
+    // 次の商品が確実に存在する場合のみインデックスを進める
     if (nextIndex < productsData.products.length) {
-      setCurrentIndex(nextIndex);
-      console.log(`[useProducts] ✅ Updated currentIndex to ${nextIndex}`);
-      console.log(`[useProducts] Next product: ${productsData.products[nextIndex]?.title || 'undefined'}`);
+      // 次の商品が存在することを確認
+      const nextProduct = productsData.products[nextIndex];
+      if (nextProduct) {
+        setCurrentIndex(nextIndex);
+        console.log(`[useProducts] ✅ Updated currentIndex to ${nextIndex}`);
+        console.log(`[useProducts] Next product: ${nextProduct.title}`);
+      } else {
+        // 次の商品が存在しない場合はインデックスを更新しない
+        console.log(`[useProducts] ⚠️ Next product at index ${nextIndex} is undefined, not updating index`);
+      }
     } else {
-      // 商品がない場合でも hasMore が true ならインデックスを仮設定
-      // これにより、新しい商品が追加された際に自動的に表示される
+      // 商品がない場合の処理
       if (productsData.hasMore) {
-        console.log('[useProducts] ⏳ Setting provisional index, waiting for products to load');
-        setCurrentIndex(nextIndex); // インデックスを進める
-        // 商品のロードを強制的に開始
+        console.log('[useProducts] ⏳ No more products in current list, loading more...');
+        // 商品のロードを開始するが、インデックスは更新しない
+        // ロードが完了したら自動的に次の商品が表示可能になる
         if (!loadingRef.current) {
           console.log('[useProducts] Starting immediate product load');
-          // 直ちにロード開始
+          // loadMoreを呼び出すがインデックスは更新しない
           loadMore(false);
         }
+        // ローディング中はインデックスを更新しない
+        // これにより、currentProductがundefinedになることを防ぐ
       } else {
         // もう商品がない場合
         console.log('[useProducts] ❌ No more products available (hasMore=false)');
