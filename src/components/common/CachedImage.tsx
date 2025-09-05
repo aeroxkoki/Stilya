@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { StyleProp, ImageStyle, View, StyleSheet, ActivityIndicator, Text, Image as RNImage } from 'react-native';
+import React, { useState, useEffect, memo } from 'react';
+import { StyleProp, ImageStyle, View, StyleSheet, ActivityIndicator, Image as RNImage } from 'react-native';
 import { Image } from 'expo-image';
 import { optimizeImageUrl } from '@/utils/imageUtils';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,19 +10,20 @@ interface CachedImageProps {
   contentFit?: 'cover' | 'contain' | 'fill' | 'none' | 'scale-down';
   resizeMode?: 'cover' | 'contain' | 'stretch' | 'center';
   showLoadingIndicator?: boolean;
-  debugMode?: boolean; // デバッグモードを追加
-  productTitle?: string; // 商品名（デバッグ用）
-  silentFallback?: boolean; // サイレントフォールバックモード
-  preload?: boolean; // プリロード機能
+  debugMode?: boolean;
+  productTitle?: string;
+  silentFallback?: boolean;
+  preload?: boolean;
   [key: string]: any;
 }
 
 /**
- * 改善された画像表示コンポーネント
- * expo-imageを使用して高性能な画像表示を実現
- * エラーハンドリングをサイレントにしてUXを改善
+ * シンプル化された画像表示コンポーネント
+ * - 初めからexpo-imageを使用（React Native Imageへのフォールバックを削除）
+ * - エラー処理をシンプル化
+ * - パフォーマンスを向上
  */
-const CachedImage: React.FC<CachedImageProps> = ({ 
+const CachedImage: React.FC<CachedImageProps> = memo(({ 
   source, 
   style, 
   contentFit = 'cover',
@@ -30,166 +31,114 @@ const CachedImage: React.FC<CachedImageProps> = ({
   showLoadingIndicator = false,
   debugMode = false,
   productTitle,
-  silentFallback = true, // デフォルトでサイレントモード
+  silentFallback = true,
   preload = false,
   ...restProps 
 }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const [useFallback, setUseFallback] = useState(false);
-  const [useNativeImage, setUseNativeImage] = useState(false);
-  const retryTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
-  const errorCount = useRef(0);
   
   // resizeModeとcontentFitの互換性を保つ
   const finalContentFit = resizeMode ? 
     (resizeMode === 'stretch' ? 'fill' : resizeMode === 'center' ? 'contain' : resizeMode) : 
     contentFit;
   
-  // 画像URLを最適化
+  // 画像URLを最適化（メモ化）
   const imageSource = React.useMemo(() => {
     if (typeof source === 'number') {
-      return source; // ローカル画像の場合はそのまま返す
+      return source; // ローカル画像
     }
     
     const optimizedUrl = optimizeImageUrl(source.uri);
-    // 常にデバッグログを出力（開発環境）
-    if (__DEV__) {
-      console.log('[CachedImage] 📸 Image URL optimization:', {
-        product: productTitle || 'unknown',
-        original: source.uri?.substring(0, 100),
-        optimized: optimizedUrl?.substring(0, 100),
-        changed: source.uri !== optimizedUrl,
-        hasHttps: optimizedUrl?.startsWith('https://'),
-        isRakuten: optimizedUrl?.includes('rakuten'),
-        hasSize: optimizedUrl?.includes('_ex='),
+    
+    // デバッグモード時のみログを出力
+    if (debugMode && __DEV__) {
+      console.log('[CachedImage] Loading:', {
+        product: productTitle?.substring(0, 30),
+        url: optimizedUrl?.substring(0, 80)
       });
     }
+    
     return { uri: optimizedUrl };
   }, [source, productTitle, debugMode]);
   
-  // フォールバック画像（よりシンプルで高速な画像）
+  // フォールバック画像（統一された軽量画像）
   const fallbackSource = React.useMemo(() => {
-    // エレガントなグレーの背景画像（ファッションアプリに適したデザイン）
-    return { uri: 'https://via.placeholder.com/800x800/f5f5f5/cccccc?text=No+Image' };
+    return { uri: 'https://via.placeholder.com/800x800/f5f5f5/cccccc?text=Loading' };
   }, []);
   
-  // クリーンアップ
-  useEffect(() => {
-    return () => {
-      if (retryTimeoutRef.current) {
-        clearTimeout(retryTimeoutRef.current);
-      }
-    };
-  }, []);
-  
-  // エラー処理（サイレントモード対応）
-  const handleError = (event: any) => {
-    errorCount.current += 1;
-    
-    // 常にエラーログを出力（開発環境）
-    if (__DEV__) {
-      console.warn('[CachedImage] ❌ Failed to load image:', {
-        product: productTitle || 'unknown',
-        url: typeof imageSource === 'object' && 'uri' in imageSource ? imageSource.uri : 'unknown',
-        error: event?.error || event?.nativeEvent?.error || 'Unknown error',
-        errorMessage: event?.nativeEvent?.message || event?.message,
-        errorCount: errorCount.current,
-        willUseNativeImage: errorCount.current === 1 && !useNativeImage
-      });
-    }
-    
+  // 画像読み込み成功
+  const handleLoad = () => {
     setIsLoading(false);
-    setHasError(true);
+    setHasError(false);
     
-    // 最初のエラーの場合、React Native標準のImageを試す
-    if (errorCount.current === 1 && !useNativeImage) {
-      console.log('[CachedImage] Switching to React Native Image for:', productTitle);
-      setUseNativeImage(true);
-      setHasError(false);
-      setIsLoading(true);
-    } else {
-      // それでもダメな場合はフォールバック画像に切り替え
-      // エラー表示を出さずにスムーズに切り替える
-      setUseFallback(true);
+    if (debugMode && __DEV__) {
+      console.log(`[CachedImage] ✅ Loaded: ${productTitle?.substring(0, 30)}`);
     }
   };
   
-  
-  // サイレントなフォールバック表示
-  const SilentFallback = () => (
-    <View style={[StyleSheet.absoluteFillObject, styles.silentFallbackContainer]}>
-      <Ionicons name="image-outline" size={32} color="#ddd" />
-    </View>
-  );
+  // 画像読み込みエラー（シンプル化）
+  const handleError = () => {
+    setIsLoading(false);
+    setHasError(true);
+    
+    if (debugMode && __DEV__) {
+      console.warn(`[CachedImage] ❌ Failed: ${productTitle?.substring(0, 30)}`);
+    }
+  };
   
   return (
     <View style={[styles.container, style]}>
+      {/* ローディング表示（オプション） */}
       {isLoading && showLoadingIndicator && !silentFallback && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="small" color="#999" />
         </View>
       )}
       
-      {/* React Native標準のImageを使用（フォールバック） */}
-      {useNativeImage ? (
-        <RNImage
-          source={useFallback ? fallbackSource : imageSource}
-          style={StyleSheet.absoluteFillObject}
-          resizeMode={resizeMode || 'cover'}
-          onLoadStart={() => {
-            setIsLoading(true);
-            setHasError(false);
-          }}
-          onLoad={() => {
-            setIsLoading(false);
-            setHasError(false);
-            if (__DEV__) {
-              console.log(`[CachedImage] ✅ Loaded with RN Image:`, productTitle);
-            }
-          }}
-          onError={handleError}
-          {...restProps}
-        />
-      ) : (
-        <Image
-          source={useFallback ? fallbackSource : imageSource}
-          style={StyleSheet.absoluteFillObject}
-          contentFit={finalContentFit}
-          cachePolicy="memory-disk"
-          priority={preload ? "low" : "high"} // プリロードは低優先度
-          transition={50} // トランジション時間を短縮して切り替えを高速化
-          placeholder={fallbackSource}
-          placeholderContentFit="cover"
-          recyclingKey={productTitle} // キャッシュキーを追加
-          allowDownscaling={true} // ダウンスケーリングを許可
-          autoplay={false} // アニメーションGIFの自動再生を無効化
-          onLoadStart={() => {
-            setIsLoading(true);
-            setHasError(false);
-            setUseFallback(false);
-          }}
-          onLoad={() => {
-            setIsLoading(false);
-            setHasError(false);
-            if (__DEV__ && useFallback) {
-              console.log(`[CachedImage] ✅ Loaded fallback for:`, productTitle);
-            } else if (__DEV__) {
-              console.log(`[CachedImage] ✅ Successfully loaded image for:`, productTitle);
-            }
-          }}
-          onError={handleError}
-          {...restProps}
-        />
+      {/* エラー時のフォールバック表示 */}
+      {hasError && (
+        <View style={[StyleSheet.absoluteFillObject, styles.errorContainer]}>
+          <Ionicons name="image-outline" size={32} color="#ddd" />
+        </View>
       )}
       
-      {/* サイレントモードでフォールバック表示中 */}
-      {silentFallback && useFallback && (
-        <SilentFallback />
-      )}
+      {/* expo-imageのみを使用（シンプル化） */}
+      <Image
+        source={hasError ? fallbackSource : imageSource}
+        style={StyleSheet.absoluteFillObject}
+        contentFit={finalContentFit}
+        cachePolicy="memory-disk" // キャッシュポリシーを明示
+        priority={preload ? "low" : "normal"} // 優先度を調整
+        transition={100} // トランジションを短く
+        placeholder={fallbackSource}
+        placeholderContentFit="cover"
+        recyclingKey={productTitle} // キャッシュキー
+        allowDownscaling={true}
+        autoplay={false}
+        responsivePolicy="live" // レスポンシブポリシーを追加
+        onLoadStart={() => {
+          setIsLoading(true);
+          setHasError(false);
+        }}
+        onLoad={handleLoad}
+        onError={handleError}
+        {...restProps}
+      />
     </View>
   );
-};
+}, (prevProps, nextProps) => {
+  // メモ化の条件を最適化
+  if (typeof prevProps.source === 'number' && typeof nextProps.source === 'number') {
+    return prevProps.source === nextProps.source;
+  }
+  if (typeof prevProps.source === 'object' && typeof nextProps.source === 'object') {
+    return prevProps.source.uri === nextProps.source.uri &&
+           prevProps.style === nextProps.style &&
+           prevProps.contentFit === nextProps.contentFit;
+  }
+  return false;
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -205,25 +154,14 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   errorContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: '#f5f5f5',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  silentFallbackContainer: {
-    backgroundColor: '#f0f0f0',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorText: {
-    marginTop: 8,
-    color: '#999',
-    fontSize: 14,
-  },
-  debugText: {
-    marginTop: 4,
-    color: '#ccc',
-    fontSize: 12,
+    zIndex: 1,
   },
 });
+
+// コンポーネント名を設定（デバッグ用）
+CachedImage.displayName = 'CachedImage';
 
 export default CachedImage;

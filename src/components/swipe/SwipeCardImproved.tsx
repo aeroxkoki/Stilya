@@ -71,21 +71,25 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = memo(({
   const [isSwiping, setIsSwiping] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   
-  // 画像URL取得
-  const imageUrl = getProductImageUrl(product);
-  
-  // デバッグ用ログ
-  useEffect(() => {
-    if (__DEV__) {
-      console.log('[SwipeCardImproved] Product data:', {
-        id: product?.id,
-        title: product?.title,
-        imageUrl: imageUrl,
-        hasImageUrl: !!imageUrl,
-        productData: product
+  // 画像URL取得（改善版）
+  const imageUrl = React.useMemo(() => {
+    const url = getProductImageUrl(product);
+    // デバッグ用ログを最小限に
+    if (__DEV__ && isTopCard) {
+      console.log('[SwipeCardImproved] Image URL:', {
+        title: product?.title?.substring(0, 30),
+        hasUrl: !!url
       });
     }
-  }, [product]);
+    return url;
+  }, [product, isTopCard]);
+  
+  // 製品情報の欠如をチェック
+  React.useEffect(() => {
+    if (isTopCard && !product?.id) {
+      console.error('[SwipeCardImproved] Product missing ID:', product);
+    }
+  }, [product, isTopCard]);
   
   // カード登場アニメーション（スタック表示用）
   useEffect(() => {

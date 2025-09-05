@@ -1,5 +1,5 @@
 import { supabase, handleSupabaseError, handleSupabaseSuccess, TABLES } from './supabase';
-import { Product, UserPreference } from '../types';
+import { Product, UserPreference, dbProductToProduct } from '../types';
 import { FilterOptions } from '@/contexts/FilterContext';
 import { addScoreNoise, shuffleArray, ensureProductDiversity } from '../utils/randomUtils';
 import { StyleQuizResult } from '../contexts/OnboardingContext';
@@ -7,61 +7,34 @@ import { StyleQuizResult } from '../contexts/OnboardingContext';
 /**
  * 商品データの正規化関数
  * Supabaseから取得した生データを、アプリケーション内で使用する形式に変換
+ * Product型の定義に合わせてcamelCaseに変換
  */
 export function normalizeProduct(product: any): Product {
   if (!product) {
     console.warn('[normalizeProduct] Product is null or undefined');
+    // 空のProductオブジェクトを返す
     return {
       id: 'unknown',
       title: 'Unknown Product',
+      brand: '',
       price: 0,
-      image_url: '',
+      imageUrl: '',
+      thumbnailUrl: '',
+      description: '',
       tags: [],
       category: '',
-      brand: '',
-      description: '',
-      affiliate_url: '',
-      is_active: false,
+      affiliateUrl: '',
       source: 'unknown',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      gender: 'unisex',
+      isUsed: false,
+      isActive: false,
+      priority: 999,
     };
   }
 
-  return {
-    id: product.id || 'unknown',
-    title: product.title || 'Unknown Product',
-    price: typeof product.price === 'number' ? product.price : 0,
-    image_url: product.image_url || '',
-    tags: Array.isArray(product.tags) ? product.tags : [],
-    category: product.category || '',
-    brand: product.brand || '',
-    description: product.description || '',
-    affiliate_url: product.affiliate_url || '',
-    is_active: product.is_active !== false,
-    source: product.source || 'unknown',
-    created_at: product.created_at || new Date().toISOString(),
-    updated_at: product.updated_at || new Date().toISOString(),
-    
-    // Optional fields
-    original_price: product.original_price,
-    discount_percentage: product.discount_percentage,
-    is_sale: product.is_sale || false,
-    rating: product.rating,
-    reviewCount: product.review_count || product.reviewCount || 0,
-    priority: product.priority || 999,
-    is_used: product.is_used || false,
-    commission_rate: product.commission_rate,
-    features_extracted: product.features_extracted || false,
-    style_tags: Array.isArray(product.style_tags) ? product.style_tags : [],
-    color_tags: Array.isArray(product.color_tags) ? product.color_tags : [],
-    season_tags: Array.isArray(product.season_tags) ? product.season_tags : [],
-    quality_score: product.quality_score,
-    popularity_score: product.popularity_score,
-    metadata: product.metadata || {},
-    gender: product.gender || 'unisex',
-    category_tags: Array.isArray(product.category_tags) ? product.category_tags : [],
-  };
+  // dbProductToProduct関数を使用して変換
+  return dbProductToProduct(product);
 }
 
 // レコメンデーションサービスクラス
