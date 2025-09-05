@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, ActivityIndicator, Image } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, ActivityIndicator, Image, RefreshControl } from 'react-native';
 import { supabase } from '@/services/supabase';
 import { Image as ExpoImage } from 'expo-image';
+import { dbProductToProduct, Product } from '@/types/product';
+import { optimizeImageUrl, getProductImageUrl } from '@/utils/imageUtils';
 
 const ImageDebugScreen = () => {
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [rawProducts, setRawProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
@@ -18,10 +22,10 @@ const ImageDebugScreen = () => {
       
       const { data, error } = await supabase
         .from('external_products')
-        .select('id, title, image_url, brand')
+        .select('*')
         .eq('is_active', true)
         .not('image_url', 'is', null)
-        .limit(5);
+        .limit(10);
 
       if (error) {
         console.error('[ImageDebugScreen] Error loading products:', error);
@@ -31,20 +35,35 @@ const ImageDebugScreen = () => {
       console.log('[ImageDebugScreen] Loaded products:', data?.length);
       
       if (data) {
-        data.forEach((product, index) => {
-          console.log(`[ImageDebugScreen] Product ${index + 1}:`, {
+        // 生データを保存
+        setRawProducts(data);
+        
+        // 変換後のデータ
+        const convertedProducts = data.map(dbProduct => dbProductToProduct(dbProduct));
+        setProducts(convertedProducts);
+        
+        // デバッグ情報を出力
+        data.slice(0, 3).forEach((product, index) => {
+          console.log(`[ImageDebugScreen] RAW Product ${index + 1}:`, {
             id: product.id,
-            title: product.title.substring(0, 50),
-            image_url: product.image_url,
+            title: product.title?.substring(0, 50),
+            'DB image_url': product.image_url?.substring(0, 100),
+          });
+          console.log(`[ImageDebugScreen] CONVERTED Product ${index + 1}:`, {
+            id: convertedProducts[index].id,
+            title: convertedProducts[index].title?.substring(0, 50),
+            'imageUrl field': convertedProducts[index].imageUrl?.substring(0, 100),
+            'getProductImageUrl result': getProductImageUrl(convertedProducts[index])?.substring(0, 100),
           });
         });
       }
 
-      setProducts(data || []);
+      setProducts(convertedProducts || []);
     } catch (err) {
       console.error('[ImageDebugScreen] Unexpected error:', err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 

@@ -74,11 +74,17 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = memo(({
   // 画像URL取得（改善版）
   const imageUrl = React.useMemo(() => {
     const url = getProductImageUrl(product);
-    // デバッグ用ログを最小限に
+    // デバッグ用ログ（詳細版）
     if (__DEV__ && isTopCard) {
-      console.log('[SwipeCardImproved] Image URL:', {
+      console.log('[SwipeCardImproved] Product Image Debug:', {
+        productId: product?.id,
         title: product?.title?.substring(0, 30),
-        hasUrl: !!url
+        imageUrl: product?.imageUrl,
+        image_url: (product as any)?.image_url,
+        computedUrl: url,
+        hasImageUrlField: product?.imageUrl !== undefined,
+        hasImage_urlField: (product as any)?.image_url !== undefined,
+        productKeys: Object.keys(product || {})
       });
     }
     return url;

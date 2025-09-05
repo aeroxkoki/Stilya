@@ -69,7 +69,16 @@ export interface Product {
 
 // データベースからアプリの型への変換
 export const dbProductToProduct = (dbProduct: DBProduct): Product => {
-  return {
+  // デバッグログ：変換前のデータを確認
+  if (__DEV__) {
+    console.log('[dbProductToProduct] Converting:', {
+      id: dbProduct.id,
+      hasImage_url: dbProduct.image_url !== null,
+      image_url_sample: dbProduct.image_url?.substring(0, 50)
+    });
+  }
+  
+  const product = {
     id: dbProduct.id,
     title: dbProduct.title,
     brand: dbProduct.brand,
@@ -107,6 +116,17 @@ export const dbProductToProduct = (dbProduct: DBProduct): Product => {
     sourceBrand: dbProduct.source_brand,
     reviewAverage: dbProduct.review_average,
   };
+  
+  // デバッグログ：変換後のデータを確認
+  if (__DEV__) {
+    console.log('[dbProductToProduct] Converted:', {
+      id: product.id,
+      hasImageUrl: product.imageUrl !== null,
+      imageUrl_sample: product.imageUrl?.substring(0, 50)
+    });
+  }
+  
+  return product;
 };
 
 // アプリの型からデータベースへの変換
