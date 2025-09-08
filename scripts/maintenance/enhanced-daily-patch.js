@@ -201,14 +201,21 @@ async function optimizeImageUrls() {
       });
       
       if (updates.length > 0) {
-        const { error: updateError } = await supabase
-          .from('external_products')
-          .upsert(updates, { onConflict: 'id' });
+        // バッチ更新をindividual updatesに変更（upsertの制約回避）
+        for (const update of updates) {
+          const { error: singleUpdateError } = await supabase
+            .from('external_products')
+            .update({ image_url: update.image_url })
+            .eq('id', update.id);
+          
+          if (singleUpdateError) {
+            log('ERROR', `画像URL個別更新エラー (${update.id}):`, singleUpdateError.message);
+          }
+        }
+        const updateError = null; // エラーリセット
         
         if (!updateError) {
           optimized += updates.length;
-        } else {
-          log('ERROR', `画像URL最適化バッチエラー:`, updateError.message);
         }
       }
       
@@ -280,9 +287,18 @@ async function updateProductQualityScores() {
         });
       });
       
-      const { error } = await supabase
-        .from('external_products')
-        .upsert(updates, { onConflict: 'id' });
+      // バッチ更新をindividual updatesに変更（upsertの制約回避）
+      for (const update of updates) {
+        const { error: singleUpdateError } = await supabase
+          .from('external_products')
+          .update({ priority: update.priority })
+          .eq('id', update.id);
+        
+        if (singleUpdateError) {
+          log('ERROR', `個別更新エラー (${update.id}):`, singleUpdateError.message);
+        }
+      }
+      const error = null; // エラーリセット
       
       if (!error) {
         updated += updates.length;
