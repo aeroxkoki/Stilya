@@ -23,6 +23,7 @@
     "sync-rakuten": "node scripts/sync/sync-rakuten-products.js",
     "check-db": "node scripts/database/update-database-schema.js",
     "monitor:capacity": "node scripts/monitoring/check-capacity.js",
+    "monitor:github": "node scripts/monitoring/github-actions-monitor.js",
     "cleanup:dry-run": "node scripts/maintenance/smart-cleanup.js --dry-run",
     "daily-patch": "node scripts/maintenance/simple-daily-patch.js"
   },
