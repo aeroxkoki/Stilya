@@ -47,7 +47,7 @@ async function getDatabaseStats() {
     
     // ユーザー数
     const { count: userCount } = await supabase
-      .from('user_preferences')
+      .from('users')
       .select('*', { count: 'exact', head: true });
     stats.users = userCount || 0;
     
@@ -115,19 +115,25 @@ async function optimizeImageUrls() {
 function calculateProductQualityScore(data) {
   const { reviewCount, reviewAverage } = data;
   
-  if (reviewCount === 0) {
+  if (!reviewCount || reviewCount === 0) {
     return { total: 30, confidence: 'low' }; // ベースラインスコア
   }
   
   // Wilson Score計算（簡略版）
   const z = 1.96; // 95%信頼区間
   const n = reviewCount;
-  const p = reviewAverage / 5;
+  const p = (reviewAverage || 0) / 5;
   
-  const score = (p + z*z/(2*n) - z * Math.sqrt(p*(1-p)/n + z*z/(4*n*n))) / (1 + z*z/n);
+  // 安全な計算
+  const denominator = 1 + z*z/n;
+  if (denominator === 0) {
+    return { total: 30, confidence: 'low' };
+  }
+  
+  const score = (p + z*z/(2*n) - z * Math.sqrt(Math.max(0, p*(1-p)/n + z*z/(4*n*n)))) / denominator;
   
   return {
-    total: Math.round(score * 100),
+    total: Math.max(0, Math.min(100, Math.round(score * 100))),
     confidence: reviewCount > 50 ? 'high' : reviewCount > 10 ? 'medium' : 'low'
   };
 }
@@ -211,17 +217,28 @@ async function cleanupExpiredData() {
     
     log('INFO', `✅ ${deletedSwipes || 0}件の古いスワイプを削除しました`);
     
-    // 重複商品の確認（RPC関数が存在しない場合はスキップ）
+    // 簡単な重複チェック（タイトルベース）
     try {
-      const { data: duplicates } = await supabase
-        .rpc('find_duplicate_products');
+      const { data: products } = await supabase
+        .from('external_products')
+        .select('title')
+        .limit(1000);
       
-      if (duplicates && duplicates.length > 0) {
-        log('WARN', `⚠️ ${duplicates.length}件の重複商品が見つかりました`);
+      if (products && products.length > 0) {
+        const titleCounts = {};
+        products.forEach(p => {
+          if (p.title) {
+            titleCounts[p.title] = (titleCounts[p.title] || 0) + 1;
+          }
+        });
+        
+        const duplicates = Object.entries(titleCounts).filter(([_, count]) => count > 1);
+        if (duplicates.length > 0) {
+          log('WARN', `⚠️ ${duplicates.length}件の重複タイトルが見つかりました`);
+        }
       }
-    } catch (rpcError) {
-      // RPC関数が存在しない場合は無視
-      log('INFO', 'ℹ️ 重複チェックRPCは未実装です');
+    } catch (error) {
+      log('INFO', 'ℹ️ 重複チェックをスキップしました');
     }
     
     return deletedSwipes || 0;
