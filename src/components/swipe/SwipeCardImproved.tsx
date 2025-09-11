@@ -134,15 +134,18 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = memo(({
     }
   }, [isTopCard, cardIndex]);
   
-  // productが変更されたらアニメーション値をリセット
+  // productが変更されたらアニメーション値をリセット（ただし、アニメーション中は除く）
   useEffect(() => {
-    animValues.position.setValue({ x: 0, y: 0 });
-    animValues.likeOpacity.setValue(0);
-    animValues.nopeOpacity.setValue(0);
-    setSwipeDirection(null);
-    setIsSwiping(false);
-    setIsAnimating(false);
-  }, [product.id]);
+    // アニメーション中やスワイプ中はリセットしない
+    if (!isAnimating && !isSwiping) {
+      animValues.position.setValue({ x: 0, y: 0 });
+      animValues.likeOpacity.setValue(0);
+      animValues.nopeOpacity.setValue(0);
+      setSwipeDirection(null);
+      setIsSwiping(false);
+      setIsAnimating(false);
+    }
+  }, [product.id, isAnimating, isSwiping]);
   
   // スワイプ完了時のアニメーション
   const completeSwipe = (direction: 'left' | 'right') => {
@@ -171,22 +174,29 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = memo(({
       } else if (direction === 'right' && onSwipeRight) {
         onSwipeRight();
       }
-      // 状態をリセット
-      setIsAnimating(false);
-      setIsSwiping(false);
-      setSwipeDirection(null);
+      // 状態リセットは次のカード表示時に行う（useEffectで処理）
     });
   };
   
   // スワイプジェスチャー
-  const panResponder = useMemo(() => 
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => isTopCard && !isSwiping && !isAnimating,
+  const panResponder = useMemo(() => {
+    console.log('[SwipeCardImproved] Creating PanResponder for product:', product.id, 'isTopCard:', isTopCard);
+    return PanResponder.create({
+      onStartShouldSetPanResponder: () => {
+        const shouldSet = isTopCard && !isSwiping && !isAnimating;
+        console.log('[SwipeCardImproved] onStartShouldSetPanResponder:', shouldSet, { isTopCard, isSwiping, isAnimating });
+        return shouldSet;
+      },
       onMoveShouldSetPanResponder: (_, gesture) => {
-        return isTopCard && !isSwiping && !isAnimating && 
+        const shouldSet = isTopCard && !isSwiping && !isAnimating && 
                (Math.abs(gesture.dx) > 5 || Math.abs(gesture.dy) > 5);
+        if (shouldSet) {
+          console.log('[SwipeCardImproved] onMoveShouldSetPanResponder: true', { dx: gesture.dx, dy: gesture.dy });
+        }
+        return shouldSet;
       },
       onPanResponderGrant: () => {
+        console.log('[SwipeCardImproved] onPanResponderGrant - Starting swipe');
         setIsSwiping(true);
         animValues.position.setOffset({
           x: (animValues.position.x as any)._value || 0,
@@ -268,8 +278,8 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = memo(({
         animValues.likeOpacity.setValue(0);
         animValues.nopeOpacity.setValue(0);
       }
-    }), [isTopCard, isSwiping, isAnimating, onSwipeLeft, onSwipeRight]
-  );
+    });
+  }, [isTopCard, isSwiping, isAnimating, onSwipeLeft, onSwipeRight]);
   
   // ボタンアニメーション
   const animateButton = (callback?: () => void, isLikeAction?: boolean) => {
