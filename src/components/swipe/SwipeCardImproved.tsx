@@ -134,18 +134,18 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = memo(({
     }
   }, [isTopCard, cardIndex]);
   
-  // productが変更されたらアニメーション値をリセット（ただし、アニメーション中は除く）
+  // productが変更されたらアニメーション値をリセット
   useEffect(() => {
-    // アニメーション中やスワイプ中はリセットしない
-    if (!isAnimating && !isSwiping) {
-      animValues.position.setValue({ x: 0, y: 0 });
-      animValues.likeOpacity.setValue(0);
-      animValues.nopeOpacity.setValue(0);
-      setSwipeDirection(null);
-      setIsSwiping(false);
-      setIsAnimating(false);
-    }
-  }, [product.id, isAnimating, isSwiping]);
+    // 新しい商品に切り替わったとき、強制的に状態をリセット
+    console.log('[SwipeCardImproved] Product changed, resetting states for:', product.id);
+    animValues.position.setValue({ x: 0, y: 0 });
+    animValues.likeOpacity.setValue(0);
+    animValues.nopeOpacity.setValue(0);
+    animValues.cardOpacity.setValue(1); // カードの不透明度もリセット
+    setSwipeDirection(null);
+    setIsSwiping(false);
+    setIsAnimating(false);
+  }, [product.id]);
   
   // スワイプ完了時のアニメーション
   const completeSwipe = (direction: 'left' | 'right') => {
@@ -174,13 +174,20 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = memo(({
       } else if (direction === 'right' && onSwipeRight) {
         onSwipeRight();
       }
-      // 状態リセットは次のカード表示時に行う（useEffectで処理）
+      // 【修正】アニメーション状態をリセット
+      setIsAnimating(false);
+      setIsSwiping(false);
+      // 位置とインジケータをリセット
+      animValues.position.setValue({ x: 0, y: 0 });
+      animValues.likeOpacity.setValue(0);
+      animValues.nopeOpacity.setValue(0);
+      setSwipeDirection(null);
     });
   };
   
   // スワイプジェスチャー
   const panResponder = useMemo(() => {
-    console.log('[SwipeCardImproved] Creating PanResponder for product:', product.id, 'isTopCard:', isTopCard);
+    console.log('[SwipeCardImproved] Creating PanResponder for product:', product.id, 'isTopCard:', isTopCard, 'isAnimating:', isAnimating, 'isSwiping:', isSwiping);
     return PanResponder.create({
       onStartShouldSetPanResponder: () => {
         const shouldSet = isTopCard && !isSwiping && !isAnimating;
@@ -279,7 +286,7 @@ const SwipeCardImproved: React.FC<SwipeCardImprovedProps> = memo(({
         animValues.nopeOpacity.setValue(0);
       }
     });
-  }, [isTopCard, isSwiping, isAnimating, onSwipeLeft, onSwipeRight]);
+  }, [isTopCard, isSwiping, isAnimating, onSwipeLeft, onSwipeRight, product.id]); // product.idを依存配列に追加
   
   // ボタンアニメーション
   const animateButton = (callback?: () => void, isLikeAction?: boolean) => {

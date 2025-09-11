@@ -289,7 +289,7 @@ const StyledSwipeContainer: React.FC<StyledSwipeContainerProps> = ({
           
           return (
             <View 
-              key={`card-${product.id}`} // キーを商品IDのみに変更（再マウントを防ぐ）
+              key={`card-${currentIndex + index}-${product.id}`} // 【修正】現在のインデックスと商品IDを組み合わせた一意のキー
               style={[
                 styles.cardStack,
                 { 
