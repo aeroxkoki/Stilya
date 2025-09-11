@@ -52,18 +52,43 @@ async function getDatabaseStats() {
     
     // スワイプ数
     const { count: swipeCount, error: swipeError } = await supabase
+      .from('swipes')
       .select('*', { count: 'exact', head: true });
-    stats.users = userCount || 0;
+    
+    if (swipeError) {
+      log('WARNING', 'swipes テーブルのカウントに失敗:', swipeError.message);
+      stats.swipes = 0;
+    } else {
+      stats.swipes = swipeCount || 0;
+    }
+    
+    // ユーザー数
+    const { count: userCount, error: userError } = await supabase
+      .from('users')
+      .select('*', { count: 'exact', head: true });
+    
+    if (userError) {
+      log('WARNING', 'users テーブルのカウントに失敗:', userError.message);
+      stats.users = 0;
+    } else {
+      stats.users = userCount || 0;
+    }
     
     // 今日のアクティビティ
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    const { count: todaySwipes } = await supabase
+    const { count: todaySwipes, error: todayError } = await supabase
       .from('swipes')
       .select('*', { count: 'exact', head: true })
       .gte('created_at', today.toISOString());
-    stats.todaySwipes = todaySwipes || 0;
+    
+    if (todayError) {
+      log('WARNING', '今日のスワイプ数取得に失敗:', todayError.message);
+      stats.todaySwipes = 0;
+    } else {
+      stats.todaySwipes = todaySwipes || 0;
+    }
     
     log('INFO', '✅ 統計情報:', stats);
     return stats;
@@ -313,11 +338,16 @@ async function performHealthCheck() {
     health.api = !apiError;
     
     // ストレージチェック（プロファイル画像の存在確認）
-    const { data: storageList, error: storageError } = await supabase
-      .storage
-      .from('product-images')
-      .list('', { limit: 1 });
-    health.storage = !storageError;
+    try {
+      const { data: storageList, error: storageError } = await supabase
+        .storage
+        .from('product-images')
+        .list('', { limit: 1 });
+      health.storage = !storageError;
+    } catch (storageException) {
+      log('INFO', 'ℹ️ ストレージバケットが未設定です');
+      health.storage = false;  // ストレージエラーはスキップ
+    }
     
     const allHealthy = Object.values(health).every(v => v);
     

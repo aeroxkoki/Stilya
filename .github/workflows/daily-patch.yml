@@ -48,7 +48,6 @@ jobs:
           echo "🚀 Starting daily maintenance patch..."
           node scripts/maintenance/simple-daily-patch.js
         env:
-          NODE_ENV: production
           DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
 
       - name: 📊 Generate patch report
