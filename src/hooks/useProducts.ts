@@ -94,8 +94,16 @@ export const useProducts = (): UseProductsReturn => {
   const retryCountRef = useRef(0);
   const recycleCountRef = useRef(0); // リサイクル回数をトラック
   
-  // 現在表示中の商品（初回ロード中はundefinedを返す）
-  const currentProduct = productsData.isInitialLoad ? undefined : productsData.products[currentIndex];
+  // 現在表示中の商品（初回ロード中または範囲外の場合はundefinedを返す）
+  const currentProduct = useMemo(() => {
+    if (productsData.isInitialLoad) {
+      return undefined;
+    }
+    if (currentIndex >= 0 && currentIndex < productsData.products.length) {
+      return productsData.products[currentIndex];
+    }
+    return undefined;
+  }, [productsData.isInitialLoad, productsData.products, currentIndex]);
 
   // スワイプ履歴を取得（初回のみ）
   useEffect(() => {
@@ -372,15 +380,16 @@ export const useProducts = (): UseProductsReturn => {
           isInitialLoad: false // 商品ロード完了後はフラグを下ろす
         }));
         
-        // 【新規追加】商品追加後、待機中だった場合はインデックスを自動的に進める
+        // 【修正】商品追加後、待機中だった場合の処理
         if (wasWaitingForProducts && !reset && sortedProducts.length > 0) {
-          // 前のインデックスが商品配列の長さ以上だった場合、次の商品へ進む
-          const newProductsStartIndex = productsData.products.length;
-          if (prevIndex >= productsData.products.length - 1 && prevIndex < newProductsStartIndex + sortedProducts.length) {
-            console.log('[useProducts] 🔄 Auto-advancing index after products loaded');
-            // 新しい商品の最初のインデックスへ移動
-            setCurrentIndex(newProductsStartIndex);
-          }
+          // 現在のインデックスが既存商品を超えている場合、そのまま維持
+          // （新商品が追加されることで自動的に有効なインデックスになる）
+          console.log('[useProducts] 🔄 Products loaded for waiting index:', {
+            prevIndex,
+            currentProductsLength: productsData.products.length,
+            newProductsCount: sortedProducts.length,
+            willHaveProduct: prevIndex < (productsData.products.length + sortedProducts.length)
+          });
         }
         
         // 次の商品の画像をプリフェッチ（非同期、より多くプリロード）
@@ -506,19 +515,17 @@ export const useProducts = (): UseProductsReturn => {
       // 商品がない場合の処理
       if (productsData.hasMore) {
         console.log('[useProducts] ⏳ No more products in current list, loading more...');
-        // 商品のロードを開始するが、インデックスは更新しない
-        // ロードが完了したら自動的に次の商品が表示可能になる
+        // 商品のロードを開始し、インデックスも更新する（次の商品の位置へ）
+        setCurrentIndex(nextIndex); // インデックスは更新する（新商品が来る位置）
         if (!loadingRef.current) {
           console.log('[useProducts] Starting immediate product load');
-          // loadMoreを呼び出すがインデックスは更新しない
           loadMore(false);
         }
-        // ローディング中はインデックスを更新しない
-        // これにより、currentProductがundefinedになることを防ぐ
       } else {
         // もう商品がない場合
         console.log('[useProducts] ❌ No more products available (hasMore=false)');
-        // インデックスは更新しない（最後の商品を表示し続ける）
+        // 最後までスワイプ完了
+        setCurrentIndex(nextIndex); // 最後を超えた位置へ設定
       }
     }
     
