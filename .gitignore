@@ -56,9 +56,12 @@ temp-backup-*/
 
 # Archive and backup
 archive/
+archived/
 *.bak
 *.backup
 *~
+scripts/archived/
+.github/workflows/archived/
 
 # VSCode
 .vscode/
