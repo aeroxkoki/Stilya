@@ -13,8 +13,8 @@ const path = require('path');
 dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 // Supabaseクライアントの作成
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
 const vcToken = process.env.VALUECOMMERCE_TOKEN;
 const vcEnabled = process.env.VALUECOMMERCE_ENABLED === 'true';
 
@@ -22,16 +22,24 @@ const vcEnabled = process.env.VALUECOMMERCE_ENABLED === 'true';
 if (!vcEnabled) {
   console.log('⚠️ バリューコマースAPIは無効になっています。');
   console.log('有効にするには、.envファイルで VALUECOMMERCE_ENABLED=true を設定してください。');
+  console.log('現在の設定: VALUECOMMERCE_ENABLED =', process.env.VALUECOMMERCE_ENABLED || '未設定');
   process.exit(0);
 }
 
 if (!supabaseUrl || !supabaseKey) {
   console.error('❌ Supabase環境変数が設定されていません');
+  console.error('必要な環境変数:');
+  console.error('- EXPO_PUBLIC_SUPABASE_URL または SUPABASE_URL');
+  console.error('- EXPO_PUBLIC_SUPABASE_ANON_KEY または SUPABASE_ANON_KEY');
+  console.error('現在の状態:');
+  console.error('- SUPABASE_URL:', process.env.SUPABASE_URL ? '設定済み' : '未設定');
+  console.error('- EXPO_PUBLIC_SUPABASE_URL:', process.env.EXPO_PUBLIC_SUPABASE_URL ? '設定済み' : '未設定');
   process.exit(1);
 }
 
 if (!vcToken) {
   console.error('❌ バリューコマースAPI環境変数が設定されていません');
+  console.error('必要な環境変数: VALUECOMMERCE_TOKEN');
   process.exit(1);
 }
 

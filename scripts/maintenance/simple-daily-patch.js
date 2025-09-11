@@ -15,6 +15,11 @@ const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.EXPO_PUBLIC_SUP
 if (!supabaseUrl || !supabaseKey) {
   console.error('❌ 環境変数が設定されていません');
   console.error('必要な変数: SUPABASE_URL, SUPABASE_ANON_KEY');
+  console.error('現在の環境変数:');
+  console.error('- SUPABASE_URL:', process.env.SUPABASE_URL ? '設定済み' : '未設定');
+  console.error('- SUPABASE_ANON_KEY:', process.env.SUPABASE_ANON_KEY ? '設定済み' : '未設定');
+  console.error('- EXPO_PUBLIC_SUPABASE_URL:', process.env.EXPO_PUBLIC_SUPABASE_URL ? '設定済み' : '未設定');
+  console.error('- EXPO_PUBLIC_SUPABASE_ANON_KEY:', process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ? '設定済み' : '未設定');
   process.exit(1);
 }
 
@@ -34,20 +39,19 @@ async function getDatabaseStats() {
   
   try {
     // 商品数
-    const { count: productCount } = await supabase
+    const { count: productCount, error: productError } = await supabase
       .from('external_products')
       .select('*', { count: 'exact', head: true });
-    stats.products = productCount || 0;
+    
+    if (productError) {
+      log('WARNING', 'external_products テーブルのカウントに失敗:', productError.message);
+      stats.products = 0;
+    } else {
+      stats.products = productCount || 0;
+    }
     
     // スワイプ数
-    const { count: swipeCount } = await supabase
-      .from('swipes')
-      .select('*', { count: 'exact', head: true });
-    stats.swipes = swipeCount || 0;
-    
-    // ユーザー数
-    const { count: userCount } = await supabase
-      .from('users')
+    const { count: swipeCount, error: swipeError } = await supabase
       .select('*', { count: 'exact', head: true });
     stats.users = userCount || 0;
     
